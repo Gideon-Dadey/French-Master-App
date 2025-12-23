@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -139,13 +139,22 @@ const styles = StyleSheet.create({});
 function AppNavigator() {
   const { isAuthenticated, loading } = useAuth();
   const { colors } = useTheme();
+  const navigationRef = React.useRef(null);
+
+  useEffect(() => {
+    // When authentication state changes, ensure navigation is updated
+    if (!loading && navigationRef.current) {
+      // Navigation state will be updated automatically by React Navigation
+      // But we can force a refresh if needed
+    }
+  }, [isAuthenticated, loading]);
 
   if (loading) {
     return null; // Or a loading screen
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator 
         screenOptions={{ headerShown: false }}
         initialRouteName="Main"

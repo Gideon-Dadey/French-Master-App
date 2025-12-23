@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { CommonActions } from '@react-navigation/native';
 import { useAuth } from '../../src/context/AuthContext';
 
 export default function LoginScreen({ navigation }) {
@@ -30,7 +31,18 @@ export default function LoginScreen({ navigation }) {
     const result = await login(email, password);
     setLoading(false);
 
-    if (!result.success) {
+    if (result.success) {
+      // Navigate to Main tabs using parent navigator
+      const parent = navigation.getParent();
+      if (parent) {
+        parent.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'Main' }],
+          })
+        );
+      }
+    } else {
       Alert.alert('Login Failed', result.message);
     }
   };
