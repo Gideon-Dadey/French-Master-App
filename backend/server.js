@@ -110,8 +110,11 @@ const PORT = process.env.PORT || 5001;
 const startServer = async () => {
   const dbConnected = await connectDB();
   
-  const server = app.listen(PORT, () => {
+  // Listen on all network interfaces (0.0.0.0) to allow access from mobile devices
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+    console.log(`📱 Accessible at: http://0.0.0.0:${PORT}/api`);
+    console.log(`🌐 Local access: http://localhost:${PORT}/api`);
     if (!dbConnected) {
       console.warn('⚠️  Running without database connection. API endpoints may return errors.');
     }

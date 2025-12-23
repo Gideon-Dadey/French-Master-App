@@ -33,6 +33,12 @@ import WishlistScreen from './screens/WishlistScreen';
 import AchievementsScreen from './screens/AchievementsScreen';
 import BlogListScreen from './screens/BlogListScreen';
 import BlogDetailScreen from './screens/BlogDetailScreen';
+import FreeQuizScreen from './screens/FreeQuizScreen';
+import GrammarDrillsScreen from './screens/GrammarDrillsScreen';
+import FlashcardsScreen from './screens/FlashcardsScreen';
+import SpeakingPracticeScreen from './screens/SpeakingPracticeScreen';
+import ListeningPracticeScreen from './screens/ListeningPracticeScreen';
+import WritingPracticeScreen from './screens/WritingPracticeScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -321,6 +327,48 @@ function AppNavigator() {
                   fontWeight: '600',
                   fontSize: 18,
                 },
+              }}
+            />
+            <Stack.Screen
+              name="FreeQuiz"
+              component={FreeQuizScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="GrammarDrills"
+              component={GrammarDrillsScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="Flashcards"
+              component={FlashcardsScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="SpeakingPractice"
+              component={SpeakingPracticeScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="ListeningPractice"
+              component={ListeningPracticeScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="WritingPractice"
+              component={WritingPracticeScreen}
+              options={{
+                headerShown: false,
               }}
             />
           </Stack.Navigator>

@@ -334,7 +334,21 @@ export default function PracticeScreen({ navigation }) {
                 colors={colors}
                 onPress={() => {
                   // Navigate to specific practice mode
-                  navigation.navigate('Courses');
+                  if (mode.id === 'quiz') {
+                    navigation.navigate('FreeQuiz');
+                  } else if (mode.id === 'grammar') {
+                    navigation.navigate('GrammarDrills');
+                  } else if (mode.id === 'flashcards') {
+                    navigation.navigate('Flashcards');
+                  } else if (mode.id === 'speaking') {
+                    navigation.navigate('SpeakingPractice');
+                  } else if (mode.id === 'listening') {
+                    navigation.navigate('ListeningPractice');
+                  } else if (mode.id === 'writing') {
+                    navigation.navigate('WritingPractice');
+                  } else {
+                    navigation.navigate('Courses');
+                  }
                 }}
               />
             ))}
