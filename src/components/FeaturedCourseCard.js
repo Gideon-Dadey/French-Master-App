@@ -167,12 +167,12 @@ export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
         <View style={styles.priceSection}>
           {hasDiscount && (
             <Text style={styles.originalPrice}>
-              {formatCurrency(course.originalPrice, course.currency)}
+              {formatCurrency(course.originalPrice, 'GHS')}
             </Text>
           )}
           <View style={styles.priceRow}>
             <Text style={[styles.price, course.isFree && styles.freePrice]}>
-              {course.isFree ? 'FREE' : formatCurrency(course.price, course.currency)}
+              {course.isFree ? 'FREE' : formatCurrency(course.price, 'GHS')}
             </Text>
             {!course.isFree && hasDiscount && (
               <View style={styles.priceBadge}>

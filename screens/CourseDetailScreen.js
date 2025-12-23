@@ -151,11 +151,11 @@ export default function CourseDetailScreen({ route, navigation }) {
         <View style={styles.priceContainer}>
           {course.originalPrice && course.originalPrice > course.price && (
             <Text style={styles.originalPrice}>
-              {formatCurrency(course.originalPrice, course.currency)}
+              {formatCurrency(course.originalPrice, 'GHS')}
             </Text>
           )}
           <Text style={styles.price}>
-            {course.isFree ? 'FREE' : formatCurrency(course.price, course.currency)}
+            {course.isFree ? 'FREE' : formatCurrency(course.price, 'GHS')}
           </Text>
         </View>
 
@@ -296,7 +296,7 @@ export default function CourseDetailScreen({ route, navigation }) {
           ) : (
             <>
               <Text style={styles.purchaseButtonText}>
-                {course.isFree ? 'Enroll for Free' : `Enroll Now - ${course.currency} ${course.price}`}
+                {course.isFree ? 'Enroll for Free' : `Enroll Now - ${formatCurrency(course.price, 'GHS')}`}
               </Text>
             </>
           )}

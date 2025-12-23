@@ -109,7 +109,7 @@ export default function CourseCard({ course, onPress, style, isHorizontal = fals
             { color: colors.text },
             course.isFree && styles.freePrice
           ]}>
-            {course.isFree ? 'FREE' : formatCurrency(course.price, course.currency)}
+            {course.isFree ? 'FREE' : formatCurrency(course.price, 'GHS')}
           </Text>
         </View>
       </View>

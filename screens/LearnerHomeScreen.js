@@ -19,6 +19,7 @@ import { coursesAPI, blogAPI } from '../src/services/api';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import { getCourseImage } from '../src/utils/courseImages';
 import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
+import { formatCurrency } from '../src/utils/helpers';
 
 const { width } = Dimensions.get('window');
 
@@ -226,11 +227,11 @@ export default function LearnerHomeScreen({ navigation }) {
               <>
                 {hasDiscount && (
                   <Text style={[styles.originalPrice, { color: colors.secondaryText }]}>
-                    ${course.originalPrice}
+                    {formatCurrency(course.originalPrice, 'GHS')}
                   </Text>
                 )}
                 <Text style={[styles.price, { color: colors.primary }]}>
-                  ${course.price}
+                  {formatCurrency(course.price, 'GHS')}
                 </Text>
               </>
             )}

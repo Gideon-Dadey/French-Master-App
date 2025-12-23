@@ -16,6 +16,7 @@ import ErrorMessage from '../src/components/ErrorMessage';
 import { spacing, fontSize, screenWidth } from '../src/utils/responsive';
 import { useTheme } from '../src/context/ThemeContext';
 import { getCourseImage } from '../src/utils/courseImages';
+import { formatCurrency } from '../src/utils/helpers';
 
 export default function HomeScreen({ navigation }) {
   const { colors, isDarkMode, toggleTheme } = useTheme();
@@ -106,7 +107,7 @@ export default function HomeScreen({ navigation }) {
               </Text>
             </View>
             <Text style={[styles.coursePrice, { color: colors.primary }]}>
-              {course.price === 0 || course.price === null ? 'Free' : `$${course.price}`}
+              {course.price === 0 || course.price === null ? 'Free' : formatCurrency(course.price, 'GHS')}
             </Text>
           </View>
         </View>
