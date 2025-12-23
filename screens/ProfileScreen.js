@@ -14,25 +14,34 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
+import { useGamification } from '../src/context/GamificationContext';
 import { usersAPI, progressAPI } from '../src/services/api';
+import { spacing, fontSize } from '../src/utils/responsive';
+import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import ErrorMessage from '../src/components/ErrorMessage';
 import { showToast } from '../src/components/ToastNotification';
 
+const { width } = Dimensions.get('window');
+
 export default function ProfileScreen({ navigation }) {
   const { user, logout, isAuthenticated } = useAuth();
   const { isDarkMode, toggleTheme, colors } = useTheme();
+  const { stats: gamificationStats } = useGamification();
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState({
     enrolledCourses: 0,
     completedLessons: 0,
     totalProgress: 0,
+    studyTime: 0,
+    streak: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -74,16 +83,18 @@ export default function ProfileScreen({ navigation }) {
         // Calculate stats
         const enrolledCount = profileData.enrolledCourses?.length || 0;
         const dashboardData = progressResponse?.data?.data || {};
-        const completedCount = dashboardData.completedLessons || 0;
+        const completedCount = dashboardData.totalLessonsCompleted || 0;
         const totalProgress = dashboardData.totalProgress || 0;
+        const studyTime = dashboardData.totalTimeSpent || 0;
 
         setStats({
           enrolledCourses: enrolledCount,
           completedLessons: completedCount,
           totalProgress: Math.round(totalProgress),
+          studyTime: formatStudyTime(studyTime),
+          streak: gamificationStats?.streak || 0,
         });
       } else if (user) {
-        // Fallback to user from context
         setProfile({
           name: user.name,
           email: user.email,
@@ -99,6 +110,15 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  const formatStudyTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     loadProfile();
@@ -108,7 +128,7 @@ export default function ProfileScreen({ navigation }) {
     try {
       await usersAPI.updateProfile({ preferences: { [key]: value } });
       if (key === 'theme') {
-        toggleTheme(); // Use theme context
+        toggleTheme();
       } else if (key === 'notifications') {
         setNotifications(value);
       }
@@ -123,18 +143,9 @@ export default function ProfileScreen({ navigation }) {
       'Change Avatar',
       'Choose an option',
       [
-        {
-          text: 'Camera',
-          onPress: handleOpenCamera,
-        },
-        {
-          text: 'Photo Library',
-          onPress: handleOpenImageLibrary,
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
+        { text: 'Camera', onPress: handleOpenCamera },
+        { text: 'Photo Library', onPress: handleOpenImageLibrary },
+        { text: 'Cancel', style: 'cancel' },
       ],
       { cancelable: true }
     );
@@ -142,17 +153,11 @@ export default function ProfileScreen({ navigation }) {
 
   const handleOpenCamera = async () => {
     try {
-      // Request camera permissions
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          'Camera permission is required to take photos. Please enable it in your device settings.'
-        );
+        Alert.alert('Permission Required', 'Camera permission is required.');
         return;
       }
-
-      // Launch camera
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -160,29 +165,22 @@ export default function ProfileScreen({ navigation }) {
         quality: 0.8,
         base64: true,
       });
-
       if (!result.canceled && result.assets && result.assets.length > 0) {
         await handleImageSelected(result.assets[0]);
       }
     } catch (error) {
       console.error('Camera error:', error);
-      Alert.alert('Error', 'Failed to open camera. Please try again.');
+      Alert.alert('Error', 'Failed to open camera.');
     }
   };
 
   const handleOpenImageLibrary = async () => {
     try {
-      // Request media library permissions
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          'Photo library permission is required to select images. Please enable it in your device settings.'
-        );
+        Alert.alert('Permission Required', 'Photo library permission is required.');
         return;
       }
-
-      // Launch image library
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -190,39 +188,31 @@ export default function ProfileScreen({ navigation }) {
         quality: 0.8,
         base64: true,
       });
-
       if (!result.canceled && result.assets && result.assets.length > 0) {
         await handleImageSelected(result.assets[0]);
       }
     } catch (error) {
       console.error('Image library error:', error);
-      Alert.alert('Error', 'Failed to open photo library. Please try again.');
+      Alert.alert('Error', 'Failed to open photo library.');
     }
   };
 
   const handleImageSelected = async (asset) => {
     try {
       setUploadingAvatar(true);
-
-      // Create base64 data URI
       const base64Image = asset.base64 
         ? `data:image/jpeg;base64,${asset.base64}`
         : asset.uri;
-
-      // Update profile with new avatar
       const updateResponse = await usersAPI.updateProfile({ avatar: base64Image });
-
       if (updateResponse.data.success) {
-        // Reload profile to get updated data
+        // Update user in AuthContext to reflect avatar change in tab bar
+        await updateUser({ avatar: base64Image });
         await loadProfile();
-        
-        showToast.success('Avatar Updated', 'Your profile picture has been updated successfully!');
-      } else {
-        throw new Error('Failed to update avatar');
+        showToast.success('Avatar Updated', 'Your profile picture has been updated!');
       }
     } catch (error) {
       console.error('Failed to upload avatar:', error);
-      showToast.error('Upload Failed', 'Failed to upload avatar. Please try again.');
+      showToast.error('Upload Failed', 'Failed to upload avatar.');
     } finally {
       setUploadingAvatar(false);
     }
@@ -240,7 +230,6 @@ export default function ProfileScreen({ navigation }) {
 
   const handleCloseEditModal = () => {
     setEditModalVisible(false);
-    // Reset form data
     if (profile) {
       setEditFormData({
         name: profile.name || '',
@@ -254,34 +243,23 @@ export default function ProfileScreen({ navigation }) {
       Alert.alert('Error', 'Name is required');
       return;
     }
-
     try {
       setEditingProfile(true);
-
       const updateData = {
         name: editFormData.name.trim(),
       };
-
       if (editFormData.phone) {
         updateData.phone = editFormData.phone.trim();
       }
-
       const updateResponse = await usersAPI.updateProfile(updateData);
-
       if (updateResponse.data.success) {
-        // Reload profile to get updated data
         await loadProfile();
         setEditModalVisible(false);
-        showToast.success('Profile Updated', 'Your profile has been updated successfully!');
-      } else {
-        throw new Error('Failed to update profile');
+        showToast.success('Profile Updated', 'Your profile has been updated!');
       }
     } catch (error) {
       console.error('Failed to update profile:', error);
-      showToast.error(
-        'Update Failed',
-        error.response?.data?.message || 'Failed to update profile. Please try again.'
-      );
+      showToast.error('Update Failed', error.response?.data?.message || 'Failed to update profile.');
     } finally {
       setEditingProfile(false);
     }
@@ -322,25 +300,33 @@ export default function ProfileScreen({ navigation }) {
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.guestContainer}
       >
-        <View style={styles.guestHeader}>
+        <LinearGradient
+          colors={isDarkMode 
+            ? ['#1a0a2e', '#16213e', '#0f3460']
+            : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
+          }
+          style={styles.guestHeader}
+        >
           <View style={styles.guestAvatarContainer}>
-            <Ionicons name="person-circle-outline" size={120} color={colors.primary} />
+            <Ionicons name="person-circle-outline" size={120} color={isDarkMode ? '#BB86FC' : '#9C27B0'} />
           </View>
-          <Text style={[styles.guestTitle, { color: colors.text }]}>Welcome!</Text>
-          <Text style={[styles.guestSubtitle, { color: colors.secondaryText }]}>
+          <Text style={[styles.guestTitle, { color: isDarkMode ? '#FFFFFF' : '#424242' }]}>Welcome!</Text>
+          <Text style={[styles.guestSubtitle, { color: isDarkMode ? 'rgba(255,255,255,0.8)' : '#616161' }]}>
             Please login to access your profile and track your learning progress
           </Text>
+        </LinearGradient>
+        <View style={styles.guestActions}>
           <TouchableOpacity
-            style={[styles.loginButton, { backgroundColor: colors.primary }]}
+            style={[styles.loginButton, { backgroundColor: premiumColors.primary.main }, premiumShadows.md]}
             onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
           >
             <Text style={styles.loginButtonText}>Login</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.registerButton, { backgroundColor: colors.card, borderColor: colors.primary }]}
+            style={[styles.registerButton, { backgroundColor: colors.card, borderColor: premiumColors.primary.main }, premiumShadows.sm]}
             onPress={() => navigation.navigate('Auth', { screen: 'Register' })}
           >
-            <Text style={[styles.registerButtonText, { color: colors.primary }]}>Create Account</Text>
+            <Text style={[styles.registerButtonText, { color: premiumColors.primary.main }]}>Create Account</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -357,28 +343,34 @@ export default function ProfileScreen({ navigation }) {
 
   const displayName = profile?.name || user?.name || 'User';
   const displayEmail = profile?.email || user?.email || '';
-  const avatarUrl = profile?.avatar || user?.avatar || 'https://via.placeholder.com/100';
+  const avatarUrl = profile?.avatar || user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=6366F1&color=fff&size=200`;
 
   return (
     <ScrollView 
       style={[styles.container, { backgroundColor: colors.background }]}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
+      showsVerticalScrollIndicator={false}
     >
-      {/* Header with Gradient */}
+      {/* Premium Header */}
       <LinearGradient
-        colors={['#1E88E5', '#42A5F5']}
+        colors={isDarkMode 
+          ? ['#1a0a2e', '#16213e', '#0f3460']
+          : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.header}
       >
         <View style={styles.headerContent}>
           <View style={styles.avatarContainer}>
             <Image
               source={{ uri: avatarUrl }}
-              style={[styles.avatar, { borderColor: colors.card, backgroundColor: colors.card }]}
+              style={[styles.avatar, { borderColor: colors.card }]}
             />
             <TouchableOpacity 
-              style={[styles.editAvatarButton, { backgroundColor: colors.primary, borderColor: colors.card }]}
+              style={[styles.editAvatarButton, { backgroundColor: premiumColors.primary.main }]}
               onPress={handleAvatarPicker}
               disabled={uploadingAvatar}
             >
@@ -389,256 +381,203 @@ export default function ProfileScreen({ navigation }) {
               )}
             </TouchableOpacity>
           </View>
-          <Text style={styles.name}>{displayName}</Text>
-          <Text style={styles.email}>{displayEmail}</Text>
+          <Text style={[styles.name, { color: isDarkMode ? '#FFFFFF' : '#424242' }]}>{displayName}</Text>
+          <Text style={[styles.email, { color: isDarkMode ? 'rgba(255,255,255,0.8)' : '#616161' }]}>{displayEmail}</Text>
+          {stats.streak > 0 && (
+            <View style={[styles.streakBadge, { backgroundColor: '#FFD700' }]}>
+              <Ionicons name="flame" size={16} color="#000" />
+              <Text style={styles.streakText}>{stats.streak} day streak</Text>
+            </View>
+          )}
           <TouchableOpacity
-            style={[styles.editButton, { backgroundColor: colors.card }]}
+            style={[styles.editButton, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.2)' : colors.card }, premiumShadows.sm]}
             onPress={handleOpenEditModal}
             disabled={editingProfile}
           >
-            <Ionicons name="create-outline" size={16} color={colors.primary} />
-            <Text style={[styles.editButtonText, { color: colors.primary }]}>Edit Profile</Text>
+            <Ionicons name="create-outline" size={16} color={isDarkMode ? '#FFFFFF' : premiumColors.primary.main} />
+            <Text style={[styles.editButtonText, { color: isDarkMode ? '#FFFFFF' : premiumColors.primary.main }]}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
 
-      {/* Statistics Cards */}
-      <View style={styles.statsContainer}>
-        <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-          <Ionicons name="book-outline" size={28} color={colors.primary} />
-          <Text style={[styles.statNumber, { color: colors.text }]}>{stats.enrolledCourses}</Text>
-          <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Courses</Text>
+      {/* Premium Statistics Cards */}
+      <View style={styles.statsSection}>
+        <View style={[styles.statsCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.lg]}>
+          <Text style={[styles.statsTitle, { color: colors.text }]}>Learning Statistics</Text>
+          <View style={styles.statsGrid}>
+            <StatItem
+              icon="book"
+              value={stats.enrolledCourses}
+              label="Courses"
+              color={premiumColors.primary.main}
+              colors={colors}
+            />
+            <StatItem
+              icon="checkmark-circle"
+              value={stats.completedLessons}
+              label="Lessons"
+              color={premiumColors.accent.emerald}
+              colors={colors}
+            />
+            <StatItem
+              icon="time"
+              value={stats.studyTime}
+              label="Study Time"
+              color={premiumColors.accent.gold}
+              colors={colors}
+            />
+            <StatItem
+              icon="trophy"
+              value={`${stats.totalProgress}%`}
+              label="Progress"
+              color={premiumColors.accent.rose}
+              colors={colors}
+            />
+          </View>
         </View>
-        <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-          <Ionicons name="checkmark-circle-outline" size={28} color={colors.success} />
-          <Text style={[styles.statNumber, { color: colors.text }]}>{stats.completedLessons}</Text>
-          <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Completed</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-          <Ionicons name="trophy-outline" size={28} color={colors.warning} />
-          <Text style={[styles.statNumber, { color: colors.text }]}>{stats.totalProgress}%</Text>
-          <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Progress</Text>
+      </View>
+
+      {/* Progress Bar */}
+      <View style={styles.section}>
+        <View style={[styles.progressCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
+          <View style={styles.progressHeader}>
+            <Text style={[styles.progressTitle, { color: colors.text }]}>Overall Progress</Text>
+            <Text style={[styles.progressPercentage, { color: premiumColors.primary.main }]}>
+              {stats.totalProgress}%
+            </Text>
+          </View>
+          <View style={[styles.progressBarContainer, { backgroundColor: colors.border }]}>
+            <LinearGradient
+              colors={[premiumColors.primary.main, premiumColors.primary.light]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[styles.progressBarFill, { width: `${stats.totalProgress}%` }]}
+            />
+          </View>
         </View>
       </View>
 
       {/* Quick Actions */}
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text, borderBottomColor: colors.border }]}>Quick Actions</Text>
-        
-        <TouchableOpacity 
-          style={[styles.menuItem, { borderBottomColor: colors.border }]}
-          onPress={() => navigation.navigate('MyCourses')}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
-            <Ionicons name="library-outline" size={22} color={colors.primary} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>My Courses</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>View your enrolled courses</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.menuItem, { borderBottomColor: colors.border }]}
-          onPress={() => navigation.navigate('Wishlist')}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.error + '20' }]}>
-            <Ionicons name="heart-outline" size={22} color={colors.error} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>My Wishlist</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>Saved courses you love</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.menuItem, { borderBottomColor: colors.border }]}
-          onPress={() => navigation.navigate('Courses')}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.success + '20' }]}>
-            <Ionicons name="book-outline" size={22} color={colors.success} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>Browse Courses</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>Discover new courses</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.menuItem, { borderBottomColor: colors.border }]}
-          onPress={() => navigation.navigate('Achievements')}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.warning + '20' }]}>
-            <Ionicons name="trophy-outline" size={22} color={colors.warning} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>Achievements</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>View your learning badges</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-        </TouchableOpacity>
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
+        <View style={styles.quickActionsGrid}>
+          <QuickActionCard
+            icon="library"
+            title="My Courses"
+            subtitle="View enrolled"
+            color={premiumColors.primary.main}
+            colors={colors}
+            onPress={() => navigation.navigate('MyCourses')}
+          />
+          <QuickActionCard
+            icon="trophy"
+            title="Achievements"
+            subtitle="View badges"
+            color={premiumColors.accent.gold}
+            colors={colors}
+            onPress={() => navigation.navigate('Achievements')}
+          />
+          <QuickActionCard
+            icon="heart"
+            title="Wishlist"
+            subtitle="Saved courses"
+            color={premiumColors.accent.rose}
+            colors={colors}
+            onPress={() => navigation.navigate('Wishlist')}
+          />
+          <QuickActionCard
+            icon="notifications"
+            title="Notifications"
+            subtitle="View alerts"
+            color={premiumColors.accent.sky}
+            colors={colors}
+            onPress={() => navigation.navigate('Notifications')}
+          />
+        </View>
       </View>
 
       {/* Account Settings */}
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text, borderBottomColor: colors.border }]}>Account</Text>
-        
-        <TouchableOpacity 
-          style={[styles.menuItem, { borderBottomColor: colors.border }]}
-          onPress={() => Alert.alert('Coming Soon', 'Payment methods will be available soon')}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.warning + '20' }]}>
-            <Ionicons name="card-outline" size={22} color={colors.warning} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>Payment Methods</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>Manage your payment options</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.menuItem, { borderBottomColor: colors.border }]}
-          onPress={() => Alert.alert('Coming Soon', 'Purchase history will be available soon')}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.error + '20' }]}>
-            <Ionicons name="receipt-outline" size={22} color={colors.error} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>Purchase History</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>View your transactions</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-        </TouchableOpacity>
-      </View>
-
-      {/* App Settings */}
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text, borderBottomColor: colors.border }]}>Settings</Text>
-        
-        <View style={[styles.menuItem, { borderBottomColor: colors.border }]}>
-          <View style={[styles.menuIcon, { backgroundColor: (isDarkMode ? '#9C27B0' : colors.primary) + '20' }]}>
-            <Ionicons name="moon-outline" size={22} color={isDarkMode ? '#9C27B0' : colors.primary} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>Dark Mode</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>Switch to dark theme</Text>
-          </View>
-          <Switch
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Account Settings</Text>
+        <View style={[styles.settingsCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
+          <SettingItem
+            icon="moon"
+            title="Dark Mode"
+            subtitle="Switch theme"
+            colors={colors}
+            isDarkMode={isDarkMode}
             value={isDarkMode}
             onValueChange={(value) => {
               toggleTheme();
               handleUpdatePreference('theme', value ? 'dark' : 'light');
             }}
-            trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor="#fff"
           />
-        </View>
-
-        <View style={[styles.menuItem, { borderBottomColor: colors.border }]}>
-          <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
-            <Ionicons name="notifications-outline" size={22} color={colors.primary} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>Notifications</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>Enable push notifications</Text>
-          </View>
-          <Switch
+          <SettingItem
+            icon="notifications"
+            title="Notifications"
+            subtitle="Push notifications"
+            colors={colors}
             value={notifications}
             onValueChange={(value) => handleUpdatePreference('notifications', value)}
-            trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor="#fff"
           />
         </View>
-
-        <TouchableOpacity 
-          style={[styles.menuItem, { borderBottomColor: colors.border }]}
-          onPress={() => navigation.navigate('Notifications')}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.primary + '20' }]}>
-            <Ionicons name="notifications-outline" size={22} color={colors.primary} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>Notifications</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>View all notifications</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.menuItem, { borderBottomColor: colors.border }]}
-          onPress={() => Alert.alert('Coming Soon', 'Language settings will be available soon')}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.success + '20' }]}>
-            <Ionicons name="language-outline" size={22} color={colors.success} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>Language</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>Change app language</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-        </TouchableOpacity>
       </View>
 
-      {/* Support */}
-      <View style={[styles.section, { backgroundColor: colors.card }]}>
-        <Text style={[styles.sectionTitle, { color: colors.text, borderBottomColor: colors.border }]}>Support</Text>
-        
-        <TouchableOpacity
-          style={[styles.menuItem, { borderBottomColor: colors.border }]}
-          onPress={() => navigation.navigate('Resources')}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.warning + '20' }]}>
-            <Ionicons name="help-circle-outline" size={22} color={colors.warning} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>Resources</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>Access learning materials</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.menuItem, { borderBottomColor: colors.border }]}
-          onPress={() => Alert.alert('Terms & Conditions', 'Terms and conditions content will be displayed here.')}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.tertiaryBackground || colors.border }]}>
-            <Ionicons name="document-text-outline" size={22} color={colors.secondaryText} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>Terms & Conditions</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>Read our terms of service</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.menuItem, { borderBottomColor: colors.border }]}
-          onPress={() => Alert.alert('Privacy Policy', 'Privacy policy content will be displayed here.')}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: colors.tertiaryBackground || colors.border }]}>
-            <Ionicons name="shield-checkmark-outline" size={22} color={colors.secondaryText} />
-          </View>
-          <View style={styles.menuContent}>
-            <Text style={[styles.menuText, { color: colors.text }]}>Privacy Policy</Text>
-            <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>How we protect your data</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-        </TouchableOpacity>
+      {/* More Options */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>More Options</Text>
+        <View style={[styles.optionsCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
+          <MenuOption
+            icon="card"
+            title="Payment Methods"
+            subtitle="Manage payments"
+            color={premiumColors.accent.gold}
+            colors={colors}
+            onPress={() => Alert.alert('Coming Soon', 'Payment methods will be available soon')}
+          />
+          <MenuOption
+            icon="receipt"
+            title="Purchase History"
+            subtitle="View transactions"
+            color={premiumColors.accent.emerald}
+            colors={colors}
+            onPress={() => Alert.alert('Coming Soon', 'Purchase history will be available soon')}
+          />
+          <MenuOption
+            icon="help-circle"
+            title="Help & Support"
+            subtitle="Get assistance"
+            color={premiumColors.accent.sky}
+            colors={colors}
+            onPress={() => navigation.navigate('Resources')}
+          />
+          <MenuOption
+            icon="document-text"
+            title="Terms & Conditions"
+            subtitle="Legal information"
+            color={colors.secondaryText}
+            colors={colors}
+            onPress={() => Alert.alert('Terms & Conditions', 'Terms content will be displayed here.')}
+          />
+          <MenuOption
+            icon="shield-checkmark"
+            title="Privacy Policy"
+            subtitle="Data protection"
+            color={colors.secondaryText}
+            colors={colors}
+            onPress={() => Alert.alert('Privacy Policy', 'Privacy policy content will be displayed here.')}
+          />
+        </View>
       </View>
 
       {/* Logout Button */}
       <TouchableOpacity 
-        style={[styles.logoutButton, { backgroundColor: colors.card }]} 
+        style={[styles.logoutButton, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]} 
         onPress={handleLogout}
         activeOpacity={0.7}
       >
-        <Ionicons name="log-out-outline" size={22} color={colors.error} />
-        <Text style={styles.logoutText}>Logout</Text>
+        <Ionicons name="log-out-outline" size={22} color={premiumColors.error} />
+        <Text style={[styles.logoutText, { color: premiumColors.error }]}>Logout</Text>
       </TouchableOpacity>
 
       {/* Version Info */}
@@ -658,26 +597,15 @@ export default function ProfileScreen({ navigation }) {
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
               <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Profile</Text>
-              <TouchableOpacity
-                onPress={handleCloseEditModal}
-                disabled={editingProfile}
-              >
+              <TouchableOpacity onPress={handleCloseEditModal} disabled={editingProfile}>
                 <Ionicons name="close" size={28} color={colors.text} />
               </TouchableOpacity>
             </View>
-
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               <View style={styles.formGroup}>
                 <Text style={[styles.formLabel, { color: colors.text }]}>Name *</Text>
                 <TextInput
-                  style={[
-                    styles.formInput,
-                    {
-                      backgroundColor: colors.background,
-                      color: colors.text,
-                      borderColor: colors.border,
-                    },
-                  ]}
+                  style={[styles.formInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                   value={editFormData.name}
                   onChangeText={(text) => setEditFormData({ ...editFormData, name: text })}
                   placeholder="Enter your name"
@@ -685,18 +613,10 @@ export default function ProfileScreen({ navigation }) {
                   editable={!editingProfile}
                 />
               </View>
-
               <View style={styles.formGroup}>
                 <Text style={[styles.formLabel, { color: colors.text }]}>Phone</Text>
                 <TextInput
-                  style={[
-                    styles.formInput,
-                    {
-                      backgroundColor: colors.background,
-                      color: colors.text,
-                      borderColor: colors.border,
-                    },
-                  ]}
+                  style={[styles.formInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
                   value={editFormData.phone}
                   onChangeText={(text) => setEditFormData({ ...editFormData, phone: text })}
                   placeholder="Enter your phone number"
@@ -706,24 +626,16 @@ export default function ProfileScreen({ navigation }) {
                 />
               </View>
             </ScrollView>
-
             <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton, { borderColor: colors.border }]}
                 onPress={handleCloseEditModal}
                 disabled={editingProfile}
               >
-                <Text style={[styles.cancelButtonText, { color: colors.secondaryText }]}>
-                  Cancel
-                </Text>
+                <Text style={[styles.cancelButtonText, { color: colors.secondaryText }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.modalButton,
-                  styles.saveButton,
-                  { backgroundColor: colors.primary },
-                  editingProfile && styles.disabledButton,
-                ]}
+                style={[styles.modalButton, styles.saveButton, { backgroundColor: premiumColors.primary.main }, editingProfile && styles.disabledButton]}
                 onPress={handleSaveProfile}
                 disabled={editingProfile}
               >
@@ -741,6 +653,76 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
+function StatItem({ icon, value, label, color, colors }) {
+  return (
+    <View style={styles.statItem}>
+      <View style={[styles.statIcon, { backgroundColor: color + '20' }]}>
+        <Ionicons name={icon} size={20} color={color} />
+      </View>
+      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.secondaryText }]}>{label}</Text>
+    </View>
+  );
+}
+
+function QuickActionCard({ icon, title, subtitle, color, colors, onPress }) {
+  return (
+    <TouchableOpacity
+      style={[styles.quickActionCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <LinearGradient
+        colors={[color, color + 'DD']}
+        style={styles.quickActionGradient}
+      >
+        <Ionicons name={icon} size={24} color="#FFFFFF" />
+      </LinearGradient>
+      <Text style={[styles.quickActionTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.quickActionSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function SettingItem({ icon, title, subtitle, colors, isDarkMode, value, onValueChange }) {
+  return (
+    <View style={[styles.settingItem, { borderBottomColor: colors.border }]}>
+      <View style={[styles.settingIcon, { backgroundColor: (isDarkMode ? '#9C27B0' : premiumColors.primary.main) + '20' }]}>
+        <Ionicons name={icon} size={20} color={isDarkMode ? '#9C27B0' : premiumColors.primary.main} />
+      </View>
+      <View style={styles.settingContent}>
+        <Text style={[styles.settingTitle, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.settingSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: colors.border, true: premiumColors.primary.main }}
+        thumbColor="#fff"
+      />
+    </View>
+  );
+}
+
+function MenuOption({ icon, title, subtitle, color, colors, onPress }) {
+  return (
+    <TouchableOpacity
+      style={[styles.menuOption, { borderBottomColor: colors.border }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.menuIcon, { backgroundColor: color + '20' }]}>
+        <Ionicons name={icon} size={20} color={color} />
+      </View>
+      <View style={styles.menuContent}>
+        <Text style={[styles.menuText, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.menuSubtext, { color: colors.secondaryText }]}>{subtitle}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -752,151 +734,274 @@ const styles = StyleSheet.create({
   },
   guestContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
   },
   guestHeader: {
+    paddingTop: 80,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
     alignItems: 'center',
-    paddingVertical: 40,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   guestAvatarContainer: {
     marginBottom: 20,
   },
   guestTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: fontSize.xxl,
+    fontWeight: '700',
     marginBottom: 10,
   },
   guestSubtitle: {
-    fontSize: 16,
+    fontSize: fontSize.md,
     textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 24,
+    marginTop: 10,
     paddingHorizontal: 20,
+    lineHeight: 24,
+  },
+  guestActions: {
+    padding: 20,
+    gap: 15,
   },
   loginButton: {
-    paddingVertical: 15,
+    paddingVertical: 16,
     paddingHorizontal: 40,
-    borderRadius: 12,
-    width: '100%',
+    borderRadius: premiumBorderRadius.lg,
     alignItems: 'center',
-    marginBottom: 15,
   },
   loginButtonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: fontSize.md,
+    fontWeight: '700',
   },
   registerButton: {
-    paddingVertical: 15,
+    paddingVertical: 16,
     paddingHorizontal: 40,
-    borderRadius: 12,
-    width: '100%',
+    borderRadius: premiumBorderRadius.lg,
     alignItems: 'center',
     borderWidth: 2,
   },
   registerButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: fontSize.md,
+    fontWeight: '700',
   },
   header: {
     paddingTop: 50,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
   headerContent: {
     alignItems: 'center',
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: 15,
+    marginBottom: spacing.md,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     borderWidth: 4,
   },
   editAvatarButton: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
+    ...premiumShadows.md,
   },
   name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 5,
+    fontSize: fontSize.xxl,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
   },
   email: {
-    fontSize: 14,
-    color: '#fff',
-    opacity: 0.9,
-    marginBottom: 20,
+    fontSize: fontSize.sm,
+    marginBottom: spacing.sm,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: premiumBorderRadius.full,
+    gap: spacing.xs / 2,
+    marginBottom: spacing.md,
+  },
+  streakText: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    color: '#000',
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: premiumBorderRadius.full,
+    gap: spacing.xs,
   },
   editButtonText: {
-    fontSize: 14,
+    fontSize: fontSize.sm,
     fontWeight: '600',
   },
-  statsContainer: {
+  statsSection: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  statsCard: {
+    borderRadius: premiumBorderRadius.xl,
+    padding: spacing.lg,
+    borderWidth: 1,
+  },
+  statsTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    marginBottom: spacing.md,
+  },
+  statsGrid: {
     flexDirection: 'row',
-    paddingHorizontal: 15,
-    paddingVertical: 20,
-    gap: 10,
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
   },
-  statCard: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 15,
+  statItem: {
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    width: '48%',
+    marginBottom: spacing.md,
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 8,
-    marginBottom: 4,
+  statIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  statValue: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    marginBottom: spacing.xs / 2,
   },
   statLabel: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: fontSize.xs,
+    textAlign: 'center',
   },
   section: {
-    marginTop: 10,
-    paddingVertical: 10,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    marginBottom: spacing.md,
+    letterSpacing: -0.3,
   },
-  menuItem: {
+  progressCard: {
+    borderRadius: premiumBorderRadius.xl,
+    padding: spacing.md,
+    borderWidth: 1,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  progressTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  progressPercentage: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+  },
+  progressBarContainer: {
+    height: 10,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  quickActionCard: {
+    width: '48%',
+    padding: spacing.md,
+    borderRadius: premiumBorderRadius.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  quickActionGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  quickActionTitle: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+    marginBottom: spacing.xs / 2,
+    textAlign: 'center',
+  },
+  quickActionSubtitle: {
+    fontSize: fontSize.xs,
+    textAlign: 'center',
+  },
+  settingsCard: {
+    borderRadius: premiumBorderRadius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    padding: spacing.md,
     borderBottomWidth: 1,
-    gap: 15,
+    gap: spacing.md,
+  },
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  settingContent: {
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  settingSubtitle: {
+    fontSize: fontSize.xs,
+  },
+  optionsCard: {
+    borderRadius: premiumBorderRadius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  menuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    gap: spacing.md,
   },
   menuIcon: {
     width: 40,
@@ -909,38 +1014,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuText: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: fontSize.md,
+    fontWeight: '600',
     marginBottom: 2,
   },
   menuSubtext: {
-    fontSize: 12,
+    fontSize: fontSize.xs,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    margin: 20,
-    marginTop: 10,
-    padding: 15,
-    borderRadius: 12,
-    gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: premiumBorderRadius.lg,
+    borderWidth: 1,
+    gap: spacing.sm,
   },
   logoutText: {
-    color: '#E53935',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: fontSize.md,
+    fontWeight: '700',
   },
   version: {
     textAlign: 'center',
-    fontSize: 12,
-    marginBottom: 30,
-    paddingTop: 10,
+    fontSize: fontSize.xs,
+    marginBottom: spacing.xxxl,
+    paddingTop: spacing.md,
   },
   modalOverlay: {
     flex: 1,
@@ -948,8 +1048,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: premiumBorderRadius.xl,
+    borderTopRightRadius: premiumBorderRadius.xl,
     maxHeight: '90%',
     paddingBottom: Platform.OS === 'ios' ? 20 : 0,
   },
@@ -957,58 +1057,57 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.lg,
     borderBottomWidth: 1,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: fontSize.xl,
+    fontWeight: '700',
   },
   modalBody: {
-    padding: 20,
+    padding: spacing.lg,
   },
   formGroup: {
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   formLabel: {
-    fontSize: 14,
+    fontSize: fontSize.sm,
     fontWeight: '600',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   formInput: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    borderRadius: premiumBorderRadius.base,
+    padding: spacing.md,
+    fontSize: fontSize.md,
   },
   modalFooter: {
     flexDirection: 'row',
-    padding: 20,
+    padding: spacing.lg,
     borderTopWidth: 1,
-    justifyContent: 'space-between',
+    gap: spacing.md,
   },
   modalButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
+    paddingVertical: spacing.md,
+    borderRadius: premiumBorderRadius.base,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 6,
   },
   cancelButton: {
     borderWidth: 1,
     backgroundColor: 'transparent',
   },
   cancelButtonText: {
-    fontSize: 16,
+    fontSize: fontSize.md,
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#1E88E5',
+    backgroundColor: premiumColors.primary.main,
   },
   saveButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: fontSize.md,
     fontWeight: '600',
   },
   disabledButton: {

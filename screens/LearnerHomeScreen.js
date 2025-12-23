@@ -18,6 +18,7 @@ import { spacing, fontSize } from '../src/utils/responsive';
 import { coursesAPI, blogAPI } from '../src/services/api';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import { getCourseImage } from '../src/utils/courseImages';
+import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 
 const { width } = Dimensions.get('window');
 
@@ -76,43 +77,163 @@ export default function LearnerHomeScreen({ navigation }) {
     return 'Recently';
   };
 
+  const getLevelColor = (level) => {
+    const levelLower = (level || '').toLowerCase();
+    switch (levelLower) {
+      case 'beginner':
+        return '#4CAF50';
+      case 'intermediate':
+        return '#FF9800';
+      case 'advanced':
+        return '#F44336';
+      default:
+        return '#2196F3';
+    }
+  };
+
+  const formatStudentCount = (count) => {
+    if (!count) return '0';
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
+    return count.toString();
+  };
+
   const renderCourseCard = (course, index) => {
     const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
       ? { uri: course.thumbnail }
       : getCourseImage(course._id || course.id, index);
 
+    const isBestseller = course.studentsEnrolled > 1000;
+    const isNew = course.publishedAt && new Date(course.publishedAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const isPremium = course.isPremium || course.price > 0;
+    const levelColor = getLevelColor(course.level);
+    const instructorName = course.instructor?.name || 'Expert Instructor';
+    const hasDiscount = course.originalPrice && course.originalPrice > course.price;
+    const discountPercent = hasDiscount 
+      ? Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)
+      : 0;
+
     return (
       <TouchableOpacity
         key={course._id || course.id}
-        style={[styles.courseCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[styles.courseCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
         onPress={() => navigation.navigate('CourseDetail', { courseId: course._id || course.id })}
-        activeOpacity={0.8}
+        activeOpacity={0.9}
       >
-        <Image
-          source={imageSource}
-          style={styles.courseImage}
-          resizeMode="cover"
-        />
+        <View style={styles.courseImageContainer}>
+          <Image
+            source={imageSource}
+            style={styles.courseImage}
+            resizeMode="cover"
+          />
+          
+          {/* Gradient Overlay */}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            style={styles.imageOverlay}
+          />
+
+          {/* Play Button Overlay */}
+          {course.previewVideo && (
+            <View style={styles.playButtonOverlay}>
+              <View style={styles.playButton}>
+                <Ionicons name="play" size={24} color="#FFFFFF" />
+              </View>
+            </View>
+          )}
+
+          {/* Top Badges */}
+          <View style={styles.topBadges}>
+            {isBestseller && (
+              <View style={[styles.badge, styles.bestsellerBadge]}>
+                <Ionicons name="trophy" size={12} color="#FFFFFF" />
+                <Text style={styles.badgeText}>Bestseller</Text>
+              </View>
+            )}
+            {isNew && !isBestseller && (
+              <View style={[styles.badge, styles.newBadge]}>
+                <Text style={styles.badgeText}>NEW</Text>
+              </View>
+            )}
+            {isPremium && (
+              <View style={[styles.badge, styles.premiumBadge]}>
+                <Ionicons name="diamond" size={12} color="#FFFFFF" />
+                <Text style={styles.badgeText}>Premium</Text>
+              </View>
+            )}
+            {hasDiscount && (
+              <View style={[styles.badge, styles.discountBadge]}>
+                <Text style={styles.badgeText}>-{discountPercent}%</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Level Badge */}
+          <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
+            <Text style={styles.levelText}>{course.level || 'Advanced'}</Text>
+          </View>
+        </View>
+
         <View style={styles.courseContent}>
           <Text style={[styles.courseCategory, { color: colors.primary }]}>
-            {course.category || 'Development'}
+            {course.category?.toUpperCase() || 'FRENCH'}
           </Text>
+          
           <Text style={[styles.courseTitle, { color: colors.text }]} numberOfLines={2}>
             {course.title || 'Backend development with NestJS'}
           </Text>
+
+          {/* Instructor Row */}
+          <View style={styles.instructorRow}>
+            <View style={[styles.instructorAvatar, { backgroundColor: colors.primary + '20' }]}>
+              <Ionicons name="person" size={12} color={colors.primary} />
+            </View>
+            <Text style={[styles.instructorName, { color: colors.secondaryText }]} numberOfLines={1}>
+              {instructorName}
+            </Text>
+          </View>
+
+          {/* Meta Row */}
           <View style={styles.courseMeta}>
             <View style={styles.ratingRow}>
               <Ionicons name="star" size={14} color="#FFB703" />
               <Text style={[styles.ratingText, { color: colors.text }]}>
                 {course.rating?.average?.toFixed(1) || '4.5'}
               </Text>
+              {course.rating?.count > 0 && (
+                <Text style={[styles.ratingCount, { color: colors.secondaryText }]}>
+                  ({course.rating.count})
+                </Text>
+              )}
             </View>
-            <View style={styles.difficultyRow}>
-              <Ionicons name="bar-chart-outline" size={14} color={colors.secondaryText} />
-              <Text style={[styles.difficultyText, { color: colors.secondaryText }]}>
-                {course.level || 'Advanced'}
-              </Text>
-            </View>
+            
+            {course.studentsEnrolled > 0 && (
+              <View style={styles.studentsRow}>
+                <Ionicons name="people" size={14} color={colors.secondaryText} />
+                <Text style={[styles.studentsText, { color: colors.secondaryText }]}>
+                  {formatStudentCount(course.studentsEnrolled)}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Price Row */}
+          <View style={styles.priceRow}>
+            {course.price === 0 || course.price === null ? (
+              <View style={styles.freeBadge}>
+                <Text style={[styles.freeText, { color: premiumColors.success }]}>FREE</Text>
+              </View>
+            ) : (
+              <>
+                {hasDiscount && (
+                  <Text style={[styles.originalPrice, { color: colors.secondaryText }]}>
+                    ${course.originalPrice}
+                  </Text>
+                )}
+                <Text style={[styles.price, { color: colors.primary }]}>
+                  ${course.price}
+                </Text>
+              </>
+            )}
           </View>
         </View>
       </TouchableOpacity>
@@ -416,57 +537,187 @@ const styles = StyleSheet.create({
     paddingRight: spacing.md,
   },
   courseCard: {
-    width: 280,
-    borderRadius: 16,
+    width: 300,
+    borderRadius: premiumBorderRadius.xl,
     borderWidth: 1,
     overflow: 'hidden',
     marginRight: spacing.md,
   },
+  courseImageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 180,
+  },
   courseImage: {
     width: '100%',
-    height: 160,
+    height: '100%',
     backgroundColor: '#1a1a1a',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+  },
+  playButtonOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+  playButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...premiumShadows.lg,
+  },
+  topBadges: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    zIndex: 2,
+  },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: premiumBorderRadius.base,
+    gap: spacing.xs / 2,
+    ...premiumShadows.sm,
+  },
+  bestsellerBadge: {
+    backgroundColor: '#F59E0B',
+  },
+  newBadge: {
+    backgroundColor: '#4CAF50',
+  },
+  premiumBadge: {
+    backgroundColor: premiumColors.primary.main,
+  },
+  discountBadge: {
+    backgroundColor: '#E53935',
+  },
+  badgeText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  levelBadge: {
+    position: 'absolute',
+    bottom: spacing.sm,
+    right: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: premiumBorderRadius.base,
+    ...premiumShadows.sm,
+  },
+  levelText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    textTransform: 'capitalize',
+    letterSpacing: 0.3,
   },
   courseContent: {
     padding: spacing.md,
   },
   courseCategory: {
     fontSize: fontSize.xs,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: spacing.xs,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   courseTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '600',
+    fontSize: fontSize.lg,
+    fontWeight: '700',
     marginBottom: spacing.sm,
-    lineHeight: 20,
-    minHeight: 40,
+    lineHeight: 22,
+    minHeight: 44,
+  },
+  instructorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  instructorAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  instructorName: {
+    fontSize: fontSize.xs,
+    flex: 1,
   },
   courseMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.xs / 2,
   },
   ratingText: {
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  difficultyRow: {
+  ratingCount: {
+    fontSize: fontSize.xs,
+    marginLeft: 2,
+  },
+  studentsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.xs / 2,
   },
-  difficultyText: {
-    fontSize: fontSize.sm,
+  studentsText: {
+    fontSize: fontSize.xs,
     fontWeight: '500',
-    textTransform: 'capitalize',
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  freeBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: premiumBorderRadius.base,
+    backgroundColor: premiumColors.success + '20',
+  },
+  freeText: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  originalPrice: {
+    fontSize: fontSize.sm,
+    textDecorationLine: 'line-through',
+    fontWeight: '500',
+  },
+  price: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
   },
   postsContainer: {
     paddingLeft: spacing.lg,

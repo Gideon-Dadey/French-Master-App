@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, memo, useCallback, useMemo } from 'react';
-import { Animated, StyleSheet, View, AccessibilityInfo, Platform } from 'react-native';
+import { Animated, StyleSheet, View, AccessibilityInfo, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Premium animated tab bar icon component
@@ -14,6 +15,7 @@ import * as Haptics from 'expo-haptics';
  * @param {string} inactiveColor - Inactive icon color
  */
 const TabBarIcon = memo(({ focused, route, color, inactiveColor }) => {
+  const { user } = useAuth();
   // Check if user prefers reduced motion (accessibility)
   const [reduceMotion, setReduceMotion] = React.useState(false);
   
@@ -88,6 +90,7 @@ const TabBarIcon = memo(({ focused, route, color, inactiveColor }) => {
       }, [focused, reduceMotion]);
 
   const iconSize = focused ? 26 : 24;
+  const avatarSize = focused ? 28 : 26;
 
   // Accessibility label (memoized)
   const accessibilityLabel = useMemo(() => {
@@ -104,6 +107,14 @@ const TabBarIcon = memo(({ focused, route, color, inactiveColor }) => {
     };
     return labels[route] || route;
   }, [route, focused]);
+
+  // Show avatar for Profile tab if user is authenticated and has avatar
+  const showAvatar = route === 'Profile' && user && user.avatar;
+  const avatarUrl = showAvatar 
+    ? (user.avatar.startsWith('http') || user.avatar.startsWith('data:') 
+        ? user.avatar 
+        : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=6366F1&color=fff&size=200`)
+    : null;
 
   return (
     <View 
@@ -123,14 +134,32 @@ const TabBarIcon = memo(({ focused, route, color, inactiveColor }) => {
           },
         ]}
       >
-        <Ionicons
-          name={iconName}
-          size={iconSize}
-          color={focused ? color : inactiveColor}
-          style={styles.icon}
-          accessible={false}
-          importantForAccessibility="no"
-        />
+        {showAvatar ? (
+          <Image
+            source={{ uri: avatarUrl }}
+            style={[
+              styles.avatar,
+              {
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: avatarSize / 2,
+                borderColor: focused ? color : inactiveColor,
+                borderWidth: focused ? 2 : 1.5,
+              },
+            ]}
+            accessible={false}
+            importantForAccessibility="no"
+          />
+        ) : (
+          <Ionicons
+            name={iconName}
+            size={iconSize}
+            color={focused ? color : inactiveColor}
+            style={styles.icon}
+            accessible={false}
+            importantForAccessibility="no"
+          />
+        )}
       </Animated.View>
       {focused && (
         <Animated.View
@@ -159,6 +188,9 @@ const styles = StyleSheet.create({
   },
   icon: {
     // Icon styling
+  },
+  avatar: {
+    // Size is set dynamically based on focused state
   },
   activeIndicator: {
     width: 30,

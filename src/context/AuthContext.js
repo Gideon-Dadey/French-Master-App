@@ -90,6 +90,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateUser = async (userData) => {
+    try {
+      if (userData) {
+        // Immediately update user state with provided data
+        setUser(prevUser => ({ ...prevUser, ...userData }));
+      }
+      // Also try to fetch latest user data from API
+      const token = await SecureStore.getItemAsync('authToken');
+      if (token) {
+        try {
+          const response = await authAPI.getMe();
+          if (response?.data?.user) {
+            setUser(response.data.user);
+          }
+        } catch (apiError) {
+          // If API call fails, keep the userData update
+          console.warn('Failed to refresh user from API, using provided data:', apiError);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update user:', error);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -97,7 +121,9 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    checkAuth
+    checkAuth,
+    updateUser,
+    setUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
