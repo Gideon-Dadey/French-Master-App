@@ -64,12 +64,13 @@ function MainTabs() {
             />
           );
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.secondaryText,
+        tabBarActiveTintColor: '#9C27B0',
+        tabBarInactiveTintColor: isDarkMode ? '#71767A' : '#9E9E9E',
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopWidth: 0,
+          backgroundColor: isDarkMode ? colors.card : '#FFFFFF',
+          borderTopWidth: isDarkMode ? 1 : 0,
+          borderTopColor: isDarkMode ? colors.border : 'transparent',
           elevation: 0,
           shadowOpacity: 0,
           height: Platform.OS === 'ios' ? 85 : 65,

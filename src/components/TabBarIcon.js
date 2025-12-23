@@ -161,9 +161,9 @@ const styles = StyleSheet.create({
     // Icon styling
   },
   activeIndicator: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    width: 30,
+    height: 3,
+    borderRadius: 1.5,
     marginTop: 4,
   },
 });
