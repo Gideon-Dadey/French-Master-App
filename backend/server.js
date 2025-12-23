@@ -78,6 +78,11 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/chat', require('./routes/chat'));
 app.use('/api/resources', require('./routes/resources'));
 app.use('/api/blog', require('./routes/blog'));
+app.use('/api/quizzes', require('./routes/quizzes'));
+app.use('/api/tags', require('./routes/tags'));
+app.use('/api/categories', require('./routes/categories'));
+app.use('/api/subscriptions', require('./routes/subscriptions'));
+app.use('/api/ai', require('./routes/ai'));
 
 // Health check
 app.get('/health', (req, res) => {
