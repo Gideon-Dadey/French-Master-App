@@ -32,7 +32,7 @@ import { showToast } from '../src/components/ToastNotification';
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation }) {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout, isAuthenticated, updateUser } = useAuth();
   const { isDarkMode, toggleTheme, colors } = useTheme();
   const { stats: gamificationStats } = useGamification();
   const [profile, setProfile] = useState(null);

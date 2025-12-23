@@ -290,21 +290,7 @@ function AppNavigator() {
               name="Courses"
               component={CoursesScreen}
               options={{
-                headerShown: true,
-                title: 'Courses',
-                headerStyle: {
-                  backgroundColor: colors.primary,
-                  elevation: 4,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                },
-                headerTintColor: '#fff',
-                headerTitleStyle: {
-                  fontWeight: '600',
-                  fontSize: 18,
-                },
+                headerShown: false,
               }}
             />
             <Stack.Screen

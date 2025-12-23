@@ -13,7 +13,7 @@ export const useTheme = () => {
   return context;
 };
 
-// Twitter-inspired dark mode colors
+// Premium purple theme colors
 const lightTheme = {
   background: '#FFFFFF',
   secondaryBackground: '#F7F9FA',
@@ -21,8 +21,8 @@ const lightTheme = {
   text: '#0F1419',
   secondaryText: '#536471',
   border: '#EFF3F4',
-  primary: '#1E88E5',
-  primaryHover: '#1565C0',
+  primary: '#9C27B0', // Premium purple
+  primaryHover: '#7B1FA2',
   success: '#4CAF50',
   error: '#E53935',
   warning: '#FF9800',
@@ -37,8 +37,8 @@ const darkTheme = {
   text: '#F7F9FA',
   secondaryText: '#71767A',
   border: '#2F3336',
-  primary: '#1E88E5',
-  primaryHover: '#42A5F5',
+  primary: '#BB86FC', // Premium purple for dark mode
+  primaryHover: '#9C27B0',
   success: '#4CAF50',
   error: '#E53935',
   warning: '#FF9800',

@@ -9,49 +9,48 @@ import {
   RefreshControl,
   FlatList,
   Dimensions,
+  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { coursesAPI } from '../src/services/api';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import ErrorMessage from '../src/components/ErrorMessage';
-import CourseCard from '../src/components/CourseCard';
-import SearchAutocomplete from '../src/components/SearchAutocomplete';
-import { CourseCardSkeleton } from '../src/components/SkeletonLoader';
 import { spacing, fontSize, normalize } from '../src/utils/responsive';
-import { useResponsive } from '../src/hooks/useResponsive';
 import { useTheme } from '../src/context/ThemeContext';
+import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
+import { getCourseImage } from '../src/utils/courseImages';
+import { formatCurrency } from '../src/utils/helpers';
+import Rating from '../src/components/Rating';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function CoursesScreen({ navigation }) {
-  const responsive = useResponsive();
-  const { colors } = useTheme();
+  const { colors, isDarkMode } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
+  const [viewMode, setViewMode] = useState('list');
   const [showFilters, setShowFilters] = useState(false);
   const searchTimeoutRef = useRef(null);
   const [filters, setFilters] = useState({
     category: null,
     level: null,
     language: null,
-    price: null, // 'free' or 'paid'
+    price: null,
   });
 
   useEffect(() => {
     loadCourses();
   }, [filters]);
 
-  // Debounced search effect
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
     
-    // Only search if query is empty or has at least 2 characters
     if (searchQuery.length === 0 || searchQuery.length >= 2) {
       searchTimeoutRef.current = setTimeout(() => {
         loadCourses();
@@ -63,7 +62,6 @@ export default function CoursesScreen({ navigation }) {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   const loadCourses = useCallback(async () => {
@@ -75,10 +73,8 @@ export default function CoursesScreen({ navigation }) {
         category: filters.category || undefined,
         level: filters.level || undefined,
         language: filters.language || undefined,
-        // Convert price filter to isFree parameter
         isFree: filters.price === 'free' ? 'true' : filters.price === 'paid' ? 'false' : undefined,
       };
-      // Remove null/undefined values
       Object.keys(params).forEach(key => 
         params[key] === null || params[key] === undefined ? delete params[key] : {}
       );
@@ -100,10 +96,6 @@ export default function CoursesScreen({ navigation }) {
     loadCourses();
   }, [loadCourses]);
 
-  const handleSearch = useCallback(() => {
-    loadCourses();
-  }, [loadCourses]);
-
   const clearFilters = () => {
     setFilters({ category: null, level: null, language: null, price: null });
     setSearchQuery('');
@@ -111,30 +103,114 @@ export default function CoursesScreen({ navigation }) {
 
   const activeFiltersCount = Object.values(filters).filter(f => f !== null).length;
 
-  const renderCourseCard = ({ item: course, index }) => (
-    <CourseCard
-      course={course}
-      index={index}
-      onPress={() => navigation.navigate('CourseDetail', { courseId: course._id })}
-      style={viewMode === 'grid' && responsive.isTablet ? styles.gridCard : null}
-    />
-  );
+  const getLevelColor = (level) => {
+    const levelLower = (level || '').toLowerCase();
+    switch (levelLower) {
+      case 'beginner': return '#4CAF50';
+      case 'intermediate': return '#FF9800';
+      case 'advanced': return '#F44336';
+      default: return '#2196F3';
+    }
+  };
 
-  const renderSkeleton = () => (
-    <View style={styles.skeletonContainer}>
-      {[1, 2, 3, 4].map((i) => (
-        <CourseCardSkeleton key={i} />
-      ))}
-    </View>
-  );
+  const renderCourseCard = ({ item: course, index }) => {
+    const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
+      ? { uri: course.thumbnail }
+      : getCourseImage(course._id || course.id, index);
+
+    const levelColor = getLevelColor(course.level);
+    const isPremium = course.isPremium || course.price > 0;
+
+    return (
+      <TouchableOpacity
+        style={[styles.courseCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.lg]}
+        onPress={() => navigation.navigate('CourseDetail', { courseId: course._id || course.id })}
+        activeOpacity={0.9}
+      >
+        {/* Premium Banner */}
+        <View style={styles.bannerContainer}>
+          <LinearGradient
+            colors={index % 2 === 0 
+              ? ['#FFD700', '#FFA500']
+              : ['#4A90E2', '#357ABD']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.bannerLeft}
+          >
+            <View style={styles.bannerContent}>
+              <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
+                <Text style={styles.levelBadgeText}>{course.level || 'All'}</Text>
+              </View>
+              {isPremium && (
+                <View style={[styles.certifiedBadge, { backgroundColor: '#FF0000' }]}>
+                  <Text style={styles.certifiedText}>CERTIFIED</Text>
+                </View>
+              )}
+              <Text style={styles.bannerTitle} numberOfLines={2}>
+                {course.title}
+              </Text>
+              {course.shortDescription && (
+                <Text style={styles.bannerSubtitle} numberOfLines={2}>
+                  {course.shortDescription}
+                </Text>
+              )}
+            </View>
+          </LinearGradient>
+          <View style={styles.bannerRight}>
+            <Image source={imageSource} style={styles.bannerImage} resizeMode="cover" />
+          </View>
+        </View>
+
+        {/* Course Details */}
+        <View style={styles.courseDetails}>
+          <Text style={[styles.courseTitle, { color: colors.text }]} numberOfLines={2}>
+            {course.title}
+          </Text>
+          <Text style={[styles.courseDescription, { color: colors.secondaryText }]} numberOfLines={2}>
+            {course.shortDescription || course.description || 'Learn French professionally'}
+          </Text>
+
+          <View style={styles.metaRow}>
+            <View style={styles.ratingRow}>
+              <Rating 
+                rating={course.rating?.average || 0} 
+                size={14}
+                showRating={true}
+              />
+              <View style={styles.studentsRow}>
+                <Ionicons name="people-outline" size={14} color={colors.secondaryText} />
+                <Text style={[styles.studentsText, { color: colors.secondaryText }]}>
+                  {course.studentsEnrolled || 0}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={[styles.footerRow, { borderTopColor: colors.border }]}>
+            <View style={styles.durationRow}>
+              <Ionicons name="time-outline" size={14} color={colors.secondaryText} />
+              <Text style={[styles.durationText, { color: colors.secondaryText }]}>
+                {course.duration || '12h'}
+              </Text>
+              <Ionicons name="book-outline" size={14} color={colors.secondaryText} style={styles.durationIcon} />
+              <Text style={[styles.lessonsText, { color: colors.secondaryText }]}>
+                {course.lessonsCount || 0} lessons
+              </Text>
+            </View>
+            <Text style={[styles.priceText, { color: premiumColors.primary.main }]}>
+              {course.isFree ? 'FREE' : formatCurrency(course.price || 150, 'GHS')}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading && courses.length === 0) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Courses</Text>
-        </View>
-        {renderSkeleton()}
+        <LoadingSpinner />
       </View>
     );
   }
@@ -142,9 +218,6 @@ export default function CoursesScreen({ navigation }) {
   if (error && courses.length === 0) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Courses</Text>
-        </View>
         <ErrorMessage message={error} onRetry={loadCourses} />
       </View>
     );
@@ -152,315 +225,222 @@ export default function CoursesScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Explore Courses</Text>
-        <Text style={[styles.headerSubtitle, { color: colors.secondaryText }]}>
-          {courses.length} {courses.length === 1 ? 'course' : 'courses'} available
-        </Text>
-      </View>
+      {/* Premium Header */}
+      <LinearGradient
+        colors={isDarkMode 
+          ? ['#1a0a2e', '#16213e', '#0f3460']
+          : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
+        }
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#FFFFFF' : '#424242'} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: isDarkMode ? '#FFFFFF' : '#424242' }]}>Courses</Text>
+      </LinearGradient>
 
-      {/* Search Bar - Professional Design */}
-      <View style={[styles.searchSection, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-        <View style={[styles.searchContainer, { backgroundColor: colors.tertiaryBackground || colors.border }]}>
-          <Ionicons name="search" size={22} color={colors.secondaryText} style={styles.searchIcon} />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Explore Courses Section */}
+        <View style={styles.exploreSection}>
+          <Text style={[styles.exploreTitle, { color: colors.text }]}>Explore Courses</Text>
+          <Text style={[styles.exploreSubtitle, { color: colors.secondaryText }]}>
+            {courses.length} {courses.length === 1 ? 'course' : 'courses'} available
+          </Text>
+        </View>
+
+        {/* Premium Search Bar */}
+        <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}>
+          <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Search courses, topics, instructors..."
             placeholderTextColor={colors.secondaryText}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            onSubmitEditing={handleSearch}
             returnKeyType="search"
-            clearButtonMode="while-editing"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity 
-              onPress={() => { 
-                setSearchQuery('');
-                if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-                loadCourses();
-              }}
-              style={styles.clearButton}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
               <Ionicons name="close-circle" size={20} color={colors.secondaryText} />
             </TouchableOpacity>
           )}
         </View>
 
-        {/* View Mode Toggle & Filter Button */}
+        {/* Filters and View Toggle */}
         <View style={styles.controlsRow}>
           <TouchableOpacity
-            style={[styles.filterButton, { backgroundColor: colors.tertiaryBackground || colors.border }]}
+            style={[styles.filterButton, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}
             onPress={() => setShowFilters(!showFilters)}
             activeOpacity={0.7}
           >
             <Ionicons 
               name="filter" 
-              size={20} 
-              color={activeFiltersCount > 0 ? colors.primary : colors.secondaryText} 
+              size={18} 
+              color={activeFiltersCount > 0 ? premiumColors.primary.main : colors.secondaryText} 
             />
             <Text style={[
               styles.filterButtonText,
-              { color: activeFiltersCount > 0 ? colors.primary : colors.secondaryText }
+              { color: activeFiltersCount > 0 ? premiumColors.primary.main : colors.secondaryText }
             ]}>
               Filters
             </Text>
             {activeFiltersCount > 0 && (
-              <View style={[styles.filterBadge, { backgroundColor: colors.primary }]}>
+              <View style={[styles.filterBadge, { backgroundColor: premiumColors.primary.main }]}>
                 <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
               </View>
             )}
           </TouchableOpacity>
 
-          <View style={[styles.viewModeToggle, { backgroundColor: colors.tertiaryBackground || colors.border }]}>
+          <View style={[styles.viewModeToggle, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}>
             <TouchableOpacity
-              style={[styles.viewModeButton, viewMode === 'list' && [styles.viewModeButtonActive, { backgroundColor: colors.card }]]}
+              style={[
+                styles.viewModeButton,
+                viewMode === 'list' && [styles.viewModeButtonActive, { backgroundColor: premiumColors.primary.main }]
+              ]}
               onPress={() => setViewMode('list')}
               activeOpacity={0.7}
             >
               <Ionicons 
                 name="list" 
-                size={20} 
-                color={viewMode === 'list' ? colors.primary : colors.secondaryText} 
+                size={18} 
+                color={viewMode === 'list' ? '#FFFFFF' : colors.secondaryText} 
               />
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.viewModeButton, viewMode === 'grid' && [styles.viewModeButtonActive, { backgroundColor: colors.card }]]}
+              style={[
+                styles.viewModeButton,
+                viewMode === 'grid' && [styles.viewModeButtonActive, { backgroundColor: premiumColors.primary.main }]
+              ]}
               onPress={() => setViewMode('grid')}
               activeOpacity={0.7}
             >
               <Ionicons 
                 name="grid" 
-                size={20} 
-                color={viewMode === 'grid' ? colors.primary : colors.secondaryText} 
+                size={18} 
+                color={viewMode === 'grid' ? '#FFFFFF' : colors.secondaryText} 
               />
             </TouchableOpacity>
           </View>
         </View>
-      </View>
 
-      {/* Advanced Filters Panel */}
-      {showFilters && (
-        <View style={[styles.filtersPanel, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filtersContent}
-          >
-            {/* Category Filters */}
-            <View style={styles.filterGroup}>
-              <Text style={[styles.filterGroupLabel, { color: colors.secondaryText }]}>Category</Text>
-              <View style={styles.filterChipsRow}>
-                {['french', 'english', 'exam-prep'].map((cat) => (
-                  <TouchableOpacity
-                    key={cat}
-                    style={[
-                      styles.filterChip,
-                      { 
-                        backgroundColor: filters.category === cat ? colors.primary : (colors.tertiaryBackground || colors.border),
-                        borderColor: filters.category === cat ? colors.primary : colors.border,
-                      }
-                    ]}
-                    onPress={() => setFilters({ 
-                      ...filters, 
-                      category: filters.category === cat ? null : cat 
-                    })}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.filterChipText,
-                      { color: filters.category === cat ? '#fff' : colors.text }
-                    ]}>
-                      {cat === 'exam-prep' ? 'Exam Prep' : cat.charAt(0).toUpperCase() + cat.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+        {/* Results Count */}
+        <Text style={[styles.resultsCount, { color: colors.secondaryText }]}>
+          {courses.length} {courses.length === 1 ? 'result' : 'results'}
+        </Text>
+
+        {/* Advanced Filters Panel */}
+        {showFilters && (
+          <View style={[styles.filtersPanel, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersContent}>
+              {/* Category Filters */}
+              <View style={styles.filterGroup}>
+                <Text style={[styles.filterGroupLabel, { color: colors.secondaryText }]}>Category</Text>
+                <View style={styles.filterChipsRow}>
+                  {['french', 'english', 'exam-prep'].map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.filterChip,
+                        { 
+                          backgroundColor: filters.category === cat ? premiumColors.primary.main : colors.border,
+                        }
+                      ]}
+                      onPress={() => setFilters({ ...filters, category: filters.category === cat ? null : cat })}
+                    >
+                      <Text style={[
+                        styles.filterChipText,
+                        { color: filters.category === cat ? '#FFFFFF' : colors.text }
+                      ]}>
+                        {cat === 'exam-prep' ? 'Exam Prep' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
 
-            {/* Level Filters */}
-            <View style={styles.filterGroup}>
-              <Text style={[styles.filterGroupLabel, { color: colors.secondaryText }]}>Level</Text>
-              <View style={styles.filterChipsRow}>
-                {['beginner', 'intermediate', 'advanced', 'all-levels'].map((level) => (
-                  <TouchableOpacity
-                    key={level}
-                    style={[
-                      styles.filterChip,
-                      { 
-                        backgroundColor: filters.level === level ? colors.primary : (colors.tertiaryBackground || colors.border),
-                        borderColor: filters.level === level ? colors.primary : colors.border,
-                      }
-                    ]}
-                    onPress={() => setFilters({ 
-                      ...filters, 
-                      level: filters.level === level ? null : level 
-                    })}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.filterChipText,
-                      { color: filters.level === level ? '#fff' : colors.text }
-                    ]}>
-                      {level === 'all-levels' ? 'All Levels' : level.charAt(0).toUpperCase() + level.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+              {/* Level Filters */}
+              <View style={styles.filterGroup}>
+                <Text style={[styles.filterGroupLabel, { color: colors.secondaryText }]}>Level</Text>
+                <View style={styles.filterChipsRow}>
+                  {['beginner', 'intermediate', 'advanced'].map((level) => (
+                    <TouchableOpacity
+                      key={level}
+                      style={[
+                        styles.filterChip,
+                        { 
+                          backgroundColor: filters.level === level ? premiumColors.primary.main : colors.border,
+                        }
+                      ]}
+                      onPress={() => setFilters({ ...filters, level: filters.level === level ? null : level })}
+                    >
+                      <Text style={[
+                        styles.filterChipText,
+                        { color: filters.level === level ? '#FFFFFF' : colors.text }
+                      ]}>
+                        {level.charAt(0).toUpperCase() + level.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            </View>
 
-            {/* Language Filter */}
-            <View style={styles.filterGroup}>
-              <Text style={[styles.filterGroupLabel, { color: colors.secondaryText }]}>Language</Text>
-              <View style={styles.filterChipsRow}>
-                {['french', 'english'].map((lang) => (
-                  <TouchableOpacity
-                    key={lang}
-                    style={[
-                      styles.filterChip,
-                      { 
-                        backgroundColor: filters.language === lang ? colors.primary : (colors.tertiaryBackground || colors.border),
-                        borderColor: filters.language === lang ? colors.primary : colors.border,
-                      }
-                    ]}
-                    onPress={() => setFilters({ 
-                      ...filters, 
-                      language: filters.language === lang ? null : lang 
-                    })}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.filterChipText,
-                      { color: filters.language === lang ? '#fff' : colors.text }
-                    ]}>
-                      {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Price Filter */}
-            <View style={styles.filterGroup}>
-              <Text style={[styles.filterGroupLabel, { color: colors.secondaryText }]}>Price</Text>
-              <View style={styles.filterChipsRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.filterChip,
-                    { 
-                      backgroundColor: filters.price === 'free' ? colors.primary : (colors.tertiaryBackground || colors.border),
-                      borderColor: filters.price === 'free' ? colors.primary : colors.border,
-                    }
-                  ]}
-                  onPress={() => setFilters({ 
-                    ...filters, 
-                    price: filters.price === 'free' ? null : 'free' 
-                  })}
-                  activeOpacity={0.7}
+              {activeFiltersCount > 0 && (
+                <TouchableOpacity 
+                  style={[styles.clearAllButton, { backgroundColor: premiumColors.error + '20' }]}
+                  onPress={clearFilters}
                 >
-                  <Ionicons 
-                    name="gift-outline" 
-                    size={16} 
-                    color={filters.price === 'free' ? '#fff' : colors.secondaryText} 
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text style={[
-                    styles.filterChipText,
-                    { color: filters.price === 'free' ? '#fff' : colors.text }
-                  ]}>
-                    Free
-                  </Text>
+                  <Ionicons name="close-circle" size={18} color={premiumColors.error} />
+                  <Text style={[styles.clearAllText, { color: premiumColors.error }]}>Clear All</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.filterChip,
-                    { 
-                      backgroundColor: filters.price === 'paid' ? colors.primary : (colors.tertiaryBackground || colors.border),
-                      borderColor: filters.price === 'paid' ? colors.primary : colors.border,
-                    }
-                  ]}
-                  onPress={() => setFilters({ 
-                    ...filters, 
-                    price: filters.price === 'paid' ? null : 'paid' 
-                  })}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons 
-                    name="card-outline" 
-                    size={16} 
-                    color={filters.price === 'paid' ? '#fff' : colors.secondaryText} 
-                    style={{ marginRight: 4 }}
-                  />
-                  <Text style={[
-                    styles.filterChipText,
-                    { color: filters.price === 'paid' ? '#fff' : colors.text }
-                  ]}>
-                    Paid
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+              )}
+            </ScrollView>
+          </View>
+        )}
 
-            {/* Clear Filters */}
-            {activeFiltersCount > 0 && (
-              <TouchableOpacity 
-                style={[styles.clearAllButton, { backgroundColor: colors.error + '20', borderColor: colors.error + '40' }]}
+        {/* Courses List */}
+        {courses.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="book-outline" size={80} color={colors.secondaryText} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Courses Found</Text>
+            <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
+              {searchQuery || activeFiltersCount > 0
+                ? 'Try adjusting your search or filters'
+                : 'No courses available at the moment'}
+            </Text>
+            {(searchQuery || activeFiltersCount > 0) && (
+              <TouchableOpacity
+                style={[styles.clearSearchButton, { backgroundColor: premiumColors.primary.main }, premiumShadows.md]}
                 onPress={clearFilters}
-                activeOpacity={0.7}
               >
-                <Ionicons name="close-circle" size={18} color={colors.error} />
-                <Text style={[styles.clearAllText, { color: colors.error }]}>Clear All</Text>
+                <Text style={styles.clearSearchButtonText}>Clear Search & Filters</Text>
               </TouchableOpacity>
             )}
-          </ScrollView>
-        </View>
-      )}
+          </View>
+        ) : (
+          <View style={styles.coursesList}>
+            {courses.map((course, index) => (
+              <View key={course._id || course.id || index}>
+                {renderCourseCard({ item: course, index })}
+              </View>
+            ))}
+          </View>
+        )}
 
-      {/* Courses List/Grid */}
-      {courses.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="book-outline" size={80} color={colors.secondaryText} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>No Courses Found</Text>
-          <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
-            {searchQuery || activeFiltersCount > 0
-              ? 'Try adjusting your search or filters'
-              : 'No courses available at the moment'}
-          </Text>
-          {(searchQuery || activeFiltersCount > 0) && (
-            <TouchableOpacity
-              style={[styles.clearSearchButton, { backgroundColor: colors.primary }]}
-              onPress={clearFilters}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.clearSearchButtonText}>Clear Search & Filters</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : (
-        <FlatList
-          data={courses}
-          renderItem={renderCourseCard}
-          keyExtractor={(item) => item._id}
-          numColumns={viewMode === 'grid' && responsive.isTablet ? 2 : 1}
-          contentContainerStyle={[
-            styles.coursesList,
-            viewMode === 'grid' && responsive.isTablet && styles.gridList
-          ]}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-          }
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <View style={styles.resultsHeader}>
-              <Text style={[styles.resultsCount, { color: colors.secondaryText }]}>
-                {courses.length} {courses.length === 1 ? 'result' : 'results'}
-              </Text>
-            </View>
-          }
-        />
-      )}
+        <View style={{ height: 100 }} />
+      </ScrollView>
     </View>
   );
 }
@@ -470,33 +450,46 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: spacing.xxxl,
+    paddingTop: 50,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: spacing.md,
   },
   headerTitle: {
-    fontSize: fontSize.xxxl,
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
+  },
+  exploreSection: {
+    marginBottom: spacing.lg,
+  },
+  exploreTitle: {
+    fontSize: fontSize.xxl,
     fontWeight: '700',
     marginBottom: spacing.xs,
     letterSpacing: -0.5,
   },
-  headerSubtitle: {
+  exploreSubtitle: {
     fontSize: fontSize.md,
-    fontWeight: '400',
   },
-  searchSection: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-  },
-  searchContainer: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
     paddingHorizontal: spacing.md,
-    height: normalize(48),
+    paddingVertical: spacing.sm,
+    borderRadius: premiumBorderRadius.lg,
+    borderWidth: 1,
     marginBottom: spacing.md,
   },
   searchIcon: {
@@ -505,28 +498,27 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: fontSize.md,
-    paddingVertical: 0,
-  },
-  clearButton: {
-    padding: spacing.xs,
+    paddingVertical: spacing.xs,
   },
   controlsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.md,
+    gap: spacing.md,
   },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderRadius: 8,
+    borderRadius: premiumBorderRadius.base,
+    borderWidth: 1,
     gap: spacing.xs,
   },
   filterButtonText: {
-    fontSize: fontSize.md,
-    fontWeight: '500',
+    fontSize: fontSize.sm,
+    fontWeight: '600',
   },
   filterBadge: {
     borderRadius: 10,
@@ -539,39 +531,41 @@ const styles = StyleSheet.create({
   filterBadgeText: {
     color: '#FFFFFF',
     fontSize: fontSize.xs,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   viewModeToggle: {
     flexDirection: 'row',
-    borderRadius: 8,
+    borderRadius: premiumBorderRadius.base,
+    borderWidth: 1,
     padding: 2,
   },
   viewModeButton: {
     padding: spacing.sm,
-    borderRadius: 6,
+    borderRadius: premiumBorderRadius.sm,
   },
   viewModeButtonActive: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    // Active state handled by backgroundColor
+  },
+  resultsCount: {
+    fontSize: fontSize.sm,
+    fontWeight: '500',
+    marginBottom: spacing.md,
   },
   filtersPanel: {
-    borderBottomWidth: 1,
-    paddingVertical: spacing.md,
-    maxHeight: 200,
+    borderRadius: premiumBorderRadius.lg,
+    borderWidth: 1,
+    padding: spacing.md,
+    marginBottom: spacing.md,
   },
   filtersContent: {
-    paddingHorizontal: spacing.lg,
     gap: spacing.md,
   },
   filterGroup: {
-    marginRight: spacing.xl,
+    marginRight: spacing.lg,
   },
   filterGroupLabel: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontSize: fontSize.xs,
+    fontWeight: '700',
     marginBottom: spacing.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -582,75 +576,168 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: 20,
-    borderWidth: 1,
+    borderRadius: premiumBorderRadius.full,
+  },
+  filterChipText: {
+    fontSize: fontSize.sm,
+    fontWeight: '600',
   },
   clearAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: 20,
-    borderWidth: 1,
+    borderRadius: premiumBorderRadius.full,
     gap: spacing.xs,
     alignSelf: 'flex-start',
-    marginTop: spacing.lg,
   },
   clearAllText: {
     fontSize: fontSize.sm,
     fontWeight: '600',
   },
   coursesList: {
-    padding: spacing.lg,
+    gap: spacing.md,
   },
-  gridList: {
-    paddingHorizontal: spacing.md,
-  },
-  gridCard: {
-    flex: 1,
-    margin: spacing.sm,
-    maxWidth: (SCREEN_WIDTH - spacing.lg * 3) / 2,
-  },
-  resultsHeader: {
+  courseCard: {
+    borderRadius: premiumBorderRadius.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
     marginBottom: spacing.md,
   },
-  resultsCount: {
-    fontSize: fontSize.sm,
-    fontWeight: '500',
+  bannerContainer: {
+    flexDirection: 'row',
+    height: 180,
   },
-  skeletonContainer: {
-    padding: spacing.lg,
+  bannerLeft: {
+    flex: 1,
+    padding: spacing.md,
+    justifyContent: 'space-between',
+  },
+  bannerContent: {
+    flex: 1,
+  },
+  levelBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: premiumBorderRadius.base,
+    marginBottom: spacing.xs,
+  },
+  levelBadgeText: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+  },
+  certifiedBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: premiumBorderRadius.sm,
+    marginBottom: spacing.xs,
+  },
+  certifiedText: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  bannerTitle: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: spacing.xs / 2,
+  },
+  bannerSubtitle: {
+    fontSize: fontSize.xs,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  bannerRight: {
+    width: 120,
+    height: '100%',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  courseDetails: {
+    padding: spacing.md,
+  },
+  courseTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  courseDescription: {
+    fontSize: fontSize.sm,
+    marginBottom: spacing.sm,
+    lineHeight: 18,
+  },
+  metaRow: {
+    marginBottom: spacing.sm,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  studentsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs / 2,
+  },
+  studentsText: {
+    fontSize: fontSize.sm,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  durationText: {
+    fontSize: fontSize.sm,
+  },
+  durationIcon: {
+    marginLeft: spacing.sm,
+  },
+  lessonsText: {
+    fontSize: fontSize.sm,
+  },
+  priceText: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
   },
   emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    paddingVertical: spacing.xxxl,
     alignItems: 'center',
-    padding: spacing.xxxl,
   },
   emptyTitle: {
-    fontSize: fontSize.xxl,
-    fontWeight: '600',
+    fontSize: fontSize.xl,
+    fontWeight: '700',
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
   },
   emptyText: {
     fontSize: fontSize.md,
     textAlign: 'center',
-    lineHeight: 22,
     marginBottom: spacing.xl,
   },
   clearSearchButton: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
-    borderRadius: 8,
+    borderRadius: premiumBorderRadius.lg,
   },
   clearSearchButtonText: {
     color: '#FFFFFF',
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

@@ -16,7 +16,7 @@ export default function LandingScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#1E88E5', '#1565C0', '#0D47A1']}
+        colors={['#9C27B0', '#7B1FA2', '#6A1B9A']}
         style={styles.gradient}
       >
         {/* Logo/Icon Section */}
@@ -64,7 +64,7 @@ export default function LandingScreen({ navigation }) {
             onPress={() => navigation.replace('Main')}
           >
             <Text style={styles.primaryButtonText}>Get Started</Text>
-            <Ionicons name="arrow-forward" size={20} color="#1E88E5" />
+            <Ionicons name="arrow-forward" size={20} color="#9C27B0" />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   primaryButtonText: {
-    color: '#1E88E5',
+    color: '#9C27B0',
     fontSize: 18,
     fontWeight: 'bold',
   },
