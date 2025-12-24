@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Course = require('../models/Course');
 const { protect } = require('../middleware/auth');
 
@@ -83,6 +84,14 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid course ID format'
+      });
+    }
+
     const course = await Course.findById(req.params.id)
       .populate('instructor', 'name avatar bio')
       .populate('lessons', 'title order videoDuration isPreview');
@@ -99,6 +108,7 @@ router.get('/:id', async (req, res) => {
       data: course
     });
   } catch (error) {
+    console.error('Error fetching course:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',

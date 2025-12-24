@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Review = require('../models/Review');
 const Course = require('../models/Course');
 const User = require('../models/User');
@@ -10,6 +11,14 @@ const { protect } = require('../middleware/auth');
 // @access  Public
 router.get('/course/:courseId', async (req, res) => {
   try {
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(req.params.courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid course ID format'
+      });
+    }
+
     const reviews = await Review.find({ course: req.params.courseId })
       .populate('user', 'name avatar')
       .sort({ createdAt: -1 });
@@ -20,6 +29,7 @@ router.get('/course/:courseId', async (req, res) => {
       data: reviews
     });
   } catch (error) {
+    console.error('Error fetching reviews:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
