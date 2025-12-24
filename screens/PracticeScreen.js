@@ -391,18 +391,15 @@ export default function PracticeScreen({ navigation }) {
         {/* Quick Practice Sessions */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Practice</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.quickPracticeContainer}
-          >
+          <View style={styles.quickPracticeGrid}>
             <QuickPracticeCard
               title="5-Min Review"
               subtitle="Quick vocabulary review"
               icon="flash"
               color={premiumColors.primary.main}
               colors={colors}
-              onPress={() => {}}
+              count={25}
+              onPress={() => navigation.navigate('Flashcards', { quickMode: '5min' })}
             />
             <QuickPracticeCard
               title="Grammar Focus"
@@ -410,7 +407,8 @@ export default function PracticeScreen({ navigation }) {
               icon="school"
               color={premiumColors.accent.emerald}
               colors={colors}
-              onPress={() => {}}
+              count={15}
+              onPress={() => navigation.navigate('GrammarDrills', { quickMode: true })}
             />
             <QuickPracticeCard
               title="Pronunciation"
@@ -418,9 +416,19 @@ export default function PracticeScreen({ navigation }) {
               icon="mic"
               color={premiumColors.accent.rose}
               colors={colors}
-              onPress={() => {}}
+              count={10}
+              onPress={() => navigation.navigate('SpeakingPractice', { quickMode: true })}
             />
-          </ScrollView>
+            <QuickPracticeCard
+              title="Quick Quiz"
+              subtitle="Fast knowledge test"
+              icon="checkmark-circle"
+              color={premiumColors.accent.sky}
+              colors={colors}
+              count={12}
+              onPress={() => navigation.navigate('FreeQuiz', { quickMode: true })}
+            />
+          </View>
         </View>
 
         {/* Recent Achievements */}
@@ -497,18 +505,27 @@ function PracticeModeCard({ mode, colors, onPress }) {
   );
 }
 
-function QuickPracticeCard({ title, subtitle, icon, color, colors, onPress }) {
+function QuickPracticeCard({ title, subtitle, icon, color, colors, count, onPress }) {
   return (
     <TouchableOpacity
-      style={[styles.quickPracticeCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}
+      style={[styles.quickPracticeCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.9}
     >
-      <View style={[styles.quickPracticeIcon, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={24} color={color} />
+      <LinearGradient
+        colors={[color, color + 'DD']}
+        style={styles.quickPracticeGradient}
+      >
+        <Ionicons name={icon} size={28} color="#FFFFFF" />
+      </LinearGradient>
+      <View style={styles.quickPracticeContent}>
+        <Text style={[styles.quickPracticeTitle, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.quickPracticeSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
+        <View style={styles.quickPracticeFooter}>
+          <Ionicons name="play-circle" size={14} color={color} />
+          <Text style={[styles.quickPracticeCount, { color: color }]}>{count} exercises</Text>
+        </View>
       </View>
-      <Text style={[styles.quickPracticeTitle, { color: colors.text }]}>{title}</Text>
-      <Text style={[styles.quickPracticeSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
     </TouchableOpacity>
   );
 }
@@ -803,34 +820,44 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  quickPracticeContainer: {
-    paddingRight: spacing.md,
+  quickPracticeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: spacing.md,
   },
   quickPracticeCard: {
-    width: 200,
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
+    width: '48%',
+    borderRadius: premiumBorderRadius.xl,
+    overflow: 'hidden',
     borderWidth: 1,
-    alignItems: 'center',
   },
-  quickPracticeIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  quickPracticeGradient: {
+    width: '100%',
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+  },
+  quickPracticeContent: {
+    padding: spacing.md,
   },
   quickPracticeTitle: {
     fontSize: fontSize.md,
     fontWeight: '700',
     marginBottom: spacing.xs / 2,
-    textAlign: 'center',
   },
   quickPracticeSubtitle: {
     fontSize: fontSize.xs,
-    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  quickPracticeFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs / 2,
+  },
+  quickPracticeCount: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
   },
   achievementsContainer: {
     flexDirection: 'row',
