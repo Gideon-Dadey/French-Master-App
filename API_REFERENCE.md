@@ -747,6 +747,379 @@ Remove course from wishlist.
 
 ---
 
+## User Management Endpoints
+
+### Get User Profile
+
+**GET** `/api/users/profile` **Protected**
+
+Get authenticated user's profile.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+233123456789",
+    "avatar": "https://...",
+    "role": "student",
+    "preferences": {
+      "theme": "light",
+      "notifications": true
+    },
+    "enrolledCourses": [...]
+  }
+}
+```
+
+---
+
+### Update User Profile
+
+**PUT** `/api/users/profile` **Protected**
+
+Update authenticated user's profile.
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "phone": "+233123456789",
+  "avatar": "https://...",
+  "preferences": {
+    "theme": "dark",
+    "notifications": false
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "...",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+233123456789",
+    "avatar": "https://...",
+    "preferences": {...}
+  }
+}
+```
+
+---
+
+### Get My Courses
+
+**GET** `/api/users/my-courses` **Protected**
+
+Get authenticated user's enrolled courses.
+
+**Response:**
+```json
+{
+  "success": true,
+  "count": 3,
+  "data": [
+    {
+      "course": {
+        "_id": "...",
+        "title": "Complete French for Beginners",
+        "thumbnail": "https://...",
+        "instructor": {
+          "_id": "...",
+          "name": "Marie Dubois",
+          "avatar": "https://..."
+        }
+      },
+      "enrolledAt": "2025-01-01T00:00:00.000Z",
+      "progress": 65,
+      "completedLessons": ["...", "..."],
+      "lastAccessed": "2025-01-15T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## Admin Student Management Endpoints
+
+### Get All Students (Admin)
+
+**GET** `/api/admin/students` **Protected (Admin Only)**
+
+Get paginated list of all students.
+
+**Query Parameters:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Items per page (default: 20)
+- `search` (string): Search by name or email
+
+**Example:**
+```
+GET /api/admin/students?page=1&limit=20&search=john
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "phone": "+233123456789",
+      "avatar": "https://...",
+      "role": "student",
+      "enrolledCourses": [
+        {
+          "course": "...",
+          "enrolledAt": "2025-01-01T00:00:00.000Z",
+          "progress": 65
+        }
+      ],
+      "createdAt": "2024-12-01T00:00:00.000Z",
+      "lastActive": "2025-01-15T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 150,
+    "pages": 8
+  }
+}
+```
+
+---
+
+### Get Student by ID (Admin)
+
+**GET** `/api/admin/students/:id` **Protected (Admin Only)**
+
+Get detailed information about a specific student.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+233123456789",
+    "avatar": "https://...",
+    "role": "student",
+    "enrolledCourses": [
+      {
+        "course": {
+          "_id": "...",
+          "title": "Complete French for Beginners",
+          "thumbnail": "https://..."
+        },
+        "enrolledAt": "2025-01-01T00:00:00.000Z",
+        "progress": 65,
+        "completedLessons": ["...", "..."],
+        "lastAccessed": "2025-01-15T00:00:00.000Z"
+      }
+    ],
+    "preferences": {...},
+    "createdAt": "2024-12-01T00:00:00.000Z",
+    "lastActive": "2025-01-15T00:00:00.000Z"
+  }
+}
+```
+
+---
+
+### Update Student (Admin)
+
+**PUT** `/api/admin/students/:id` **Protected (Admin Only)**
+
+Update student information.
+
+**Request Body:**
+```json
+{
+  "name": "John Doe Updated",
+  "email": "newemail@example.com",
+  "phone": "+233987654321",
+  "role": "instructor"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "name": "John Doe Updated",
+    "email": "newemail@example.com",
+    "phone": "+233987654321",
+    "role": "instructor"
+  },
+  "message": "Student updated successfully"
+}
+```
+
+---
+
+### Delete Student (Admin)
+
+**DELETE** `/api/admin/students/:id` **Protected (Admin Only)**
+
+Delete a student account.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Student deleted successfully"
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "message": "Student not found"
+}
+```
+
+---
+
+## Instructor Student Management Endpoints
+
+### Get Instructor's Students
+
+**GET** `/api/users/instructor/students` **Protected (Instructor/Admin)**
+
+Get students enrolled in instructor's courses.
+
+**Query Parameters:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Items per page (default: 20)
+- `search` (string): Search by name or email
+- `courseId` (string): Filter by specific course
+
+**Example:**
+```
+GET /api/users/instructor/students?page=1&limit=20&courseId=507f1f77bcf86cd799439011
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "avatar": "https://...",
+      "enrolledCourses": [
+        {
+          "course": {
+            "_id": "...",
+            "title": "Complete French for Beginners",
+            "thumbnail": "https://...",
+            "instructor": {
+              "_id": "...",
+              "name": "Marie Dubois"
+            }
+          },
+          "enrolledAt": "2025-01-01T00:00:00.000Z",
+          "progress": 65,
+          "completedLessons": ["...", "..."],
+          "lastAccessed": "2025-01-15T00:00:00.000Z"
+        }
+      ],
+      "createdAt": "2024-12-01T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 45,
+    "pages": 3
+  }
+}
+```
+
+**Notes:**
+- Only shows students enrolled in courses taught by the instructor
+- If instructor has no courses, returns empty array
+
+---
+
+### Get Student Details (Instructor)
+
+**GET** `/api/users/instructor/students/:id` **Protected (Instructor/Admin)**
+
+Get detailed information about a specific student enrolled in instructor's courses.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "avatar": "https://...",
+    "enrolledCourses": [
+      {
+        "course": {
+          "_id": "...",
+          "title": "Complete French for Beginners",
+          "thumbnail": "https://...",
+          "rating": {
+            "average": 4.5,
+            "count": 120
+          },
+          "instructor": {
+            "_id": "...",
+            "name": "Marie Dubois"
+          }
+        },
+        "enrolledAt": "2025-01-01T00:00:00.000Z",
+        "progress": 65,
+        "completedLessons": [
+          {
+            "_id": "...",
+            "title": "Introduction to French",
+            "order": 1
+          }
+        ],
+        "lastAccessed": "2025-01-15T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2024-12-01T00:00:00.000Z"
+  }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "message": "Student not found in your courses"
+}
+```
+
+**Notes:**
+- Only returns data if student is enrolled in at least one of instructor's courses
+- Only shows enrollments for instructor's courses
+
+---
+
 ## Error Responses
 
 All endpoints may return error responses in the following format:

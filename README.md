@@ -206,6 +206,14 @@ FRENCH MASTER/
 - `POST /api/payments/confirm` - Confirm payment
 - `GET /api/payments/history` - Get payment history
 
+### Student Management
+- `GET /api/admin/students` - Get all students (Admin)
+- `GET /api/admin/students/:id` - Get student by ID (Admin)
+- `PUT /api/admin/students/:id` - Update student (Admin)
+- `DELETE /api/admin/students/:id` - Delete student (Admin)
+- `GET /api/users/instructor/students` - Get instructor's students (Instructor/Admin)
+- `GET /api/users/instructor/students/:id` - Get student details (Instructor/Admin)
+
 For complete API documentation, see [API_REFERENCE.md](./API_REFERENCE.md)
 
 ---

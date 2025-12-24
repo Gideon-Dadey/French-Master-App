@@ -817,5 +817,171 @@ const { colors, isDarkMode } = useTheme();
 
 ---
 
+## Context Providers
+
+### StudentContext
+
+Context provider for admin student management.
+
+**Location:** `src/context/StudentContext.js`
+
+**Hook:** `useStudent()`
+
+**Features:**
+- Load and manage all students (admin only)
+- View student details
+- Update student information
+- Delete students
+- Pagination support
+- Auto-clears when user logs out or is not admin
+
+**State:**
+```typescript
+{
+  students: Array<Student>;
+  loading: boolean;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  } | null;
+}
+```
+
+**Methods:**
+```typescript
+{
+  loadStudents: (params?: { page?: number; limit?: number; search?: string }) => Promise<void>;
+  getStudentById: (studentId: string) => Promise<{ success: boolean; data?: Student; message?: string }>;
+  updateStudent: (studentId: string, data: Partial<Student>) => Promise<{ success: boolean; data?: Student; message?: string }>;
+  deleteStudent: (studentId: string) => Promise<{ success: boolean; message?: string }>;
+}
+```
+
+**Usage:**
+```javascript
+import { useStudent } from '../context/StudentContext';
+
+function StudentManagementScreen() {
+  const { students, loading, pagination, loadStudents, getStudentById, updateStudent, deleteStudent } = useStudent();
+
+  useEffect(() => {
+    loadStudents({ page: 1, limit: 20 });
+  }, []);
+
+  const handleUpdateStudent = async (studentId, updates) => {
+    const result = await updateStudent(studentId, updates);
+    if (result.success) {
+      // Student updated successfully
+    }
+  };
+
+  const handleDeleteStudent = async (studentId) => {
+    const result = await deleteStudent(studentId);
+    if (result.success) {
+      // Student deleted successfully
+    }
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  return (
+    <View>
+      {students.map(student => (
+        <StudentCard key={student._id} student={student} />
+      ))}
+    </View>
+  );
+}
+```
+
+**Notes:**
+- Only available to users with `admin` role
+- Automatically clears data when user is not authenticated or not admin
+- Silently handles 401 errors
+- Auto-refreshes student list after updates/deletions
+
+---
+
+### InstructorStudentContext
+
+Context provider for instructor student management.
+
+**Location:** `src/context/InstructorStudentContext.js`
+
+**Hook:** `useInstructorStudent()`
+
+**Features:**
+- Load students enrolled in instructor's courses
+- View student details
+- Filter by course
+- Search functionality
+- Pagination support
+- Auto-clears when user logs out or is not instructor/admin
+
+**State:**
+```typescript
+{
+  students: Array<Student>;
+  loading: boolean;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  } | null;
+}
+```
+
+**Methods:**
+```typescript
+{
+  loadStudents: (params?: { page?: number; limit?: number; search?: string; courseId?: string }) => Promise<void>;
+  getStudentById: (studentId: string) => Promise<{ success: boolean; data?: Student; message?: string }>;
+}
+```
+
+**Usage:**
+```javascript
+import { useInstructorStudent } from '../context/InstructorStudentContext';
+
+function InstructorStudentsScreen() {
+  const { students, loading, pagination, loadStudents, getStudentById } = useInstructorStudent();
+
+  useEffect(() => {
+    loadStudents({ page: 1, limit: 20 });
+  }, []);
+
+  const handleSearchStudents = (searchText) => {
+    loadStudents({ search: searchText });
+  };
+
+  const handleFilterByCourse = (courseId) => {
+    loadStudents({ courseId });
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  return (
+    <View>
+      <SearchBar onSearch={handleSearchStudents} />
+      {students.map(student => (
+        <StudentCard key={student._id} student={student} />
+      ))}
+    </View>
+  );
+}
+```
+
+**Notes:**
+- Available to users with `instructor` or `admin` role
+- Only shows students enrolled in instructor's courses
+- Automatically clears data when user is not authenticated or not instructor
+- Silently handles 401 errors
+- Read-only access (instructors cannot modify student data)
+
+---
+
 **Last Updated:** January 2025
 

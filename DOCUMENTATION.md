@@ -344,6 +344,38 @@ Authorization: Bearer <token>
 - Remove from wishlist (Protected)
 - Returns: `{ success, message }`
 
+#### Admin Student Management
+
+**GET** `/api/admin/students`
+- Get all students (Protected - Admin Only)
+- Query params: `?page=`, `?limit=`, `?search=`
+- Returns: `{ success, data: [students], pagination }`
+
+**GET** `/api/admin/students/:id`
+- Get student by ID (Protected - Admin Only)
+- Returns: `{ success, data: student }`
+
+**PUT** `/api/admin/students/:id`
+- Update student (Protected - Admin Only)
+- Body: `{ name?, email?, phone?, role? }`
+- Returns: `{ success, data: student, message }`
+
+**DELETE** `/api/admin/students/:id`
+- Delete student (Protected - Admin Only)
+- Returns: `{ success, message }`
+
+#### Instructor Students
+
+**GET** `/api/users/instructor/students`
+- Get students enrolled in instructor's courses (Protected - Instructor/Admin)
+- Query params: `?page=`, `?limit=`, `?search=`, `?courseId=`
+- Returns: `{ success, data: [students], pagination }`
+
+**GET** `/api/users/instructor/students/:id`
+- Get student details (Protected - Instructor/Admin)
+- Returns: `{ success, data: student }`
+- Note: Only returns if student is enrolled in instructor's courses
+
 ---
 
 ## Components
@@ -453,6 +485,42 @@ Manages user wishlist.
 
 **State:**
 - `wishlist`: array
+
+#### `StudentContext`
+Manages admin student management (admin only).
+
+**Methods:**
+- `loadStudents(params)`: Load students with pagination
+- `getStudentById(studentId)`: Get student details
+- `updateStudent(studentId, data)`: Update student information
+- `deleteStudent(studentId)`: Delete student account
+
+**State:**
+- `students`: array
+- `loading`: boolean
+- `pagination`: object
+
+**Notes:**
+- Only available to users with `admin` role
+- Auto-refreshes after updates/deletions
+- Silently handles authentication errors
+
+#### `InstructorStudentContext`
+Manages instructor student viewing (instructor/admin only).
+
+**Methods:**
+- `loadStudents(params)`: Load students enrolled in instructor's courses
+- `getStudentById(studentId)`: Get student details
+
+**State:**
+- `students`: array
+- `loading`: boolean
+- `pagination`: object
+
+**Notes:**
+- Available to users with `instructor` or `admin` role
+- Only shows students enrolled in instructor's courses
+- Read-only access for instructors
 
 ---
 

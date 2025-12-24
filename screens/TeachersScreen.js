@@ -240,6 +240,8 @@ export default function TeachersScreen({ navigation }) {
                 colors={colors}
                 isSelected={selectedPlan?.id === plan.id}
                 onSelect={() => handleSubscribe(plan)}
+                formatPriceValue={formatPriceValue}
+                getCurrencyData={getCurrencyData}
               />
             ))}
           </View>
@@ -373,7 +375,7 @@ function FeatureCard({ feature, colors, navigation }) {
   );
 }
 
-function PlanCard({ plan, colors, isSelected, onSelect }) {
+function PlanCard({ plan, colors, isSelected, onSelect, formatPriceValue, getCurrencyData }) {
   const discount = Math.round(((plan.originalPrice - plan.price) / plan.originalPrice) * 100);
 
   return (

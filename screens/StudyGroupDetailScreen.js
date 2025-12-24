@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,17 @@ import {
   Alert,
   Dimensions,
   Modal,
+  Image,
+  Animated,
+  Linking,
+  Platform,
+  KeyboardAvoidingView,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { spacing, fontSize } from '../src/utils/responsive';
@@ -21,7 +29,70 @@ import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import ErrorMessage from '../src/components/ErrorMessage';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+// Message type constants
+const MESSAGE_TYPES = {
+  TEXT: 'text',
+  IMAGE: 'image',
+  DOCUMENT: 'document',
+  LINK: 'link',
+};
+
+// Reaction emojis
+const REACTIONS = [
+  { emoji: '👍', name: 'like' },
+  { emoji: '❤️', name: 'love' },
+  { emoji: '🔥', name: 'fire' },
+  { emoji: '😂', name: 'laugh' },
+  { emoji: '😮', name: 'wow' },
+  { emoji: '🎉', name: 'celebrate' },
+];
+
+// Helper function to format time ago
+const formatTimeAgo = (date) => {
+  const now = new Date();
+  const messageDate = new Date(date);
+  const diffInSeconds = Math.floor((now - messageDate) / 1000);
+  
+  if (diffInSeconds < 60) return 'Just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  
+  return messageDate.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    year: messageDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  });
+};
+
+// Helper to detect URLs in text
+const detectURL = (text) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.match(urlRegex);
+};
+
+// Get file icon based on extension
+const getFileIcon = (filename) => {
+  const ext = filename?.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'pdf': return { icon: 'document-text', color: '#E53935' };
+    case 'doc':
+    case 'docx': return { icon: 'document', color: '#1976D2' };
+    case 'xls':
+    case 'xlsx': return { icon: 'grid', color: '#2E7D32' };
+    case 'ppt':
+    case 'pptx': return { icon: 'easel', color: '#F57C00' };
+    case 'zip':
+    case 'rar': return { icon: 'archive', color: '#795548' };
+    case 'mp3':
+    case 'wav': return { icon: 'musical-notes', color: '#9C27B0' };
+    case 'mp4':
+    case 'mov': return { icon: 'videocam', color: '#00BCD4' };
+    default: return { icon: 'document-attach', color: '#607D8B' };
+  }
+};
 
 export default function StudyGroupDetailScreen({ route, navigation }) {
   const { groupId } = route.params;
@@ -37,10 +108,46 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinInviteCode, setJoinInviteCode] = useState('');
   const [newResource, setNewResource] = useState({ title: '', url: '', type: 'link' });
+  
+  // Advanced discussions state
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [showReactionPicker, setShowReactionPicker] = useState(null);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageReactions, setMessageReactions] = useState({});
+  
+  // Animation refs
+  const attachmentMenuAnim = useRef(new Animated.Value(0)).current;
+  const reactionPickerAnim = useRef(new Animated.Value(0)).current;
+  const discussionsScrollRef = useRef(null);
 
   useEffect(() => {
     loadGroup();
   }, [groupId]);
+  
+  // Animate attachment menu
+  useEffect(() => {
+    Animated.spring(attachmentMenuAnim, {
+      toValue: showAttachmentMenu ? 1 : 0,
+      tension: 65,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
+  }, [showAttachmentMenu]);
+  
+  // Animate reaction picker
+  useEffect(() => {
+    Animated.spring(reactionPickerAnim, {
+      toValue: showReactionPicker ? 1 : 0,
+      tension: 80,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+  }, [showReactionPicker]);
 
   const loadGroup = async () => {
     try {
@@ -334,9 +441,16 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                                (typeof group.creator === 'string' && group.creator === member.user);
               return (
                 <View key={index} style={[styles.memberCard, { backgroundColor: colors.card }]}>
-                  <View style={[styles.avatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                    <Ionicons name="person" size={24} color={premiumColors.primary.main} />
-                  </View>
+                  {memberUser?.avatar ? (
+                    <Image 
+                      source={{ uri: memberUser.avatar }} 
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <View style={[styles.avatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                      <Ionicons name="person" size={24} color={premiumColors.primary.main} />
+                    </View>
+                  )}
                   <View style={styles.memberInfo}>
                     <Text style={[styles.memberName, { color: colors.text }]}>
                       {memberUser?.name || 'Member'}
@@ -408,9 +522,16 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
                 return (
                   <View key={index} style={[styles.discussionCard, { backgroundColor: colors.card }]}>
-                    <View style={[styles.avatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                      <Ionicons name="person" size={20} color={premiumColors.primary.main} />
-                    </View>
+                    {discussionUser?.avatar ? (
+                      <Image 
+                        source={{ uri: discussionUser.avatar }} 
+                        style={styles.avatarImage}
+                      />
+                    ) : (
+                      <View style={[styles.avatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                        <Ionicons name="person" size={20} color={premiumColors.primary.main} />
+                      </View>
+                    )}
                     <View style={styles.discussionContent}>
                       <Text style={[styles.discussionAuthor, { color: colors.text }]}>
                         {discussionUser?.name || 'Member'}
@@ -725,6 +846,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  avatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   memberInfo: {
     flex: 1,

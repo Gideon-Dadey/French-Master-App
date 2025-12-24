@@ -10,6 +10,7 @@ import {
   Dimensions,
   Modal,
   Alert,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -361,7 +362,31 @@ function StudyGroupCard({ group, colors, isMember, onPress, onJoin }) {
               </Text>
             </View>
             <View style={styles.metaItem}>
-              <Ionicons name="people" size={14} color={colors.secondaryText} />
+              <View style={styles.memberAvatarsRow}>
+                {group.members?.slice(0, 4).map((member, index) => {
+                  const memberUser = typeof member.user === 'object' ? member.user : null;
+                  return memberUser?.avatar ? (
+                    <Image
+                      key={index}
+                      source={{ uri: memberUser.avatar }}
+                      style={[
+                        styles.memberAvatarSmall,
+                        { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index },
+                      ]}
+                    />
+                  ) : (
+                    <View
+                      key={index}
+                      style={[
+                        styles.memberAvatarSmallPlaceholder,
+                        { marginLeft: index > 0 ? -8 : 0, zIndex: 4 - index, backgroundColor: premiumColors.primary.main + '30' },
+                      ]}
+                    >
+                      <Ionicons name="person" size={10} color={premiumColors.primary.main} />
+                    </View>
+                  );
+                })}
+              </View>
               <Text style={[styles.metaText, { color: colors.secondaryText }]}>
                 {memberCount}/{maxMembers}
               </Text>
@@ -566,6 +591,27 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: fontSize.xs,
+  },
+  memberAvatarsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: spacing.xs,
+  },
+  memberAvatarSmall: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  memberAvatarSmallPlaceholder: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   memberBadge: {
     paddingHorizontal: spacing.sm,
