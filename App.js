@@ -13,6 +13,7 @@ import { GamificationProvider } from './src/context/GamificationContext';
 import { CurrencyProvider } from './src/context/CurrencyContext';
 import NetworkStatus from './src/components/NetworkStatus';
 import TabBarIcon from './src/components/TabBarIcon';
+import CustomTabBar from './src/components/CustomTabBar';
 import ToastContainer from './src/components/ToastNotification';
 
 // Screens
@@ -80,43 +81,11 @@ function MainTabs() {
   return (
     <Tab.Navigator
       initialRouteName="Home"
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color }) => {
-          // Memoized icon component prevents unnecessary re-renders
-          return (
-            <TabBarIcon
-              focused={focused}
-              route={route.name}
-              color={color}
-              inactiveColor={colors.secondaryText}
-            />
-          );
-        },
-        tabBarActiveTintColor: '#9C27B0',
-        tabBarInactiveTintColor: isDarkMode ? '#71767A' : '#9E9E9E',
+      tabBar={(props) => <CustomTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: isDarkMode ? colors.card : '#FFFFFF',
-          borderTopWidth: isDarkMode ? 1 : 0,
-          borderTopColor: isDarkMode ? colors.border : 'transparent',
-          elevation: 0,
-          shadowOpacity: 0,
-          height: Platform.OS === 'ios' ? 85 : 65,
-          paddingBottom: Platform.OS === 'ios' ? 25 : 8,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
-          marginTop: 4,
-          marginBottom: 0,
-        },
-        tabBarLabelPosition: 'below-icon',
-        tabBarItemStyle: {
-          paddingVertical: 4,
-        },
         tabBarHideOnKeyboard: true,
-      })}
+      }}
     >
       <Tab.Screen 
         name="Home" 

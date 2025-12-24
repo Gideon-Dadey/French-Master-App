@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,18 +9,20 @@ import {
   TextInput,
   Alert,
   Dimensions,
+  Animated,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
-import { spacing, fontSize } from '../src/utils/responsive';
 import { discussionsAPI } from '../src/services/api';
-import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import ErrorMessage from '../src/components/ErrorMessage';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function DiscussionDetailScreen({ route, navigation }) {
   const { discussionId } = route.params;
@@ -32,8 +34,11 @@ export default function DiscussionDetailScreen({ route, navigation }) {
   const [discussion, setDiscussion] = useState(null);
   const [replyContent, setReplyContent] = useState('');
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     loadDiscussion();
+    Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
   }, [discussionId]);
 
   const loadDiscussion = async () => {
@@ -43,7 +48,6 @@ export default function DiscussionDetailScreen({ route, navigation }) {
       const response = await discussionsAPI.getById(discussionId);
       setDiscussion(response.data.data);
     } catch (error) {
-      console.error('Failed to load discussion:', error);
       setError('Failed to load discussion. Please try again.');
     } finally {
       setLoading(false);
@@ -64,10 +68,8 @@ export default function DiscussionDetailScreen({ route, navigation }) {
   const handleLike = async () => {
     if (!isAuthenticated) {
       Alert.alert('Login Required', 'Please login to like discussions');
-      navigation.navigate('Auth');
       return;
     }
-
     try {
       await discussionsAPI.like(discussionId);
       loadDiscussion();
@@ -81,13 +83,10 @@ export default function DiscussionDetailScreen({ route, navigation }) {
       Alert.alert('Error', 'Please enter a reply');
       return;
     }
-
     if (!isAuthenticated) {
       Alert.alert('Login Required', 'Please login to reply');
-      navigation.navigate('Auth');
       return;
     }
-
     try {
       await discussionsAPI.addReply(discussionId, replyContent);
       setReplyContent('');
@@ -102,7 +101,6 @@ export default function DiscussionDetailScreen({ route, navigation }) {
       Alert.alert('Login Required', 'Please login to like replies');
       return;
     }
-
     try {
       await discussionsAPI.likeReply(discussionId, replyId);
       loadDiscussion();
@@ -116,7 +114,6 @@ export default function DiscussionDetailScreen({ route, navigation }) {
     const now = new Date();
     const postDate = new Date(date);
     const diffInHours = Math.floor((now - postDate) / (1000 * 60 * 60));
-    
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
     const diffInDays = Math.floor(diffInHours / 24);
@@ -125,7 +122,7 @@ export default function DiscussionDetailScreen({ route, navigation }) {
   };
 
   if (loading && !refreshing) {
-    return <LoadingSpinner />;
+    return <LoadingSpinner message="Loading discussion..." />;
   }
 
   if (error || !discussion) {
@@ -133,171 +130,204 @@ export default function DiscussionDetailScreen({ route, navigation }) {
   }
 
   const author = typeof discussion.author === 'object' ? discussion.author : null;
-  const hasLiked = discussion.likes?.some(like => 
-    (typeof like.user === 'object' ? like.user._id : like.user) === user?._id
-  );
+  const hasLiked = discussion.likes?.some((like) => (typeof like.user === 'object' ? like.user._id : like.user) === user?._id);
   const likeCount = discussion.likes?.length || 0;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Discussion Header */}
-        <View style={[styles.discussionHeader, { backgroundColor: colors.card }]}>
-          <View style={styles.discussionHeaderTop}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
+      {/* Premium Header */}
+      <Animated.View style={[styles.headerContainer, { opacity: fadeAnim }]}>
+        <LinearGradient colors={['#10B981', '#059669', '#047857']} style={styles.headerGradient}>
+          <View style={styles.headerContent}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
-            {isAuthor() && (
-              <TouchableOpacity>
-                <Ionicons name="create-outline" size={24} color={colors.text} />
-              </TouchableOpacity>
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.headerLabel}>DISCUSSION</Text>
+              <Text style={styles.headerTitle} numberOfLines={1}>Community Thread</Text>
+            </View>
+            <View style={styles.headerRight}>
+              {isAuthor() && (
+                <TouchableOpacity style={styles.editBtn}>
+                  <Ionicons name="create-outline" size={22} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Discussion Card */}
+          <View style={[styles.discussionCard, { backgroundColor: colors.card }]}>
+            {/* Pinned Badge */}
+            {discussion.isPinned && (
+              <View style={styles.pinnedBadge}>
+                <Ionicons name="pin" size={14} color="#F59E0B" />
+                <Text style={styles.pinnedText}>Pinned</Text>
+              </View>
             )}
-          </View>
 
-          {discussion.isPinned && (
-            <View style={[styles.pinnedBadge, { backgroundColor: premiumColors.accent.gold + '20' }]}>
-              <Ionicons name="pin" size={16} color={premiumColors.accent.gold} />
-              <Text style={[styles.pinnedText, { color: premiumColors.accent.gold }]}>Pinned</Text>
-            </View>
-          )}
+            {/* Title */}
+            <Text style={[styles.discussionTitle, { color: colors.text }]}>{discussion.title}</Text>
 
-          <Text style={[styles.discussionTitle, { color: colors.text }]}>
-            {discussion.title}
-          </Text>
+            {/* Content */}
+            <Text style={[styles.discussionContent, { color: colors.text }]}>{discussion.content}</Text>
 
-          <View style={styles.discussionMeta}>
-            <View style={[styles.avatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
-              <Ionicons name="person" size={20} color={premiumColors.primary.main} />
-            </View>
-            <View style={styles.authorInfo}>
-              <Text style={[styles.authorName, { color: colors.text }]}>
-                {author?.name || 'Anonymous'}
-              </Text>
-              <Text style={[styles.discussionDate, { color: colors.secondaryText }]}>
-                {formatTimeAgo(discussion.createdAt)}
-                {discussion.isEdited && ' (edited)'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Voting */}
-          <View style={styles.votingContainer}>
-            <TouchableOpacity
-              style={[styles.voteButton, hasLiked && { backgroundColor: premiumColors.accent.rose + '20' }]}
-              onPress={handleLike}
-            >
-              <Ionicons 
-                name={hasLiked ? 'heart' : 'heart-outline'} 
-                size={24} 
-                color={hasLiked ? premiumColors.accent.rose : colors.secondaryText} 
-              />
-              <Text style={[styles.voteCount, { color: colors.text }]}>
-                {likeCount}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Discussion Content */}
-        <View style={[styles.contentCard, { backgroundColor: colors.card }]}>
-          <Text style={[styles.contentText, { color: colors.text }]}>
-            {discussion.content}
-          </Text>
-          {discussion.tags?.length > 0 && (
-            <View style={styles.tagsContainer}>
-              {discussion.tags.map((tag, index) => (
-                <View key={index} style={[styles.tag, { backgroundColor: colors.background }]}>
-                  <Text style={[styles.tagText, { color: colors.text }]}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Replies Section */}
-        <View style={styles.repliesSection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {discussion.replies?.length || 0} {discussion.replies?.length === 1 ? 'Reply' : 'Replies'}
-          </Text>
-
-          {discussion.replies?.map((reply, index) => {
-            const replyUser = typeof reply.user === 'object' ? reply.user : null;
-            const replyHasLiked = reply.likes?.some(like => 
-              (typeof like.user === 'object' ? like.user._id : like.user) === user?._id
-            );
-            const replyLikeCount = reply.likes?.length || 0;
-            const isReplyAuthor = replyUser?._id === user._id || (typeof reply.user === 'string' && reply.user === user._id);
-
-            return (
-              <View key={reply._id || index} style={[styles.replyCard, { backgroundColor: colors.card }]}>
-                <View style={styles.replyHeader}>
-                  <View style={[styles.avatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                    <Ionicons name="person" size={18} color={premiumColors.primary.main} />
+            {/* Tags */}
+            {discussion.tags?.length > 0 && (
+              <View style={styles.tagsRow}>
+                {discussion.tags.map((tag, index) => (
+                  <View key={index} style={[styles.tag, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
+                    <Text style={[styles.tagText, { color: colors.text }]}>#{tag}</Text>
                   </View>
-                  <View style={styles.replyAuthorInfo}>
-                    <Text style={[styles.replyAuthorName, { color: colors.text }]}>
-                      {replyUser?.name || 'Anonymous'}
-                    </Text>
-                    <Text style={[styles.replyDate, { color: colors.secondaryText }]}>
-                      {formatTimeAgo(reply.createdAt)}
-                      {reply.isEdited && ' (edited)'}
-                    </Text>
-                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Author & Meta */}
+            <View style={styles.authorSection}>
+              <View style={styles.authorRow}>
+                <View style={[styles.avatar, { backgroundColor: '#10B981' }]}>
+                  {author?.avatar ? (
+                    <Image source={{ uri: author.avatar }} style={styles.avatarImage} />
+                  ) : (
+                    <Text style={styles.avatarText}>{author?.name?.charAt(0) || '?'}</Text>
+                  )}
                 </View>
-                <Text style={[styles.replyContent, { color: colors.text }]}>
-                  {reply.content}
-                </Text>
-                <View style={styles.replyFooter}>
-                  <TouchableOpacity
-                    style={[styles.replyLikeButton, replyHasLiked && { backgroundColor: premiumColors.accent.rose + '20' }]}
-                    onPress={() => handleLikeReply(reply._id)}
-                  >
-                    <Ionicons 
-                      name={replyHasLiked ? 'heart' : 'heart-outline'} 
-                      size={18} 
-                      color={replyHasLiked ? premiumColors.accent.rose : colors.secondaryText} 
-                    />
-                    <Text style={[styles.replyLikeCount, { color: colors.text }]}>
-                      {replyLikeCount}
-                    </Text>
-                  </TouchableOpacity>
+                <View style={styles.authorInfo}>
+                  <Text style={[styles.authorName, { color: colors.text }]}>{author?.name || 'Anonymous'}</Text>
+                  <Text style={[styles.authorDate, { color: colors.secondaryText }]}>
+                    Posted {formatTimeAgo(discussion.createdAt)}
+                    {discussion.isEdited && ' • Edited'}
+                  </Text>
                 </View>
               </View>
-            );
-          })}
-        </View>
+            </View>
 
-        {/* Reply Input */}
-        {!discussion.isLocked && (
-          <View style={[styles.replyInputContainer, { backgroundColor: colors.card }]}>
-            <Text style={[styles.inputTitle, { color: colors.text }]}>Your Reply</Text>
-            <TextInput
-              style={[styles.replyInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              placeholder="Write your reply here..."
-              placeholderTextColor={colors.secondaryText}
-              value={replyContent}
-              onChangeText={setReplyContent}
-              multiline
-              numberOfLines={4}
-            />
-            <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: premiumColors.primary.main }]}
-              onPress={handleSubmitReply}
-            >
-              <Text style={styles.submitButtonText}>Post Reply</Text>
-            </TouchableOpacity>
+            {/* Actions Row */}
+            <View style={styles.actionsRow}>
+              <TouchableOpacity style={[styles.actionBtn, hasLiked && styles.actionBtnActive]} onPress={handleLike}>
+                <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={22} color={hasLiked ? '#EF4444' : colors.secondaryText} />
+                <Text style={[styles.actionText, { color: hasLiked ? '#EF4444' : colors.secondaryText }]}>{likeCount}</Text>
+              </TouchableOpacity>
+              <View style={styles.actionBtn}>
+                <Ionicons name="chatbubble-outline" size={22} color={colors.secondaryText} />
+                <Text style={[styles.actionText, { color: colors.secondaryText }]}>{discussion.replies?.length || 0}</Text>
+              </View>
+              <TouchableOpacity style={styles.actionBtn}>
+                <Ionicons name="share-outline" size={22} color={colors.secondaryText} />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionBtn}>
+                <Ionicons name="bookmark-outline" size={22} color={colors.secondaryText} />
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
+          {/* Replies Section */}
+          <View style={styles.repliesSection}>
+            <View style={styles.repliesSectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                {discussion.replies?.length || 0} {discussion.replies?.length === 1 ? 'Reply' : 'Replies'}
+              </Text>
+              <View style={styles.sortButtons}>
+                <TouchableOpacity style={[styles.sortBtn, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
+                  <Text style={[styles.sortBtnText, { color: colors.text }]}>Top</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.sortBtn}>
+                  <Text style={[styles.sortBtnText, { color: colors.secondaryText }]}>Recent</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {discussion.replies?.map((reply, index) => {
+              const replyUser = typeof reply.user === 'object' ? reply.user : null;
+              const replyHasLiked = reply.likes?.some((like) => (typeof like.user === 'object' ? like.user._id : like.user) === user?._id);
+              const replyLikeCount = reply.likes?.length || 0;
+
+              return (
+                <View key={reply._id || index} style={[styles.replyCard, { backgroundColor: colors.card }]}>
+                  {/* Reply Author */}
+                  <View style={styles.replyAuthorRow}>
+                    <View style={[styles.replyAvatar, { backgroundColor: '#3B82F6' }]}>
+                      {replyUser?.avatar ? (
+                        <Image source={{ uri: replyUser.avatar }} style={styles.avatarImage} />
+                      ) : (
+                        <Text style={styles.avatarText}>{replyUser?.name?.charAt(0) || '?'}</Text>
+                      )}
+                    </View>
+                    <View style={styles.replyAuthorInfo}>
+                      <Text style={[styles.replyAuthorName, { color: colors.text }]}>{replyUser?.name || 'Anonymous'}</Text>
+                      <Text style={[styles.replyAuthorDate, { color: colors.secondaryText }]}>
+                        {formatTimeAgo(reply.createdAt)}
+                        {reply.isEdited && ' • Edited'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Reply Content */}
+                  <Text style={[styles.replyContent, { color: colors.text }]}>{reply.content}</Text>
+
+                  {/* Reply Actions */}
+                  <View style={styles.replyActions}>
+                    <TouchableOpacity
+                      style={[styles.replyActionBtn, replyHasLiked && styles.replyActionBtnActive]}
+                      onPress={() => handleLikeReply(reply._id)}
+                    >
+                      <Ionicons name={replyHasLiked ? 'heart' : 'heart-outline'} size={18} color={replyHasLiked ? '#EF4444' : colors.secondaryText} />
+                      <Text style={[styles.replyActionText, { color: replyHasLiked ? '#EF4444' : colors.secondaryText }]}>{replyLikeCount}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.replyActionBtn}>
+                      <Ionicons name="chatbubble-outline" size={18} color={colors.secondaryText} />
+                      <Text style={[styles.replyActionText, { color: colors.secondaryText }]}>Reply</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Reply Input */}
+          {!discussion.isLocked && (
+            <View style={[styles.replyInputCard, { backgroundColor: colors.card }]}>
+              <Text style={[styles.replyInputTitle, { color: colors.text }]}>Join the Discussion</Text>
+              <TextInput
+                style={[styles.replyInput, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC', color: colors.text }]}
+                placeholder="Share your thoughts..."
+                placeholderTextColor={colors.secondaryText}
+                value={replyContent}
+                onChangeText={setReplyContent}
+                multiline
+                textAlignVertical="top"
+              />
+              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmitReply}>
+                <LinearGradient colors={['#10B981', '#059669']} style={styles.submitBtnGradient}>
+                  <Ionicons name="send" size={18} color="#FFFFFF" />
+                  <Text style={styles.submitBtnText}>Post Reply</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {discussion.isLocked && (
+            <View style={[styles.lockedCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FEF3C7' }]}>
+              <Ionicons name="lock-closed" size={24} color="#F59E0B" />
+              <View style={styles.lockedInfo}>
+                <Text style={[styles.lockedTitle, { color: colors.text }]}>Discussion Locked</Text>
+                <Text style={[styles.lockedText, { color: colors.secondaryText }]}>This discussion has been locked by a moderator.</Text>
+              </View>
+            </View>
+          )}
+
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -306,195 +336,300 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerContainer: {
+    overflow: 'hidden',
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitleContainer: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  headerLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  headerRight: {
+    flexDirection: 'row',
+  },
+  editBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.lg,
+    padding: 16,
   },
-  discussionHeader: {
-    padding: spacing.lg,
-    borderRadius: premiumBorderRadius.lg,
-    marginBottom: spacing.md,
-    ...premiumShadows.md,
-  },
-  discussionHeaderTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
+  discussionCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   pinnedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: premiumBorderRadius.base,
-    marginBottom: spacing.sm,
-    gap: spacing.xs / 2,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 14,
+    gap: 6,
   },
   pinnedText: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F59E0B',
   },
   discussionTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-    marginBottom: spacing.md,
-    lineHeight: 28,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 14,
+    lineHeight: 30,
   },
-  discussionMeta: {
+  discussionContent: {
+    fontSize: 15,
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  tagsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
   },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+  tag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
-  authorInfo: {
-    flex: 1,
+  tagText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
-  authorName: {
-    fontSize: fontSize.md,
-    fontWeight: '600',
-    marginBottom: spacing.xs / 2,
-  },
-  discussionDate: {
-    fontSize: fontSize.xs,
-  },
-  votingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingTop: spacing.md,
+  authorSection: {
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: 'rgba(0,0,0,0.05)',
   },
-  voteButton: {
+  authorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.sm,
-    borderRadius: premiumBorderRadius.base,
-    gap: spacing.xs,
   },
-  voteCount: {
-    fontSize: fontSize.md,
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  authorInfo: {},
+  authorName: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  authorDate: {
+    fontSize: 12,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 6,
+  },
+  actionBtnActive: {},
+  actionText: {
+    fontSize: 14,
     fontWeight: '600',
   },
-  contentCard: {
-    padding: spacing.lg,
-    borderRadius: premiumBorderRadius.lg,
-    marginBottom: spacing.md,
-    ...premiumShadows.sm,
-  },
-  contentText: {
-    fontSize: fontSize.md,
-    lineHeight: 24,
-    marginBottom: spacing.md,
-  },
-  tagsContainer: {
+  repliesSection: {},
+  repliesSectionHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  tag: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: premiumBorderRadius.base,
-  },
-  tagText: {
-    fontSize: fontSize.xs,
-  },
-  repliesSection: {
-    marginBottom: spacing.md,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    marginBottom: spacing.md,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  sortButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  sortBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  sortBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   replyCard: {
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    marginBottom: spacing.md,
-    ...premiumShadows.sm,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  replyHeader: {
+  replyAuthorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: 12,
+  },
+  replyAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   replyAuthorInfo: {
     flex: 1,
   },
   replyAuthorName: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-    marginBottom: spacing.xs / 2,
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
   },
-  replyDate: {
-    fontSize: fontSize.xs,
+  replyAuthorDate: {
+    fontSize: 11,
   },
   replyContent: {
-    fontSize: fontSize.md,
-    lineHeight: 22,
-    marginBottom: spacing.sm,
+    fontSize: 15,
+    lineHeight: 24,
+    marginBottom: 12,
   },
-  replyFooter: {
+  replyActions: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    gap: 16,
   },
-  replyLikeButton: {
+  replyActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.xs,
-    borderRadius: premiumBorderRadius.base,
-    gap: spacing.xs / 2,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    gap: 6,
   },
-  replyLikeCount: {
-    fontSize: fontSize.sm,
-    fontWeight: '500',
-  },
-  replyInputContainer: {
-    padding: spacing.lg,
-    borderRadius: premiumBorderRadius.lg,
-    ...premiumShadows.md,
-  },
-  inputTitle: {
-    fontSize: fontSize.md,
+  replyActionBtnActive: {},
+  replyActionText: {
+    fontSize: 13,
     fontWeight: '600',
-    marginBottom: spacing.sm,
+  },
+  replyInputCard: {
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  replyInputTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 14,
   },
   replyInput: {
-    borderWidth: 1,
-    borderRadius: premiumBorderRadius.base,
-    padding: spacing.md,
-    fontSize: fontSize.md,
+    borderRadius: 14,
+    padding: 16,
+    fontSize: 15,
     minHeight: 100,
-    textAlignVertical: 'top',
-    marginBottom: spacing.md,
+    marginBottom: 14,
   },
-  submitButton: {
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.base,
+  submitBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  submitBtnGradient: {
+    flexDirection: 'row',
     alignItems: 'center',
-    ...premiumShadows.sm,
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
   },
-  submitButtonText: {
+  submitBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#FFFFFF',
-    fontSize: fontSize.md,
-    fontWeight: '600',
+  },
+  lockedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 20,
+    gap: 14,
+  },
+  lockedInfo: {},
+  lockedTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  lockedText: {
+    fontSize: 13,
   },
 });
-
