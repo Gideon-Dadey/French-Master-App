@@ -25,7 +25,7 @@ import Rating from '../src/components/Rating';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function CoursesScreen({ navigation }) {
+export default function CoursesScreen({ navigation, route }) {
   const { colors, isDarkMode } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [courses, setCourses] = useState([]);
@@ -35,12 +35,27 @@ export default function CoursesScreen({ navigation }) {
   const [viewMode, setViewMode] = useState('list');
   const [showFilters, setShowFilters] = useState(false);
   const searchTimeoutRef = useRef(null);
+  
+  // Initialize filters from route params
   const [filters, setFilters] = useState({
-    category: null,
+    category: route.params?.category || null,
     level: null,
     language: null,
     price: null,
   });
+
+  // Update filters when route params change (when navigating from home categories)
+  useEffect(() => {
+    if (route.params?.category !== undefined) {
+      setFilters(prev => {
+        // Only update if it's different to avoid unnecessary re-renders
+        if (prev.category !== route.params.category) {
+          return { ...prev, category: route.params.category };
+        }
+        return prev;
+      });
+    }
+  }, [route.params?.category]);
 
   useEffect(() => {
     loadCourses();
