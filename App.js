@@ -52,6 +52,7 @@ import DiscussionsScreen from './screens/DiscussionsScreen';
 import DiscussionDetailScreen from './screens/DiscussionDetailScreen';
 import CreateDiscussionScreen from './screens/CreateDiscussionScreen';
 import BrowseTopicsScreen from './screens/BrowseTopicsScreen';
+import TeachersScreen from './screens/TeachersScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -471,6 +472,13 @@ function AppNavigator() {
             <Stack.Screen
               name="BrowseTopics"
               component={BrowseTopicsScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="Teachers"
+              component={TeachersScreen}
               options={{
                 headerShown: false,
               }}

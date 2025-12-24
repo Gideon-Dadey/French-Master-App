@@ -493,6 +493,14 @@ export default function ProfileScreen({ navigation }) {
             colors={colors}
             onPress={() => navigation.navigate('Notifications')}
           />
+          <QuickActionCard
+            icon="school"
+            title="For Teachers"
+            subtitle="Teach & earn"
+            color={premiumColors.accent.emerald}
+            colors={colors}
+            onPress={() => navigation.navigate('Teachers')}
+          />
         </View>
       </View>
 
