@@ -373,7 +373,7 @@ function QuickActionCard({ icon, title, subtitle, color, onPress, colors }) {
 const renderCourseCard = (course, index, colors, navigation, isVertical = false) => {
   const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
     ? { uri: course.thumbnail }
-    : getCourseImage(course._id || course.id, index);
+    : getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
 
   const getLevelColor = (level) => {
     const levelLower = (level || '').toLowerCase();

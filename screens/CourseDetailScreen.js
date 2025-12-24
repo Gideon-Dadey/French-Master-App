@@ -150,7 +150,7 @@ export default function CourseDetailScreen({ route, navigation }) {
 
   const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
     ? { uri: course.thumbnail }
-    : getCourseImage(course._id || course.id, 0);
+    : getCourseImage(course._id || course.id, 0, course.category || course.language, course.title);
 
   const levelColor = getLevelColor(course.level);
   const hasDiscount = course.originalPrice && course.originalPrice > course.price;
@@ -318,7 +318,7 @@ export default function CourseDetailScreen({ route, navigation }) {
                 <Ionicons name="flash" size={28} color={premiumColors.accent.gold} />
               </View>
               <View style={styles.sectionHeaderText}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Course Highlights</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Course Highlights</Text>
                 <Text style={[styles.highlightsSubtitle, { color: colors.secondaryText }]}>
                   Everything you need to succeed
                 </Text>
@@ -578,9 +578,9 @@ function HighlightItem({ icon, title, value, color, colors }) {
           >
             <Ionicons name={icon} size={24} color="#FFFFFF" />
           </LinearGradient>
-        </View>
-        <Text style={[styles.highlightTitle, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.highlightValue, { color: color }]}>{value}</Text>
+      </View>
+      <Text style={[styles.highlightTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.highlightValue, { color: color }]}>{value}</Text>
       </LinearGradient>
     </View>
   );

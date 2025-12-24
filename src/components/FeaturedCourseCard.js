@@ -9,6 +9,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
+  const { formatPrice } = useCurrency();
+  
   const getLevelColor = (level) => {
     switch (level) {
       case 'beginner':
@@ -29,10 +31,10 @@ export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
       imageSource = { uri: course.thumbnail };
     } else {
       const mappedImage = getCourseThumbnail(course.thumbnail);
-      imageSource = mappedImage || getCourseImage(course._id || course.id, index);
+      imageSource = mappedImage || getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
     }
   } else {
-    imageSource = getCourseImage(course._id || course.id, index);
+    imageSource = getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
   }
 
   // Determine if course is bestseller (high enrollment) or new (recently published)

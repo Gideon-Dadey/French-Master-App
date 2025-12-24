@@ -142,7 +142,7 @@ export default function MyCoursesScreen({ navigation }) {
                         const mappedImage = getCourseThumbnail(course.thumbnail);
                         if (mappedImage) return mappedImage;
                       }
-                      return getCourseImage(course._id || course.id, courses.indexOf(enrollment));
+                      return getCourseImage(course._id || course.id, courses.indexOf(enrollment), course.category || course.language, course.title);
                     })()
                   }
                   style={[styles.thumbnail, { backgroundColor: colors.tertiaryBackground || colors.border }]}

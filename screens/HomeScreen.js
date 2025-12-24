@@ -8,6 +8,7 @@ import {
   Image,
   RefreshControl,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { coursesAPI } from '../src/services/api';
 import { useAuth } from '../src/context/AuthContext';
@@ -17,6 +18,7 @@ import { spacing, fontSize, screenWidth } from '../src/utils/responsive';
 import { useTheme } from '../src/context/ThemeContext';
 import { getCourseImage } from '../src/utils/courseImages';
 import { formatCurrency } from '../src/utils/helpers';
+import { premiumColors, premiumShadows, premiumBorderRadius } from '../src/utils/premiumDesign';
 
 export default function HomeScreen({ navigation }) {
   const { colors, isDarkMode, toggleTheme } = useTheme();
@@ -25,9 +27,15 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [categoryCounts, setCategoryCounts] = useState({
+    french: 0,
+    english: 0,
+    'exam-prep': 0,
+  });
 
   useEffect(() => {
     loadCourses();
+    loadCategoryCounts();
   }, []);
 
   const loadCourses = async () => {
@@ -52,25 +60,76 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const loadCategoryCounts = async () => {
+    try {
+      const categories = ['french', 'english', 'exam-prep'];
+      const counts = {};
+      
+      for (const category of categories) {
+        try {
+          const response = await coursesAPI.getAll({ category, limit: 1 });
+          counts[category] = response.data.total || 0;
+        } catch (err) {
+          counts[category] = 0;
+        }
+      }
+      
+      setCategoryCounts(counts);
+    } catch (error) {
+      console.error('Failed to load category counts:', error);
+    }
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     loadCourses();
+    loadCategoryCounts();
   };
 
-  const renderServiceCard = (title, description, icon, color, onPress) => {
+  const renderServiceCard = (title, description, icon, gradientColors, category, courseCount, onPress) => {
     return (
       <TouchableOpacity
-        style={[styles.serviceCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={styles.serviceCardContainer}
         onPress={onPress}
-        activeOpacity={0.8}
+        activeOpacity={0.9}
       >
-        <View style={[styles.serviceIconContainer, { backgroundColor: color + '20' }]}>
-          <Ionicons name={icon} size={32} color={color} />
+        <LinearGradient
+          colors={gradientColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.serviceCard, premiumShadows.lg]}
+        >
+          {/* Course Count Badge */}
+          <View style={styles.courseCountBadge}>
+            <Text style={styles.courseCountText}>{courseCount}+</Text>
+            <Text style={styles.courseCountLabel}>Courses</Text>
+          </View>
+
+          {/* Icon Container */}
+          <View style={styles.serviceIconWrapper}>
+            <View style={styles.serviceIconContainer}>
+              <Ionicons name={icon} size={36} color="#FFFFFF" />
+            </View>
         </View>
-        <Text style={[styles.serviceTitle, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.serviceDescription, { color: colors.secondaryText }]}>
+
+          {/* Content */}
+          <View style={styles.serviceCardContent}>
+            <Text style={styles.serviceTitle}>{title}</Text>
+            <Text style={styles.serviceDescription}>
           {description}
         </Text>
+            
+            {/* Explore Button */}
+            <View style={styles.exploreButton}>
+              <Text style={styles.exploreButtonText}>Explore</Text>
+              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+            </View>
+          </View>
+
+          {/* Decorative Elements */}
+          <View style={styles.decorativeCircle1} />
+          <View style={styles.decorativeCircle2} />
+        </LinearGradient>
       </TouchableOpacity>
     );
   };
@@ -78,7 +137,7 @@ export default function HomeScreen({ navigation }) {
   const renderCourseCard = (course, index) => {
     const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
       ? { uri: course.thumbnail }
-      : getCourseImage(course._id || course.id, index);
+      : getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
 
     return (
       <TouchableOpacity
@@ -157,32 +216,59 @@ export default function HomeScreen({ navigation }) {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Service Cards */}
+        {/* Premium Category Section */}
         <View style={styles.serviceSection}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>What would you like to learn?</Text>
-          <View style={styles.serviceCardsContainer}>
+          <View style={styles.sectionHeaderTop}>
+            <View>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                Explore Categories
+              </Text>
+              <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>
+                Choose your learning path
+              </Text>
+            </View>
+          </View>
+          
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.serviceCardsContainer}
+            style={styles.serviceCardsScrollView}
+          >
             {renderServiceCard(
               'Learn French',
-              'Master the beautiful French language',
+              'Master the beautiful French language with comprehensive courses from beginner to advanced levels',
               'language',
-              '#1E88E5',
+              isDarkMode 
+                ? ['#2563EB', '#1E40AF', '#1E3A8A']
+                : ['#3B82F6', '#2563EB', '#1D4ED8'],
+              'french',
+              categoryCounts.french,
               () => navigation.navigate('Courses', { category: 'french' })
             )}
             {renderServiceCard(
               'Learn English',
-              'Improve your English skills',
+              'Enhance your English proficiency with professional courses designed for all skill levels',
               'book',
-              '#6A1B9A',
+              isDarkMode
+                ? ['#7C3AED', '#6D28D9', '#5B21B6']
+                : ['#8B5CF6', '#7C3AED', '#6D28D9'],
+              'english',
+              categoryCounts.english,
               () => navigation.navigate('Courses', { category: 'english' })
             )}
             {renderServiceCard(
               'Study in France',
-              'Prepare for studying abroad',
+              'Prepare for studying abroad with specialized exam preparation courses and certification',
               'school',
-              '#FF6B6B',
+              isDarkMode
+                ? ['#DC2626', '#B91C1C', '#991B1B']
+                : ['#EF4444', '#DC2626', '#B91C1C'],
+              'exam-prep',
+              categoryCounts['exam-prep'],
               () => navigation.navigate('Courses', { category: 'exam-prep' })
             )}
-          </View>
+          </ScrollView>
         </View>
 
         {/* Featured Courses */}
@@ -269,6 +355,19 @@ const styles = StyleSheet.create({
   serviceSection: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
+    marginTop: spacing.md,
+  },
+  sectionHeaderTop: {
+    marginBottom: spacing.lg,
+  },
+  sectionSubtitle: {
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+    fontWeight: '400',
+  },
+  serviceCardsScrollView: {
+    marginHorizontal: -spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   section: {
     marginBottom: spacing.xl,
@@ -291,35 +390,113 @@ const styles = StyleSheet.create({
   },
   serviceCardsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.md,
+    gap: spacing.lg,
+    paddingRight: spacing.lg,
+  },
+  serviceCardContainer: {
+    width: 280,
+    marginRight: spacing.xs,
   },
   serviceCard: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: 16,
+    borderRadius: premiumBorderRadius['2xl'],
+    padding: spacing.xl,
+    minHeight: 220,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  courseCountBadge: {
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.md,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backdropFilter: 'blur(10px)',
+    borderRadius: premiumBorderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
     borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     alignItems: 'center',
-    minHeight: 140,
+    ...premiumShadows.sm,
+  },
+  courseCountText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.md,
+    fontWeight: '800',
+    lineHeight: 20,
+  },
+  courseCountLabel: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: fontSize.xs - 1,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  serviceIconWrapper: {
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
   },
   serviceIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    ...premiumShadows.md,
+  },
+  serviceCardContent: {
+    flex: 1,
   },
   serviceTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
-    textAlign: 'center',
+    fontSize: fontSize.xl,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: spacing.sm,
+    letterSpacing: -0.5,
   },
   serviceDescription: {
     fontSize: fontSize.sm,
-    textAlign: 'center',
-    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.9)',
+    lineHeight: 20,
+    marginBottom: spacing.lg,
+  },
+  exploreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: premiumBorderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    gap: spacing.xs,
+  },
+  exploreButtonText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  decorativeCircle1: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    top: -40,
+    right: -40,
+  },
+  decorativeCircle2: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    bottom: -20,
+    left: -20,
   },
   coursesContainer: {
     paddingLeft: spacing.lg,

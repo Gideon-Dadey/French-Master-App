@@ -22,7 +22,11 @@ const { width } = Dimensions.get('window');
 export default function TeachersScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
   const { colors, isDarkMode } = useTheme();
-  const { formatPriceValue, getCurrencyData } = useCurrency();
+  const currencyContext = useCurrency();
+  
+  // Safely extract functions with fallbacks
+  const formatPriceValue = currencyContext?.formatPriceValue || ((amount, currency) => amount.toFixed(2));
+  const getCurrencyData = currencyContext?.getCurrencyData || (() => ({ symbol: 'GH₵', code: 'GHS', name: 'Ghanaian Cedi', rate: 1 }));
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
 
@@ -396,7 +400,7 @@ function PlanCard({ plan, colors, isSelected, onSelect }) {
         <View style={styles.priceContainer}>
           <View style={styles.priceRow}>
             <Text style={[styles.currency, { color: colors.secondaryText }]}>
-              {getCurrencyData().symbol}
+              {getCurrencyData().symbol || 'GH₵'}
             </Text>
             <Text style={[styles.price, { color: plan.color }]}>
               {formatPriceValue(plan.price, 'GHS')}

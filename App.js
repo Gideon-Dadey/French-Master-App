@@ -536,15 +536,15 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider>
         <CurrencyProvider>
-          <GamificationProvider>
-            <WishlistProvider>
+        <GamificationProvider>
+          <WishlistProvider>
               <StudentProvider>
                 <InstructorStudentProvider>
-                  <ThemedApp />
+            <ThemedApp />
                 </InstructorStudentProvider>
               </StudentProvider>
-            </WishlistProvider>
-          </GamificationProvider>
+          </WishlistProvider>
+        </GamificationProvider>
         </CurrencyProvider>
       </ThemeProvider>
     </AuthProvider>

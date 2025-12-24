@@ -28,9 +28,11 @@ export default function CoursePaymentScreen({ route, navigation }) {
   const { course, courseId } = route.params || {};
   const { user, isAuthenticated } = useAuth();
   const { colors, isDarkMode } = useTheme();
+  const { formatPrice } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('stripe'); // Default to stripe
+  const [mobileNetwork, setMobileNetwork] = useState('mtn'); // Default mobile network
   const [courseData, setCourseData] = useState(course);
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function CoursePaymentScreen({ route, navigation }) {
       // Create payment intent
       const intentResponse = await paymentsAPI.createIntent({
         courseId: finalCourseId,
-        paymentMethod: paymentMethod
+        paymentMethod: paymentMethod === 'mobile-money' ? mobileNetwork : paymentMethod
       });
 
       if (intentResponse.data.success) {
@@ -78,7 +80,7 @@ export default function CoursePaymentScreen({ route, navigation }) {
           // For now, simulate successful payment
           await handlePaymentConfirmation(intentResponse.data);
         } else {
-          // For other payment methods, confirm immediately
+          // For mobile money and other payment methods, confirm immediately
           await handlePaymentConfirmation(intentResponse.data);
         }
       }
@@ -141,12 +143,12 @@ export default function CoursePaymentScreen({ route, navigation }) {
       imageSource = { uri: courseThumbnail };
     } else if (typeof courseThumbnail === 'string') {
       const mappedImage = getCourseThumbnail(courseThumbnail);
-      imageSource = mappedImage || getCourseImage(courseIdForImage, 0);
+      imageSource = mappedImage || getCourseImage(courseIdForImage, 0, courseData?.category || courseData?.language || course?.category || course?.language, courseData?.title || course?.title);
     } else {
       imageSource = courseThumbnail;
     }
   } else {
-    imageSource = getCourseImage(courseIdForImage, 0);
+    imageSource = getCourseImage(courseIdForImage, 0, courseData?.category || courseData?.language || course?.category || course?.language, courseData?.title || course?.title);
   }
 
   const handleFreeEnrollment = async () => {
@@ -312,41 +314,109 @@ export default function CoursePaymentScreen({ route, navigation }) {
               style={[
                 styles.paymentMethod,
                 { 
-                  backgroundColor: paymentMethod === 'mtn' ? premiumColors.primary.main + '20' : colors.background,
-                  borderColor: paymentMethod === 'mtn' ? premiumColors.primary.main : colors.border
+                  backgroundColor: paymentMethod === 'mobile-money' ? premiumColors.primary.main + '20' : colors.background,
+                  borderColor: paymentMethod === 'mobile-money' ? premiumColors.primary.main : colors.border
                 }
               ]}
-              onPress={() => setPaymentMethod('mtn')}
+              onPress={() => setPaymentMethod('mobile-money')}
               activeOpacity={0.7}
             >
               <View style={styles.paymentMethodContent}>
                 <Ionicons name="phone-portrait" size={24} color={premiumColors.primary.main} />
-                <Text style={[styles.paymentMethodText, { color: colors.text }]}>Mobile Money (MTN)</Text>
+                <Text style={[styles.paymentMethodText, { color: colors.text }]}>Mobile Money</Text>
               </View>
-              {paymentMethod === 'mtn' && (
+              {paymentMethod === 'mobile-money' && (
                 <Ionicons name="checkmark-circle" size={24} color={premiumColors.primary.main} />
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.paymentMethod,
-                { 
-                  backgroundColor: paymentMethod === 'vodafone' ? premiumColors.primary.main + '20' : colors.background,
-                  borderColor: paymentMethod === 'vodafone' ? premiumColors.primary.main : colors.border
-                }
-              ]}
-              onPress={() => setPaymentMethod('vodafone')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.paymentMethodContent}>
-                <Ionicons name="phone-portrait" size={24} color={premiumColors.primary.main} />
-                <Text style={[styles.paymentMethodText, { color: colors.text }]}>Mobile Money (Vodafone)</Text>
+            {/* Mobile Network Selection - Show only when Mobile Money is selected */}
+            {paymentMethod === 'mobile-money' && (
+              <View style={[styles.mobileNetworkSection, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <Text style={[styles.networkSectionTitle, { color: colors.text }]}>Select Mobile Network</Text>
+                <View style={styles.networkGrid}>
+                  <TouchableOpacity
+                    style={[
+                      styles.networkOption,
+                      {
+                        backgroundColor: mobileNetwork === 'mtn' ? premiumColors.accent.emerald + '20' : colors.card,
+                        borderColor: mobileNetwork === 'mtn' ? premiumColors.accent.emerald : colors.border
+                      }
+                    ]}
+                    onPress={() => setMobileNetwork('mtn')}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.networkIconContainer, { backgroundColor: mobileNetwork === 'mtn' ? premiumColors.accent.emerald : colors.background }]}>
+                      <Text style={styles.networkIconText}>MTN</Text>
+                    </View>
+                    <Text style={[styles.networkText, { color: colors.text }]}>MTN Mobile Money</Text>
+                    {mobileNetwork === 'mtn' && (
+                      <Ionicons name="checkmark-circle" size={20} color={premiumColors.accent.emerald} />
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.networkOption,
+                      {
+                        backgroundColor: mobileNetwork === 'vodafone' ? '#E60000' + '20' : colors.card,
+                        borderColor: mobileNetwork === 'vodafone' ? '#E60000' : colors.border
+                      }
+                    ]}
+                    onPress={() => setMobileNetwork('vodafone')}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.networkIconContainer, { backgroundColor: mobileNetwork === 'vodafone' ? '#E60000' : colors.background }]}>
+                      <Text style={styles.networkIconText}>VF</Text>
+                    </View>
+                    <Text style={[styles.networkText, { color: colors.text }]}>Vodafone Cash</Text>
+                    {mobileNetwork === 'vodafone' && (
+                      <Ionicons name="checkmark-circle" size={20} color="#E60000" />
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.networkOption,
+                      {
+                        backgroundColor: mobileNetwork === 'airteltigo' ? '#FF6600' + '20' : colors.card,
+                        borderColor: mobileNetwork === 'airteltigo' ? '#FF6600' : colors.border
+                      }
+                    ]}
+                    onPress={() => setMobileNetwork('airteltigo')}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.networkIconContainer, { backgroundColor: mobileNetwork === 'airteltigo' ? '#FF6600' : colors.background }]}>
+                      <Text style={styles.networkIconText}>AT</Text>
+                    </View>
+                    <Text style={[styles.networkText, { color: colors.text }]}>AirtelTigo Money</Text>
+                    {mobileNetwork === 'airteltigo' && (
+                      <Ionicons name="checkmark-circle" size={20} color="#FF6600" />
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.networkOption,
+                      {
+                        backgroundColor: mobileNetwork === 'other' ? premiumColors.primary.main + '20' : colors.card,
+                        borderColor: mobileNetwork === 'other' ? premiumColors.primary.main : colors.border
+                      }
+                    ]}
+                    onPress={() => setMobileNetwork('other')}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.networkIconContainer, { backgroundColor: mobileNetwork === 'other' ? premiumColors.primary.main : colors.background }]}>
+                      <Ionicons name="ellipsis-horizontal" size={20} color={mobileNetwork === 'other' ? '#FFFFFF' : colors.text} />
+                    </View>
+                    <Text style={[styles.networkText, { color: colors.text }]}>Other Network</Text>
+                    {mobileNetwork === 'other' && (
+                      <Ionicons name="checkmark-circle" size={20} color={premiumColors.primary.main} />
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
-              {paymentMethod === 'vodafone' && (
-                <Ionicons name="checkmark-circle" size={24} color={premiumColors.primary.main} />
-              )}
-            </TouchableOpacity>
+            )}
           </View>
 
           {/* Payment Button */}
@@ -497,6 +567,50 @@ const styles = StyleSheet.create({
   paymentMethodText: {
     fontSize: fontSize.md,
     fontWeight: '600',
+  },
+  mobileNetworkSection: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: premiumBorderRadius.lg,
+    borderWidth: 1,
+  },
+  networkSectionTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    marginBottom: spacing.md,
+  },
+  networkGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  networkOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.sm,
+    borderRadius: premiumBorderRadius.md,
+    borderWidth: 2,
+    minWidth: '47%',
+    flex: 1,
+    gap: spacing.sm,
+  },
+  networkIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: premiumBorderRadius.base,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  networkIconText: {
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  networkText: {
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    flex: 1,
   },
   payButton: {
     flexDirection: 'row',

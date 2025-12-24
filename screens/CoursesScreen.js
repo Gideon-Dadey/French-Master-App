@@ -131,7 +131,7 @@ export default function CoursesScreen({ navigation, route }) {
   const renderCourseCard = ({ item: course, index }) => {
     const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
       ? { uri: course.thumbnail }
-      : getCourseImage(course._id || course.id, index);
+      : getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
 
     const levelColor = getLevelColor(course.level);
     const isPremium = course.isPremium || course.price > 0;

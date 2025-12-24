@@ -101,7 +101,7 @@ export default function LearnerHomeScreen({ navigation }) {
   const renderCourseCard = (course, index) => {
     const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
       ? { uri: course.thumbnail }
-      : getCourseImage(course._id || course.id, index);
+      : getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
 
     const isBestseller = course.studentsEnrolled > 1000;
     const isNew = course.publishedAt && new Date(course.publishedAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -245,7 +245,7 @@ export default function LearnerHomeScreen({ navigation }) {
     // Create a blackboard-like thumbnail for posts
     const postImage = post.thumbnail && (post.thumbnail.startsWith('http') || post.thumbnail.startsWith('https'))
       ? { uri: post.thumbnail }
-      : require('../assets/about.jpeg'); // Fallback image
+      : require('../assets/logo.jpeg'); // Fallback image
 
     return (
       <TouchableOpacity

@@ -33,10 +33,10 @@ export default function CourseCard({ course, onPress, style, isHorizontal = fals
       imageSource = { uri: course.thumbnail };
     } else {
       const mappedImage = getCourseThumbnail(course.thumbnail);
-      imageSource = mappedImage || getCourseImage(course._id || course.id, index);
+      imageSource = mappedImage || getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
     }
   } else {
-    imageSource = getCourseImage(course._id || course.id, index);
+    imageSource = getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
   }
 
   return (

@@ -1,17 +1,18 @@
 // Map course thumbnail paths from database to local require() paths
-// This allows courses stored in the database to use local images from assets/courses
+// This allows courses stored in the database to use local images from assets/french and assets/english
 
 const thumbnailMap = {
-  'courses/COURSES-THUMBNAIL-1-768x432.jpg': require('../../assets/courses/COURSES-THUMBNAIL-1-768x432.jpg'),
-  'courses/COURSES-THUMBNAIL-2-768x432.jpg': require('../../assets/courses/COURSES-THUMBNAIL-2-768x432.jpg'),
-  'courses/COURSES-THUMBNAIL-3-768x432.jpg': require('../../assets/courses/COURSES-THUMBNAIL-3-768x432.jpg'),
-  'courses/COURSES-THUMBNAIL-4-768x432.jpg': require('../../assets/courses/COURSES-THUMBNAIL-4-768x432.jpg'),
-  'courses/CERT-IN-FRENCH-EDUCATION-WEB-BANNER-768x384.png': require('../../assets/courses/CERT-IN-FRENCH-EDUCATION-WEB-BANNER-768x384.png'),
-  'courses/10263071.jpg': require('../../assets/courses/10263071.jpg'),
-  'courses/5080846.jpg': require('../../assets/courses/5080846.jpg'),
-  'courses/francais-lettering-pink-background.jpg': require('../../assets/courses/francais-lettering-pink-background.jpg'),
-  'courses/learn-french-language-online-education-concept.jpg': require('../../assets/courses/learn-french-language-online-education-concept.jpg'),
-  'courses/medium-shot-smiley-woman-teaching.jpg': require('../../assets/courses/medium-shot-smiley-woman-teaching.jpg'),
+  
+  // Map new French image paths (9 images for 9 French courses)
+  'french/1.jpg': require('../../assets/french/1.jpg'),
+  'french/2.jpg': require('../../assets/french/2.jpg'),
+  'french/3.jpg': require('../../assets/french/3.jpg'),
+  'french/4.jpg': require('../../assets/french/4.jpg'),
+  'french/5.png': require('../../assets/french/5.png'),
+  'french/6.jpg': require('../../assets/french/6.jpg'),
+  'french/7.jpg': require('../../assets/french/7.jpg'),
+  'french/8.jpg': require('../../assets/french/8.jpg'),
+  'french/9.jpg': require('../../assets/french/9.jpg'),
 };
 
 /**

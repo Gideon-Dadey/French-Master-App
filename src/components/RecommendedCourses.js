@@ -45,7 +45,7 @@ export default function RecommendedCourses({ courses, title = 'Recommended for Y
                     const mappedImage = getCourseThumbnail(course.thumbnail);
                     if (mappedImage) return mappedImage;
                   }
-                  return getCourseImage(course._id || course.id, index);
+                  return getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
                 })()
               }
               style={styles.thumbnail}
