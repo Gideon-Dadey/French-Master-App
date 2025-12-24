@@ -66,7 +66,11 @@ const studyGroupSchema = new mongoose.Schema({
     },
     dayOfWeek: {
       type: String,
-      enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+      enum: {
+        values: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+        message: 'Day of week must be one of: monday, tuesday, wednesday, thursday, friday, saturday, sunday'
+      },
+      default: undefined
     },
     time: String,
     timezone: {

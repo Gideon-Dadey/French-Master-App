@@ -128,6 +128,18 @@ router.post('/', protect, async (req, res) => {
       tags
     } = req.body;
 
+    // Clean up meetingSchedule - remove empty dayOfWeek
+    let cleanedMeetingSchedule = meetingSchedule || {};
+    if (cleanedMeetingSchedule.dayOfWeek === '' || !cleanedMeetingSchedule.dayOfWeek) {
+      const { dayOfWeek, ...rest } = cleanedMeetingSchedule;
+      cleanedMeetingSchedule = rest;
+    }
+    // Remove empty time if not provided
+    if (cleanedMeetingSchedule.time === '') {
+      const { time, ...rest } = cleanedMeetingSchedule;
+      cleanedMeetingSchedule = rest;
+    }
+
     // Create study group
     const studyGroup = new StudyGroup({
       name,
@@ -137,7 +149,7 @@ router.post('/', protect, async (req, res) => {
       focus: focus || 'general',
       maxMembers: maxMembers || 20,
       isPrivate: isPrivate || false,
-      meetingSchedule: meetingSchedule || {},
+      meetingSchedule: cleanedMeetingSchedule,
       studyGoals: studyGoals || [],
       tags: tags || []
     });

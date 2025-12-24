@@ -84,11 +84,22 @@ export default function CreateStudyGroupScreen({ navigation }) {
 
     try {
       setLoading(true);
+      
+      // Clean up meetingSchedule - don't send empty dayOfWeek or time
+      const cleanedMeetingSchedule = { ...formData.meetingSchedule };
+      if (!cleanedMeetingSchedule.dayOfWeek || cleanedMeetingSchedule.dayOfWeek === '') {
+        delete cleanedMeetingSchedule.dayOfWeek;
+      }
+      if (!cleanedMeetingSchedule.time || cleanedMeetingSchedule.time === '') {
+        delete cleanedMeetingSchedule.time;
+      }
+      
       const submitData = {
         ...formData,
         maxMembers: parseInt(formData.maxMembers) || 20,
         studyGoals: formData.studyGoals.filter(goal => goal.trim()),
         tags: formData.tags.filter(tag => tag.trim()),
+        meetingSchedule: cleanedMeetingSchedule,
       };
 
       const response = await studyGroupsAPI.create(submitData);
