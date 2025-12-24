@@ -345,6 +345,8 @@ function FeatureCard({ feature, colors, navigation }) {
       navigation.navigate('AdvancedVideoHosting');
     } else if (feature.id === 'analytics') {
       navigation.navigate('AnalyticsDashboard');
+    } else if (feature.title === 'Student Management') {
+      navigation.navigate('StudentManagement');
     } else {
       // Handle other features
       Alert.alert('Coming Soon', `${feature.title} feature will be available soon!`);

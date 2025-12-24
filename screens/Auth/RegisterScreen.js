@@ -28,6 +28,7 @@ export default function RegisterScreen({ navigation }) {
     phone: '',
     password: '',
     confirmPassword: '',
+    role: 'student', // Default to student
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -75,7 +76,8 @@ export default function RegisterScreen({ navigation }) {
       formData.name,
       formData.email,
       formData.password,
-      formData.phone
+      formData.phone,
+      formData.role
     );
     setLoading(false);
 
@@ -127,14 +129,170 @@ export default function RegisterScreen({ navigation }) {
               <View style={[styles.logoContainer, { backgroundColor: premiumColors.primary.main + '20' }]}>
                 <Ionicons name="person-add" size={40} color={premiumColors.primary.main} />
               </View>
-              <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
+              <Text style={[styles.title, { color: colors.text }]}>Create Your Account</Text>
               <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
-                Start your learning journey today
+                Choose how you'd like to join us
               </Text>
             </View>
 
             {/* Premium Form */}
             <View style={styles.form}>
+              {/* Role Selection - Moved to Top for Clarity */}
+              <View style={styles.inputWrapper}>
+                <View style={styles.roleHeader}>
+                  <Text style={[styles.roleSectionTitle, { color: colors.text }]}>I am joining as</Text>
+                  <Text style={[styles.roleSectionSubtitle, { color: colors.secondaryText }]}>
+                    Select the option that best describes you
+                  </Text>
+                </View>
+                <View style={styles.roleContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.roleCard,
+                      {
+                        backgroundColor: formData.role === 'student' 
+                          ? colors.card 
+                          : colors.card,
+                        borderColor: formData.role === 'student' 
+                          ? premiumColors.primary.main 
+                          : colors.border,
+                        borderWidth: formData.role === 'student' ? 2.5 : 1,
+                      },
+                      formData.role === 'student' && premiumShadows.md,
+                      formData.role !== 'student' && premiumShadows.sm,
+                    ]}
+                    onPress={() => setFormData({ ...formData, role: 'student' })}
+                    activeOpacity={0.8}
+                  >
+                    {formData.role === 'student' && (
+                      <LinearGradient
+                        colors={[premiumColors.primary.main + '15', premiumColors.primary.main + '05']}
+                        style={styles.roleGradient}
+                      />
+                    )}
+                    <View style={styles.roleCardContent}>
+                      <View style={[
+                        styles.roleIconWrapper,
+                        { 
+                          backgroundColor: formData.role === 'student' 
+                            ? premiumColors.primary.main 
+                            : premiumColors.primary.main + '20'
+                        }
+                      ]}>
+                        <Ionicons 
+                          name="school" 
+                          size={28} 
+                          color={formData.role === 'student' ? '#FFFFFF' : premiumColors.primary.main}
+                        />
+                      </View>
+                      <View style={styles.roleTextContainer}>
+                        <View style={styles.roleTitleRow}>
+                          <Text style={[styles.roleTitle, { color: colors.text }]}>Student</Text>
+                          {formData.role === 'student' && (
+                            <View style={[styles.selectedBadge, { backgroundColor: premiumColors.primary.main }]}>
+                              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[styles.roleDescription, { color: colors.secondaryText }]}>
+                          I want to learn French and English through courses
+                        </Text>
+                        <View style={styles.roleFeatures}>
+                          <View style={styles.featureItem}>
+                            <Ionicons name="checkmark-circle" size={14} color={formData.role === 'student' ? premiumColors.primary.main : colors.secondaryText} />
+                            <Text style={[styles.featureText, { color: colors.secondaryText }]}>Access all courses</Text>
+                          </View>
+                          <View style={styles.featureItem}>
+                            <Ionicons name="checkmark-circle" size={14} color={formData.role === 'student' ? premiumColors.primary.main : colors.secondaryText} />
+                            <Text style={[styles.featureText, { color: colors.secondaryText }]}>Track your progress</Text>
+                          </View>
+                          <View style={styles.featureItem}>
+                            <Ionicons name="checkmark-circle" size={14} color={formData.role === 'student' ? premiumColors.primary.main : colors.secondaryText} />
+                            <Text style={[styles.featureText, { color: colors.secondaryText }]}>Earn certificates</Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.roleCard,
+                      {
+                        backgroundColor: formData.role === 'instructor' 
+                          ? colors.card 
+                          : colors.card,
+                        borderColor: formData.role === 'instructor' 
+                          ? premiumColors.accent.emerald 
+                          : colors.border,
+                        borderWidth: formData.role === 'instructor' ? 2.5 : 1,
+                      },
+                      formData.role === 'instructor' && premiumShadows.md,
+                      formData.role !== 'instructor' && premiumShadows.sm,
+                    ]}
+                    onPress={() => setFormData({ ...formData, role: 'instructor' })}
+                    activeOpacity={0.8}
+                  >
+                    {formData.role === 'instructor' && (
+                      <LinearGradient
+                        colors={[premiumColors.accent.emerald + '15', premiumColors.accent.emerald + '05']}
+                        style={styles.roleGradient}
+                      />
+                    )}
+                    <View style={styles.roleCardContent}>
+                      <View style={[
+                        styles.roleIconWrapper,
+                        { 
+                          backgroundColor: formData.role === 'instructor' 
+                            ? premiumColors.accent.emerald 
+                            : premiumColors.accent.emerald + '20'
+                        }
+                      ]}>
+                        <Ionicons 
+                          name="person" 
+                          size={28} 
+                          color={formData.role === 'instructor' ? '#FFFFFF' : premiumColors.accent.emerald}
+                        />
+                      </View>
+                      <View style={styles.roleTextContainer}>
+                        <View style={styles.roleTitleRow}>
+                          <Text style={[styles.roleTitle, { color: colors.text }]}>Instructor</Text>
+                          {formData.role === 'instructor' && (
+                            <View style={[styles.selectedBadge, { backgroundColor: premiumColors.accent.emerald }]}>
+                              <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[styles.roleDescription, { color: colors.secondaryText }]}>
+                          I want to teach and create courses for students
+                        </Text>
+                        <View style={styles.roleFeatures}>
+                          <View style={styles.featureItem}>
+                            <Ionicons name="checkmark-circle" size={14} color={formData.role === 'instructor' ? premiumColors.accent.emerald : colors.secondaryText} />
+                            <Text style={[styles.featureText, { color: colors.secondaryText }]}>Create courses</Text>
+                          </View>
+                          <View style={styles.featureItem}>
+                            <Ionicons name="checkmark-circle" size={14} color={formData.role === 'instructor' ? premiumColors.accent.emerald : colors.secondaryText} />
+                            <Text style={[styles.featureText, { color: colors.secondaryText }]}>Manage students</Text>
+                          </View>
+                          <View style={styles.featureItem}>
+                            <Ionicons name="checkmark-circle" size={14} color={formData.role === 'instructor' ? premiumColors.accent.emerald : colors.secondaryText} />
+                            <Text style={[styles.featureText, { color: colors.secondaryText }]}>Earn revenue</Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Divider */}
+              <View style={styles.sectionDivider}>
+                <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+                <Text style={[styles.dividerText, { color: colors.secondaryText }]}>Your Information</Text>
+                <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+              </View>
+
               {/* Name Input */}
               <View style={styles.inputWrapper}>
                 <Text style={[styles.inputLabel, { color: colors.text }]}>Full Name *</Text>
@@ -483,5 +641,101 @@ const styles = StyleSheet.create({
   loginLink: {
     fontSize: fontSize.md,
     fontWeight: '700',
+  },
+  roleHeader: {
+    marginBottom: spacing.md,
+  },
+  roleSectionTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    marginBottom: spacing.xs / 2,
+  },
+  roleSectionSubtitle: {
+    fontSize: fontSize.sm,
+    lineHeight: 18,
+  },
+  roleContainer: {
+    gap: spacing.md,
+  },
+  roleCard: {
+    borderRadius: premiumBorderRadius.xl,
+    padding: spacing.lg,
+    marginBottom: spacing.xs,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  roleGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  roleCardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    position: 'relative',
+    zIndex: 1,
+  },
+  roleIconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  roleTextContainer: {
+    flex: 1,
+  },
+  roleTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  roleTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+  },
+  selectedBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  roleDescription: {
+    fontSize: fontSize.md,
+    lineHeight: 20,
+    marginBottom: spacing.md,
+  },
+  roleFeatures: {
+    gap: spacing.sm,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  featureText: {
+    fontSize: fontSize.sm,
+    flex: 1,
+  },
+  sectionDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.xl,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    marginHorizontal: spacing.md,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

@@ -58,9 +58,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password, phone) => {
+  const register = async (name, email, password, phone, role = 'student') => {
     try {
-      const response = await authAPI.register({ name, email, password, phone });
+      const response = await authAPI.register({ name, email, password, phone, role });
       const { token, refreshToken, user } = response.data;
       
       await SecureStore.setItemAsync('authToken', token);

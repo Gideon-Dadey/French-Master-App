@@ -19,7 +19,11 @@ router.post('/register', [
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, role } = req.body;
+
+    // Validate role if provided
+    const validRoles = ['student', 'instructor', 'admin'];
+    const userRole = role && validRoles.includes(role) ? role : 'student';
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -35,7 +39,8 @@ router.post('/register', [
       name,
       email,
       password,
-      phone
+      phone,
+      role: userRole
     });
 
     // Generate token

@@ -7,6 +7,7 @@ import { StyleSheet, Platform } from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { WishlistProvider } from './src/context/WishlistContext';
 import { StudentProvider } from './src/context/StudentContext';
+import { InstructorStudentProvider } from './src/context/InstructorStudentContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { GamificationProvider } from './src/context/GamificationContext';
 import NetworkStatus from './src/components/NetworkStatus';
@@ -56,6 +57,7 @@ import BrowseTopicsScreen from './screens/BrowseTopicsScreen';
 import TeachersScreen from './screens/TeachersScreen';
 import AdvancedVideoHostingScreen from './screens/AdvancedVideoHostingScreen';
 import AnalyticsDashboardScreen from './screens/AnalyticsDashboardScreen';
+import StudentManagementScreen from './screens/StudentManagementScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -500,6 +502,13 @@ function AppNavigator() {
                 headerShown: false,
               }}
             />
+            <Stack.Screen
+              name="StudentManagement"
+              component={StudentManagementScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
           </Stack.Navigator>
     </NavigationContainer>
   );
@@ -512,7 +521,9 @@ export default function App() {
         <GamificationProvider>
           <WishlistProvider>
             <StudentProvider>
-              <ThemedApp />
+              <InstructorStudentProvider>
+                <ThemedApp />
+              </InstructorStudentProvider>
             </StudentProvider>
           </WishlistProvider>
         </GamificationProvider>
