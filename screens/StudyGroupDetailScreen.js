@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -160,14 +161,14 @@ const getFileIcon = (filename) => {
 };
 
 export default function StudyGroupDetailScreen({ route, navigation }) {
-  const { groupId } = route.params;
+  const { groupId, initialTab = 'discussions' } = route.params;
   const { user, isAuthenticated } = useAuth();
   const { colors, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [group, setGroup] = useState(null);
-  const [activeTab, setActiveTab] = useState('about');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [discussionMessage, setDiscussionMessage] = useState('');
   const [showResourceModal, setShowResourceModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -210,6 +211,29 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   // Camera permission for video calls
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   
+  // Group options menu state
+  const [showGroupOptions, setShowGroupOptions] = useState(false);
+  const [showEditGroup, setShowEditGroup] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const groupInfoAnim = useRef(new Animated.Value(0)).current;
+  const [editGroupData, setEditGroupData] = useState({
+    name: '',
+    description: '',
+    level: 'all',
+    focus: 'general',
+    maxMembers: 20,
+    isPrivate: false,
+  });
+  const [notificationSettings, setNotificationSettings] = useState({
+    messages: true,
+    mentions: true,
+    calls: true,
+    muted: false,
+    muteDuration: null,
+  });
+  const groupOptionsAnim = useRef(new Animated.Value(0)).current;
+  
   // Animation refs
   const attachmentMenuAnim = useRef(new Animated.Value(0)).current;
   const reactionPickerAnim = useRef(new Animated.Value(0)).current;
@@ -217,7 +241,16 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
   useEffect(() => {
     loadGroup();
-  }, [groupId]);
+  }, [groupId, user?._id]);
+  
+  // Reload group when screen comes into focus (e.g., after login)
+  useFocusEffect(
+    useCallback(() => {
+      if (groupId) {
+        loadGroup();
+      }
+    }, [groupId, user?._id])
+  );
   
   // Animate attachment menu
   useEffect(() => {
@@ -261,23 +294,49 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
   const isMember = () => {
     if (!user || !user._id || !group) return false;
-    const userId = user._id.toString();
+    // Normalize user ID - handle both string and object formats
+    const userId = typeof user._id === 'object' ? user._id.toString() : String(user._id);
+    
     return group.members?.some(member => {
-      const memberId = typeof member.user === 'object' 
-        ? member.user?._id?.toString() 
-        : member.user?.toString();
+      // Handle all possible formats of member.user
+      let memberId;
+      if (typeof member.user === 'object' && member.user !== null) {
+        memberId = member.user._id ? String(member.user._id) : null;
+      } else if (member.user) {
+        memberId = String(member.user);
+      } else {
+        return false;
+      }
       return memberId === userId;
-    });
+    }) || false;
   };
 
   const isModerator = () => {
-    if (!user || !group) return false;
-    if (group.creator?._id === user._id || (typeof group.creator === 'string' && group.creator === user._id)) {
-      return true;
+    if (!user || !user._id || !group) return false;
+    // Normalize user ID
+    const userId = typeof user._id === 'object' ? user._id.toString() : String(user._id);
+    
+    // Check if user is the creator
+    let creatorId;
+    if (typeof group.creator === 'object' && group.creator !== null) {
+      creatorId = group.creator._id ? String(group.creator._id) : null;
+    } else if (group.creator) {
+      creatorId = String(group.creator);
     }
-    return group.members?.some(member => 
-      (typeof member.user === 'object' ? member.user._id : member.user) === user._id && member.role === 'moderator'
-    );
+    if (creatorId === userId) return true;
+    
+    // Check if user is a moderator member
+    return group.members?.some(member => {
+      let memberId;
+      if (typeof member.user === 'object' && member.user !== null) {
+        memberId = member.user._id ? String(member.user._id) : null;
+      } else if (member.user) {
+        memberId = String(member.user);
+      } else {
+        return false;
+      }
+      return memberId === userId && member.role === 'moderator';
+    }) || false;
   };
 
   const handleJoin = async () => {
@@ -999,6 +1058,135 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Group Options Functions
+  const openGroupOptions = () => {
+    setShowGroupOptions(true);
+    Animated.spring(groupOptionsAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 10,
+    }).start();
+  };
+
+  const closeGroupOptions = () => {
+    Animated.timing(groupOptionsAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setShowGroupOptions(false));
+  };
+
+  const openGroupInfo = () => {
+    setShowGroupInfo(true);
+    Animated.spring(groupInfoAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 50,
+      friction: 12,
+    }).start();
+  };
+
+  const closeGroupInfo = () => {
+    Animated.timing(groupInfoAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => setShowGroupInfo(false));
+  };
+
+  const openEditGroup = () => {
+    if (group) {
+      setEditGroupData({
+        name: group.name || '',
+        description: group.description || '',
+        level: group.level || 'all',
+        focus: group.focus || 'general',
+        maxMembers: group.maxMembers || 20,
+        isPrivate: group.isPrivate || false,
+      });
+    }
+    closeGroupOptions();
+    setTimeout(() => setShowEditGroup(true), 300);
+  };
+
+  const handleSaveGroupEdit = async () => {
+    try {
+      await studyGroupsAPI.update(groupId, editGroupData);
+      setShowEditGroup(false);
+      loadGroup();
+      Alert.alert('Success', 'Group updated successfully');
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to update group');
+    }
+  };
+
+  const handleCopyInviteCode = () => {
+    if (group?.inviteCode) {
+      // In a real app, you'd use Clipboard API
+      Alert.alert('Invite Code', `Share this code: ${group.inviteCode}`);
+    }
+    closeGroupOptions();
+  };
+
+  const handleShareGroup = async () => {
+    try {
+      const message = `Join my study group "${group?.name}" on French Master!\n\nInvite Code: ${group?.inviteCode || 'No code required'}`;
+      await Sharing.shareAsync('', { dialogTitle: 'Share Group', message });
+    } catch (error) {
+      console.log('Share error:', error);
+    }
+    closeGroupOptions();
+  };
+
+  const handleMuteGroup = (duration) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      muted: true,
+      muteDuration: duration,
+    }));
+    closeGroupOptions();
+    Alert.alert('Muted', duration ? `Muted for ${duration}` : 'Notifications muted');
+  };
+
+  const handleReportGroup = () => {
+    closeGroupOptions();
+    Alert.alert(
+      'Report Group',
+      'Why are you reporting this group?',
+      [
+        { text: 'Spam', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
+        { text: 'Inappropriate Content', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
+        { text: 'Harassment', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleDeleteGroup = () => {
+    closeGroupOptions();
+    Alert.alert(
+      'Delete Group',
+      'Are you sure you want to delete this group? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await studyGroupsAPI.delete(groupId);
+              navigation.goBack();
+              Alert.alert('Deleted', 'Group has been deleted');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete group');
+            }
+          }
+        },
+      ]
+    );
+  };
+
   const handleAddResource = async () => {
     if (!newResource.title.trim() || !newResource.url.trim()) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -1052,7 +1240,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
             
             <TouchableOpacity 
               style={styles.chatHeaderInfo}
-              onPress={() => setActiveTab('about')}
+              onPress={openGroupInfo}
+              activeOpacity={0.7}
             >
               <View style={styles.chatHeaderGroupIcon}>
                 <Ionicons name="people" size={20} color="#FFFFFF" />
@@ -1083,10 +1272,11 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     })}
                   </View>
                   <Text style={styles.chatHeaderSubtitle}>
-                    {memberCount} members • {group.discussions?.length || 0} messages
+                    {memberCount} members • Tap for info
                   </Text>
                 </View>
               </View>
+              <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
             </TouchableOpacity>
             
             <View style={styles.chatHeaderActions}>
@@ -1096,7 +1286,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               <TouchableOpacity style={styles.chatHeaderButton} onPress={() => startCall('video')}>
                 <Ionicons name="videocam-outline" size={22} color="#FFFFFF" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.chatHeaderButton}>
+              <TouchableOpacity style={styles.chatHeaderButton} onPress={openGroupOptions}>
                 <Ionicons name="ellipsis-vertical" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
@@ -1840,6 +2030,553 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 </View>
               </LinearGradient>
             )}
+          </View>
+        </Modal>
+        
+        {/* iOS-Style Group Options Action Sheet */}
+        <Modal
+          visible={showGroupOptions}
+          transparent={true}
+          animationType="none"
+          onRequestClose={closeGroupOptions}
+        >
+          <TouchableOpacity 
+            style={styles.actionSheetOverlay} 
+            activeOpacity={1} 
+            onPress={closeGroupOptions}
+          >
+            <Animated.View 
+              style={[
+                styles.actionSheetContainer,
+                {
+                  transform: [{
+                    translateY: groupOptionsAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [600, 0],
+                    })
+                  }]
+                }
+              ]}
+            >
+              {/* Group Info Header */}
+              <View style={styles.actionSheetHeader}>
+                <View style={styles.actionSheetGroupInfo}>
+                  <View style={[styles.actionSheetGroupAvatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                    <Ionicons name="people" size={28} color={premiumColors.primary.main} />
+                  </View>
+                  <View style={styles.actionSheetGroupDetails}>
+                    <Text style={[styles.actionSheetGroupName, { color: colors.text }]}>{group?.name}</Text>
+                    <Text style={[styles.actionSheetGroupMeta, { color: colors.secondaryText }]}>
+                      {memberCount} members • {group?.isPrivate ? 'Private' : 'Public'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              
+              {/* Primary Actions */}
+              <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
+                {moderator && (
+                  <TouchableOpacity style={styles.actionSheetItem} onPress={openEditGroup}>
+                    <View style={[styles.actionSheetIcon, { backgroundColor: '#007AFF20' }]}>
+                      <Ionicons name="pencil" size={20} color="#007AFF" />
+                    </View>
+                    <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Edit Group</Text>
+                    <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+                  </TouchableOpacity>
+                )}
+                
+                <TouchableOpacity style={styles.actionSheetItem} onPress={handleCopyInviteCode}>
+                  <View style={[styles.actionSheetIcon, { backgroundColor: '#34C75920' }]}>
+                    <Ionicons name="link" size={20} color="#34C759" />
+                  </View>
+                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Copy Invite Link</Text>
+                  <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.actionSheetItem} onPress={handleShareGroup}>
+                  <View style={[styles.actionSheetIcon, { backgroundColor: '#5856D620' }]}>
+                    <Ionicons name="share-outline" size={20} color="#5856D6" />
+                  </View>
+                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Share Group</Text>
+                  <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.actionSheetItem} onPress={() => { closeGroupOptions(); navigation.navigate('GroupMembers', { groupId }); }}>
+                  <View style={[styles.actionSheetIcon, { backgroundColor: '#FF950020' }]}>
+                    <Ionicons name="people-outline" size={20} color="#FF9500" />
+                  </View>
+                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>View Members</Text>
+                  <View style={[styles.actionSheetBadge, { backgroundColor: premiumColors.primary.main }]}>
+                    <Text style={styles.actionSheetBadgeText}>{memberCount}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+                </TouchableOpacity>
+              </View>
+              
+              {/* Notification Settings */}
+              <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
+                <TouchableOpacity style={styles.actionSheetItem} onPress={() => setShowNotificationSettings(true)}>
+                  <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
+                    <Ionicons name="notifications-outline" size={20} color="#FF3B30" />
+                  </View>
+                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Notifications</Text>
+                  <Text style={[styles.actionSheetItemValue, { color: colors.secondaryText }]}>
+                    {notificationSettings.muted ? 'Muted' : 'On'}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.actionSheetItem} 
+                  onPress={() => handleMuteGroup(notificationSettings.muted ? null : '8 hours')}
+                >
+                  <View style={[styles.actionSheetIcon, { backgroundColor: '#8E8E9320' }]}>
+                    <Ionicons name={notificationSettings.muted ? "volume-high" : "volume-mute"} size={20} color="#8E8E93" />
+                  </View>
+                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>
+                    {notificationSettings.muted ? 'Unmute' : 'Mute'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
+              {/* Danger Zone */}
+              <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
+                <TouchableOpacity style={styles.actionSheetItem} onPress={handleReportGroup}>
+                  <View style={[styles.actionSheetIcon, { backgroundColor: '#FF950020' }]}>
+                    <Ionicons name="flag-outline" size={20} color="#FF9500" />
+                  </View>
+                  <Text style={[styles.actionSheetItemText, { color: '#FF9500' }]}>Report Group</Text>
+                </TouchableOpacity>
+                
+                {member && !moderator && (
+                  <TouchableOpacity style={styles.actionSheetItem} onPress={handleLeave}>
+                    <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
+                      <Ionicons name="exit-outline" size={20} color="#FF3B30" />
+                    </View>
+                    <Text style={[styles.actionSheetItemText, { color: '#FF3B30' }]}>Leave Group</Text>
+                  </TouchableOpacity>
+                )}
+                
+                {moderator && (
+                  <TouchableOpacity style={styles.actionSheetItem} onPress={handleDeleteGroup}>
+                    <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
+                      <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                    </View>
+                    <Text style={[styles.actionSheetItemText, { color: '#FF3B30' }]}>Delete Group</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              {/* Cancel Button */}
+              <TouchableOpacity 
+                style={[styles.actionSheetCancelBtn, { backgroundColor: colors.card }]} 
+                onPress={closeGroupOptions}
+              >
+                <Text style={[styles.actionSheetCancelText, { color: '#007AFF' }]}>Cancel</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </TouchableOpacity>
+        </Modal>
+        
+        {/* Edit Group Modal - iOS Style */}
+        <Modal
+          visible={showEditGroup}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowEditGroup(false)}
+        >
+          <View style={[styles.editGroupModal, { backgroundColor: colors.background }]}>
+            {/* Header */}
+            <View style={[styles.editGroupHeader, { borderBottomColor: colors.border }]}>
+              <TouchableOpacity onPress={() => setShowEditGroup(false)}>
+                <Text style={[styles.editGroupCancelBtn, { color: '#007AFF' }]}>Cancel</Text>
+              </TouchableOpacity>
+              <Text style={[styles.editGroupTitle, { color: colors.text }]}>Edit Group</Text>
+              <TouchableOpacity onPress={handleSaveGroupEdit}>
+                <Text style={[styles.editGroupSaveBtn, { color: '#007AFF' }]}>Save</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.editGroupContent} showsVerticalScrollIndicator={false}>
+              {/* Group Photo */}
+              <View style={styles.editGroupPhotoSection}>
+                <View style={[styles.editGroupPhoto, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                  <Ionicons name="people" size={50} color={premiumColors.primary.main} />
+                </View>
+                <TouchableOpacity style={styles.editGroupPhotoBtn}>
+                  <Text style={[styles.editGroupPhotoBtnText, { color: '#007AFF' }]}>Change Photo</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {/* Form Fields */}
+              <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
+                <Text style={[styles.editGroupSectionTitle, { color: colors.secondaryText }]}>GROUP INFO</Text>
+                
+                <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.editGroupFieldLabel, { color: colors.secondaryText }]}>Name</Text>
+                  <TextInput
+                    style={[styles.editGroupFieldInput, { color: colors.text }]}
+                    value={editGroupData.name}
+                    onChangeText={(text) => setEditGroupData(prev => ({ ...prev, name: text }))}
+                    placeholder="Group Name"
+                    placeholderTextColor={colors.secondaryText}
+                  />
+                </View>
+                
+                <View style={styles.editGroupField}>
+                  <Text style={[styles.editGroupFieldLabel, { color: colors.secondaryText }]}>Description</Text>
+                  <TextInput
+                    style={[styles.editGroupFieldInput, styles.editGroupFieldMultiline, { color: colors.text }]}
+                    value={editGroupData.description}
+                    onChangeText={(text) => setEditGroupData(prev => ({ ...prev, description: text }))}
+                    placeholder="Describe your group"
+                    placeholderTextColor={colors.secondaryText}
+                    multiline
+                    numberOfLines={3}
+                  />
+                </View>
+              </View>
+              
+              {/* Settings */}
+              <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
+                <Text style={[styles.editGroupSectionTitle, { color: colors.secondaryText }]}>SETTINGS</Text>
+                
+                <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Level</Text>
+                  <View style={styles.editGroupOptionsRow}>
+                    {['beginner', 'intermediate', 'advanced', 'all'].map((level) => (
+                      <TouchableOpacity
+                        key={level}
+                        style={[
+                          styles.editGroupOption,
+                          { borderColor: colors.border },
+                          editGroupData.level === level && { backgroundColor: premiumColors.primary.main, borderColor: premiumColors.primary.main }
+                        ]}
+                        onPress={() => setEditGroupData(prev => ({ ...prev, level }))}
+                      >
+                        <Text style={[
+                          styles.editGroupOptionText,
+                          { color: colors.secondaryText },
+                          editGroupData.level === level && { color: '#FFFFFF' }
+                        ]}>
+                          {level.charAt(0).toUpperCase() + level.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+                
+                <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Focus</Text>
+                  <View style={styles.editGroupOptionsRow}>
+                    {['grammar', 'conversation', 'vocabulary', 'general'].map((focus) => (
+                      <TouchableOpacity
+                        key={focus}
+                        style={[
+                          styles.editGroupOption,
+                          { borderColor: colors.border },
+                          editGroupData.focus === focus && { backgroundColor: premiumColors.primary.main, borderColor: premiumColors.primary.main }
+                        ]}
+                        onPress={() => setEditGroupData(prev => ({ ...prev, focus }))}
+                      >
+                        <Text style={[
+                          styles.editGroupOptionText,
+                          { color: colors.secondaryText },
+                          editGroupData.focus === focus && { color: '#FFFFFF' }
+                        ]}>
+                          {focus.charAt(0).toUpperCase() + focus.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+                
+                <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
+                  <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Max Members</Text>
+                  <View style={styles.editGroupSliderRow}>
+                    <TouchableOpacity 
+                      style={[styles.editGroupSliderBtn, { backgroundColor: colors.border }]}
+                      onPress={() => setEditGroupData(prev => ({ ...prev, maxMembers: Math.max(5, prev.maxMembers - 5) }))}
+                    >
+                      <Ionicons name="remove" size={20} color={colors.text} />
+                    </TouchableOpacity>
+                    <Text style={[styles.editGroupSliderValue, { color: colors.text }]}>{editGroupData.maxMembers}</Text>
+                    <TouchableOpacity 
+                      style={[styles.editGroupSliderBtn, { backgroundColor: colors.border }]}
+                      onPress={() => setEditGroupData(prev => ({ ...prev, maxMembers: Math.min(100, prev.maxMembers + 5) }))}
+                    >
+                      <Ionicons name="add" size={20} color={colors.text} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                
+                <View style={styles.editGroupToggleField}>
+                  <View style={styles.editGroupToggleInfo}>
+                    <Ionicons name="lock-closed" size={22} color={colors.text} />
+                    <View style={styles.editGroupToggleText}>
+                      <Text style={[styles.editGroupToggleLabel, { color: colors.text }]}>Private Group</Text>
+                      <Text style={[styles.editGroupToggleDesc, { color: colors.secondaryText }]}>
+                        Only invited members can join
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.editGroupToggle,
+                      { backgroundColor: editGroupData.isPrivate ? '#34C759' : colors.border }
+                    ]}
+                    onPress={() => setEditGroupData(prev => ({ ...prev, isPrivate: !prev.isPrivate }))}
+                  >
+                    <Animated.View style={[
+                      styles.editGroupToggleThumb,
+                      { marginLeft: editGroupData.isPrivate ? 22 : 2 }
+                    ]} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              
+              {/* Danger Zone */}
+              <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
+                <Text style={[styles.editGroupSectionTitle, { color: '#FF3B30' }]}>DANGER ZONE</Text>
+                
+                <TouchableOpacity style={styles.editGroupDangerBtn} onPress={handleDeleteGroup}>
+                  <Ionicons name="trash-outline" size={22} color="#FF3B30" />
+                  <Text style={styles.editGroupDangerBtnText}>Delete Group</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={{ height: 50 }} />
+            </ScrollView>
+          </View>
+        </Modal>
+        
+        {/* Group Info Modal - iOS Style Sheet */}
+        <Modal
+          visible={showGroupInfo}
+          transparent={true}
+          animationType="none"
+          onRequestClose={closeGroupInfo}
+        >
+          <View style={styles.groupInfoOverlay}>
+            <TouchableOpacity style={styles.groupInfoBackdrop} activeOpacity={1} onPress={closeGroupInfo} />
+            <Animated.View 
+              style={[
+                styles.groupInfoContainer,
+                { backgroundColor: colors.card },
+                {
+                  transform: [{
+                    translateY: groupInfoAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [height, 0],
+                    })
+                  }]
+                }
+              ]}
+            >
+              {/* Handle Bar */}
+              <View style={styles.groupInfoHandle}>
+                <View style={[styles.groupInfoHandleBar, { backgroundColor: colors.border }]} />
+              </View>
+              
+              {/* Group Header */}
+              <View style={styles.groupInfoHeader}>
+                <View style={[styles.groupInfoAvatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                  <Ionicons name="people" size={40} color={premiumColors.primary.main} />
+                </View>
+                <Text style={[styles.groupInfoName, { color: colors.text }]}>{group?.name}</Text>
+                <Text style={[styles.groupInfoDesc, { color: colors.secondaryText }]} numberOfLines={2}>
+                  {group?.description}
+                </Text>
+                
+                {/* Quick Stats */}
+                <View style={styles.groupInfoStats}>
+                  <View style={styles.groupInfoStat}>
+                    <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>{memberCount}</Text>
+                    <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Members</Text>
+                  </View>
+                  <View style={[styles.groupInfoStatDivider, { backgroundColor: colors.border }]} />
+                  <View style={styles.groupInfoStat}>
+                    <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>
+                      {group?.discussions?.length || 0}
+                    </Text>
+                    <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Messages</Text>
+                  </View>
+                  <View style={[styles.groupInfoStatDivider, { backgroundColor: colors.border }]} />
+                  <View style={styles.groupInfoStat}>
+                    <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>
+                      {group?.resources?.length || 0}
+                    </Text>
+                    <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Resources</Text>
+                  </View>
+                </View>
+              </View>
+              
+              <ScrollView style={styles.groupInfoScroll} showsVerticalScrollIndicator={false}>
+                {/* Group Details */}
+                <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
+                  <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>DETAILS</Text>
+                  
+                  <View style={styles.groupInfoRow}>
+                    <View style={[styles.groupInfoRowIcon, { backgroundColor: '#007AFF20' }]}>
+                      <Ionicons name="school" size={18} color="#007AFF" />
+                    </View>
+                    <View style={styles.groupInfoRowContent}>
+                      <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Level</Text>
+                      <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
+                        {group?.level ? group.level.charAt(0).toUpperCase() + group.level.slice(1) : 'All Levels'}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.groupInfoRow}>
+                    <View style={[styles.groupInfoRowIcon, { backgroundColor: '#34C75920' }]}>
+                      <Ionicons name="bookmark" size={18} color="#34C759" />
+                    </View>
+                    <View style={styles.groupInfoRowContent}>
+                      <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Focus</Text>
+                      <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
+                        {group?.focus ? group.focus.charAt(0).toUpperCase() + group.focus.slice(1) : 'General'}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.groupInfoRow}>
+                    <View style={[styles.groupInfoRowIcon, { backgroundColor: '#FF950020' }]}>
+                      <Ionicons name={group?.isPrivate ? "lock-closed" : "globe"} size={18} color="#FF9500" />
+                    </View>
+                    <View style={styles.groupInfoRowContent}>
+                      <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Privacy</Text>
+                      <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
+                        {group?.isPrivate ? 'Private Group' : 'Public Group'}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.groupInfoRow}>
+                    <View style={[styles.groupInfoRowIcon, { backgroundColor: '#5856D620' }]}>
+                      <Ionicons name="calendar" size={18} color="#5856D6" />
+                    </View>
+                    <View style={styles.groupInfoRowContent}>
+                      <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Created</Text>
+                      <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
+                        {group?.createdAt ? new Date(group.createdAt).toLocaleDateString('en-US', { 
+                          year: 'numeric', month: 'long', day: 'numeric' 
+                        }) : 'Unknown'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                
+                {/* Members Preview */}
+                <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
+                  <View style={styles.groupInfoSectionHeader}>
+                    <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>MEMBERS</Text>
+                    <TouchableOpacity onPress={() => { closeGroupInfo(); setActiveTab('members'); }}>
+                      <Text style={[styles.groupInfoSeeAll, { color: premiumColors.primary.main }]}>See All</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.groupInfoMembersList}>
+                    {group?.members?.slice(0, 5).map((m, idx) => {
+                      const memberUser = typeof m.user === 'object' ? m.user : null;
+                      const isCreator = memberUser?._id === (typeof group.creator === 'object' ? group.creator?._id : group.creator);
+                      return (
+                        <View key={idx} style={styles.groupInfoMember}>
+                          {memberUser?.avatar ? (
+                            <Image source={{ uri: memberUser.avatar }} style={styles.groupInfoMemberAvatar} />
+                          ) : (
+                            <View style={[styles.groupInfoMemberAvatarPlaceholder, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                              <Ionicons name="person" size={16} color={premiumColors.primary.main} />
+                            </View>
+                          )}
+                          <View style={styles.groupInfoMemberInfo}>
+                            <Text style={[styles.groupInfoMemberName, { color: colors.text }]} numberOfLines={1}>
+                              {memberUser?.name || 'Member'}
+                            </Text>
+                            {isCreator && (
+                              <Text style={[styles.groupInfoMemberRole, { color: premiumColors.accent.gold }]}>Creator</Text>
+                            )}
+                            {m.role === 'moderator' && !isCreator && (
+                              <Text style={[styles.groupInfoMemberRole, { color: premiumColors.primary.main }]}>Moderator</Text>
+                            )}
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+                
+                {/* Quick Actions */}
+                <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
+                  <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>QUICK ACTIONS</Text>
+                  
+                  <View style={styles.groupInfoActions}>
+                    <TouchableOpacity 
+                      style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
+                      onPress={() => { closeGroupInfo(); setActiveTab('resources'); }}
+                    >
+                      <View style={[styles.groupInfoActionIcon, { backgroundColor: '#007AFF20' }]}>
+                        <Ionicons name="folder" size={22} color="#007AFF" />
+                      </View>
+                      <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Resources</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
+                      onPress={() => { closeGroupInfo(); setActiveTab('members'); }}
+                    >
+                      <View style={[styles.groupInfoActionIcon, { backgroundColor: '#34C75920' }]}>
+                        <Ionicons name="people" size={22} color="#34C759" />
+                      </View>
+                      <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Members</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
+                      onPress={() => { closeGroupInfo(); startCall('voice'); }}
+                    >
+                      <View style={[styles.groupInfoActionIcon, { backgroundColor: '#5856D620' }]}>
+                        <Ionicons name="call" size={22} color="#5856D6" />
+                      </View>
+                      <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Call</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
+                      onPress={() => { closeGroupInfo(); openGroupOptions(); }}
+                    >
+                      <View style={[styles.groupInfoActionIcon, { backgroundColor: '#FF950020' }]}>
+                        <Ionicons name="settings" size={22} color="#FF9500" />
+                      </View>
+                      <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Settings</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                
+                {/* Join/Leave Button */}
+                <View style={styles.groupInfoButtonSection}>
+                  {member ? (
+                    <TouchableOpacity 
+                      style={[styles.groupInfoLeaveBtn, { borderColor: '#FF3B30' }]}
+                      onPress={() => { closeGroupInfo(); handleLeave(); }}
+                    >
+                      <Ionicons name="exit-outline" size={20} color="#FF3B30" />
+                      <Text style={styles.groupInfoLeaveBtnText}>Leave Group</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity 
+                      style={[styles.groupInfoJoinBtn, { backgroundColor: premiumColors.primary.main }]}
+                      onPress={() => { closeGroupInfo(); handleJoin(); }}
+                    >
+                      <Ionicons name="person-add" size={20} color="#FFFFFF" />
+                      <Text style={styles.groupInfoJoinBtnText}>Join Group</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                
+                <View style={{ height: 40 }} />
+              </ScrollView>
+            </Animated.View>
           </View>
         </Modal>
       </View>
@@ -4704,6 +5441,477 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 24,
+  },
+  
+  // iOS-Style Action Sheet
+  actionSheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  actionSheetContainer: {
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.xl,
+  },
+  actionSheetHeader: {
+    borderRadius: premiumBorderRadius.xl,
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  actionSheetGroupInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.lg,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+  },
+  actionSheetGroupAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionSheetGroupDetails: {
+    marginLeft: spacing.md,
+    flex: 1,
+  },
+  actionSheetGroupName: {
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  actionSheetGroupMeta: {
+    fontSize: fontSize.sm,
+  },
+  actionSheetSection: {
+    borderRadius: premiumBorderRadius.xl,
+    marginBottom: spacing.sm,
+    overflow: 'hidden',
+  },
+  actionSheetItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    paddingVertical: spacing.md + 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  actionSheetIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  actionSheetItemText: {
+    flex: 1,
+    fontSize: fontSize.md,
+    fontWeight: '500',
+  },
+  actionSheetItemValue: {
+    fontSize: fontSize.sm,
+    marginRight: spacing.sm,
+  },
+  actionSheetBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginRight: spacing.sm,
+  },
+  actionSheetBadgeText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+  },
+  actionSheetCancelBtn: {
+    borderRadius: premiumBorderRadius.xl,
+    padding: spacing.lg,
+    alignItems: 'center',
+  },
+  actionSheetCancelText: {
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+  },
+  
+  // Edit Group Modal Styles
+  editGroupModal: {
+    flex: 1,
+  },
+  editGroupHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    paddingTop: 60,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  editGroupCancelBtn: {
+    fontSize: fontSize.md,
+    fontWeight: '400',
+  },
+  editGroupTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+  },
+  editGroupSaveBtn: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  editGroupContent: {
+    flex: 1,
+  },
+  editGroupPhotoSection: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  editGroupPhoto: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editGroupPhotoBtn: {
+    marginTop: spacing.md,
+  },
+  editGroupPhotoBtnText: {
+    fontSize: fontSize.md,
+    fontWeight: '500',
+  },
+  editGroupSection: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    borderRadius: premiumBorderRadius.lg,
+    overflow: 'hidden',
+  },
+  editGroupSectionTitle: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+    marginLeft: spacing.md,
+    marginTop: spacing.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  editGroupField: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  editGroupFieldLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: '500',
+    marginBottom: spacing.xs,
+  },
+  editGroupFieldInput: {
+    fontSize: fontSize.md,
+    fontWeight: '400',
+    padding: 0,
+  },
+  editGroupFieldMultiline: {
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  editGroupOptionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  editGroupOption: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: premiumBorderRadius.md,
+    borderWidth: 1,
+  },
+  editGroupOptionText: {
+    fontSize: fontSize.sm,
+    fontWeight: '500',
+  },
+  editGroupSliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    gap: spacing.lg,
+  },
+  editGroupSliderBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editGroupSliderValue: {
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+    minWidth: 50,
+    textAlign: 'center',
+  },
+  editGroupToggleField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+  },
+  editGroupToggleInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  editGroupToggleText: {
+    marginLeft: spacing.md,
+  },
+  editGroupToggleLabel: {
+    fontSize: fontSize.md,
+    fontWeight: '500',
+  },
+  editGroupToggleDesc: {
+    fontSize: fontSize.xs,
+    marginTop: 2,
+  },
+  editGroupToggle: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  editGroupToggleThumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  editGroupDangerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  editGroupDangerBtnText: {
+    color: '#FF3B30',
+    fontSize: fontSize.md,
+    fontWeight: '500',
+  },
+  
+  // Group Info Modal Styles
+  groupInfoOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  groupInfoBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  groupInfoContainer: {
+    maxHeight: height * 0.85,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: spacing.sm,
+  },
+  groupInfoHandle: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  groupInfoHandleBar: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+  },
+  groupInfoHeader: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  groupInfoAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  groupInfoName: {
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  groupInfoDesc: {
+    fontSize: fontSize.sm,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: spacing.lg,
+  },
+  groupInfoStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.md,
+  },
+  groupInfoStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  groupInfoStatValue: {
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+  },
+  groupInfoStatLabel: {
+    fontSize: fontSize.xs,
+    marginTop: 2,
+  },
+  groupInfoStatDivider: {
+    width: 1,
+    height: 30,
+  },
+  groupInfoScroll: {
+    flex: 1,
+  },
+  groupInfoSection: {
+    marginTop: spacing.md,
+    marginHorizontal: spacing.md,
+    borderRadius: premiumBorderRadius.lg,
+    padding: spacing.md,
+  },
+  groupInfoSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  groupInfoSectionTitle: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: spacing.sm,
+  },
+  groupInfoSeeAll: {
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+  },
+  groupInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
+  groupInfoRowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  groupInfoRowContent: {
+    flex: 1,
+  },
+  groupInfoRowLabel: {
+    fontSize: fontSize.xs,
+    marginBottom: 2,
+  },
+  groupInfoRowValue: {
+    fontSize: fontSize.md,
+    fontWeight: '500',
+  },
+  groupInfoMembersList: {
+    gap: spacing.sm,
+  },
+  groupInfoMember: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  groupInfoMemberAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: spacing.md,
+  },
+  groupInfoMemberAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  groupInfoMemberInfo: {
+    flex: 1,
+  },
+  groupInfoMemberName: {
+    fontSize: fontSize.md,
+    fontWeight: '500',
+  },
+  groupInfoMemberRole: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  groupInfoActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  groupInfoActionBtn: {
+    width: (width - spacing.md * 4 - spacing.sm * 3) / 4,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: premiumBorderRadius.md,
+  },
+  groupInfoActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  groupInfoActionLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  groupInfoButtonSection: {
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.lg,
+  },
+  groupInfoJoinBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md + 2,
+    borderRadius: premiumBorderRadius.lg,
+    gap: spacing.sm,
+  },
+  groupInfoJoinBtnText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  groupInfoLeaveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md + 2,
+    borderRadius: premiumBorderRadius.lg,
+    borderWidth: 1.5,
+    gap: spacing.sm,
+  },
+  groupInfoLeaveBtnText: {
+    color: '#FF3B30',
+    fontSize: fontSize.md,
+    fontWeight: '600',
   },
 });
 

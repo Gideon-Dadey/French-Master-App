@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -56,7 +57,14 @@ export default function StudyGroupsScreen({ navigation }) {
 
   useEffect(() => {
     loadStudyGroups();
-  }, [selectedFilter]);
+  }, [selectedFilter, user?._id]);
+  
+  // Reload groups when screen comes into focus (e.g., after login)
+  useFocusEffect(
+    useCallback(() => {
+      loadStudyGroups();
+    }, [user?._id])
+  );
 
   const loadStudyGroups = useCallback(async () => {
     try {
@@ -144,13 +152,21 @@ export default function StudyGroupsScreen({ navigation }) {
 
   const isMember = (group) => {
     if (!user || !user._id) return false;
-    const userId = user._id.toString();
+    // Normalize user ID - handle both string and object formats
+    const userId = typeof user._id === 'object' ? user._id.toString() : String(user._id);
+    
     return group.members?.some(member => {
-      const memberId = typeof member.user === 'object' 
-        ? member.user?._id?.toString() 
-        : member.user?.toString();
+      // Handle all possible formats of member.user
+      let memberId;
+      if (typeof member.user === 'object' && member.user !== null) {
+        memberId = member.user._id ? String(member.user._id) : null;
+      } else if (member.user) {
+        memberId = String(member.user);
+      } else {
+        return false;
+      }
       return memberId === userId;
-    });
+    }) || false;
   };
 
   if (loading && !refreshing) {
@@ -288,7 +304,7 @@ export default function StudyGroupsScreen({ navigation }) {
                 group={group}
                 colors={colors}
                 isMember={isMember(group)}
-                onPress={() => navigation.navigate('StudyGroupDetail', { groupId: group._id })}
+                onPress={() => navigation.navigate('StudyGroupDetail', { groupId: group._id, initialTab: 'discussions' })}
                 onJoin={() => handleJoinGroup(group._id, group.isPrivate)}
               />
             ))
