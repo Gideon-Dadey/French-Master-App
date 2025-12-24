@@ -141,26 +141,8 @@ export default function TeachersScreen({ navigation }) {
     }
 
     setSelectedPlan(plan);
-    
-    // Show subscription confirmation
-    Alert.alert(
-      'Subscribe to ' + plan.name,
-      `You are about to subscribe to the ${plan.name} plan for GHS ${plan.price} per ${plan.period}.\n\nPayment integration will be available soon.`,
-      [
-        { text: 'Cancel', style: 'cancel', onPress: () => setSelectedPlan(null) },
-        { 
-          text: 'Continue', 
-          onPress: () => {
-            // TODO: Implement payment flow for teacher subscription
-            Alert.alert(
-              'Coming Soon',
-              'Payment integration for teacher subscriptions will be available soon. Please contact support for manual subscription setup.',
-              [{ text: 'OK', onPress: () => setSelectedPlan(null) }]
-            );
-          }
-        },
-      ]
-    );
+    // Navigate to payment screen
+    navigation.navigate('TeacherSubscriptionPayment', { plan });
   };
 
   if (loading) {

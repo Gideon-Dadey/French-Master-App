@@ -106,18 +106,19 @@ export default function CourseDetailScreen({ route, navigation }) {
       return;
     }
 
-    setPurchasing(true);
-    try {
-      const response = await paymentsAPI.createIntent({
-        courseId,
-        paymentMethod: 'stripe'
-      });
-      Alert.alert('Success', 'Redirecting to payment...');
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Payment failed');
-    } finally {
-      setPurchasing(false);
-    }
+    // Navigate to payment screen for paid courses
+    navigation.navigate('CoursePayment', { 
+      course: {
+        id: course._id || courseId,
+        title: course.title,
+        price: course.price,
+        originalPrice: course.originalPrice,
+        currency: course.currency || 'GHS',
+        thumbnail: course.thumbnail,
+        isFree: course.isFree
+      },
+      courseId: course._id || courseId
+    });
   };
 
   const getLevelColor = (level) => {

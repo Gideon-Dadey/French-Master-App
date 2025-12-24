@@ -58,6 +58,8 @@ import TeachersScreen from './screens/TeachersScreen';
 import AdvancedVideoHostingScreen from './screens/AdvancedVideoHostingScreen';
 import AnalyticsDashboardScreen from './screens/AnalyticsDashboardScreen';
 import StudentManagementScreen from './screens/StudentManagementScreen';
+import TeacherSubscriptionPaymentScreen from './screens/TeacherSubscriptionPaymentScreen';
+import CoursePaymentScreen from './screens/CoursePaymentScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -505,6 +507,20 @@ function AppNavigator() {
             <Stack.Screen
               name="StudentManagement"
               component={StudentManagementScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="TeacherSubscriptionPayment"
+              component={TeacherSubscriptionPaymentScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="CoursePayment"
+              component={CoursePaymentScreen}
               options={{
                 headerShown: false,
               }}

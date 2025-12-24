@@ -3,6 +3,7 @@ const router = express.Router();
 const Payment = require('../models/Payment');
 const Course = require('../models/Course');
 const User = require('../models/User');
+const Subscription = require('../models/Subscription');
 const { protect } = require('../middleware/auth');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -40,14 +41,22 @@ router.post('/create-intent', protect, async (req, res) => {
         currency: course.currency.toLowerCase(),
         metadata: {
           userId: req.user._id.toString(),
-          courseId: courseId
+          courseId: courseId.toString(),
+          type: 'course'
         }
       });
 
       res.json({
         success: true,
         clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id
+        paymentIntentId: paymentIntent.id,
+        amount: course.price,
+        currency: course.currency,
+        course: {
+          id: course._id,
+          title: course.title,
+          thumbnail: course.thumbnail
+        }
       });
     } else {
       // For other payment methods, create pending payment
@@ -65,7 +74,14 @@ router.post('/create-intent', protect, async (req, res) => {
       res.json({
         success: true,
         paymentId: payment._id,
-        transactionId: payment.transactionId
+        transactionId: payment.transactionId,
+        amount: course.price,
+        currency: course.currency,
+        course: {
+          id: course._id,
+          title: course.title,
+          thumbnail: course.thumbnail
+        }
       });
     }
   } catch (error) {
@@ -132,6 +148,223 @@ router.post('/confirm', protect, async (req, res) => {
       payment
     });
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/payments/create-subscription-intent
+// @desc    Create payment intent for teacher subscription
+// @access  Private
+router.post('/create-subscription-intent', protect, async (req, res) => {
+  try {
+    const { planId, planName, price, period, paymentMethod } = req.body;
+
+    if (!planId || !price || !period) {
+      return res.status(400).json({
+        success: false,
+        message: 'Plan details are required'
+      });
+    }
+
+    // Calculate duration in days based on period
+    const durationDays = period === 'month' ? 30 : 365;
+
+    if (paymentMethod === 'stripe') {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(price * 100), // Convert to cents
+        currency: 'ghs',
+        metadata: {
+          userId: req.user._id.toString(),
+          planId: planId,
+          planName: planName,
+          period: period,
+          type: 'teacher-subscription'
+        }
+      });
+
+      res.json({
+        success: true,
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+        amount: price,
+        currency: 'GHS',
+        planId,
+        planName,
+        period,
+        durationDays
+      });
+    } else {
+      // For other payment methods, create pending payment
+      const payment = await Payment.create({
+        user: req.user._id,
+        type: 'subscription',
+        amount: price,
+        currency: 'GHS',
+        paymentMethod,
+        transactionId: `SUBSCRIPTION-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        status: 'pending',
+        metadata: new Map([
+          ['planId', planId],
+          ['planName', planName],
+          ['period', period],
+          ['durationDays', durationDays.toString()]
+        ])
+      });
+
+      res.json({
+        success: true,
+        paymentId: payment._id,
+        transactionId: payment.transactionId,
+        amount: price,
+        currency: 'GHS',
+        planId,
+        planName,
+        period,
+        durationDays
+      });
+    }
+  } catch (error) {
+    console.error('Subscription payment intent error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/payments/confirm-subscription
+// @desc    Confirm subscription payment
+// @access  Private
+router.post('/confirm-subscription', protect, async (req, res) => {
+  try {
+    const { paymentId, transactionId, paymentIntentId } = req.body;
+
+    let payment;
+    if (paymentIntentId) {
+      // Stripe payment
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (paymentIntent.status !== 'succeeded') {
+        return res.status(400).json({
+          success: false,
+          message: 'Payment not completed'
+        });
+      }
+
+      payment = await Payment.findOne({
+        paymentIntentId,
+        user: req.user._id
+      });
+
+      if (!payment) {
+        // Create payment record from Stripe metadata
+        const metadata = paymentIntent.metadata;
+        const durationDays = metadata.period === 'month' ? 30 : 365;
+        payment = await Payment.create({
+          user: req.user._id,
+          type: 'subscription',
+          amount: paymentIntent.amount / 100,
+          currency: paymentIntent.currency.toUpperCase(),
+          paymentMethod: 'stripe',
+          transactionId: `STRIPE-${paymentIntent.id}`,
+          paymentIntentId: paymentIntent.id,
+          status: 'completed',
+          paidAt: new Date(),
+          metadata: {
+            planId: metadata.planId,
+            planName: metadata.planName,
+            period: metadata.period,
+            durationDays: durationDays.toString()
+          }
+        });
+      } else {
+        payment.status = 'completed';
+        payment.paidAt = new Date();
+        await payment.save();
+      }
+    } else {
+      payment = await Payment.findOne({
+        $or: [
+          { _id: paymentId },
+          { transactionId }
+        ],
+        user: req.user._id
+      });
+
+      if (!payment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Payment not found'
+        });
+      }
+
+      payment.status = 'completed';
+      payment.paidAt = new Date();
+      await payment.save();
+    }
+
+    // Create subscription
+    try {
+      const planId = payment.metadata?.get('planId') || payment.metadata?.planId || 'basic';
+      const planName = payment.metadata?.get('planName') || payment.metadata?.planName || 'Basic Teacher';
+      const durationDays = parseInt(payment.metadata?.get('durationDays') || payment.metadata?.durationDays || '30');
+      const planType = planId === 'basic' ? 'monthly' : planId === 'professional' ? 'monthly' : planId === 'enterprise' ? 'yearly' : 'monthly';
+
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + durationDays);
+
+      const subscription = await Subscription.create({
+        user: req.user._id,
+        plan: {
+          type: planType,
+          name: planName,
+          price: payment.amount,
+          currency: payment.currency || 'GHS',
+          duration: durationDays,
+          features: []
+        },
+        status: 'active',
+        startDate,
+        endDate,
+        payment: {
+          paymentId: payment._id.toString(),
+          paymentMethod: payment.paymentMethod,
+          transactionId: payment.transactionId,
+          amount: payment.amount,
+          currency: payment.currency || 'GHS',
+          paidAt: payment.paidAt || new Date()
+        },
+        autoRenew: false
+      });
+
+      // Update user subscription
+      await User.findByIdAndUpdate(req.user._id, {
+        'subscription.type': planType,
+        'subscription.startDate': startDate,
+        'subscription.endDate': endDate,
+        'subscription.isActive': true
+      });
+
+      payment.subscriptionId = subscription._id.toString();
+      await payment.save();
+    } catch (subError) {
+      console.error('Failed to create subscription:', subError);
+      // Payment is confirmed, but subscription creation failed
+      // This can be handled separately if needed
+    }
+
+    res.json({
+      success: true,
+      message: 'Subscription payment confirmed and activated',
+      payment
+    });
+  } catch (error) {
+    console.error('Subscription confirmation error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',

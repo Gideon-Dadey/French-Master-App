@@ -129,6 +129,7 @@ export const lessonsAPI = {
 export const paymentsAPI = {
   createIntent: (data) => api.post('/payments/create-intent', data),
   confirm: (data) => api.post('/payments/confirm', data),
+  confirmCourse: (data) => api.post('/payments/confirm', data), // Alias for course payments
   getHistory: () => api.get('/payments/history'),
 };
 
@@ -264,6 +265,16 @@ export const studentsAPI = {
 export const instructorStudentsAPI = {
   getAll: (params) => api.get('/users/instructor/students', { params }),
   getById: (id) => api.get(`/users/instructor/students/${id}`),
+};
+
+// Subscriptions API
+export const subscriptionsAPI = {
+  getAll: () => api.get('/subscriptions'),
+  getActive: () => api.get('/subscriptions/active'),
+  create: (data) => api.post('/subscriptions', data),
+  cancel: (id) => api.put(`/subscriptions/${id}/cancel`),
+  createSubscriptionIntent: (data) => api.post('/payments/create-subscription-intent', data),
+  confirmSubscription: (data) => api.post('/payments/confirm-subscription', data),
 };
 
 export default api;
