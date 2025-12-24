@@ -51,6 +51,7 @@ import CreateProgressShareScreen from './screens/CreateProgressShareScreen';
 import DiscussionsScreen from './screens/DiscussionsScreen';
 import DiscussionDetailScreen from './screens/DiscussionDetailScreen';
 import CreateDiscussionScreen from './screens/CreateDiscussionScreen';
+import BrowseTopicsScreen from './screens/BrowseTopicsScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -463,6 +464,13 @@ function AppNavigator() {
             <Stack.Screen
               name="CreateDiscussion"
               component={CreateDiscussionScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="BrowseTopics"
+              component={BrowseTopicsScreen}
               options={{
                 headerShown: false,
               }}

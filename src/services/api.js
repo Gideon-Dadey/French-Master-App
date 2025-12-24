@@ -246,4 +246,10 @@ export const discussionsAPI = {
   likeReply: (id, replyId) => api.post(`/discussions/${id}/replies/${replyId}/like`),
 };
 
+// Topics API
+export const topicsAPI = {
+  getAll: () => api.get('/topics'),
+  getById: (topicId, params) => api.get(`/topics/${topicId}`, { params }),
+};
+
 export default api;

@@ -88,6 +88,7 @@ app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/questions', require('./routes/questions'));
 app.use('/api/progress-share', require('./routes/progressShare'));
 app.use('/api/discussions', require('./routes/discussions'));
+app.use('/api/topics', require('./routes/topics'));
 
 // Health check
 app.get('/health', (req, res) => {

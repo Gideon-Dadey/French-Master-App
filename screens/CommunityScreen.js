@@ -41,9 +41,42 @@ export default function CommunityScreen({ navigation }) {
   ];
 
   const trendingTopics = [
-    { id: 1, title: 'Best way to learn French verbs?', replies: 24, views: 156, author: 'Sarah M.' },
-    { id: 2, title: 'French pronunciation tips', replies: 18, views: 203, author: 'Jean P.' },
-    { id: 3, title: 'Study group for A2 level', replies: 12, views: 89, author: 'Marie L.' },
+    { 
+      _id: 1, 
+      id: 1,
+      title: 'Best way to learn French verbs?', 
+      replies: 24, 
+      views: 156, 
+      author: 'Sarah M.',
+      excerpt: 'Looking for effective methods to master French verb conjugations...',
+      publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      category: 'grammar',
+      likes: 15,
+    },
+    { 
+      _id: 2, 
+      id: 2,
+      title: 'French pronunciation tips', 
+      replies: 18, 
+      views: 203, 
+      author: 'Jean P.',
+      excerpt: 'Share your best techniques for improving French pronunciation...',
+      publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      category: 'pronunciation',
+      likes: 22,
+    },
+    { 
+      _id: 3, 
+      id: 3,
+      title: 'Study group for A2 level', 
+      replies: 12, 
+      views: 89, 
+      author: 'Marie L.',
+      excerpt: 'Forming a study group for A2 level French learners...',
+      publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
+      category: 'vocabulary',
+      likes: 8,
+    },
   ];
 
   const communityStats = {
@@ -189,7 +222,12 @@ export default function CommunityScreen({ navigation }) {
 
         {/* Categories Filter */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Browse Topics</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Browse Topics</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('BrowseTopics')}>
+              <Text style={[styles.seeAllText, { color: premiumColors.primary.main }]}>See All</Text>
+            </TouchableOpacity>
+          </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -234,22 +272,24 @@ export default function CommunityScreen({ navigation }) {
         </View>
 
         {/* Trending Topics */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Trending Now</Text>
-            <TouchableOpacity>
-              <Text style={[styles.seeAllText, { color: premiumColors.primary.main }]}>See All</Text>
-            </TouchableOpacity>
+        {trendingTopics.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Trending Now</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Discussions', { sort: 'trending' })}>
+                <Text style={[styles.seeAllText, { color: premiumColors.primary.main }]}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            {trendingTopics.slice(0, 3).map((topic, index) => (
+              <DiscussionCard
+                key={topic._id || topic.id || index}
+                post={topic}
+                colors={colors}
+                onPress={() => navigation.navigate('BlogDetail', { postId: topic._id || topic.id })}
+              />
+            ))}
           </View>
-          {trendingTopics.map((topic) => (
-            <TopicCard
-              key={topic.id}
-              topic={topic}
-              colors={colors}
-              onPress={() => {}}
-            />
-          ))}
-        </View>
+        )}
 
         {/* Recent Discussions */}
         {recentPosts.length > 0 && (
