@@ -25,6 +25,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import { Audio } from 'expo-av';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { spacing, fontSize } from '../src/utils/responsive';
@@ -205,6 +206,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const [isFrontCamera, setIsFrontCamera] = useState(true);
   const callTimerRef = useRef(null);
   const callPulseAnim = useRef(new Animated.Value(1)).current;
+  
+  // Camera permission for video calls
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   
   // Animation refs
   const attachmentMenuAnim = useRef(new Animated.Value(0)).current;
@@ -912,7 +916,18 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   }, [soundObject]);
 
   // Call Functions
-  const startCall = (type) => {
+  const startCall = async (type) => {
+    // Request camera permission for video calls
+    if (type === 'video') {
+      if (!cameraPermission?.granted) {
+        const permission = await requestCameraPermission();
+        if (!permission.granted) {
+          Alert.alert('Permission Required', 'Camera access is needed for video calls');
+          return;
+        }
+      }
+    }
+    
     setCallType(type);
     setIsInCall(true);
     setCallDuration(0);
@@ -940,9 +955,6 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         }),
       ])
     ).start();
-    
-    // Note: In a real app, you would connect to a WebRTC/VoIP service here
-    // For demo, we're just showing the UI
   };
   
   const endCall = () => {
@@ -1656,6 +1668,178 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 <Text style={styles.imagePreviewActionText}>Close</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </Modal>
+        
+        {/* Call Modal - iOS FaceTime Style */}
+        <Modal
+          visible={isInCall}
+          transparent={false}
+          animationType="slide"
+          onRequestClose={endCall}
+          statusBarTranslucent
+        >
+          <View style={styles.callModal}>
+            {/* Video Call - iOS FaceTime Style */}
+            {callType === 'video' ? (
+              <View style={styles.faceTimeContainer}>
+                {/* Main video area - Group participants or placeholder */}
+                <View style={styles.faceTimeMain}>
+                  {isVideoOn ? (
+                    <View style={styles.faceTimeGroupView}>
+                      {/* Group participants grid placeholder */}
+                      <LinearGradient 
+                        colors={['#1c1c1e', '#2c2c2e', '#1c1c1e']} 
+                        style={styles.faceTimeGroupGradient}
+                      >
+                        <View style={styles.faceTimeGroupAvatars}>
+                          {group?.members?.slice(0, 4).map((member, index) => {
+                            const memberUser = typeof member.user === 'object' ? member.user : null;
+                            return (
+                              <View key={index} style={styles.faceTimeParticipant}>
+                                {memberUser?.avatar ? (
+                                  <Image source={{ uri: memberUser.avatar }} style={styles.faceTimeParticipantAvatar} />
+                                ) : (
+                                  <View style={styles.faceTimeParticipantPlaceholder}>
+                                    <Ionicons name="person" size={40} color="rgba(255,255,255,0.6)" />
+                                  </View>
+                                )}
+                                <Text style={styles.faceTimeParticipantName} numberOfLines={1}>
+                                  {memberUser?.name || 'Member'}
+                                </Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                        {memberCount > 4 && (
+                          <Text style={styles.faceTimeMoreParticipants}>+{memberCount - 4} more</Text>
+                        )}
+                      </LinearGradient>
+                    </View>
+                  ) : (
+                    <View style={styles.faceTimeVideoOff}>
+                      <View style={styles.faceTimeVideoOffIcon}>
+                        <Ionicons name="videocam-off" size={50} color="#FFFFFF" />
+                      </View>
+                      <Text style={styles.faceTimeVideoOffText}>Camera Off</Text>
+                    </View>
+                  )}
+                </View>
+                
+                {/* Self view - Your camera in corner - iOS style */}
+                <View style={styles.faceTimeSelfContainer}>
+                  {isVideoOn && cameraPermission?.granted ? (
+                    <CameraView
+                      style={styles.faceTimeSelfCamera}
+                      facing={isFrontCamera ? 'front' : 'back'}
+                    />
+                  ) : (
+                    <View style={styles.faceTimeSelfPlaceholder}>
+                      <Ionicons name="person" size={30} color="rgba(255,255,255,0.5)" />
+                    </View>
+                  )}
+                </View>
+                
+                {/* Top info bar */}
+                <View style={styles.faceTimeTopBar}>
+                  <View style={styles.faceTimeInfo}>
+                    <Text style={styles.faceTimeGroupName}>{group?.name}</Text>
+                    <View style={styles.faceTimeStatusRow}>
+                      <View style={styles.faceTimeLiveIndicator} />
+                      <Text style={styles.faceTimeDuration}>
+                        {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                
+                {/* Bottom controls - iOS FaceTime style */}
+                <View style={styles.faceTimeControls}>
+                  <View style={styles.faceTimeControlsRow}>
+                    <TouchableOpacity 
+                      style={[styles.faceTimeControlBtn, isMuted && styles.faceTimeControlBtnActive]} 
+                      onPress={toggleMute}
+                    >
+                      <Ionicons name={isMuted ? "mic-off" : "mic"} size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.faceTimeEndCall} onPress={endCall}>
+                      <Ionicons name="close" size={28} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.faceTimeControlBtn, !isVideoOn && styles.faceTimeControlBtnActive]} 
+                      onPress={toggleVideo}
+                    >
+                      <Ionicons name={isVideoOn ? "videocam" : "videocam-off"} size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <View style={styles.faceTimeSecondaryRow}>
+                    <TouchableOpacity style={styles.faceTimeSecondaryBtn} onPress={toggleCamera}>
+                      <Ionicons name="camera-reverse-outline" size={22} color="#FFFFFF" />
+                      <Text style={styles.faceTimeSecondaryLabel}>Flip</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.faceTimeSecondaryBtn, isSpeakerOn && styles.faceTimeSecondaryBtnActive]} 
+                      onPress={toggleSpeaker}
+                    >
+                      <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium-outline"} size={22} color="#FFFFFF" />
+                      <Text style={styles.faceTimeSecondaryLabel}>Speaker</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={styles.faceTimeSecondaryBtn}>
+                      <Ionicons name="apps-outline" size={22} color="#FFFFFF" />
+                      <Text style={styles.faceTimeSecondaryLabel}>Effects</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              /* Voice Call UI */
+              <LinearGradient
+                colors={['#667eea', '#764ba2', '#6B8DD6']}
+                style={styles.callBackground}
+              >
+                <View style={styles.voiceCallContainer}>
+                  <Animated.View style={[styles.callAvatarContainer, { transform: [{ scale: callPulseAnim }] }]}>
+                    <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']} style={styles.callAvatarRing}>
+                      <View style={styles.callAvatar}>
+                        <Ionicons name="people" size={50} color="#FFFFFF" />
+                      </View>
+                    </LinearGradient>
+                  </Animated.View>
+                  <Text style={styles.callGroupName}>{group?.name}</Text>
+                  <Text style={styles.callStatus}>
+                    {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
+                  </Text>
+                  <View style={styles.callParticipants}>
+                    <Text style={styles.callParticipantsText}>{memberCount} participants</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.callControls}>
+                  <View style={styles.callControlsRow}>
+                    <TouchableOpacity style={[styles.callControlBtn, isMuted && styles.callControlBtnActive]} onPress={toggleMute}>
+                      <Ionicons name={isMuted ? "mic-off" : "mic"} size={26} color="#FFFFFF" />
+                      <Text style={styles.callControlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity style={[styles.callControlBtn, isSpeakerOn && styles.callControlBtnActive]} onPress={toggleSpeaker}>
+                      <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={26} color="#FFFFFF" />
+                      <Text style={styles.callControlLabel}>{isSpeakerOn ? 'Speaker' : 'Phone'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  
+                  <TouchableOpacity style={styles.endCallBtn} onPress={endCall}>
+                    <LinearGradient colors={['#FF3B30', '#FF453A']} style={styles.endCallBtnGradient}>
+                      <Ionicons name="call" size={30} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
+            )}
           </View>
         </Modal>
       </View>
@@ -2653,7 +2837,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         </View>
       </Modal>
       
-      {/* Call Modal */}
+      {/* Call Modal - iOS FaceTime Style */}
       <Modal
         visible={isInCall}
         transparent={false}
@@ -2662,171 +2846,131 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         statusBarTranslucent
       >
         <View style={styles.callModal}>
-          {/* Background gradient */}
-          <LinearGradient
-            colors={callType === 'video' ? ['#1a1a2e', '#16213e', '#0f3460'] : ['#667eea', '#764ba2', '#6B8DD6']}
-            style={styles.callBackground}
-          >
-            {/* Video preview area (for video calls) */}
-            {callType === 'video' && (
-              <View style={styles.videoContainer}>
+          {callType === 'video' ? (
+            <View style={styles.faceTimeContainer}>
+              <View style={styles.faceTimeMain}>
                 {isVideoOn ? (
-                  <View style={styles.videoPlaceholder}>
-                    <LinearGradient
-                      colors={['#2d3436', '#636e72']}
-                      style={styles.videoPlaceholderGradient}
-                    >
-                      <Ionicons name="videocam" size={60} color="rgba(255,255,255,0.3)" />
-                      <Text style={styles.videoPlaceholderText}>Camera Preview</Text>
+                  <View style={styles.faceTimeGroupView}>
+                    <LinearGradient colors={['#1c1c1e', '#2c2c2e', '#1c1c1e']} style={styles.faceTimeGroupGradient}>
+                      <View style={styles.faceTimeGroupAvatars}>
+                        {group?.members?.slice(0, 4).map((member, index) => {
+                          const memberUser = typeof member.user === 'object' ? member.user : null;
+                          return (
+                            <View key={index} style={styles.faceTimeParticipant}>
+                              {memberUser?.avatar ? (
+                                <Image source={{ uri: memberUser.avatar }} style={styles.faceTimeParticipantAvatar} />
+                              ) : (
+                                <View style={styles.faceTimeParticipantPlaceholder}>
+                                  <Ionicons name="person" size={40} color="rgba(255,255,255,0.6)" />
+                                </View>
+                              )}
+                              <Text style={styles.faceTimeParticipantName} numberOfLines={1}>
+                                {memberUser?.name || 'Member'}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                      {memberCount > 4 && (
+                        <Text style={styles.faceTimeMoreParticipants}>+{memberCount - 4} more</Text>
+                      )}
                     </LinearGradient>
                   </View>
                 ) : (
-                  <View style={styles.videoOff}>
-                    <View style={styles.videoOffIcon}>
-                      <Ionicons name="videocam-off" size={40} color="#FFFFFF" />
+                  <View style={styles.faceTimeVideoOff}>
+                    <View style={styles.faceTimeVideoOffIcon}>
+                      <Ionicons name="videocam-off" size={50} color="#FFFFFF" />
                     </View>
-                    <Text style={styles.videoOffText}>Camera is off</Text>
+                    <Text style={styles.faceTimeVideoOffText}>Camera Off</Text>
                   </View>
                 )}
-                
-                {/* Self view (small) */}
-                <View style={styles.selfVideoContainer}>
-                  <LinearGradient
-                    colors={['#4a4a4a', '#2d2d2d']}
-                    style={styles.selfVideo}
-                  >
-                    {isVideoOn ? (
-                      <Ionicons name="person" size={30} color="rgba(255,255,255,0.5)" />
-                    ) : (
-                      <Ionicons name="videocam-off" size={20} color="rgba(255,255,255,0.5)" />
-                    )}
-                  </LinearGradient>
+              </View>
+              
+              <View style={styles.faceTimeSelfContainer}>
+                {isVideoOn && cameraPermission?.granted ? (
+                  <CameraView style={styles.faceTimeSelfCamera} facing={isFrontCamera ? 'front' : 'back'} />
+                ) : (
+                  <View style={styles.faceTimeSelfPlaceholder}>
+                    <Ionicons name="person" size={30} color="rgba(255,255,255,0.5)" />
+                  </View>
+                )}
+              </View>
+              
+              <View style={styles.faceTimeTopBar}>
+                <View style={styles.faceTimeInfo}>
+                  <Text style={styles.faceTimeGroupName}>{group?.name}</Text>
+                  <View style={styles.faceTimeStatusRow}>
+                    <View style={styles.faceTimeLiveIndicator} />
+                    <Text style={styles.faceTimeDuration}>
+                      {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            )}
-            
-            {/* Voice call UI */}
-            {callType === 'voice' && (
+              
+              <View style={styles.faceTimeControls}>
+                <View style={styles.faceTimeControlsRow}>
+                  <TouchableOpacity style={[styles.faceTimeControlBtn, isMuted && styles.faceTimeControlBtnActive]} onPress={toggleMute}>
+                    <Ionicons name={isMuted ? "mic-off" : "mic"} size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.faceTimeEndCall} onPress={endCall}>
+                    <Ionicons name="close" size={28} color="#FFFFFF" />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.faceTimeControlBtn, !isVideoOn && styles.faceTimeControlBtnActive]} onPress={toggleVideo}>
+                    <Ionicons name={isVideoOn ? "videocam" : "videocam-off"} size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.faceTimeSecondaryRow}>
+                  <TouchableOpacity style={styles.faceTimeSecondaryBtn} onPress={toggleCamera}>
+                    <Ionicons name="camera-reverse-outline" size={22} color="#FFFFFF" />
+                    <Text style={styles.faceTimeSecondaryLabel}>Flip</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.faceTimeSecondaryBtn, isSpeakerOn && styles.faceTimeSecondaryBtnActive]} onPress={toggleSpeaker}>
+                    <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium-outline"} size={22} color="#FFFFFF" />
+                    <Text style={styles.faceTimeSecondaryLabel}>Speaker</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.faceTimeSecondaryBtn}>
+                    <Ionicons name="apps-outline" size={22} color="#FFFFFF" />
+                    <Text style={styles.faceTimeSecondaryLabel}>Effects</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <LinearGradient colors={['#667eea', '#764ba2', '#6B8DD6']} style={styles.callBackground}>
               <View style={styles.voiceCallContainer}>
-                {/* Group avatar */}
-                <Animated.View style={[
-                  styles.callAvatarContainer,
-                  { transform: [{ scale: callPulseAnim }] }
-                ]}>
-                  <LinearGradient
-                    colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']}
-                    style={styles.callAvatarRing}
-                  >
+                <Animated.View style={[styles.callAvatarContainer, { transform: [{ scale: callPulseAnim }] }]}>
+                  <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']} style={styles.callAvatarRing}>
                     <View style={styles.callAvatar}>
                       <Ionicons name="people" size={50} color="#FFFFFF" />
                     </View>
                   </LinearGradient>
                 </Animated.View>
-                
-                {/* Group name */}
                 <Text style={styles.callGroupName}>{group?.name}</Text>
-                
-                {/* Call status */}
-                <Text style={styles.callStatus}>
-                  {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
-                </Text>
-                
-                {/* Participants */}
+                <Text style={styles.callStatus}>{callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}</Text>
                 <View style={styles.callParticipants}>
-                  <Text style={styles.callParticipantsText}>
-                    {memberCount} participants
-                  </Text>
+                  <Text style={styles.callParticipantsText}>{memberCount} participants</Text>
                 </View>
               </View>
-            )}
-            
-            {/* Call info for video */}
-            {callType === 'video' && (
-              <View style={styles.videoCallInfo}>
-                <Text style={styles.videoCallName}>{group?.name}</Text>
-                <Text style={styles.videoCallDuration}>
-                  {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
-                </Text>
-              </View>
-            )}
-            
-            {/* Call controls */}
-            <View style={styles.callControls}>
-              {/* Top row of controls */}
-              <View style={styles.callControlsRow}>
-                {/* Mute button */}
-                <TouchableOpacity 
-                  style={[styles.callControlBtn, isMuted && styles.callControlBtnActive]}
-                  onPress={toggleMute}
-                >
-                  <Ionicons 
-                    name={isMuted ? "mic-off" : "mic"} 
-                    size={26} 
-                    color="#FFFFFF" 
-                  />
-                  <Text style={styles.callControlLabel}>
-                    {isMuted ? 'Unmute' : 'Mute'}
-                  </Text>
-                </TouchableOpacity>
-                
-                {/* Speaker/Audio button */}
-                <TouchableOpacity 
-                  style={[styles.callControlBtn, isSpeakerOn && styles.callControlBtnActive]}
-                  onPress={toggleSpeaker}
-                >
-                  <Ionicons 
-                    name={isSpeakerOn ? "volume-high" : "volume-medium"} 
-                    size={26} 
-                    color="#FFFFFF" 
-                  />
-                  <Text style={styles.callControlLabel}>
-                    {isSpeakerOn ? 'Speaker' : 'Phone'}
-                  </Text>
-                </TouchableOpacity>
-                
-                {/* Video toggle (for video calls) */}
-                {callType === 'video' && (
-                  <TouchableOpacity 
-                    style={[styles.callControlBtn, !isVideoOn && styles.callControlBtnActive]}
-                    onPress={toggleVideo}
-                  >
-                    <Ionicons 
-                      name={isVideoOn ? "videocam" : "videocam-off"} 
-                      size={26} 
-                      color="#FFFFFF" 
-                    />
-                    <Text style={styles.callControlLabel}>
-                      {isVideoOn ? 'Video' : 'Video Off'}
-                    </Text>
+              <View style={styles.callControls}>
+                <View style={styles.callControlsRow}>
+                  <TouchableOpacity style={[styles.callControlBtn, isMuted && styles.callControlBtnActive]} onPress={toggleMute}>
+                    <Ionicons name={isMuted ? "mic-off" : "mic"} size={26} color="#FFFFFF" />
+                    <Text style={styles.callControlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
                   </TouchableOpacity>
-                )}
-                
-                {/* Flip camera (for video calls) */}
-                {callType === 'video' && (
-                  <TouchableOpacity 
-                    style={styles.callControlBtn}
-                    onPress={toggleCamera}
-                  >
-                    <Ionicons name="camera-reverse" size={26} color="#FFFFFF" />
-                    <Text style={styles.callControlLabel}>Flip</Text>
+                  <TouchableOpacity style={[styles.callControlBtn, isSpeakerOn && styles.callControlBtnActive]} onPress={toggleSpeaker}>
+                    <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={26} color="#FFFFFF" />
+                    <Text style={styles.callControlLabel}>{isSpeakerOn ? 'Speaker' : 'Phone'}</Text>
                   </TouchableOpacity>
-                )}
+                </View>
+                <TouchableOpacity style={styles.endCallBtn} onPress={endCall}>
+                  <LinearGradient colors={['#FF3B30', '#FF453A']} style={styles.endCallBtnGradient}>
+                    <Ionicons name="call" size={30} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
+                  </LinearGradient>
+                </TouchableOpacity>
               </View>
-              
-              {/* End call button */}
-              <TouchableOpacity 
-                style={styles.endCallBtn}
-                onPress={endCall}
-              >
-                <LinearGradient
-                  colors={['#FF3B30', '#FF453A']}
-                  style={styles.endCallBtnGradient}
-                >
-                  <Ionicons name="call" size={30} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
+            </LinearGradient>
+          )}
         </View>
       </Modal>
       
@@ -4099,6 +4243,186 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   
+  // iOS FaceTime styles
+  faceTimeContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  faceTimeMain: {
+    flex: 1,
+  },
+  faceTimeGroupView: {
+    flex: 1,
+  },
+  faceTimeGroupGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  faceTimeGroupAvatars: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+    paddingHorizontal: 40,
+  },
+  faceTimeParticipant: {
+    alignItems: 'center',
+    width: (width - 120) / 2,
+  },
+  faceTimeParticipantAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 8,
+  },
+  faceTimeParticipantPlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  faceTimeParticipantName: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  faceTimeMoreParticipants: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    marginTop: 20,
+  },
+  faceTimeVideoOff: {
+    flex: 1,
+    backgroundColor: '#1c1c1e',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  faceTimeVideoOffIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  faceTimeVideoOffText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 16,
+  },
+  faceTimeSelfContainer: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    width: 120,
+    height: 160,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: '#2c2c2e',
+  },
+  faceTimeSelfCamera: {
+    flex: 1,
+  },
+  faceTimeSelfPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#2c2c2e',
+  },
+  faceTimeTopBar: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    right: 150,
+  },
+  faceTimeInfo: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  faceTimeGroupName: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  faceTimeStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  faceTimeLiveIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#30D158',
+    marginRight: 8,
+  },
+  faceTimeDuration: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+  },
+  faceTimeControls: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 50,
+    paddingTop: 20,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  faceTimeControlsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 40,
+    marginBottom: 24,
+  },
+  faceTimeControlBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  faceTimeControlBtnActive: {
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  faceTimeEndCall: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  faceTimeSecondaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 50,
+  },
+  faceTimeSecondaryBtn: {
+    alignItems: 'center',
+    opacity: 0.9,
+  },
+  faceTimeSecondaryBtnActive: {
+    opacity: 1,
+  },
+  faceTimeSecondaryLabel: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    marginTop: 4,
+  },
+  
   // Image preview modal
   imagePreviewModal: {
     flex: 1,
@@ -4382,4 +4706,5 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
 });
+
 
