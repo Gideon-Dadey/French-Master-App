@@ -159,7 +159,7 @@ export default function ProfileScreen({ navigation }) {
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -182,7 +182,7 @@ export default function ProfileScreen({ navigation }) {
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -493,14 +493,16 @@ export default function ProfileScreen({ navigation }) {
             colors={colors}
             onPress={() => navigation.navigate('Notifications')}
           />
-          <QuickActionCard
-            icon="school"
-            title="For Teachers"
-            subtitle="Teach & earn"
-            color={premiumColors.accent.emerald}
-            colors={colors}
-            onPress={() => navigation.navigate('Teachers')}
-          />
+          {(user?.role === 'instructor' || user?.role === 'admin') && (
+            <QuickActionCard
+              icon="school"
+              title="For Teachers"
+              subtitle="Teach & earn"
+              color={premiumColors.accent.emerald}
+              colors={colors}
+              onPress={() => navigation.navigate('Teachers')}
+            />
+          )}
         </View>
       </View>
 
