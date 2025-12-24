@@ -426,6 +426,61 @@ router.post('/:id/discussions', protect, async (req, res) => {
   }
 });
 
+// @route   DELETE /api/study-groups/:id/discussions/:messageId
+// @desc    Delete a discussion message from study group
+// @access  Protected (message owner or moderator only)
+router.delete('/:id/discussions/:messageId', protect, async (req, res) => {
+  try {
+    const studyGroup = await StudyGroup.findById(req.params.id);
+
+    if (!studyGroup) {
+      return res.status(404).json({
+        success: false,
+        message: 'Study group not found'
+      });
+    }
+
+    const messageIndex = studyGroup.discussions.findIndex(
+      d => d._id.toString() === req.params.messageId
+    );
+
+    if (messageIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'Message not found'
+      });
+    }
+
+    const message = studyGroup.discussions[messageIndex];
+    const isMessageOwner = message.user.toString() === req.user._id.toString();
+    const isGroupCreator = studyGroup.creator.toString() === req.user._id.toString();
+    const isModerator = studyGroup.members.some(
+      m => m.user.toString() === req.user._id.toString() && m.role === 'moderator'
+    );
+
+    if (!isMessageOwner && !isGroupCreator && !isModerator) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only delete your own messages'
+      });
+    }
+
+    studyGroup.discussions.splice(messageIndex, 1);
+    await studyGroup.save();
+
+    res.json({
+      success: true,
+      message: 'Message deleted successfully'
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to delete message',
+      error: error.message
+    });
+  }
+});
+
 // @route   POST /api/study-groups/:id/resources
 // @desc    Add a resource to study group
 // @access  Protected (members only)

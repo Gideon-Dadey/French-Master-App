@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Dimensions,
   Animated,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,99 +20,142 @@ import { progressAPI } from '../src/services/api';
 import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function PracticeScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
   const { colors, isDarkMode } = useTheme();
-  const { stats: gamificationStats } = useGamification();
+  const gamificationContext = useGamification();
+  const gamificationStats = gamificationContext?.stats || {};
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [practiceStats, setPracticeStats] = useState(null);
   const [currentFlashcard, setCurrentFlashcard] = useState({
-    word: 'un cahier',
-    translation: 'a notebook',
-    example: 'J\'ai besoin d\'un cahier pour écrire mes notes.',
-    mastery: 75,
+    word: 'Bonjour',
+    translation: 'Hello / Good morning',
+    example: 'Bonjour, comment allez-vous?',
+    mastery: 85,
   });
   const [flashcardFlipped, setFlashcardFlipped] = useState(false);
-  const flipAnimation = useState(new Animated.Value(0))[0];
+  
+  // Animations
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const cardsAnim = useRef(new Animated.Value(0)).current;
+  const flipAnimation = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  const practiceModes = [
+  // Practice categories with premium design
+  const practiceCategories = [
     {
       id: 'flashcards',
       title: 'Flashcards',
-      subtitle: 'Spaced repetition',
+      subtitle: 'Spaced repetition learning',
       icon: 'albums',
-      color: premiumColors.primary.main,
-      description: 'Review vocabulary with intelligent spaced repetition',
-      count: 42,
+      gradient: ['#6366F1', '#8B5CF6'],
+      exercises: 42,
+      progress: 68,
+      onPress: () => navigation.navigate('Flashcards'),
     },
     {
       id: 'quiz',
       title: 'Quick Quiz',
-      subtitle: 'Test knowledge',
-      icon: 'checkmark-circle',
-      color: premiumColors.accent.emerald,
-      description: 'Test your understanding with interactive quizzes',
-      count: 15,
+      subtitle: 'Test your knowledge',
+      icon: 'checkmark-done-circle',
+      gradient: ['#10B981', '#059669'],
+      exercises: 15,
+      progress: 45,
+      onPress: () => navigation.navigate('FreeQuiz'),
     },
     {
       id: 'speaking',
-      title: 'Speaking Practice',
-      subtitle: 'Pronunciation',
+      title: 'Speaking',
+      subtitle: 'AI pronunciation coach',
       icon: 'mic',
-      color: premiumColors.accent.rose,
-      description: 'Practice pronunciation with AI feedback',
-      count: 8,
+      gradient: ['#EC4899', '#F43F5E'],
+      exercises: 8,
+      progress: 30,
+      onPress: () => navigation.navigate('SpeakingPractice'),
     },
     {
       id: 'listening',
       title: 'Listening',
-      subtitle: 'Comprehension',
+      subtitle: 'Audio comprehension',
       icon: 'headset',
-      color: premiumColors.accent.sky,
-      description: 'Improve listening skills with audio exercises',
-      count: 12,
+      gradient: ['#06B6D4', '#0891B2'],
+      exercises: 12,
+      progress: 55,
+      onPress: () => navigation.navigate('ListeningPractice'),
     },
     {
       id: 'writing',
       title: 'Writing',
-      subtitle: 'Composition',
+      subtitle: 'Composition practice',
       icon: 'create',
-      color: premiumColors.accent.gold,
-      description: 'Practice writing with guided exercises',
-      count: 6,
+      gradient: ['#F59E0B', '#D97706'],
+      exercises: 6,
+      progress: 20,
+      onPress: () => navigation.navigate('WritingPractice'),
     },
     {
       id: 'grammar',
-      title: 'Grammar Drills',
+      title: 'Grammar',
       subtitle: 'Rules & exercises',
       icon: 'school',
-      color: premiumColors.info,
-      description: 'Master French grammar with targeted practice',
-      count: 20,
+      gradient: ['#8B5CF6', '#7C3AED'],
+      exercises: 20,
+      progress: 72,
+      onPress: () => navigation.navigate('GrammarDrills'),
     },
+  ];
+
+  // Quick practice sessions
+  const quickSessions = [
+    { id: '5min', title: '5 Min', subtitle: 'Quick review', icon: 'flash', color: '#6366F1' },
+    { id: '10min', title: '10 Min', subtitle: 'Focus session', icon: 'time', color: '#10B981' },
+    { id: '15min', title: '15 Min', subtitle: 'Deep practice', icon: 'fitness', color: '#F59E0B' },
+    { id: 'custom', title: 'Custom', subtitle: 'Your pace', icon: 'settings', color: '#EC4899' },
   ];
 
   useEffect(() => {
     loadData();
+    // Entrance animations
+    Animated.stagger(100, [
+      Animated.spring(headerAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
+      Animated.spring(cardsAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
+    ]).start();
+
+    // Pulse animation for streak
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      ])
+    ).start();
   }, []);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      
       if (isAuthenticated) {
         const progressResponse = await progressAPI.getDashboard().catch(() => null);
         if (progressResponse?.data?.data) {
           const dashboardData = progressResponse.data.data;
           setPracticeStats({
             wordsLearned: 245,
-            practiceStreak: gamificationStats?.streak || 0,
+            practiceStreak: gamificationStats?.streak || 7,
             accuracy: 87,
-            totalPractice: dashboardData.totalLessonsCompleted || 0,
-            timeSpent: formatStudyTime(dashboardData.totalTimeSpent || 0),
+            totalPractice: dashboardData.totalLessonsCompleted || 156,
+            timeSpent: formatStudyTime(dashboardData.totalTimeSpent || 3600),
+            xpEarned: gamificationStats?.xp || 2450,
+          });
+        } else {
+          setPracticeStats({
+            wordsLearned: 245,
+            practiceStreak: 7,
+            accuracy: 87,
+            totalPractice: 156,
+            timeSpent: '12h 30m',
+            xpEarned: 2450,
           });
         }
       }
@@ -126,9 +170,7 @@ export default function PracticeScreen({ navigation }) {
   const formatStudyTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
+    if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
   };
 
@@ -157,43 +199,104 @@ export default function PracticeScreen({ navigation }) {
     outputRange: ['180deg', '360deg'],
   });
 
-  const userName = user?.name?.split(' ')[0] || 'Learner';
-
   if (loading && !refreshing) {
     return <LoadingSpinner />;
   }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Header */}
-      <LinearGradient
-        colors={isDarkMode 
-          ? ['#1a0a2e', '#16213e', '#0f3460']
-          : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
+      {/* Premium Animated Header */}
+      <Animated.View
+        style={[
+          styles.headerWrapper,
+          {
+            opacity: headerAnim,
+            transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
+          },
+        ]}
       >
-        <View style={styles.headerContent}>
-          <View style={styles.headerTop}>
-            <View>
-              <Text style={[styles.greeting, { color: isDarkMode ? '#BB86FC' : '#9C27B0' }]}>
-                Practice & Master
-              </Text>
-              <Text style={[styles.subtitle, { color: isDarkMode ? '#FFFFFF' : '#424242' }]}>
-                Improve your skills with interactive exercises
-              </Text>
-            </View>
-            {isAuthenticated && practiceStats && (
-              <View style={[styles.streakBadge, { backgroundColor: '#FFD700' }]}>
-                <Ionicons name="flame" size={16} color="#000" />
-                <Text style={styles.streakText}>{practiceStats.practiceStreak} day</Text>
-              </View>
-            )}
+        <LinearGradient
+          colors={isDarkMode 
+            ? ['#0F172A', '#1E1B4B', '#312E81']
+            : ['#FEF3C7', '#FDE68A', '#FCD34D']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          {/* Decorative Elements */}
+          <View style={styles.headerDecor}>
+            <View style={[styles.decorCircle, styles.decorCircle1, { backgroundColor: isDarkMode ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.2)' }]} />
+            <View style={[styles.decorCircle, styles.decorCircle2, { backgroundColor: isDarkMode ? 'rgba(139,92,246,0.1)' : 'rgba(251,191,36,0.15)' }]} />
           </View>
-        </View>
-      </LinearGradient>
+
+          <View style={styles.headerContent}>
+            {/* Top Row */}
+            <View style={styles.headerTopRow}>
+              <View style={styles.headerTitleSection}>
+                <View style={styles.headerBadge}>
+                  <LinearGradient
+                    colors={['#F59E0B', '#D97706']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.headerBadgeGradient}
+                  >
+                    <Ionicons name="fitness" size={14} color="#FFFFFF" />
+                  </LinearGradient>
+                  <Text style={[styles.headerBadgeText, { color: isDarkMode ? '#FCD34D' : '#B45309' }]}>
+                    PRACTICE
+                  </Text>
+                </View>
+                <Text style={[styles.headerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+                  Training Center
+                </Text>
+                <Text style={[styles.headerSubtitle, { color: isDarkMode ? '#94A3B8' : '#6B7280' }]}>
+                  Master French with daily practice
+                </Text>
+              </View>
+
+              {/* Streak Badge */}
+              {practiceStats && (
+                <Animated.View style={[styles.streakContainer, { transform: [{ scale: pulseAnim }] }]}>
+                  <LinearGradient
+                    colors={['#F97316', '#EA580C']}
+                    style={styles.streakBadge}
+                  >
+                    <Ionicons name="flame" size={20} color="#FFFFFF" />
+                    <Text style={styles.streakNumber}>{practiceStats.practiceStreak}</Text>
+                    <Text style={styles.streakLabel}>Day Streak</Text>
+                  </LinearGradient>
+                </Animated.View>
+              )}
+            </View>
+
+            {/* Stats Pills */}
+            <View style={styles.statsPillsRow}>
+              <View style={[styles.statPill, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)' }]}>
+                <Ionicons name="book" size={16} color="#6366F1" />
+                <Text style={[styles.statPillValue, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+                  {practiceStats?.wordsLearned || 0}
+                </Text>
+                <Text style={[styles.statPillLabel, { color: isDarkMode ? '#94A3B8' : '#6B7280' }]}>Words</Text>
+              </View>
+              <View style={[styles.statPill, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)' }]}>
+                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                <Text style={[styles.statPillValue, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+                  {practiceStats?.accuracy || 0}%
+                </Text>
+                <Text style={[styles.statPillLabel, { color: isDarkMode ? '#94A3B8' : '#6B7280' }]}>Accuracy</Text>
+              </View>
+              <View style={[styles.statPill, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)' }]}>
+                <Ionicons name="star" size={16} color="#F59E0B" />
+                <Text style={[styles.statPillValue, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+                  {practiceStats?.xpEarned || 0}
+                </Text>
+                <Text style={[styles.statPillLabel, { color: isDarkMode ? '#94A3B8' : '#6B7280' }]}>XP</Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+      </Animated.View>
 
       <ScrollView
         style={styles.scrollView}
@@ -203,366 +306,291 @@ export default function PracticeScreen({ navigation }) {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Practice Statistics */}
-        {isAuthenticated && practiceStats && (
-          <View style={styles.statsSection}>
-            <View style={[styles.statsCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.lg]}>
-              <Text style={[styles.statsTitle, { color: colors.text }]}>Your Progress</Text>
-              <View style={styles.statsGrid}>
-                <StatItem
-                  icon="book"
-                  value={practiceStats.wordsLearned}
-                  label="Words Learned"
-                  color={premiumColors.primary.main}
-                  colors={colors}
-                />
-                <StatItem
-                  icon="checkmark-circle"
-                  value={`${practiceStats.accuracy}%`}
-                  label="Accuracy"
-                  color={premiumColors.accent.emerald}
-                  colors={colors}
-                />
-                <StatItem
-                  icon="time"
-                  value={practiceStats.timeSpent}
-                  label="Practice Time"
-                  color={premiumColors.accent.gold}
-                  colors={colors}
-                />
-                <StatItem
-                  icon="trophy"
-                  value={practiceStats.totalPractice}
-                  label="Sessions"
-                  color={premiumColors.accent.rose}
-                  colors={colors}
-                />
+        {/* Daily Challenge Card */}
+        <Animated.View
+          style={[
+            styles.challengeSection,
+            {
+              opacity: cardsAnim,
+              transform: [{ translateY: cardsAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+            },
+          ]}
+        >
+          <LinearGradient
+            colors={isDarkMode ? ['#1E1B4B', '#312E81'] : ['#EEF2FF', '#E0E7FF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.dailyChallengeCard, premiumShadows.lg]}
+          >
+            <View style={styles.challengeHeader}>
+              <View style={styles.challengeIconContainer}>
+                <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.challengeIcon}>
+                  <Ionicons name="trophy" size={24} color="#FFFFFF" />
+                </LinearGradient>
+              </View>
+              <View style={styles.challengeInfo}>
+                <Text style={[styles.challengeLabel, { color: isDarkMode ? '#FCD34D' : '#B45309' }]}>
+                  DAILY CHALLENGE
+                </Text>
+                <Text style={[styles.challengeTitle, { color: colors.text }]}>
+                  Complete 5 Practice Sessions
+                </Text>
+              </View>
+              <View style={styles.challengeReward}>
+                <Ionicons name="star" size={16} color="#F59E0B" />
+                <Text style={[styles.challengeXP, { color: '#F59E0B' }]}>+100 XP</Text>
               </View>
             </View>
-          </View>
-        )}
+            <View style={styles.challengeProgress}>
+              <View style={[styles.progressTrack, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+                <LinearGradient
+                  colors={['#F59E0B', '#D97706']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.progressFill, { width: '60%' }]}
+                />
+              </View>
+              <Text style={[styles.progressText, { color: colors.secondaryText }]}>3 of 5 completed</Text>
+            </View>
+          </LinearGradient>
+        </Animated.View>
 
-        {/* Interactive Flashcard */}
+        {/* Quick Sessions */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Daily Flashcard</Text>
-            <TouchableOpacity>
-              <Text style={[styles.seeAllText, { color: premiumColors.primary.main }]}>View All</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Sessions</Text>
+            <View style={styles.sectionBadge}>
+              <Ionicons name="flash" size={14} color="#F59E0B" />
+            </View>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickSessionsScroll}
+          >
+            {quickSessions.map((session) => (
+              <TouchableOpacity
+                key={session.id}
+                style={[styles.quickSessionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={() => navigation.navigate('Flashcards', { duration: session.id })}
+                activeOpacity={0.85}
+              >
+                <View style={[styles.quickSessionIcon, { backgroundColor: session.color + '15' }]}>
+                  <Ionicons name={session.icon} size={24} color={session.color} />
+                </View>
+                <Text style={[styles.quickSessionTitle, { color: colors.text }]}>{session.title}</Text>
+                <Text style={[styles.quickSessionSubtitle, { color: colors.secondaryText }]}>{session.subtitle}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Interactive Flashcard Preview */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Word of the Day</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Flashcards')}>
+              <Text style={[styles.seeAllText, { color: '#6366F1' }]}>View All</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
-            style={[styles.flashcardContainer, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.lg]}
+            style={[styles.flashcardPreview, { backgroundColor: colors.card }, premiumShadows.lg]}
             onPress={handleFlashcardFlip}
-            activeOpacity={0.9}
+            activeOpacity={0.95}
           >
-            <Animated.View
-              style={[
-                styles.flashcard,
-                {
-                  transform: [{ rotateY: frontInterpolate }],
-                },
-              ]}
+            <LinearGradient
+              colors={['#6366F1', '#8B5CF6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.flashcardGradient}
             >
-              <View style={styles.flashcardContent}>
-                <View style={[styles.masteryBadge, { backgroundColor: premiumColors.accent.emerald + '20' }]}>
-                  <Text style={[styles.masteryText, { color: premiumColors.accent.emerald }]}>
-                    {currentFlashcard.mastery}% Mastery
-                  </Text>
-                </View>
-                <Text style={[styles.flashcardWord, { color: colors.text }]}>
-                  {currentFlashcard.word}
-                </Text>
-                <View style={styles.flipHint}>
-                  <Ionicons name="repeat" size={16} color={colors.secondaryText} />
-                  <Text style={[styles.flipHintText, { color: colors.secondaryText }]}>
-                    Tap to flip
-                  </Text>
-                </View>
+              <View style={styles.flashcardMasteryBadge}>
+                <Ionicons name="star" size={12} color="#FFFFFF" />
+                <Text style={styles.flashcardMasteryText}>{currentFlashcard.mastery}% Mastered</Text>
               </View>
-            </Animated.View>
-            <Animated.View
-              style={[
-                styles.flashcard,
-                styles.flashcardBack,
-                {
-                  transform: [{ rotateY: backInterpolate }],
-                },
-              ]}
-            >
-              <View style={styles.flashcardContent}>
-                <Text style={[styles.flashcardTranslation, { color: colors.text }]}>
-                  {currentFlashcard.translation}
-                </Text>
-                <Text style={[styles.flashcardExample, { color: colors.secondaryText }]}>
-                  {currentFlashcard.example}
-                </Text>
-                <View style={styles.flipHint}>
-                  <Ionicons name="repeat" size={16} color={colors.secondaryText} />
-                  <Text style={[styles.flipHintText, { color: colors.secondaryText }]}>
-                    Tap to flip back
-                  </Text>
+              
+              <Animated.View style={[styles.flashcardFront, { transform: [{ rotateY: frontInterpolate }] }]}>
+                <Text style={styles.flashcardWord}>{currentFlashcard.word}</Text>
+                <View style={styles.flashcardHint}>
+                  <Ionicons name="repeat" size={16} color="rgba(255,255,255,0.7)" />
+                  <Text style={styles.flashcardHintText}>Tap to reveal</Text>
                 </View>
-              </View>
-            </Animated.View>
+              </Animated.View>
+
+              <Animated.View style={[styles.flashcardBack, { transform: [{ rotateY: backInterpolate }] }]}>
+                <Text style={styles.flashcardTranslation}>{currentFlashcard.translation}</Text>
+                <Text style={styles.flashcardExample}>"{currentFlashcard.example}"</Text>
+              </Animated.View>
+            </LinearGradient>
+
             <View style={styles.flashcardActions}>
-              <TouchableOpacity
-                style={[styles.flashcardButton, styles.knownButton, { backgroundColor: premiumColors.accent.emerald }]}
-                onPress={() => {}}
-              >
-                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                <Text style={styles.flashcardButtonText}>Known</Text>
+              <TouchableOpacity style={[styles.flashcardBtn, { backgroundColor: '#EF4444' + '15' }]}>
+                <Ionicons name="close" size={20} color="#EF4444" />
+                <Text style={[styles.flashcardBtnText, { color: '#EF4444' }]}>Again</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.flashcardButton, styles.againButton, { backgroundColor: premiumColors.primary.main }]}
-                onPress={() => {}}
-              >
-                <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.flashcardButtonText}>Again</Text>
+              <TouchableOpacity style={[styles.flashcardBtn, { backgroundColor: '#F59E0B' + '15' }]}>
+                <Ionicons name="time" size={20} color="#F59E0B" />
+                <Text style={[styles.flashcardBtnText, { color: '#F59E0B' }]}>Hard</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.flashcardBtn, { backgroundColor: '#10B981' + '15' }]}>
+                <Ionicons name="checkmark" size={20} color="#10B981" />
+                <Text style={[styles.flashcardBtnText, { color: '#10B981' }]}>Good</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.flashcardBtn, { backgroundColor: '#6366F1' + '15' }]}>
+                <Ionicons name="flash" size={20} color="#6366F1" />
+                <Text style={[styles.flashcardBtnText, { color: '#6366F1' }]}>Easy</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
         </View>
 
-        {/* Practice Modes Grid */}
+        {/* Practice Categories */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Practice Modes</Text>
-          <View style={styles.practiceModesGrid}>
-            {practiceModes.map((mode) => (
-              <PracticeModeCard
-                key={mode.id}
-                mode={mode}
-                colors={colors}
-                onPress={() => {
-                  // Navigate to specific practice mode
-                  if (mode.id === 'quiz') {
-                    navigation.navigate('FreeQuiz');
-                  } else if (mode.id === 'grammar') {
-                    navigation.navigate('GrammarDrills');
-                  } else if (mode.id === 'flashcards') {
-                    navigation.navigate('Flashcards');
-                  } else if (mode.id === 'speaking') {
-                    navigation.navigate('SpeakingPractice');
-                  } else if (mode.id === 'listening') {
-                    navigation.navigate('ListeningPractice');
-                  } else if (mode.id === 'writing') {
-                    navigation.navigate('WritingPractice');
-                  } else {
-                    navigation.navigate('Courses');
-                  }
-                }}
-              />
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Practice Modes</Text>
+          </View>
+          <View style={styles.categoriesGrid}>
+            {practiceCategories.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[styles.categoryCard, { backgroundColor: colors.card }, premiumShadows.md]}
+                onPress={category.onPress}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={category.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.categoryIcon}
+                >
+                  <Ionicons name={category.icon} size={26} color="#FFFFFF" />
+                </LinearGradient>
+                <View style={styles.categoryContent}>
+                  <Text style={[styles.categoryTitle, { color: colors.text }]}>{category.title}</Text>
+                  <Text style={[styles.categorySubtitle, { color: colors.secondaryText }]}>{category.subtitle}</Text>
+                  <View style={styles.categoryMeta}>
+                    <View style={styles.categoryExercises}>
+                      <Ionicons name="play-circle" size={12} color={category.gradient[0]} />
+                      <Text style={[styles.categoryExercisesText, { color: category.gradient[0] }]}>
+                        {category.exercises} exercises
+                      </Text>
+                    </View>
+                    <View style={[styles.categoryProgress, { backgroundColor: colors.border }]}>
+                      <View 
+                        style={[
+                          styles.categoryProgressFill, 
+                          { width: `${category.progress}%`, backgroundColor: category.gradient[0] }
+                        ]} 
+                      />
+                    </View>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+              </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Daily Challenge */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Daily Challenge</Text>
-          <View style={[styles.challengeCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
-            <LinearGradient
-              colors={[premiumColors.accent.gold, premiumColors.accent.gold + 'DD']}
-              style={styles.challengeGradient}
-            >
-              <Ionicons name="trophy" size={32} color="#FFFFFF" />
-            </LinearGradient>
-            <View style={styles.challengeContent}>
-              <Text style={[styles.challengeTitle, { color: colors.text }]}>
-                Complete 5 Practice Sessions
-              </Text>
-              <Text style={[styles.challengeDescription, { color: colors.secondaryText }]}>
-                Practice flashcards, quizzes, and speaking exercises to earn bonus XP
-              </Text>
-              <View style={styles.challengeProgress}>
-                <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-                  <View style={[styles.progressFill, { width: '60%', backgroundColor: premiumColors.accent.gold }]} />
-                </View>
-                <Text style={[styles.progressText, { color: colors.secondaryText }]}>3/5 completed</Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.challengeButton, { backgroundColor: premiumColors.accent.gold }]}
-                onPress={() => navigation.navigate('Courses')}
-              >
-                <Text style={styles.challengeButtonText}>Start Practice</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        {/* Quick Practice Sessions */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Practice</Text>
-          <View style={styles.quickPracticeGrid}>
-            <QuickPracticeCard
-              title="5-Min Review"
-              subtitle="Quick vocabulary review"
-              icon="flash"
-              color={premiumColors.primary.main}
-              colors={colors}
-              count={25}
-              onPress={() => navigation.navigate('Flashcards', { quickMode: '5min' })}
-            />
-            <QuickPracticeCard
-              title="Grammar Focus"
-              subtitle="Targeted grammar practice"
-              icon="school"
-              color={premiumColors.accent.emerald}
-              colors={colors}
-              count={15}
-              onPress={() => navigation.navigate('GrammarDrills', { quickMode: true })}
-            />
-            <QuickPracticeCard
-              title="Pronunciation"
-              subtitle="Speaking exercises"
-              icon="mic"
-              color={premiumColors.accent.rose}
-              colors={colors}
-              count={10}
-              onPress={() => navigation.navigate('SpeakingPractice', { quickMode: true })}
-            />
-            <QuickPracticeCard
-              title="Quick Quiz"
-              subtitle="Fast knowledge test"
-              icon="checkmark-circle"
-              color={premiumColors.accent.sky}
-              colors={colors}
-              count={12}
-              onPress={() => navigation.navigate('FreeQuiz', { quickMode: true })}
-            />
-          </View>
-        </View>
-
-        {/* Recent Achievements */}
+        {/* Achievements Section */}
         {isAuthenticated && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Achievements</Text>
-            <View style={styles.achievementsGrid}>
-              <AchievementBadge
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Achievements</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+                <Text style={[styles.seeAllText, { color: '#6366F1' }]}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.achievementsScroll}
+            >
+              <AchievementCard
                 icon="trophy"
                 title="Practice Master"
-                subtitle="Completed 50 sessions"
-                color={premiumColors.accent.gold}
+                subtitle="50 sessions done"
+                gradient={['#F59E0B', '#D97706']}
                 colors={colors}
-                onPress={() => navigation.navigate('Profile')}
               />
-              <AchievementBadge
+              <AchievementCard
                 icon="flame"
                 title="Streak Keeper"
-                subtitle="7 day practice streak"
-                color={premiumColors.error}
+                subtitle="7 day streak"
+                gradient={['#EF4444', '#DC2626']}
                 colors={colors}
-                onPress={() => navigation.navigate('Profile')}
               />
-              <AchievementBadge
+              <AchievementCard
                 icon="star"
-                title="Vocabulary Expert"
-                subtitle="Learned 200+ words"
-                color={premiumColors.primary.main}
+                title="Vocabulary Pro"
+                subtitle="200+ words"
+                gradient={['#6366F1', '#8B5CF6']}
                 colors={colors}
-                onPress={() => navigation.navigate('Profile')}
               />
-              <AchievementBadge
+              <AchievementCard
                 icon="medal"
                 title="Perfect Score"
-                subtitle="100% accuracy streak"
-                color={premiumColors.accent.emerald}
+                subtitle="100% accuracy"
+                gradient={['#10B981', '#059669']}
                 colors={colors}
-                onPress={() => navigation.navigate('Profile')}
               />
-            </View>
+            </ScrollView>
           </View>
         )}
 
-        {/* Bottom spacing */}
-        <View style={{ height: 100 }} />
+        {/* Motivation Banner */}
+        <View style={styles.section}>
+          <LinearGradient
+            colors={isDarkMode ? ['#1E1B4B', '#312E81'] : ['#FEF3C7', '#FDE68A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.motivationBanner, premiumShadows.lg]}
+          >
+            <View style={styles.motivationContent}>
+              <View style={styles.motivationIcon}>
+                <Ionicons name="rocket" size={32} color="#F59E0B" />
+              </View>
+              <View style={styles.motivationText}>
+                <Text style={[styles.motivationTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
+                  Keep Up the Great Work!
+                </Text>
+                <Text style={[styles.motivationSubtitle, { color: isDarkMode ? '#94A3B8' : '#6B7280' }]}>
+                  You're making amazing progress. Just 2 more sessions to reach your daily goal!
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.motivationBtn}
+              onPress={() => navigation.navigate('Flashcards')}
+            >
+              <LinearGradient
+                colors={['#F59E0B', '#D97706']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.motivationBtnGradient}
+              >
+                <Text style={styles.motivationBtnText}>Continue Practice</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
+
+        <View style={{ height: 120 }} />
       </ScrollView>
     </View>
   );
 }
 
-function StatItem({ icon, value, label, color, colors }) {
+// Achievement Card Component
+function AchievementCard({ icon, title, subtitle, gradient, colors }) {
   return (
-    <View style={styles.statItem}>
-      <View style={[styles.statIcon, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={20} color={color} />
-      </View>
-      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.secondaryText }]}>{label}</Text>
+    <View style={[styles.achievementCard, { backgroundColor: colors.card }]}>
+      <LinearGradient colors={gradient} style={styles.achievementIcon}>
+        <Ionicons name={icon} size={24} color="#FFFFFF" />
+      </LinearGradient>
+      <Text style={[styles.achievementTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.achievementSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
     </View>
-  );
-}
-
-function PracticeModeCard({ mode, colors, onPress }) {
-  return (
-    <TouchableOpacity
-      style={[styles.practiceModeCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
-      onPress={onPress}
-      activeOpacity={0.9}
-    >
-      <LinearGradient
-        colors={[mode.color, mode.color + 'DD']}
-        style={styles.modeGradient}
-      >
-        <Ionicons name={mode.icon} size={28} color="#FFFFFF" />
-      </LinearGradient>
-      <View style={styles.modeContent}>
-        <Text style={[styles.modeTitle, { color: colors.text }]}>{mode.title}</Text>
-        <Text style={[styles.modeSubtitle, { color: colors.secondaryText }]}>{mode.subtitle}</Text>
-        <View style={styles.modeFooter}>
-          <Ionicons name="play-circle" size={14} color={mode.color} />
-          <Text style={[styles.modeCount, { color: mode.color }]}>{mode.count} exercises</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-function QuickPracticeCard({ title, subtitle, icon, color, colors, count, onPress }) {
-  return (
-    <TouchableOpacity
-      style={[styles.quickPracticeCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
-      onPress={onPress}
-      activeOpacity={0.9}
-    >
-      <LinearGradient
-        colors={[color, color + 'DD']}
-        style={styles.quickPracticeGradient}
-      >
-        <Ionicons name={icon} size={28} color="#FFFFFF" />
-      </LinearGradient>
-      <View style={styles.quickPracticeContent}>
-        <Text style={[styles.quickPracticeTitle, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.quickPracticeSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
-        <View style={styles.quickPracticeFooter}>
-          <Ionicons name="play-circle" size={14} color={color} />
-          <Text style={[styles.quickPracticeCount, { color: color }]}>{count} exercises</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-function AchievementBadge({ icon, title, subtitle, color, colors, onPress }) {
-  return (
-    <TouchableOpacity
-      style={[styles.achievementBadge, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
-      onPress={onPress}
-      activeOpacity={0.9}
-    >
-      <LinearGradient
-        colors={[color, color + 'DD']}
-        style={styles.achievementGradient}
-      >
-        <Ionicons name={icon} size={28} color="#FFFFFF" />
-      </LinearGradient>
-      <View style={styles.achievementContent}>
-        <Text style={[styles.achievementTitle, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.achievementSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
-        <View style={styles.achievementFooter}>
-          <Ionicons name="trophy" size={14} color={color} />
-          <Text style={[styles.achievementBadgeText, { color: color }]}>Achievement</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
   );
 }
 
@@ -570,88 +598,194 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerWrapper: {
+    zIndex: 10,
+  },
   header: {
-    paddingTop: 50,
-    paddingBottom: spacing.lg,
+    paddingTop: 55,
+    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: 'hidden',
+  },
+  headerDecor: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  decorCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  decorCircle1: {
+    width: 200,
+    height: 200,
+    top: -50,
+    right: -50,
+  },
+  decorCircle2: {
+    width: 150,
+    height: 150,
+    bottom: -30,
+    left: -30,
   },
   headerContent: {
-    width: '100%',
+    zIndex: 1,
   },
-  headerTop: {
+  headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: spacing.lg,
   },
-  greeting: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
+  headerTitleSection: {
+    flex: 1,
   },
-  subtitle: {
-    fontSize: fontSize.md,
-  },
-  streakBadge: {
+  headerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 20,
-    gap: spacing.xs / 2,
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
   },
-  streakText: {
-    fontSize: fontSize.xs,
+  headerBadgeGradient: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerBadgeText: {
+    fontSize: 11,
     fontWeight: '700',
-    color: '#000',
+    letterSpacing: 1.2,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: fontSize.sm,
+    fontWeight: '500',
+  },
+  streakContainer: {
+    marginLeft: spacing.md,
+  },
+  streakBadge: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: premiumBorderRadius.lg,
+    minWidth: 70,
+  },
+  streakNumber: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  streakLabel: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.8)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statsPillsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  statPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: premiumBorderRadius.lg,
+    gap: 6,
+  },
+  statPillValue: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+  },
+  statPillLabel: {
+    fontSize: 10,
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
+    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
-  statsSection: {
+  challengeSection: {
     marginBottom: spacing.xl,
   },
-  statsCard: {
+  dailyChallengeCard: {
     borderRadius: premiumBorderRadius.xl,
     padding: spacing.lg,
-    borderWidth: 1,
   },
-  statsTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    marginBottom: spacing.md,
-  },
-  statsGrid: {
+  challengeHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-  },
-  statItem: {
     alignItems: 'center',
-    width: '48%',
     marginBottom: spacing.md,
   },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  challengeIconContainer: {
+    marginRight: spacing.md,
+  },
+  challengeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.xs,
   },
-  statValue: {
-    fontSize: fontSize.lg,
+  challengeInfo: {
+    flex: 1,
+  },
+  challengeLabel: {
+    fontSize: 10,
     fontWeight: '700',
-    marginBottom: spacing.xs / 2,
+    letterSpacing: 1,
+    marginBottom: 4,
   },
-  statLabel: {
+  challengeTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '700',
+  },
+  challengeReward: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: premiumBorderRadius.full,
+  },
+  challengeXP: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+  },
+  challengeProgress: {
+    gap: spacing.xs,
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressText: {
     fontSize: fontSize.xs,
-    textAlign: 'center',
+    fontWeight: '500',
   },
   section: {
     marginBottom: spacing.xl,
@@ -667,259 +801,252 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.3,
   },
+  sectionBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   seeAllText: {
-    fontSize: fontSize.md,
+    fontSize: fontSize.sm,
     fontWeight: '600',
   },
-  flashcardContainer: {
-    borderRadius: premiumBorderRadius.xl,
-    padding: spacing.lg,
-    borderWidth: 1,
-    minHeight: 280,
-    justifyContent: 'center',
+  quickSessionsScroll: {
+    gap: spacing.sm,
   },
-  flashcard: {
-    width: '100%',
-    height: 200,
+  quickSessionCard: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: premiumBorderRadius.lg,
+    borderWidth: 1,
+    minWidth: 100,
+  },
+  quickSessionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  quickSessionTitle: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+  },
+  quickSessionSubtitle: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  flashcardPreview: {
+    borderRadius: premiumBorderRadius.xl,
+    overflow: 'hidden',
+  },
+  flashcardGradient: {
+    padding: spacing.xl,
+    minHeight: 180,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  flashcardMasteryBadge: {
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: premiumBorderRadius.full,
+  },
+  flashcardMasteryText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  flashcardFront: {
+    alignItems: 'center',
     backfaceVisibility: 'hidden',
   },
   flashcardBack: {
     position: 'absolute',
-    top: spacing.lg,
-    left: spacing.lg,
-  },
-  flashcardContent: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  masteryBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: premiumBorderRadius.base,
-    marginBottom: spacing.md,
-  },
-  masteryText: {
-    fontSize: fontSize.xs,
-    fontWeight: '700',
+    backfaceVisibility: 'hidden',
   },
   flashcardWord: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
-    marginBottom: spacing.md,
-    textAlign: 'center',
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: spacing.sm,
   },
   flashcardTranslation: {
-    fontSize: fontSize.xl,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
   flashcardExample: {
     fontSize: fontSize.sm,
-    textAlign: 'center',
     fontStyle: 'italic',
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.md,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
   },
-  flipHint: {
+  flashcardHint: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs / 2,
-    marginTop: spacing.sm,
+    gap: 4,
   },
-  flipHintText: {
+  flashcardHintText: {
     fontSize: fontSize.xs,
+    color: 'rgba(255,255,255,0.7)',
   },
   flashcardActions: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.md,
+    padding: spacing.md,
+    gap: spacing.sm,
   },
-  flashcardButton: {
+  flashcardBtn: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    borderRadius: premiumBorderRadius.lg,
+    gap: 4,
+  },
+  flashcardBtnText: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+  },
+  categoriesGrid: {
+    gap: spacing.sm,
+  },
+  categoryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: premiumBorderRadius.xl,
+    gap: spacing.md,
+  },
+  categoryIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryContent: {
+    flex: 1,
+  },
+  categoryTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  categorySubtitle: {
+    fontSize: fontSize.sm,
+    marginBottom: spacing.xs,
+  },
+  categoryMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  categoryExercises: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  categoryExercisesText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  categoryProgress: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  categoryProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  achievementsScroll: {
+    gap: spacing.sm,
+  },
+  achievementCard: {
+    alignItems: 'center',
+    padding: spacing.md,
+    borderRadius: premiumBorderRadius.lg,
+    width: 120,
+    ...premiumShadows.sm,
+  },
+  achievementIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  achievementTitle: {
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  achievementSubtitle: {
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  motivationBanner: {
+    borderRadius: premiumBorderRadius.xl,
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  motivationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  motivationIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  motivationText: {
+    flex: 1,
+  },
+  motivationTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  motivationSubtitle: {
+    fontSize: fontSize.sm,
+    lineHeight: 18,
+  },
+  motivationBtn: {
+    borderRadius: premiumBorderRadius.lg,
+    overflow: 'hidden',
+  },
+  motivationBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
-  knownButton: {},
-  againButton: {},
-  flashcardButtonText: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
+  motivationBtnText: {
     color: '#FFFFFF',
-  },
-  practiceModesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  practiceModeCard: {
-    width: '48%',
-    borderRadius: premiumBorderRadius.xl,
-    overflow: 'hidden',
-    borderWidth: 1,
-  },
-  modeGradient: {
-    width: '100%',
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modeContent: {
-    padding: spacing.md,
-  },
-  modeTitle: {
     fontSize: fontSize.md,
     fontWeight: '700',
-    marginBottom: spacing.xs / 2,
-  },
-  modeSubtitle: {
-    fontSize: fontSize.xs,
-    marginBottom: spacing.sm,
-  },
-  modeFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs / 2,
-  },
-  modeCount: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-  },
-  challengeCard: {
-    flexDirection: 'row',
-    borderRadius: premiumBorderRadius.xl,
-    overflow: 'hidden',
-    borderWidth: 1,
-  },
-  challengeGradient: {
-    width: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  challengeContent: {
-    flex: 1,
-    padding: spacing.md,
-  },
-  challengeTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
-  },
-  challengeDescription: {
-    fontSize: fontSize.sm,
-    marginBottom: spacing.md,
-    lineHeight: 20,
-  },
-  challengeProgress: {
-    marginBottom: spacing.md,
-  },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
-    marginBottom: spacing.xs,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-  },
-  challengeButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    alignSelf: 'flex-start',
-  },
-  challengeButtonText: {
-    fontSize: fontSize.sm,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  quickPracticeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  quickPracticeCard: {
-    width: '48%',
-    borderRadius: premiumBorderRadius.xl,
-    overflow: 'hidden',
-    borderWidth: 1,
-  },
-  quickPracticeGradient: {
-    width: '100%',
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quickPracticeContent: {
-    padding: spacing.md,
-  },
-  quickPracticeTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
-    marginBottom: spacing.xs / 2,
-  },
-  quickPracticeSubtitle: {
-    fontSize: fontSize.xs,
-    marginBottom: spacing.sm,
-  },
-  quickPracticeFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs / 2,
-  },
-  quickPracticeCount: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-  },
-  achievementsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  achievementBadge: {
-    width: '48%',
-    borderRadius: premiumBorderRadius.xl,
-    overflow: 'hidden',
-    borderWidth: 1,
-  },
-  achievementGradient: {
-    width: '100%',
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  achievementContent: {
-    padding: spacing.md,
-  },
-  achievementTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
-    marginBottom: spacing.xs / 2,
-  },
-  achievementSubtitle: {
-    fontSize: fontSize.xs,
-    marginBottom: spacing.sm,
-  },
-  achievementFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs / 2,
-  },
-  achievementBadgeText: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
   },
 });

@@ -18,6 +18,7 @@ import {
   KeyboardAvoidingView,
   ActivityIndicator,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -184,6 +185,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const [previewImage, setPreviewImage] = useState(null);
   const [showReactionPicker, setShowReactionPicker] = useState(null);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showMessageActions, setShowMessageActions] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const messageActionsAnim = useRef(new Animated.Value(0)).current;
   const [messageReactions, setMessageReactions] = useState({});
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   
@@ -224,7 +228,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     focus: 'general',
     maxMembers: 20,
     isPrivate: false,
+    image: null,
   });
+  const [editGroupImageLoading, setEditGroupImageLoading] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState({
     messages: true,
     mentions: true,
@@ -563,6 +569,153 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       }
     });
     setShowReactionPicker(null);
+  };
+
+  // Message Actions
+  const openMessageActions = (message, index, isOwnMessage) => {
+    setSelectedMessage({ ...message, index, isOwnMessage });
+    setShowMessageActions(true);
+    Animated.spring(messageActionsAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 10,
+    }).start();
+  };
+
+  const closeMessageActions = () => {
+    Animated.timing(messageActionsAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowMessageActions(false);
+      setSelectedMessage(null);
+    });
+  };
+
+  const handleDeleteMessage = async () => {
+    if (!selectedMessage) {
+      console.log('No selected message');
+      closeMessageActions();
+      return;
+    }
+    
+    console.log('Deleting message:', selectedMessage._id);
+    const messageId = selectedMessage._id;
+    
+    closeMessageActions();
+    
+    setTimeout(() => {
+      Alert.alert(
+        'Delete Message',
+        'Are you sure you want to delete this message? This cannot be undone.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await studyGroupsAPI.deleteDiscussion(groupId, messageId);
+                loadGroup();
+                Alert.alert('Success', 'Message deleted');
+              } catch (error) {
+                console.error('Delete message error:', error);
+                Alert.alert('Error', error.response?.data?.message || 'Failed to delete message');
+              }
+            },
+          },
+        ]
+      );
+    }, 300);
+  };
+
+  const handleCopyMessage = async () => {
+    console.log('Copy message pressed', selectedMessage);
+    if (!selectedMessage) {
+      closeMessageActions();
+      return;
+    }
+    
+    // Get the message text - try different properties
+    let textToCopy = '';
+    try {
+      // First try to parse the content/message field
+      const rawContent = selectedMessage.content || selectedMessage.message;
+      if (rawContent) {
+        try {
+          const messageData = JSON.parse(rawContent);
+          textToCopy = messageData?.message || rawContent;
+        } catch {
+          textToCopy = rawContent;
+        }
+      }
+    } catch (error) {
+      console.error('Error parsing message:', error);
+      textToCopy = selectedMessage.content || selectedMessage.message || '';
+    }
+    
+    closeMessageActions();
+    
+    // Copy to clipboard after modal closes
+    setTimeout(async () => {
+      if (textToCopy) {
+        try {
+          await Clipboard.setStringAsync(textToCopy);
+          Alert.alert('Copied', 'Message copied to clipboard');
+        } catch (error) {
+          console.error('Clipboard error:', error);
+          Alert.alert('Error', 'Failed to copy message');
+        }
+      } else {
+        Alert.alert('Notice', 'No text to copy');
+      }
+    }, 300);
+  };
+
+  const handleReplyToMessage = () => {
+    console.log('Reply pressed', selectedMessage);
+    if (!selectedMessage) {
+      closeMessageActions();
+      return;
+    }
+    
+    const messageUser = typeof selectedMessage.user === 'object' 
+      ? selectedMessage.user 
+      : { name: 'User' };
+    
+    const replyData = { ...selectedMessage, user: messageUser };
+    closeMessageActions();
+    
+    setTimeout(() => {
+      setReplyingTo(replyData);
+    }, 300);
+  };
+
+  const handleForwardMessage = () => {
+    console.log('Forward pressed');
+    closeMessageActions();
+    setTimeout(() => {
+      Alert.alert('Forward', 'Message forwarding will be available soon');
+    }, 300);
+  };
+
+  const handleReportMessage = () => {
+    console.log('Report pressed');
+    closeMessageActions();
+    setTimeout(() => {
+      Alert.alert(
+        'Report Message',
+        'Why are you reporting this message?',
+        [
+          { text: 'Spam', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
+          { text: 'Inappropriate', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
+          { text: 'Harassment', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }, 300);
   };
   
   // Open image in full screen
@@ -922,6 +1075,19 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         }
       }
 
+      // Check if the file exists for local files
+      if (voiceUri.startsWith('file://')) {
+        const fileInfo = await FileSystem.getInfoAsync(voiceUri);
+        if (!fileInfo.exists) {
+          Alert.alert(
+            'Voice Message Unavailable',
+            'This voice message is no longer available. Local recordings are cleared when the app cache is cleared.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+      }
+
       // Set audio mode for playback
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
@@ -949,7 +1115,10 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       setPlayingVoice(messageId);
     } catch (error) {
       console.error('Error playing voice message:', error);
-      Alert.alert('Error', 'Failed to play voice message');
+      Alert.alert(
+        'Playback Error', 
+        'Unable to play this voice message. The file may have been deleted or is corrupted.'
+      );
     }
   };
 
@@ -1104,20 +1273,119 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         focus: group.focus || 'general',
         maxMembers: group.maxMembers || 20,
         isPrivate: group.isPrivate || false,
+        image: group.image || null,
       });
     }
     closeGroupOptions();
     setTimeout(() => setShowEditGroup(true), 300);
   };
 
+  const pickGroupImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your photo library to change the group photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setEditGroupData(prev => ({ ...prev, image: result.assets[0].uri }));
+      }
+    } catch (error) {
+      console.error('Error picking group image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const takeGroupPhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow camera access to take a photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setEditGroupData(prev => ({ ...prev, image: result.assets[0].uri }));
+      }
+    } catch (error) {
+      console.error('Error taking group photo:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const showImageOptions = () => {
+    Alert.alert(
+      'Change Group Photo',
+      'Choose an option',
+      [
+        { text: 'Take Photo', onPress: takeGroupPhoto },
+        { text: 'Choose from Library', onPress: pickGroupImage },
+        { text: 'Remove Photo', onPress: () => setEditGroupData(prev => ({ ...prev, image: null })), style: 'destructive' },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
   const handleSaveGroupEdit = async () => {
     try {
-      await studyGroupsAPI.update(groupId, editGroupData);
+      setEditGroupImageLoading(true);
+      
+      // Prepare update data
+      const updateData = {
+        name: editGroupData.name,
+        description: editGroupData.description,
+        level: editGroupData.level,
+        focus: editGroupData.focus,
+        maxMembers: editGroupData.maxMembers,
+        isPrivate: editGroupData.isPrivate,
+      };
+
+      // If there's a new local image (starts with file://), we need to upload it
+      if (editGroupData.image && editGroupData.image.startsWith('file://')) {
+        // For now, store the image URI directly - in production, you'd upload to cloud storage
+        // and get back a URL. Here we'll convert to base64 for the backend to handle.
+        try {
+          const base64 = await FileSystem.readAsStringAsync(editGroupData.image, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          const fileExtension = editGroupData.image.split('.').pop()?.toLowerCase() || 'jpg';
+          const mimeType = fileExtension === 'png' ? 'image/png' : 'image/jpeg';
+          updateData.image = `data:${mimeType};base64,${base64}`;
+        } catch (imageError) {
+          console.error('Error encoding image:', imageError);
+          // Continue without the image if encoding fails
+        }
+      } else if (editGroupData.image === null) {
+        // User wants to remove the image
+        updateData.image = null;
+      } else if (editGroupData.image) {
+        // Keep existing remote URL
+        updateData.image = editGroupData.image;
+      }
+
+      await studyGroupsAPI.update(groupId, updateData);
       setShowEditGroup(false);
       loadGroup();
       Alert.alert('Success', 'Group updated successfully');
     } catch (error) {
+      console.error('Save group error:', error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to update group');
+    } finally {
+      setEditGroupImageLoading(false);
     }
   };
 
@@ -1233,7 +1501,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           <View style={styles.chatHeaderContent}>
             <TouchableOpacity 
               style={styles.chatBackButton}
-              onPress={() => setActiveTab('about')}
+              onPress={() => navigation.goBack()}
             >
               <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
@@ -1243,9 +1511,13 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               onPress={openGroupInfo}
               activeOpacity={0.7}
             >
-              <View style={styles.chatHeaderGroupIcon}>
-                <Ionicons name="people" size={20} color="#FFFFFF" />
-              </View>
+              {group.image ? (
+                <Image source={{ uri: group.image }} style={styles.chatHeaderGroupImage} />
+              ) : (
+                <View style={styles.chatHeaderGroupIcon}>
+                  <Ionicons name="people" size={20} color="#FFFFFF" />
+                </View>
+              )}
               <View style={styles.chatHeaderText}>
                 <Text style={styles.chatHeaderTitle} numberOfLines={1}>
                   {group.name}
@@ -1337,7 +1609,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     
                     <TouchableOpacity
                       activeOpacity={0.8}
-                      onLongPress={() => setShowReactionPicker(index)}
+                      onLongPress={() => openMessageActions({ ...discussion, content: discussion.message }, index, isOwnMessage)}
                       style={[
                         styles.messageContainer,
                         isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer,
@@ -2061,9 +2333,13 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               {/* Group Info Header */}
               <View style={styles.actionSheetHeader}>
                 <View style={styles.actionSheetGroupInfo}>
-                  <View style={[styles.actionSheetGroupAvatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                    <Ionicons name="people" size={28} color={premiumColors.primary.main} />
-                  </View>
+                  {group?.image ? (
+                    <Image source={{ uri: group.image }} style={styles.actionSheetGroupAvatarImage} />
+                  ) : (
+                    <View style={[styles.actionSheetGroupAvatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                      <Ionicons name="people" size={28} color={premiumColors.primary.main} />
+                    </View>
+                  )}
                   <View style={styles.actionSheetGroupDetails}>
                     <Text style={[styles.actionSheetGroupName, { color: colors.text }]}>{group?.name}</Text>
                     <Text style={[styles.actionSheetGroupMeta, { color: colors.secondaryText }]}>
@@ -2101,7 +2377,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={styles.actionSheetItem} onPress={() => { closeGroupOptions(); navigation.navigate('GroupMembers', { groupId }); }}>
+                <TouchableOpacity style={styles.actionSheetItem} onPress={() => { closeGroupOptions(); setActiveTab('members'); }}>
                   <View style={[styles.actionSheetIcon, { backgroundColor: '#FF950020' }]}>
                     <Ionicons name="people-outline" size={20} color="#FF9500" />
                   </View>
@@ -2192,19 +2468,42 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 <Text style={[styles.editGroupCancelBtn, { color: '#007AFF' }]}>Cancel</Text>
               </TouchableOpacity>
               <Text style={[styles.editGroupTitle, { color: colors.text }]}>Edit Group</Text>
-              <TouchableOpacity onPress={handleSaveGroupEdit}>
-                <Text style={[styles.editGroupSaveBtn, { color: '#007AFF' }]}>Save</Text>
+              <TouchableOpacity onPress={handleSaveGroupEdit} disabled={editGroupImageLoading}>
+                {editGroupImageLoading ? (
+                  <ActivityIndicator size="small" color="#007AFF" />
+                ) : (
+                  <Text style={[styles.editGroupSaveBtn, { color: '#007AFF' }]}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
             
             <ScrollView style={styles.editGroupContent} showsVerticalScrollIndicator={false}>
               {/* Group Photo */}
               <View style={styles.editGroupPhotoSection}>
-                <View style={[styles.editGroupPhoto, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                  <Ionicons name="people" size={50} color={premiumColors.primary.main} />
-                </View>
-                <TouchableOpacity style={styles.editGroupPhotoBtn}>
-                  <Text style={[styles.editGroupPhotoBtnText, { color: '#007AFF' }]}>Change Photo</Text>
+                <TouchableOpacity onPress={showImageOptions} activeOpacity={0.8}>
+                  {editGroupData.image ? (
+                    <View style={styles.editGroupPhotoContainer}>
+                      <Image 
+                        source={{ uri: editGroupData.image }} 
+                        style={styles.editGroupPhotoImage} 
+                      />
+                      <View style={styles.editGroupPhotoOverlay}>
+                        <Ionicons name="camera" size={24} color="#FFFFFF" />
+                      </View>
+                    </View>
+                  ) : (
+                    <View style={[styles.editGroupPhoto, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                      <Ionicons name="people" size={50} color={premiumColors.primary.main} />
+                      <View style={styles.editGroupPhotoOverlay}>
+                        <Ionicons name="camera" size={24} color="#FFFFFF" />
+                      </View>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.editGroupPhotoBtn} onPress={showImageOptions}>
+                  <Text style={[styles.editGroupPhotoBtnText, { color: '#007AFF' }]}>
+                    {editGroupData.image ? 'Change Photo' : 'Add Photo'}
+                  </Text>
                 </TouchableOpacity>
               </View>
               
@@ -2380,9 +2679,13 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               
               {/* Group Header */}
               <View style={styles.groupInfoHeader}>
-                <View style={[styles.groupInfoAvatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                  <Ionicons name="people" size={40} color={premiumColors.primary.main} />
-                </View>
+                {group?.image ? (
+                  <Image source={{ uri: group.image }} style={styles.groupInfoAvatarImage} />
+                ) : (
+                  <View style={[styles.groupInfoAvatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                    <Ionicons name="people" size={40} color={premiumColors.primary.main} />
+                  </View>
+                )}
                 <Text style={[styles.groupInfoName, { color: colors.text }]}>{group?.name}</Text>
                 <Text style={[styles.groupInfoDesc, { color: colors.secondaryText }]} numberOfLines={2}>
                   {group?.description}
@@ -2837,7 +3140,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       
                       <TouchableOpacity
                         activeOpacity={0.8}
-                        onLongPress={() => setShowReactionPicker(index)}
+                        onLongPress={() => openMessageActions({ ...discussion, content: discussion.message }, index, isOwnMessage)}
                         style={[
                           styles.messageContainer,
                           isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer,
@@ -3762,6 +4065,124 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      {/* Message Actions Modal - iOS Style */}
+      <Modal
+        visible={showMessageActions}
+        transparent={true}
+        animationType="none"
+        onRequestClose={closeMessageActions}
+      >
+        <TouchableOpacity 
+          style={styles.messageActionsOverlay} 
+          activeOpacity={1} 
+          onPress={closeMessageActions}
+        >
+          <TouchableOpacity 
+            activeOpacity={1} 
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Animated.View 
+              style={[
+                styles.messageActionsContainer,
+                {
+                  opacity: messageActionsAnim,
+                  transform: [{
+                    translateY: messageActionsAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [100, 0],
+                    }),
+                  }],
+                },
+              ]}
+            >
+              {/* Quick Reactions */}
+              <View style={[styles.messageActionsReactions, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}>
+                {['❤️', '👍', '👎', '😂', '😮', '😢', '🔥', '🎉'].map((emoji, index) => (
+                  <TouchableOpacity 
+                    key={index}
+                    style={styles.messageActionsReactionBtn}
+                    onPress={() => {
+                      if (selectedMessage) {
+                        handleReaction(selectedMessage.index, { emoji, name: emoji });
+                      }
+                      closeMessageActions();
+                    }}
+                  >
+                    <Text style={styles.messageActionsReactionEmoji}>{emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Action Buttons */}
+              <View style={[styles.messageActionsMenu, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}>
+                <TouchableOpacity style={styles.messageActionItem} onPress={handleReplyToMessage}>
+                  <View style={[styles.messageActionIcon, { backgroundColor: '#007AFF15' }]}>
+                    <Ionicons name="arrow-undo" size={20} color="#007AFF" />
+                  </View>
+                  <Text style={[styles.messageActionText, { color: colors.text }]}>Reply</Text>
+                  <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+                </TouchableOpacity>
+
+                <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
+
+                <TouchableOpacity style={styles.messageActionItem} onPress={handleCopyMessage}>
+                  <View style={[styles.messageActionIcon, { backgroundColor: '#34C75915' }]}>
+                    <Ionicons name="copy" size={20} color="#34C759" />
+                  </View>
+                  <Text style={[styles.messageActionText, { color: colors.text }]}>Copy</Text>
+                  <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+                </TouchableOpacity>
+
+                <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
+
+                <TouchableOpacity style={styles.messageActionItem} onPress={handleForwardMessage}>
+                  <View style={[styles.messageActionIcon, { backgroundColor: '#5856D615' }]}>
+                    <Ionicons name="arrow-redo" size={20} color="#5856D6" />
+                  </View>
+                  <Text style={[styles.messageActionText, { color: colors.text }]}>Forward</Text>
+                  <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+                </TouchableOpacity>
+
+                {/* Delete option - only show for own messages or moderators */}
+                {(selectedMessage?.isOwnMessage || isModerator()) && (
+                  <>
+                    <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
+                    <TouchableOpacity style={styles.messageActionItem} onPress={handleDeleteMessage}>
+                      <View style={[styles.messageActionIcon, { backgroundColor: '#FF3B3015' }]}>
+                        <Ionicons name="trash" size={20} color="#FF3B30" />
+                      </View>
+                      <Text style={[styles.messageActionText, { color: '#FF3B30' }]}>Delete</Text>
+                      <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+                    </TouchableOpacity>
+                  </>
+                )}
+
+                {!selectedMessage?.isOwnMessage && (
+                  <>
+                    <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
+                    <TouchableOpacity style={styles.messageActionItem} onPress={handleReportMessage}>
+                      <View style={[styles.messageActionIcon, { backgroundColor: '#FF950015' }]}>
+                        <Ionicons name="flag" size={20} color="#FF9500" />
+                      </View>
+                      <Text style={[styles.messageActionText, { color: '#FF9500' }]}>Report</Text>
+                      <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+
+              {/* Cancel Button */}
+              <TouchableOpacity 
+                style={[styles.messageActionsCancelBtn, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}
+                onPress={closeMessageActions}
+              >
+                <Text style={styles.messageActionsCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -5238,6 +5659,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  chatHeaderGroupImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
   chatHeaderText: {
     flex: 1,
     marginLeft: spacing.sm,
@@ -5471,6 +5899,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  actionSheetGroupAvatarImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
   actionSheetGroupDetails: {
     marginLeft: spacing.md,
     flex: 1,
@@ -5570,6 +6003,30 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  editGroupPhotoContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  editGroupPhotoImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  editGroupPhotoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 36,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -5738,6 +6195,12 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  groupInfoAvatarImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     marginBottom: spacing.md,
   },
   groupInfoName: {
@@ -5912,6 +6375,80 @@ const styles = StyleSheet.create({
     color: '#FF3B30',
     fontSize: fontSize.md,
     fontWeight: '600',
+  },
+  
+  // Message Actions Modal Styles
+  messageActionsOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 34,
+    paddingHorizontal: spacing.sm,
+  },
+  messageActionsContainer: {
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  messageActionsReactions: {
+    flexDirection: 'row',
+    borderRadius: premiumBorderRadius.lg,
+    padding: spacing.sm,
+    gap: spacing.xs,
+    ...premiumShadows.large,
+  },
+  messageActionsReactionBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messageActionsReactionEmoji: {
+    fontSize: 26,
+  },
+  messageActionsMenu: {
+    width: '100%',
+    borderRadius: premiumBorderRadius.lg,
+    overflow: 'hidden',
+    ...premiumShadows.large,
+  },
+  messageActionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  messageActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messageActionText: {
+    flex: 1,
+    fontSize: fontSize.md,
+    fontWeight: '500',
+  },
+  messageActionDivider: {
+    height: 0.5,
+    marginLeft: 60,
+  },
+  messageActionsCancelBtn: {
+    width: '100%',
+    borderRadius: premiumBorderRadius.lg,
+    paddingVertical: spacing.md + 4,
+    alignItems: 'center',
+    ...premiumShadows.large,
+  },
+  messageActionsCancelText: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    color: '#007AFF',
   },
 });
 

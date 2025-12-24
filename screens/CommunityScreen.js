@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   Image,
   TextInput,
   Dimensions,
+  Animated,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,11 +18,11 @@ import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
 import { spacing, fontSize } from '../src/utils/responsive';
-import { blogAPI } from '../src/services/api';
+import { blogAPI, studyGroupsAPI } from '../src/services/api';
 import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function CommunityScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
@@ -30,44 +32,42 @@ export default function CommunityScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [recentPosts, setRecentPosts] = useState([]);
-  const [trendingTopics, setTrendingTopics] = useState([]);
+  const [studyGroups, setStudyGroups] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(null);
-
-  const categories = [
-    { id: null, name: 'All Topics', icon: 'grid-outline', color: premiumColors.primary.main },
-    { id: 'grammar', name: 'Grammar', icon: 'school-outline', color: premiumColors.accent.emerald },
-    { id: 'vocabulary', name: 'Vocabulary', icon: 'book-outline', color: premiumColors.accent.gold },
-    { id: 'pronunciation', name: 'Pronunciation', icon: 'mic-outline', color: premiumColors.accent.rose },
-    { id: 'culture', name: 'Culture', icon: 'globe-outline', color: premiumColors.accent.sky },
-  ];
-
+  const [showSearch, setShowSearch] = useState(false);
+  
+  // Animations
+  const headerAnim = useRef(new Animated.Value(0)).current;
+  const searchAnim = useRef(new Animated.Value(0)).current;
+  const cardsAnim = useRef(new Animated.Value(0)).current;
 
   const communityStats = {
-    totalMembers: 1250,
-    activeToday: 342,
-    discussions: 456,
-    helpfulAnswers: 1234,
+    totalMembers: 12500,
+    activeNow: 342,
+    discussions: 4560,
+    studyGroups: 156,
   };
 
   useEffect(() => {
     loadData();
+    // Start entrance animations
+    Animated.stagger(100, [
+      Animated.spring(headerAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
+      Animated.spring(cardsAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
+    ]).start();
   }, []);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      // Fetch recent posts
-      const recentResponse = await blogAPI.getAll({ limit: 5 }).catch(() => ({ data: { data: [] } }));
-      setRecentPosts(recentResponse.data.data || []);
-      
-      // Fetch trending posts (most viewed/recent posts)
-      const trendingResponse = await blogAPI.getAll({ limit: 3 }).catch(() => ({ data: { data: [] } }));
-      setTrendingTopics(trendingResponse.data.data || []);
+      const [postsRes, groupsRes] = await Promise.all([
+        blogAPI.getAll({ limit: 5 }).catch(() => ({ data: { data: [] } })),
+        studyGroupsAPI.getAll().catch(() => ({ data: { data: [] } })),
+      ]);
+      setRecentPosts(postsRes.data.data || []);
+      setStudyGroups(groupsRes.data.data?.slice(0, 3) || []);
     } catch (error) {
       console.error('Failed to load community data:', error);
-      setRecentPosts([]);
-      setTrendingTopics([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -79,20 +79,65 @@ export default function CommunityScreen({ navigation }) {
     loadData();
   };
 
-  const formatTimeAgo = (date) => {
-    if (!date) return 'Recently';
-    const now = new Date();
-    const postDate = new Date(date);
-    const diffInHours = Math.floor((now - postDate) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-    return 'Recently';
+  const toggleSearch = () => {
+    setShowSearch(!showSearch);
+    Animated.spring(searchAnim, {
+      toValue: showSearch ? 0 : 1,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 10,
+    }).start();
   };
 
   const userName = user?.name?.split(' ')[0] || 'Learner';
+
+  // Premium Hub Navigation Items
+  const hubItems = [
+    {
+      id: 'study-groups',
+      title: 'Study Groups',
+      subtitle: 'Learn together',
+      icon: 'people',
+      gradient: ['#6366F1', '#8B5CF6'],
+      badge: studyGroups.length > 0 ? `${studyGroups.length} active` : null,
+      onPress: () => navigation.navigate('StudyGroups'),
+    },
+    {
+      id: 'leaderboard',
+      title: 'Leaderboard',
+      subtitle: 'Top learners',
+      icon: 'trophy',
+      gradient: ['#F59E0B', '#EF4444'],
+      badge: 'Live',
+      onPress: () => navigation.navigate('Leaderboard'),
+    },
+    {
+      id: 'discussions',
+      title: 'Discussions',
+      subtitle: 'Join conversations',
+      icon: 'chatbubbles',
+      gradient: ['#10B981', '#059669'],
+      badge: recentPosts.length > 0 ? `${recentPosts.length} new` : null,
+      onPress: () => navigation.navigate('BlogList'),
+    },
+    {
+      id: 'qa-forum',
+      title: 'Q&A Forum',
+      subtitle: 'Get answers',
+      icon: 'help-circle',
+      gradient: ['#EC4899', '#F43F5E'],
+      badge: null,
+      onPress: () => navigation.navigate('QandAForum'),
+    },
+  ];
+
+  // Quick Actions
+  const quickActions = [
+    { icon: 'add-circle', label: 'New Post', color: '#6366F1', onPress: () => navigation.navigate('CreatePost') },
+    { icon: 'people-circle', label: 'Find Group', color: '#10B981', onPress: () => navigation.navigate('StudyGroups') },
+    { icon: 'star', label: 'Achievements', color: '#F59E0B', onPress: () => navigation.navigate('Achievements') },
+    { icon: 'share-social', label: 'Invite', color: '#EC4899', onPress: () => {} },
+  ];
 
   if (loading && !refreshing) {
     return <LoadingSpinner />;
@@ -100,52 +145,126 @@ export default function CommunityScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Header */}
-      <LinearGradient
-        colors={isDarkMode 
-          ? ['#1a0a2e', '#16213e', '#0f3460']
-          : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
+      {/* Premium Animated Header */}
+      <Animated.View
+        style={[
+          styles.headerWrapper,
+          {
+            opacity: headerAnim,
+            transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
+          },
+        ]}
       >
-        <View style={styles.headerContent}>
-          <View style={styles.headerTop}>
-            <View>
-              <Text style={[styles.greeting, { color: isDarkMode ? '#BB86FC' : '#9C27B0' }]}>
-                Community Hub
-              </Text>
-              <Text style={[styles.subtitle, { color: isDarkMode ? '#FFFFFF' : '#424242' }]}>
-                Connect, learn, and grow together
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.createButton, { backgroundColor: premiumColors.primary.main }]}
-              onPress={() => {}}
-            >
-              <Ionicons name="create-outline" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
+        <LinearGradient
+          colors={isDarkMode 
+            ? ['#0F0F23', '#1A1A3E', '#252560']
+            : ['#F8FAFC', '#EEF2FF', '#E0E7FF']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          {/* Decorative Elements */}
+          <View style={styles.headerDecor}>
+            <View style={[styles.decorCircle, styles.decorCircle1, { backgroundColor: isDarkMode ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)' }]} />
+            <View style={[styles.decorCircle, styles.decorCircle2, { backgroundColor: isDarkMode ? 'rgba(139,92,246,0.1)' : 'rgba(139,92,246,0.08)' }]} />
           </View>
 
-          {/* Search Bar */}
-          <View style={[styles.searchBar, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)' }]}>
-            <Ionicons name="search" size={20} color={isDarkMode ? '#FFFFFF' : '#424242'} style={styles.searchIcon} />
+          <View style={styles.headerContent}>
+            {/* Top Row */}
+            <View style={styles.headerTopRow}>
+              <View style={styles.headerTitleSection}>
+                <View style={styles.headerBadge}>
+                  <LinearGradient
+                    colors={['#6366F1', '#8B5CF6']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.headerBadgeGradient}
+                  >
+                    <Ionicons name="globe" size={14} color="#FFFFFF" />
+                  </LinearGradient>
+                  <Text style={[styles.headerBadgeText, { color: isDarkMode ? '#A5B4FC' : '#6366F1' }]}>
+                    COMMUNITY
+                  </Text>
+                </View>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>
+                  Learning Hub
+                </Text>
+                <Text style={[styles.headerSubtitle, { color: colors.secondaryText }]}>
+                  Connect • Learn • Grow
+                </Text>
+              </View>
+
+              <View style={styles.headerActions}>
+                <TouchableOpacity
+                  style={[styles.headerActionBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(99,102,241,0.1)' }]}
+                  onPress={toggleSearch}
+                >
+                  <Ionicons name="search" size={22} color={isDarkMode ? '#FFFFFF' : '#6366F1'} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.headerActionBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(99,102,241,0.1)' }]}
+                  onPress={() => navigation.navigate('Notifications')}
+                >
+                  <Ionicons name="notifications" size={22} color={isDarkMode ? '#FFFFFF' : '#6366F1'} />
+                  <View style={styles.notificationDot} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Live Stats Row */}
+            <View style={styles.liveStatsRow}>
+              <View style={[styles.liveStatCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)' }]}>
+                <View style={styles.liveIndicator}>
+                  <View style={styles.liveDot} />
+                  <Text style={[styles.liveText, { color: '#10B981' }]}>LIVE</Text>
+                </View>
+                <Text style={[styles.liveStatValue, { color: colors.text }]}>{communityStats.activeNow}</Text>
+                <Text style={[styles.liveStatLabel, { color: colors.secondaryText }]}>Online Now</Text>
+              </View>
+              <View style={[styles.liveStatCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)' }]}>
+                <Ionicons name="people" size={18} color="#6366F1" />
+                <Text style={[styles.liveStatValue, { color: colors.text }]}>{(communityStats.totalMembers / 1000).toFixed(1)}K</Text>
+                <Text style={[styles.liveStatLabel, { color: colors.secondaryText }]}>Members</Text>
+              </View>
+              <View style={[styles.liveStatCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)' }]}>
+                <Ionicons name="chatbubbles" size={18} color="#F59E0B" />
+                <Text style={[styles.liveStatValue, { color: colors.text }]}>{(communityStats.discussions / 1000).toFixed(1)}K</Text>
+                <Text style={[styles.liveStatLabel, { color: colors.secondaryText }]}>Posts</Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      {/* Search Overlay */}
+      {showSearch && (
+        <Animated.View
+          style={[
+            styles.searchOverlay,
+            { backgroundColor: colors.background },
+            {
+              opacity: searchAnim,
+              transform: [{ translateY: searchAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
+            },
+          ]}
+        >
+          <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="search" size={20} color={colors.secondaryText} />
             <TextInput
-              style={[styles.searchInput, { color: isDarkMode ? '#FFFFFF' : '#000' }]}
-              placeholder="Search discussions..."
-              placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.6)' : '#9E9E9E'}
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Search community..."
+              placeholderTextColor={colors.secondaryText}
               value={searchQuery}
               onChangeText={setSearchQuery}
+              autoFocus
             />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color={isDarkMode ? '#FFFFFF' : '#424242'} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity onPress={() => { setSearchQuery(''); toggleSearch(); }}>
+              <Ionicons name="close-circle" size={20} color={colors.secondaryText} />
+            </TouchableOpacity>
           </View>
-        </View>
-      </LinearGradient>
+        </Animated.View>
+      )}
 
       <ScrollView
         style={styles.scrollView}
@@ -155,118 +274,102 @@ export default function CommunityScreen({ navigation }) {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Community Stats */}
-        <View style={styles.statsSection}>
-          <View style={[styles.statsCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.lg]}>
-            <View style={styles.statsGrid}>
-              <StatItem
-                icon="people"
-                value={communityStats.totalMembers}
-                label="Members"
-                color={premiumColors.primary.main}
-                colors={colors}
-              />
-              <StatItem
-                icon="flash"
-                value={communityStats.activeToday}
-                label="Active Today"
-                color={premiumColors.accent.emerald}
-                colors={colors}
-              />
-              <StatItem
-                icon="chatbubbles"
-                value={communityStats.discussions}
-                label="Discussions"
-                color={premiumColors.accent.gold}
-                colors={colors}
-              />
-              <StatItem
-                icon="checkmark-circle"
-                value={communityStats.helpfulAnswers}
-                label="Answers"
-                color={premiumColors.accent.rose}
-                colors={colors}
-              />
+        {/* Premium Hub Navigation Grid */}
+        <Animated.View
+          style={[
+            styles.hubSection,
+            {
+              opacity: cardsAnim,
+              transform: [{ translateY: cardsAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+            },
+          ]}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Explore</Text>
+            <View style={styles.sectionBadge}>
+              <Ionicons name="sparkles" size={14} color="#F59E0B" />
             </View>
           </View>
-        </View>
 
-        {/* Categories Filter */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Browse Topics</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('BrowseTopics')}>
-              <Text style={[styles.seeAllText, { color: premiumColors.primary.main }]}>See All</Text>
-            </TouchableOpacity>
+          <View style={styles.hubGrid}>
+            {hubItems.map((item, index) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.hubCard, { backgroundColor: colors.card }, premiumShadows.lg]}
+                onPress={item.onPress}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={item.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.hubCardGradient}
+                >
+                  <Ionicons name={item.icon} size={28} color="#FFFFFF" />
+                </LinearGradient>
+                <View style={styles.hubCardContent}>
+                  <Text style={[styles.hubCardTitle, { color: colors.text }]}>{item.title}</Text>
+                  <Text style={[styles.hubCardSubtitle, { color: colors.secondaryText }]}>{item.subtitle}</Text>
+                </View>
+                {item.badge && (
+                  <View style={[styles.hubCardBadge, { backgroundColor: item.gradient[0] + '20' }]}>
+                    <Text style={[styles.hubCardBadgeText, { color: item.gradient[0] }]}>{item.badge}</Text>
+                  </View>
+                )}
+                <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} style={styles.hubCardArrow} />
+              </TouchableOpacity>
+            ))}
           </View>
+        </Animated.View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsSection}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesContainer}
+            contentContainerStyle={styles.quickActionsScroll}
           >
-            {categories.map((category) => (
+            {quickActions.map((action, index) => (
               <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.categoryChip,
-                  {
-                    backgroundColor: selectedCategory === category.id
-                      ? category.color
-                      : colors.card,
-                    borderColor: selectedCategory === category.id
-                      ? category.color
-                      : colors.border,
-                  },
-                  premiumShadows.sm,
-                ]}
-                onPress={() => setSelectedCategory(category.id)}
-                activeOpacity={0.7}
+                key={index}
+                style={[styles.quickActionBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={action.onPress}
+                activeOpacity={0.8}
               >
-                <Ionicons
-                  name={category.icon}
-                  size={18}
-                  color={selectedCategory === category.id ? '#FFFFFF' : colors.text}
-                />
-                <Text
-                  style={[
-                    styles.categoryText,
-                    {
-                      color: selectedCategory === category.id ? '#FFFFFF' : colors.text,
-                    },
-                  ]}
-                >
-                  {category.name}
-                </Text>
+                <View style={[styles.quickActionIcon, { backgroundColor: action.color + '15' }]}>
+                  <Ionicons name={action.icon} size={22} color={action.color} />
+                </View>
+                <Text style={[styles.quickActionLabel, { color: colors.text }]}>{action.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
 
-        {/* Trending Topics */}
-        {trendingTopics.length > 0 && (
+        {/* Featured Study Groups */}
+        {studyGroups.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Trending Now</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Discussions', { sort: 'trending' })}>
-                <Text style={[styles.seeAllText, { color: premiumColors.primary.main }]}>See All</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Active Study Groups</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('StudyGroups')}>
+                <Text style={[styles.seeAllText, { color: '#6366F1' }]}>See All</Text>
               </TouchableOpacity>
             </View>
-            {trendingTopics.slice(0, 3).map((topic, index) => {
-              // Only use _id if it's a valid MongoDB ObjectId string (24 hex characters)
-              // Don't use numeric IDs as fallback
-              const postId = topic._id && typeof topic._id === 'string' && topic._id.length === 24 
-                ? topic._id 
-                : null;
-              
-              return (
-                <DiscussionCard
-                  key={topic._id || `trending-${index}`}
-                  post={topic}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.groupsScroll}
+            >
+              {studyGroups.map((group, index) => (
+                <StudyGroupCard
+                  key={group._id || index}
+                  group={group}
                   colors={colors}
-                  onPress={postId ? () => navigation.navigate('BlogDetail', { postId, post: topic }) : undefined}
+                  isDarkMode={isDarkMode}
+                  onPress={() => navigation.navigate('StudyGroupDetail', { groupId: group._id, initialTab: 'discussions' })}
                 />
-              );
-            })}
+              ))}
+            </ScrollView>
           </View>
         )}
 
@@ -276,153 +379,160 @@ export default function CommunityScreen({ navigation }) {
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Discussions</Text>
               <TouchableOpacity onPress={() => navigation.navigate('BlogList')}>
-                <Text style={[styles.seeAllText, { color: premiumColors.primary.main }]}>See All</Text>
+                <Text style={[styles.seeAllText, { color: '#6366F1' }]}>See All</Text>
               </TouchableOpacity>
             </View>
             {recentPosts.slice(0, 3).map((post, index) => (
               <DiscussionCard
-                key={post._id || post.id || index}
+                key={post._id || index}
                 post={post}
                 colors={colors}
-                onPress={() => navigation.navigate('BlogDetail', { postId: post._id || post.id })}
+                isDarkMode={isDarkMode}
+                onPress={() => navigation.navigate('BlogDetail', { postId: post._id })}
               />
             ))}
           </View>
         )}
 
-        {/* Community Features */}
+        {/* Community Highlights */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Community Features</Text>
-          <View style={styles.featuresGrid}>
-            <FeatureCard
-              icon="trophy"
-              title="Leaderboard"
-              subtitle="Top learners"
-              color={premiumColors.accent.gold}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Community Highlights</Text>
+          </View>
+          <View style={styles.highlightsGrid}>
+            <HighlightCard
+              icon="flame"
+              title="7-Day Streak"
+              subtitle="Keep learning daily"
+              gradient={['#F97316', '#EA580C']}
               colors={colors}
-              onPress={() => navigation.navigate('Leaderboard')}
             />
-            <FeatureCard
-              icon="people-circle"
-              title="Study Groups"
-              subtitle="Join groups"
-              color={premiumColors.primary.main}
+            <HighlightCard
+              icon="medal"
+              title="Top Contributor"
+              subtitle="Earn recognition"
+              gradient={['#8B5CF6', '#7C3AED']}
               colors={colors}
+            />
+            <HighlightCard
+              icon="gift"
+              title="Weekly Challenge"
+              subtitle="Win rewards"
+              gradient={['#EC4899', '#DB2777']}
+              colors={colors}
+            />
+            <HighlightCard
+              icon="ribbon"
+              title="Achievements"
+              subtitle="Unlock badges"
+              gradient={['#14B8A6', '#0D9488']}
+              colors={colors}
+            />
+          </View>
+        </View>
+
+        {/* Join Banner */}
+        <View style={styles.section}>
+          <LinearGradient
+            colors={isDarkMode ? ['#1E1B4B', '#312E81'] : ['#EEF2FF', '#E0E7FF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.joinBanner, premiumShadows.lg]}
+          >
+            <View style={styles.joinBannerContent}>
+              <View style={styles.joinBannerIcon}>
+                <Ionicons name="rocket" size={32} color="#6366F1" />
+              </View>
+              <View style={styles.joinBannerText}>
+                <Text style={[styles.joinBannerTitle, { color: colors.text }]}>
+                  Start Your Journey
+                </Text>
+                <Text style={[styles.joinBannerSubtitle, { color: colors.secondaryText }]}>
+                  Create or join a study group today
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.joinBannerBtn}
               onPress={() => navigation.navigate('StudyGroups')}
-            />
-            <FeatureCard
-              icon="chatbubbles"
-              title="Q&A Forum"
-              subtitle="Ask questions"
-              color={premiumColors.accent.emerald}
-              colors={colors}
-              onPress={() => navigation.navigate('QandAForum')}
-            />
-            <FeatureCard
-              icon="share-social"
-              title="Share Progress"
-              subtitle="Show achievements"
-              color={premiumColors.accent.rose}
-              colors={colors}
-              onPress={() => navigation.navigate('ShareProgress')}
-            />
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
-          <View style={styles.quickActionsContainer}>
-            <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
-              onPress={() => navigation.navigate('Discussions')}
             >
               <LinearGradient
-                colors={[premiumColors.primary.main, premiumColors.primary.light]}
-                style={styles.quickActionGradient}
+                colors={['#6366F1', '#8B5CF6']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.joinBannerBtnGradient}
               >
-                <Ionicons name="create" size={24} color="#FFFFFF" />
+                <Text style={styles.joinBannerBtnText}>Get Started</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               </LinearGradient>
-              <Text style={[styles.quickActionText, { color: colors.text }]}>Start Discussion</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
-              onPress={() => navigation.navigate('QandAForum')}
-            >
-              <LinearGradient
-                colors={[premiumColors.accent.emerald, premiumColors.accent.emerald + 'DD']}
-                style={styles.quickActionGradient}
-              >
-                <Ionicons name="help-circle" size={24} color="#FFFFFF" />
-              </LinearGradient>
-              <Text style={[styles.quickActionText, { color: colors.text }]}>Ask Question</Text>
-            </TouchableOpacity>
-          </View>
+          </LinearGradient>
         </View>
 
-        {/* Bottom spacing */}
-        <View style={{ height: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
     </View>
   );
 }
 
-function StatItem({ icon, value, label, color, colors }) {
-  return (
-    <View style={styles.statItem}>
-      <View style={[styles.statIcon, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={20} color={color} />
-      </View>
-      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.secondaryText }]}>{label}</Text>
-    </View>
-  );
-}
-
-function TopicCard({ topic, colors, onPress }) {
+// Study Group Card Component
+function StudyGroupCard({ group, colors, isDarkMode, onPress }) {
+  const memberCount = group.members?.length || 0;
+  
   return (
     <TouchableOpacity
-      style={[styles.topicCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}
+      style={[styles.groupCard, { backgroundColor: colors.card }, premiumShadows.md]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
     >
-      <View style={styles.topicContent}>
-        <Text style={[styles.topicTitle, { color: colors.text }]} numberOfLines={2}>
-          {topic.title}
+      <LinearGradient
+        colors={isDarkMode ? ['#1E1B4B', '#312E81'] : ['#EEF2FF', '#E0E7FF']}
+        style={styles.groupCardHeader}
+      >
+        <View style={styles.groupCardIcon}>
+          {group.image ? (
+            <Image source={{ uri: group.image }} style={styles.groupCardImage} />
+          ) : (
+            <Ionicons name="people" size={24} color="#6366F1" />
+          )}
+        </View>
+        <View style={styles.groupCardBadge}>
+          <Ionicons name="ellipse" size={8} color="#10B981" />
+          <Text style={styles.groupCardBadgeText}>Active</Text>
+        </View>
+      </LinearGradient>
+      <View style={styles.groupCardBody}>
+        <Text style={[styles.groupCardTitle, { color: colors.text }]} numberOfLines={1}>
+          {group.name}
         </Text>
-        <View style={styles.topicMeta}>
-          <View style={styles.topicMetaItem}>
-            <Ionicons name="person" size={12} color={colors.secondaryText} />
-            <Text style={[styles.topicMetaText, { color: colors.secondaryText }]}>
-              {topic.author}
+        <Text style={[styles.groupCardDesc, { color: colors.secondaryText }]} numberOfLines={2}>
+          {group.description || 'Join this study group to learn together'}
+        </Text>
+        <View style={styles.groupCardFooter}>
+          <View style={styles.groupCardMembers}>
+            <Ionicons name="people-outline" size={14} color={colors.secondaryText} />
+            <Text style={[styles.groupCardMemberText, { color: colors.secondaryText }]}>
+              {memberCount} {memberCount === 1 ? 'member' : 'members'}
             </Text>
           </View>
-          <View style={styles.topicMetaItem}>
-            <Ionicons name="chatbubble" size={12} color={colors.secondaryText} />
-            <Text style={[styles.topicMetaText, { color: colors.secondaryText }]}>
-              {topic.replies}
-            </Text>
-          </View>
-          <View style={styles.topicMetaItem}>
-            <Ionicons name="eye" size={12} color={colors.secondaryText} />
-            <Text style={[styles.topicMetaText, { color: colors.secondaryText }]}>
-              {topic.views}
+          <View style={[styles.groupCardLevel, { backgroundColor: '#6366F1' + '20' }]}>
+            <Text style={[styles.groupCardLevelText, { color: '#6366F1' }]}>
+              {group.level || 'All Levels'}
             </Text>
           </View>
         </View>
       </View>
-      <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
     </TouchableOpacity>
   );
 }
 
-function DiscussionCard({ post, colors, onPress }) {
+// Discussion Card Component
+function DiscussionCard({ post, colors, isDarkMode, onPress }) {
   const formatTimeAgo = (date) => {
     if (!date) return 'Recently';
     const now = new Date();
     const postDate = new Date(date);
     const diffInHours = Math.floor((now - postDate) / (1000 * 60 * 60));
-    
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
     const diffInDays = Math.floor(diffInHours / 24);
@@ -432,22 +542,23 @@ function DiscussionCard({ post, colors, onPress }) {
 
   return (
     <TouchableOpacity
-      style={[styles.discussionCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}
+      style={[styles.discussionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
     >
       <View style={styles.discussionHeader}>
-        <View style={[styles.avatarContainer, { backgroundColor: premiumColors.primary.main + '20' }]}>
-          <Ionicons name="person" size={20} color={premiumColors.primary.main} />
+        <View style={[styles.discussionAvatar, { backgroundColor: '#6366F1' + '20' }]}>
+          <Ionicons name="person" size={18} color="#6366F1" />
         </View>
-        <View style={styles.discussionAuthor}>
-          <Text style={[styles.authorName, { color: colors.text }]}>
+        <View style={styles.discussionMeta}>
+          <Text style={[styles.discussionAuthor, { color: colors.text }]}>
             {post.author || 'Community Member'}
           </Text>
-          <Text style={[styles.postTime, { color: colors.secondaryText }]}>
+          <Text style={[styles.discussionTime, { color: colors.secondaryText }]}>
             {formatTimeAgo(post.publishedAt || post.createdAt)}
           </Text>
         </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
       </View>
       <Text style={[styles.discussionTitle, { color: colors.text }]} numberOfLines={2}>
         {post.title}
@@ -459,23 +570,17 @@ function DiscussionCard({ post, colors, onPress }) {
       )}
       <View style={styles.discussionFooter}>
         <View style={styles.discussionStats}>
-          <View style={styles.statBadge}>
+          <View style={styles.discussionStat}>
             <Ionicons name="chatbubble-outline" size={14} color={colors.secondaryText} />
-            <Text style={[styles.statBadgeText, { color: colors.secondaryText }]}>12</Text>
+            <Text style={[styles.discussionStatText, { color: colors.secondaryText }]}>12</Text>
           </View>
-          <View style={styles.statBadge}>
+          <View style={styles.discussionStat}>
             <Ionicons name="heart-outline" size={14} color={colors.secondaryText} />
-            <Text style={[styles.statBadgeText, { color: colors.secondaryText }]}>8</Text>
-          </View>
-          <View style={styles.statBadge}>
-            <Ionicons name="eye-outline" size={14} color={colors.secondaryText} />
-            <Text style={[styles.statBadgeText, { color: colors.secondaryText }]}>
-              {post.views || '0'}
-            </Text>
+            <Text style={[styles.discussionStatText, { color: colors.secondaryText }]}>8</Text>
           </View>
         </View>
-        <View style={[styles.categoryBadge, { backgroundColor: premiumColors.primary.main + '20' }]}>
-          <Text style={[styles.categoryBadgeText, { color: premiumColors.primary.main }]}>
+        <View style={[styles.discussionTag, { backgroundColor: '#10B981' + '15' }]}>
+          <Text style={[styles.discussionTagText, { color: '#10B981' }]}>
             {post.category?.toUpperCase() || 'DISCUSSION'}
           </Text>
         </View>
@@ -484,22 +589,21 @@ function DiscussionCard({ post, colors, onPress }) {
   );
 }
 
-function FeatureCard({ icon, title, subtitle, color, colors, onPress }) {
+// Highlight Card Component
+function HighlightCard({ icon, title, subtitle, gradient, colors }) {
   return (
-    <TouchableOpacity
-      style={[styles.featureCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
+    <View style={[styles.highlightCard, { backgroundColor: colors.card }]}>
       <LinearGradient
-        colors={[color, color + 'DD']}
-        style={styles.featureGradient}
+        colors={gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.highlightIcon}
       >
-        <Ionicons name={icon} size={24} color="#FFFFFF" />
+        <Ionicons name={icon} size={20} color="#FFFFFF" />
       </LinearGradient>
-      <Text style={[styles.featureTitle, { color: colors.text }]}>{title}</Text>
-      <Text style={[styles.featureSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
-    </TouchableOpacity>
+      <Text style={[styles.highlightTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.highlightSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
+    </View>
   );
 }
 
@@ -507,47 +611,153 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerWrapper: {
+    zIndex: 10,
+  },
   header: {
-    paddingTop: 50,
-    paddingBottom: spacing.lg,
+    paddingTop: 55,
+    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: 'hidden',
+  },
+  headerDecor: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  decorCircle: {
+    position: 'absolute',
+    borderRadius: 999,
+  },
+  decorCircle1: {
+    width: 200,
+    height: 200,
+    top: -50,
+    right: -50,
+  },
+  decorCircle2: {
+    width: 150,
+    height: 150,
+    bottom: -30,
+    left: -30,
   },
   headerContent: {
-    width: '100%',
+    zIndex: 1,
   },
-  headerTop: {
+  headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
-  greeting: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
+  headerTitleSection: {
+    flex: 1,
+  },
+  headerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
     marginBottom: spacing.xs,
   },
-  subtitle: {
-    fontSize: fontSize.md,
+  headerBadgeGradient: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  createButton: {
+  headerBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: fontSize.sm,
+    fontWeight: '500',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  headerActionBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    ...premiumShadows.md,
   },
-  searchBar: {
+  notificationDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+  },
+  liveStatsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  liveStatCard: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: premiumBorderRadius.lg,
+    alignItems: 'center',
+    gap: 2,
+  },
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  liveText: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  liveStatValue: {
+    fontSize: fontSize.lg,
+    fontWeight: '800',
+  },
+  liveStatLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  searchOverlay: {
+    position: 'absolute',
+    top: 60,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: premiumBorderRadius.lg,
-  },
-  searchIcon: {
-    marginRight: spacing.sm,
+    borderWidth: 1,
+    gap: spacing.sm,
   },
   searchInput: {
     flex: 1,
@@ -558,45 +768,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
+    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
-  statsSection: {
-    marginBottom: spacing.xl,
-  },
-  statsCard: {
-    borderRadius: premiumBorderRadius.xl,
-    padding: spacing.lg,
-    borderWidth: 1,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-    width: '48%',
-    marginBottom: spacing.md,
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  statValue: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    marginBottom: spacing.xs / 2,
-  },
-  statLabel: {
-    fontSize: fontSize.xs,
-    textAlign: 'center',
-  },
-  section: {
+  hubSection: {
     marginBottom: spacing.xl,
   },
   sectionHeader: {
@@ -610,61 +785,175 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.3,
   },
-  seeAllText: {
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  categoriesContainer: {
-    paddingRight: spacing.md,
-    gap: spacing.sm,
-  },
-  categoryChip: {
-    flexDirection: 'row',
+  sectionBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FEF3C7',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: premiumBorderRadius.full,
-    borderWidth: 1,
-    marginRight: spacing.sm,
-    gap: spacing.xs,
   },
-  categoryText: {
+  seeAllText: {
     fontSize: fontSize.sm,
     fontWeight: '600',
   },
-  topicCard: {
+  hubGrid: {
+    gap: spacing.sm,
+  },
+  hubCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    borderWidth: 1,
-    marginBottom: spacing.md,
-  },
-  topicContent: {
-    flex: 1,
-  },
-  topicTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
-  },
-  topicMeta: {
-    flexDirection: 'row',
+    borderRadius: premiumBorderRadius.xl,
     gap: spacing.md,
   },
-  topicMetaItem: {
+  hubCardGradient: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hubCardContent: {
+    flex: 1,
+  },
+  hubCardTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  hubCardSubtitle: {
+    fontSize: fontSize.sm,
+  },
+  hubCardBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: premiumBorderRadius.full,
+  },
+  hubCardBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  hubCardArrow: {
+    marginLeft: spacing.xs,
+  },
+  quickActionsSection: {
+    marginBottom: spacing.xl,
+  },
+  quickActionsScroll: {
+    paddingTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  quickActionBtn: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: premiumBorderRadius.lg,
+    borderWidth: 1,
+    marginRight: spacing.sm,
+    minWidth: 90,
+  },
+  quickActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  quickActionLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+  },
+  section: {
+    marginBottom: spacing.xl,
+  },
+  groupsScroll: {
+    paddingRight: spacing.lg,
+  },
+  groupCard: {
+    width: width * 0.7,
+    borderRadius: premiumBorderRadius.xl,
+    marginRight: spacing.md,
+    overflow: 'hidden',
+  },
+  groupCardHeader: {
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  groupCardIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  groupCardImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  groupCardBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs / 2,
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: premiumBorderRadius.full,
   },
-  topicMetaText: {
+  groupCardBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#10B981',
+  },
+  groupCardBody: {
+    padding: spacing.md,
+  },
+  groupCardTitle: {
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  groupCardDesc: {
+    fontSize: fontSize.sm,
+    lineHeight: 18,
+    marginBottom: spacing.sm,
+  },
+  groupCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  groupCardMembers: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  groupCardMemberText: {
     fontSize: fontSize.xs,
+  },
+  groupCardLevel: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: premiumBorderRadius.base,
+  },
+  groupCardLevelText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   discussionCard: {
     padding: spacing.md,
     borderRadius: premiumBorderRadius.lg,
     borderWidth: 1,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   discussionHeader: {
     flexDirection: 'row',
@@ -672,33 +961,33 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     gap: spacing.sm,
   },
-  avatarContainer: {
+  discussionAvatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  discussionAuthor: {
+  discussionMeta: {
     flex: 1,
   },
-  authorName: {
+  discussionAuthor: {
     fontSize: fontSize.sm,
     fontWeight: '600',
-    marginBottom: 2,
   },
-  postTime: {
+  discussionTime: {
     fontSize: fontSize.xs,
   },
   discussionTitle: {
     fontSize: fontSize.md,
     fontWeight: '700',
     marginBottom: spacing.xs,
+    lineHeight: 22,
   },
   discussionExcerpt: {
     fontSize: fontSize.sm,
-    marginBottom: spacing.sm,
     lineHeight: 18,
+    marginBottom: spacing.sm,
   },
   discussionFooter: {
     flexDirection: 'row',
@@ -709,77 +998,96 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.md,
   },
-  statBadge: {
+  discussionStat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs / 2,
+    gap: 4,
   },
-  statBadgeText: {
+  discussionStatText: {
     fontSize: fontSize.xs,
   },
-  categoryBadge: {
+  discussionTag: {
     paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: premiumBorderRadius.base,
   },
-  categoryBadgeText: {
-    fontSize: fontSize.xs,
+  discussionTagText: {
+    fontSize: 10,
     fontWeight: '700',
   },
-  featuresGrid: {
+  highlightsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
-  featureCard: {
-    width: '48%',
+  highlightCard: {
+    width: (width - spacing.lg * 2 - spacing.sm) / 2,
     padding: spacing.md,
     borderRadius: premiumBorderRadius.lg,
-    borderWidth: 1,
     alignItems: 'center',
+    ...premiumShadows.sm,
   },
-  featureGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  highlightIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  featureTitle: {
+  highlightTitle: {
     fontSize: fontSize.sm,
     fontWeight: '700',
-    marginBottom: spacing.xs / 2,
+    marginBottom: 2,
     textAlign: 'center',
   },
-  featureSubtitle: {
+  highlightSubtitle: {
     fontSize: fontSize.xs,
     textAlign: 'center',
   },
-  quickActionsContainer: {
-    flexDirection: 'row',
+  joinBanner: {
+    padding: spacing.lg,
+    borderRadius: premiumBorderRadius.xl,
     gap: spacing.md,
   },
-  quickActionButton: {
-    flex: 1,
+  joinBannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    borderWidth: 1,
-    gap: spacing.sm,
+    gap: spacing.md,
   },
-  quickActionGradient: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  joinBannerIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: 'rgba(99,102,241,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  quickActionText: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
+  joinBannerText: {
     flex: 1,
+  },
+  joinBannerTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  joinBannerSubtitle: {
+    fontSize: fontSize.sm,
+  },
+  joinBannerBtn: {
+    borderRadius: premiumBorderRadius.lg,
+    overflow: 'hidden',
+  },
+  joinBannerBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+  },
+  joinBannerBtnText: {
+    color: '#FFFFFF',
+    fontSize: fontSize.md,
+    fontWeight: '700',
   },
 });

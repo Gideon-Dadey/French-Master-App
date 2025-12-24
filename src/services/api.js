@@ -192,6 +192,7 @@ export const studyGroupsAPI = {
   leave: (id) => api.post(`/study-groups/${id}/leave`),
   removeMember: (groupId, userId) => api.post(`/study-groups/${groupId}/members/${userId}/remove`),
   addDiscussion: (id, message) => api.post(`/study-groups/${id}/discussions`, { message }),
+  deleteDiscussion: (groupId, messageId) => api.delete(`/study-groups/${groupId}/discussions/${messageId}`),
   addResource: (id, data) => api.post(`/study-groups/${id}/resources`, data),
   delete: (id) => api.delete(`/study-groups/${id}`),
 };
