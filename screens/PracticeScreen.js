@@ -435,13 +435,14 @@ export default function PracticeScreen({ navigation }) {
         {isAuthenticated && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Achievements</Text>
-            <View style={styles.achievementsContainer}>
+            <View style={styles.achievementsGrid}>
               <AchievementBadge
                 icon="trophy"
                 title="Practice Master"
                 subtitle="Completed 50 sessions"
                 color={premiumColors.accent.gold}
                 colors={colors}
+                onPress={() => navigation.navigate('Profile')}
               />
               <AchievementBadge
                 icon="flame"
@@ -449,6 +450,7 @@ export default function PracticeScreen({ navigation }) {
                 subtitle="7 day practice streak"
                 color={premiumColors.error}
                 colors={colors}
+                onPress={() => navigation.navigate('Profile')}
               />
               <AchievementBadge
                 icon="star"
@@ -456,6 +458,15 @@ export default function PracticeScreen({ navigation }) {
                 subtitle="Learned 200+ words"
                 color={premiumColors.primary.main}
                 colors={colors}
+                onPress={() => navigation.navigate('Profile')}
+              />
+              <AchievementBadge
+                icon="medal"
+                title="Perfect Score"
+                subtitle="100% accuracy streak"
+                color={premiumColors.accent.emerald}
+                colors={colors}
+                onPress={() => navigation.navigate('Profile')}
               />
             </View>
           </View>
@@ -530,15 +541,28 @@ function QuickPracticeCard({ title, subtitle, icon, color, colors, count, onPres
   );
 }
 
-function AchievementBadge({ icon, title, subtitle, color, colors }) {
+function AchievementBadge({ icon, title, subtitle, color, colors, onPress }) {
   return (
-    <View style={[styles.achievementBadge, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}>
-      <View style={[styles.achievementIcon, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={24} color={color} />
+    <TouchableOpacity
+      style={[styles.achievementBadge, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
+      <LinearGradient
+        colors={[color, color + 'DD']}
+        style={styles.achievementGradient}
+      >
+        <Ionicons name={icon} size={28} color="#FFFFFF" />
+      </LinearGradient>
+      <View style={styles.achievementContent}>
+        <Text style={[styles.achievementTitle, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.achievementSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
+        <View style={styles.achievementFooter}>
+          <Ionicons name="trophy" size={14} color={color} />
+          <Text style={[styles.achievementBadgeText, { color: color }]}>Achievement</Text>
+        </View>
       </View>
-      <Text style={[styles.achievementTitle, { color: colors.text }]}>{title}</Text>
-      <Text style={[styles.achievementSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -859,34 +883,43 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: '600',
   },
-  achievementsContainer: {
+  achievementsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: spacing.md,
   },
   achievementBadge: {
     width: '48%',
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
+    borderRadius: premiumBorderRadius.xl,
+    overflow: 'hidden',
     borderWidth: 1,
-    alignItems: 'center',
   },
-  achievementIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  achievementGradient: {
+    width: '100%',
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+  },
+  achievementContent: {
+    padding: spacing.md,
   },
   achievementTitle: {
-    fontSize: fontSize.sm,
+    fontSize: fontSize.md,
     fontWeight: '700',
     marginBottom: spacing.xs / 2,
-    textAlign: 'center',
   },
   achievementSubtitle: {
     fontSize: fontSize.xs,
-    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  achievementFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs / 2,
+  },
+  achievementBadgeText: {
+    fontSize: fontSize.xs,
+    fontWeight: '600',
   },
 });
