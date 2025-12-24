@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const Course = require('../models/Course');
 const { protect, authorize } = require('../middleware/auth');
 
 // @route   GET /api/users/profile
@@ -73,6 +74,160 @@ router.get('/my-courses', protect, async (req, res) => {
       success: true,
       count: user.enrolledCourses.length,
       data: user.enrolledCourses
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/users/instructor/students
+// @desc    Get students enrolled in instructor's courses
+// @access  Private/Instructor
+router.get('/instructor/students', protect, authorize('instructor', 'admin'), async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search, courseId } = req.query;
+    const skip = (page - 1) * limit;
+
+    // Get all courses taught by this instructor
+    const courseQuery = { instructor: req.user._id };
+    if (courseId) {
+      courseQuery._id = courseId;
+    }
+    const courses = await Course.find(courseQuery).select('_id');
+    const courseIds = courses.map(c => c._id);
+
+    if (courseIds.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: 0,
+          pages: 0
+        }
+      });
+    }
+
+    // Build query to find students enrolled in these courses
+    const enrollmentQuery = {
+      'enrolledCourses.course': { $in: courseIds },
+      role: 'student'
+    };
+
+    // Add search if provided
+    let usersQuery = {};
+    if (search) {
+      usersQuery.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Get all students who have enrolled in instructor's courses
+    const students = await User.find({
+      ...usersQuery,
+      ...enrollmentQuery
+    })
+      .select('-password')
+      .populate({
+        path: 'enrolledCourses.course',
+        match: { _id: { $in: courseIds } },
+        select: 'title thumbnail',
+        populate: {
+          path: 'instructor',
+          select: 'name'
+        }
+      })
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip(skip);
+
+    // Filter out students with no matching enrollments (due to populate match)
+    const filteredStudents = students.filter(student => 
+      student.enrolledCourses.some(enrollment => enrollment.course)
+    );
+
+    // Count total students
+    const total = await User.countDocuments({
+      ...usersQuery,
+      ...enrollmentQuery
+    });
+
+    res.json({
+      success: true,
+      data: filteredStudents,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/users/instructor/students/:id
+// @desc    Get student details enrolled in instructor's courses
+// @access  Private/Instructor
+router.get('/instructor/students/:id', protect, authorize('instructor', 'admin'), async (req, res) => {
+  try {
+    // Get all courses taught by this instructor
+    const courses = await Course.find({ instructor: req.user._id }).select('_id');
+    const courseIds = courses.map(c => c._id);
+
+    if (courseIds.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found in your courses'
+      });
+    }
+
+    // Find student enrolled in instructor's courses
+    const student = await User.findOne({
+      _id: req.params.id,
+      role: 'student',
+      'enrolledCourses.course': { $in: courseIds }
+    })
+      .select('-password')
+      .populate({
+        path: 'enrolledCourses.course',
+        match: { _id: { $in: courseIds } },
+        select: 'title thumbnail rating',
+        populate: {
+          path: 'instructor',
+          select: 'name'
+        }
+      })
+      .populate('enrolledCourses.completedLessons', 'title order');
+
+    // Filter enrollments to only show instructor's courses
+    if (student) {
+      student.enrolledCourses = student.enrolledCourses.filter(
+        enrollment => enrollment.course && courseIds.includes(enrollment.course._id)
+      );
+    }
+
+    if (!student || student.enrolledCourses.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found in your courses'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: student
     });
   } catch (error) {
     res.status(500).json({

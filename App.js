@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Platform } from 'react-native';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { WishlistProvider } from './src/context/WishlistContext';
+import { StudentProvider } from './src/context/StudentContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { GamificationProvider } from './src/context/GamificationContext';
 import NetworkStatus from './src/components/NetworkStatus';
@@ -53,6 +54,8 @@ import DiscussionDetailScreen from './screens/DiscussionDetailScreen';
 import CreateDiscussionScreen from './screens/CreateDiscussionScreen';
 import BrowseTopicsScreen from './screens/BrowseTopicsScreen';
 import TeachersScreen from './screens/TeachersScreen';
+import AdvancedVideoHostingScreen from './screens/AdvancedVideoHostingScreen';
+import AnalyticsDashboardScreen from './screens/AnalyticsDashboardScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -483,6 +486,20 @@ function AppNavigator() {
                 headerShown: false,
               }}
             />
+            <Stack.Screen
+              name="AdvancedVideoHosting"
+              component={AdvancedVideoHostingScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="AnalyticsDashboard"
+              component={AnalyticsDashboardScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
           </Stack.Navigator>
     </NavigationContainer>
   );
@@ -494,7 +511,9 @@ export default function App() {
       <ThemeProvider>
         <GamificationProvider>
           <WishlistProvider>
-            <ThemedApp />
+            <StudentProvider>
+              <ThemedApp />
+            </StudentProvider>
           </WishlistProvider>
         </GamificationProvider>
       </ThemeProvider>

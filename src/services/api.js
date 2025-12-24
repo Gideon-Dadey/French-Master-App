@@ -252,4 +252,18 @@ export const topicsAPI = {
   getById: (topicId, params) => api.get(`/topics/${topicId}`, { params }),
 };
 
+// Admin Students API
+export const studentsAPI = {
+  getAll: (params) => api.get('/admin/students', { params }),
+  getById: (id) => api.get(`/admin/students/${id}`),
+  update: (id, data) => api.put(`/admin/students/${id}`, data),
+  delete: (id) => api.delete(`/admin/students/${id}`),
+};
+
+// Instructor Students API
+export const instructorStudentsAPI = {
+  getAll: (params) => api.get('/users/instructor/students', { params }),
+  getById: (id) => api.get(`/users/instructor/students/${id}`),
+};
+
 export default api;

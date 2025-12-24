@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -88,12 +88,14 @@ export default function TeachersScreen({ navigation }) {
 
   const advancedFeatures = [
     {
+      id: 'video-hosting',
       icon: 'videocam',
       title: 'Advanced Video Hosting',
       description: 'Upload HD videos with automatic optimization and CDN delivery',
       color: premiumColors.primary.main,
     },
     {
+      id: 'analytics',
       icon: 'analytics',
       title: 'Analytics Dashboard',
       description: 'Track student progress, engagement, and course performance',
@@ -214,6 +216,7 @@ export default function TeachersScreen({ navigation }) {
                 key={index}
                 feature={feature}
                 colors={colors}
+                navigation={navigation}
               />
             ))}
           </View>
@@ -336,9 +339,24 @@ export default function TeachersScreen({ navigation }) {
   );
 }
 
-function FeatureCard({ feature, colors }) {
+function FeatureCard({ feature, colors, navigation }) {
+  const handlePress = () => {
+    if (feature.id === 'video-hosting') {
+      navigation.navigate('AdvancedVideoHosting');
+    } else if (feature.id === 'analytics') {
+      navigation.navigate('AnalyticsDashboard');
+    } else {
+      // Handle other features
+      Alert.alert('Coming Soon', `${feature.title} feature will be available soon!`);
+    }
+  };
+
   return (
-    <View style={[styles.featureCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}>
+    <TouchableOpacity
+      style={[styles.featureCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}
+      onPress={handlePress}
+      activeOpacity={0.8}
+    >
       <View style={[styles.featureIcon, { backgroundColor: feature.color + '20' }]}>
         <Ionicons name={feature.icon} size={28} color={feature.color} />
       </View>
@@ -346,7 +364,10 @@ function FeatureCard({ feature, colors }) {
       <Text style={[styles.featureDescription, { color: colors.secondaryText }]}>
         {feature.description}
       </Text>
-    </View>
+      <View style={styles.featureArrow}>
+        <Ionicons name="arrow-forward" size={16} color={feature.color} />
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -563,6 +584,9 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     textAlign: 'center',
     lineHeight: 16,
+  },
+  featureArrow: {
+    marginTop: spacing.xs,
   },
   plansContainer: {
     gap: spacing.md,
