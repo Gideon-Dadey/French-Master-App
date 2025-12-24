@@ -281,7 +281,7 @@ export default function CommunityScreen({ navigation }) {
               subtitle="Top learners"
               color={premiumColors.accent.gold}
               colors={colors}
-              onPress={() => {}}
+              onPress={() => navigation.navigate('Leaderboard')}
             />
             <FeatureCard
               icon="people-circle"
@@ -289,7 +289,7 @@ export default function CommunityScreen({ navigation }) {
               subtitle="Join groups"
               color={premiumColors.primary.main}
               colors={colors}
-              onPress={() => {}}
+              onPress={() => navigation.navigate('StudyGroups')}
             />
             <FeatureCard
               icon="chatbubbles"
@@ -297,7 +297,7 @@ export default function CommunityScreen({ navigation }) {
               subtitle="Ask questions"
               color={premiumColors.accent.emerald}
               colors={colors}
-              onPress={() => {}}
+              onPress={() => navigation.navigate('QandAForum')}
             />
             <FeatureCard
               icon="share-social"
@@ -305,7 +305,7 @@ export default function CommunityScreen({ navigation }) {
               subtitle="Show achievements"
               color={premiumColors.accent.rose}
               colors={colors}
-              onPress={() => {}}
+              onPress={() => navigation.navigate('ShareProgress')}
             />
           </View>
         </View>
@@ -316,7 +316,7 @@ export default function CommunityScreen({ navigation }) {
           <View style={styles.quickActionsContainer}>
             <TouchableOpacity
               style={[styles.quickActionButton, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
-              onPress={() => {}}
+              onPress={() => navigation.navigate('Discussions')}
             >
               <LinearGradient
                 colors={[premiumColors.primary.main, premiumColors.primary.light]}
@@ -328,7 +328,7 @@ export default function CommunityScreen({ navigation }) {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.quickActionButton, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
-              onPress={() => {}}
+              onPress={() => navigation.navigate('QandAForum')}
             >
               <LinearGradient
                 colors={[premiumColors.accent.emerald, premiumColors.accent.emerald + 'DD']}

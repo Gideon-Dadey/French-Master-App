@@ -83,6 +83,11 @@ app.use('/api/tags', require('./routes/tags'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/subscriptions', require('./routes/subscriptions'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/study-groups', require('./routes/studyGroups'));
+app.use('/api/leaderboard', require('./routes/leaderboard'));
+app.use('/api/questions', require('./routes/questions'));
+app.use('/api/progress-share', require('./routes/progressShare'));
+app.use('/api/discussions', require('./routes/discussions'));
 
 // Health check
 app.get('/health', (req, res) => {

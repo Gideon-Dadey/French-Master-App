@@ -39,6 +39,18 @@ import FlashcardsScreen from './screens/FlashcardsScreen';
 import SpeakingPracticeScreen from './screens/SpeakingPracticeScreen';
 import ListeningPracticeScreen from './screens/ListeningPracticeScreen';
 import WritingPracticeScreen from './screens/WritingPracticeScreen';
+import StudyGroupsScreen from './screens/StudyGroupsScreen';
+import StudyGroupDetailScreen from './screens/StudyGroupDetailScreen';
+import CreateStudyGroupScreen from './screens/CreateStudyGroupScreen';
+import LeaderboardScreen from './screens/LeaderboardScreen';
+import QandAForumScreen from './screens/QandAForumScreen';
+import QuestionDetailScreen from './screens/QuestionDetailScreen';
+import CreateQuestionScreen from './screens/CreateQuestionScreen';
+import ShareProgressScreen from './screens/ShareProgressScreen';
+import CreateProgressShareScreen from './screens/CreateProgressShareScreen';
+import DiscussionsScreen from './screens/DiscussionsScreen';
+import DiscussionDetailScreen from './screens/DiscussionDetailScreen';
+import CreateDiscussionScreen from './screens/CreateDiscussionScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -367,6 +379,90 @@ function AppNavigator() {
             <Stack.Screen
               name="WritingPractice"
               component={WritingPracticeScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="StudyGroups"
+              component={StudyGroupsScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="StudyGroupDetail"
+              component={StudyGroupDetailScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="CreateStudyGroup"
+              component={CreateStudyGroupScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="Leaderboard"
+              component={LeaderboardScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="QandAForum"
+              component={QandAForumScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="QuestionDetail"
+              component={QuestionDetailScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="CreateQuestion"
+              component={CreateQuestionScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="ShareProgress"
+              component={ShareProgressScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="CreateProgressShare"
+              component={CreateProgressShareScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="Discussions"
+              component={DiscussionsScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="DiscussionDetail"
+              component={DiscussionDetailScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="CreateDiscussion"
+              component={CreateDiscussionScreen}
               options={{
                 headerShown: false,
               }}

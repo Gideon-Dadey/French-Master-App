@@ -181,4 +181,69 @@ export const blogAPI = {
   getFeatured: () => api.get('/blog/featured/list'),
 };
 
+// Study Groups API
+export const studyGroupsAPI = {
+  getAll: (params) => api.get('/study-groups', { params }),
+  getById: (id) => api.get(`/study-groups/${id}`),
+  create: (data) => api.post('/study-groups', data),
+  update: (id, data) => api.put(`/study-groups/${id}`, data),
+  join: (id, inviteCode) => api.post(`/study-groups/${id}/join`, { inviteCode }),
+  leave: (id) => api.post(`/study-groups/${id}/leave`),
+  removeMember: (groupId, userId) => api.post(`/study-groups/${groupId}/members/${userId}/remove`),
+  addDiscussion: (id, message) => api.post(`/study-groups/${id}/discussions`, { message }),
+  addResource: (id, data) => api.post(`/study-groups/${id}/resources`, data),
+  delete: (id) => api.delete(`/study-groups/${id}`),
+};
+
+// Leaderboard API
+export const leaderboardAPI = {
+  getAll: (params) => api.get('/leaderboard', { params }),
+  getMe: () => api.get('/leaderboard/me'),
+  getAroundMe: (params) => api.get('/leaderboard/around-me', { params }),
+  updateStats: (data) => api.post('/leaderboard/update-stats', data),
+};
+
+// Questions API (Q&A Forum)
+export const questionsAPI = {
+  getAll: (params) => api.get('/questions', { params }),
+  getById: (id) => api.get(`/questions/${id}`),
+  create: (data) => api.post('/questions', data),
+  update: (id, data) => api.put(`/questions/${id}`, data),
+  delete: (id) => api.delete(`/questions/${id}`),
+  upvote: (id) => api.post(`/questions/${id}/upvote`),
+  downvote: (id) => api.post(`/questions/${id}/downvote`),
+  addAnswer: (id, content) => api.post(`/questions/${id}/answers`, { content }),
+  acceptAnswer: (questionId, answerId) => api.post(`/questions/${questionId}/answers/${answerId}/accept`),
+  upvoteAnswer: (questionId, answerId) => api.post(`/questions/${questionId}/answers/${answerId}/upvote`),
+  downvoteAnswer: (questionId, answerId) => api.post(`/questions/${questionId}/answers/${answerId}/downvote`),
+  addComment: (questionId, answerId, content) => api.post(`/questions/${questionId}/answers/${answerId}/comments`, { content }),
+};
+
+// Progress Share API
+export const progressShareAPI = {
+  getAll: (params) => api.get('/progress-share', { params }),
+  getById: (id) => api.get(`/progress-share/${id}`),
+  create: (data) => api.post('/progress-share', data),
+  update: (id, data) => api.put(`/progress-share/${id}`, data),
+  delete: (id) => api.delete(`/progress-share/${id}`),
+  like: (id) => api.post(`/progress-share/${id}/like`),
+  addComment: (id, content) => api.post(`/progress-share/${id}/comments`, { content }),
+  share: (id) => api.post(`/progress-share/${id}/share`),
+  getByUser: (userId, params) => api.get(`/progress-share/user/${userId}`, { params }),
+};
+
+// Discussions API
+export const discussionsAPI = {
+  getAll: (params) => api.get('/discussions', { params }),
+  getById: (id) => api.get(`/discussions/${id}`),
+  create: (data) => api.post('/discussions', data),
+  update: (id, data) => api.put(`/discussions/${id}`, data),
+  delete: (id) => api.delete(`/discussions/${id}`),
+  like: (id) => api.post(`/discussions/${id}/like`),
+  addReply: (id, content) => api.post(`/discussions/${id}/replies`, { content }),
+  updateReply: (id, replyId, content) => api.put(`/discussions/${id}/replies/${replyId}`, { content }),
+  deleteReply: (id, replyId) => api.delete(`/discussions/${id}/replies/${replyId}`),
+  likeReply: (id, replyId) => api.post(`/discussions/${id}/replies/${replyId}/like`),
+};
+
 export default api;
