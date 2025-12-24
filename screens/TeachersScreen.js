@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
+import { useCurrency } from '../src/context/CurrencyContext';
 import { spacing, fontSize } from '../src/utils/responsive';
 import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import LoadingSpinner from '../src/components/LoadingSpinner';
@@ -21,6 +22,7 @@ const { width } = Dimensions.get('window');
 export default function TeachersScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
   const { colors, isDarkMode } = useTheme();
+  const { formatPriceValue, getCurrencyData } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
 
@@ -393,8 +395,12 @@ function PlanCard({ plan, colors, isSelected, onSelect }) {
         <Text style={[styles.planName, { color: colors.text }]}>{plan.name}</Text>
         <View style={styles.priceContainer}>
           <View style={styles.priceRow}>
-            <Text style={[styles.currency, { color: colors.secondaryText }]}>GHS</Text>
-            <Text style={[styles.price, { color: plan.color }]}>{plan.price}</Text>
+            <Text style={[styles.currency, { color: colors.secondaryText }]}>
+              {getCurrencyData().symbol}
+            </Text>
+            <Text style={[styles.price, { color: plan.color }]}>
+              {formatPriceValue(plan.price, 'GHS')}
+            </Text>
             <Text style={[styles.period, { color: colors.secondaryText }]}>/{plan.period}</Text>
           </View>
           {plan.originalPrice > plan.price && (

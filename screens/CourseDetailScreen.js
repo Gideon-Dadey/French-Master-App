@@ -25,6 +25,7 @@ import { spacing, fontSize } from '../src/utils/responsive';
 import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import { getCourseImage } from '../src/utils/courseImages';
 import Rating from '../src/components/Rating';
+import { useCurrency } from '../src/context/CurrencyContext';
 
 const { width } = Dimensions.get('window');
 
@@ -32,6 +33,7 @@ export default function CourseDetailScreen({ route, navigation }) {
   const { courseId } = route.params;
   const { isAuthenticated, user } = useAuth();
   const { colors, isDarkMode } = useTheme();
+  const { formatPrice } = useCurrency();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState([]);
@@ -230,12 +232,12 @@ export default function CourseDetailScreen({ route, navigation }) {
                 {hasDiscount && (
                   <View style={styles.originalPriceContainer}>
                     <Text style={[styles.originalPrice, { color: colors.secondaryText }]}>
-                      {formatCurrency(course.originalPrice, 'GHS')}
+                      {formatPrice(course.originalPrice, course.currency || 'GHS')}
                     </Text>
                   </View>
                 )}
                 <Text style={[styles.price, { color: primaryColor }]}>
-                  {course.isFree ? 'FREE' : formatCurrency(course.price, 'GHS')}
+                  {course.isFree ? 'FREE' : formatPrice(course.price, course.currency || 'GHS')}
                 </Text>
                 {hasDiscount && (
                   <View style={[styles.discountTag, { backgroundColor: premiumColors.error + '20' }]}>
@@ -309,11 +311,18 @@ export default function CourseDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          {/* Course Highlights */}
-          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
+          {/* Course Highlights - Premium */}
+          <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.lg]}>
             <View style={styles.sectionHeader}>
-              <Ionicons name="flash" size={24} color={premiumColors.accent.gold} />
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Course Highlights</Text>
+              <View style={[styles.highlightsHeaderIcon, { backgroundColor: premiumColors.accent.gold + '20' }]}>
+                <Ionicons name="flash" size={28} color={premiumColors.accent.gold} />
+              </View>
+              <View style={styles.sectionHeaderText}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Course Highlights</Text>
+                <Text style={[styles.highlightsSubtitle, { color: colors.secondaryText }]}>
+                  Everything you need to succeed
+                </Text>
+              </View>
             </View>
             <View style={styles.highlightsGrid}>
               <HighlightItem
@@ -326,21 +335,21 @@ export default function CourseDetailScreen({ route, navigation }) {
               <HighlightItem
                 icon="time"
                 title="Duration"
-                value={`${course.duration || 0} hours`}
+                value={`${course.duration || 0}h`}
                 color={premiumColors.accent.sky}
                 colors={colors}
               />
               <HighlightItem
                 icon="trophy"
                 title="Certificate"
-                value={course.certificate?.enabled ? 'Included' : 'Not included'}
+                value={course.certificate?.enabled ? 'Included' : 'Optional'}
                 color={premiumColors.accent.gold}
                 colors={colors}
               />
               <HighlightItem
                 icon="infinite"
                 title="Lifetime Access"
-                value="Yes"
+                value="Forever"
                 color={premiumColors.accent.emerald}
                 colors={colors}
               />
@@ -553,12 +562,26 @@ export default function CourseDetailScreen({ route, navigation }) {
 
 function HighlightItem({ icon, title, value, color, colors }) {
   return (
-    <View style={[styles.highlightItem, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={[styles.highlightIcon, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={20} color={color} />
-      </View>
-      <Text style={[styles.highlightTitle, { color: colors.text }]}>{title}</Text>
-      <Text style={[styles.highlightValue, { color: color }]}>{value}</Text>
+    <View style={[styles.highlightItem, { borderColor: colors.border }, premiumShadows.sm]}>
+      <LinearGradient
+        colors={[color + '15', color + '08']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.highlightGradient}
+      >
+        <View style={[styles.highlightIconContainer]}>
+          <LinearGradient
+            colors={[color, color + 'DD']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.highlightIconGradient}
+          >
+            <Ionicons name={icon} size={24} color="#FFFFFF" />
+          </LinearGradient>
+        </View>
+        <Text style={[styles.highlightTitle, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.highlightValue, { color: color }]}>{value}</Text>
+      </LinearGradient>
     </View>
   );
 }
@@ -798,11 +821,24 @@ const styles = StyleSheet.create({
   },
   sectionHeaderText: {
     flex: 1,
+    marginLeft: spacing.md,
   },
   sectionTitle: {
     fontSize: fontSize.xl,
     fontWeight: '700',
     letterSpacing: -0.3,
+  },
+  highlightsSubtitle: {
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs / 2,
+    fontWeight: '500',
+  },
+  highlightsHeaderIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   description: {
     fontSize: fontSize.md,
@@ -838,32 +874,51 @@ const styles = StyleSheet.create({
   highlightsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
+    gap: spacing.lg,
+    marginTop: spacing.sm,
   },
   highlightItem: {
-    width: '48%',
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    borderWidth: 1,
-    alignItems: 'center',
+    width: '47%',
+    borderRadius: premiumBorderRadius.xl,
+    borderWidth: 1.5,
+    overflow: 'hidden',
   },
-  highlightIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  highlightGradient: {
+    padding: spacing.lg,
+    alignItems: 'center',
+    minHeight: 140,
+    justifyContent: 'center',
+  },
+  highlightIconContainer: {
+    marginBottom: spacing.md,
+    ...premiumShadows.md,
+  },
+  highlightIconGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   highlightTitle: {
     fontSize: fontSize.sm,
     fontWeight: '600',
-    marginBottom: spacing.xs / 2,
+    marginBottom: spacing.xs,
     textAlign: 'center',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    opacity: 0.8,
   },
   highlightValue: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
+    fontSize: fontSize.lg,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: -0.5,
   },
   requirementItem: {
     flexDirection: 'row',

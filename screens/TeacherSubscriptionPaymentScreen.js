@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
+import { useCurrency } from '../src/context/CurrencyContext';
 import { subscriptionsAPI } from '../src/services/api';
 import { spacing, fontSize } from '../src/utils/responsive';
 import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
@@ -25,6 +26,7 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
   const { plan } = route.params || {};
   const { user, isAuthenticated } = useAuth();
   const { colors, isDarkMode } = useTheme();
+  const { formatPrice, formatPriceValue, getCurrencyData } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('stripe'); // Default to stripe
@@ -156,7 +158,7 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
                 {plan.originalPrice && plan.originalPrice > plan.price && (
                   <>
                     <Text style={[styles.originalPrice, { color: colors.secondaryText }]}>
-                      {formatCurrency(plan.originalPrice, 'GHS')}
+                      {formatPrice(plan.originalPrice, 'GHS')}
                     </Text>
                     <View style={[styles.discountBadge, { backgroundColor: premiumColors.accent.emerald + '20' }]}>
                       <Text style={[styles.discountText, { color: premiumColors.accent.emerald }]}>
@@ -167,8 +169,12 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
                 )}
               </View>
               <View style={styles.currentPriceRow}>
-                <Text style={[styles.currency, { color: colors.secondaryText }]}>GHS</Text>
-                <Text style={[styles.price, { color: plan.color }]}>{plan.price}</Text>
+                <Text style={[styles.currency, { color: colors.secondaryText }]}>
+                  {getCurrencyData().symbol}
+                </Text>
+                <Text style={[styles.price, { color: plan.color }]}>
+                  {formatPriceValue(plan.price, 'GHS')}
+                </Text>
                 <Text style={[styles.period, { color: colors.secondaryText }]}>/{plan.period}</Text>
               </View>
             </View>

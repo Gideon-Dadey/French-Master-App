@@ -6,10 +6,12 @@ import { spacing, fontSize, courseCardWidth, isTablet } from '../utils/responsiv
 import { getCourseImage } from '../utils/courseImages';
 import { getCourseThumbnail } from '../utils/courseThumbnailMap';
 import { useTheme } from '../context/ThemeContext';
+import { useCurrency } from '../context/CurrencyContext';
 import Rating from './Rating';
 
 export default function CourseCard({ course, onPress, style, isHorizontal = false, index = 0 }) {
   const { colors } = useTheme();
+  const { formatPrice } = useCurrency();
   
   const getLevelColor = (level) => {
     switch (level) {
@@ -109,7 +111,7 @@ export default function CourseCard({ course, onPress, style, isHorizontal = fals
             { color: colors.text },
             course.isFree && styles.freePrice
           ]}>
-            {course.isFree ? 'FREE' : formatCurrency(course.price, 'GHS')}
+            {course.isFree ? 'FREE' : formatPrice(course.price, course.currency || 'GHS')}
           </Text>
         </View>
       </View>

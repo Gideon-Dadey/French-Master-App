@@ -6,6 +6,7 @@ import { spacing, fontSize } from '../utils/responsive';
 import { getCourseImage } from '../utils/courseImages';
 import { getCourseThumbnail } from '../utils/courseThumbnailMap';
 import { useTheme } from '../context/ThemeContext';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
   const getLevelColor = (level) => {
@@ -167,12 +168,12 @@ export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
         <View style={styles.priceSection}>
           {hasDiscount && (
             <Text style={styles.originalPrice}>
-              {formatCurrency(course.originalPrice, 'GHS')}
+              {formatPrice(course.originalPrice, course.currency || 'GHS')}
             </Text>
           )}
           <View style={styles.priceRow}>
             <Text style={[styles.price, course.isFree && styles.freePrice]}>
-              {course.isFree ? 'FREE' : formatCurrency(course.price, 'GHS')}
+              {course.isFree ? 'FREE' : formatPrice(course.price, course.currency || 'GHS')}
             </Text>
             {!course.isFree && hasDiscount && (
               <View style={styles.priceBadge}>

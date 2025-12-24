@@ -10,6 +10,7 @@ import { StudentProvider } from './src/context/StudentContext';
 import { InstructorStudentProvider } from './src/context/InstructorStudentContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { GamificationProvider } from './src/context/GamificationContext';
+import { CurrencyProvider } from './src/context/CurrencyContext';
 import NetworkStatus from './src/components/NetworkStatus';
 import TabBarIcon from './src/components/TabBarIcon';
 import ToastContainer from './src/components/ToastNotification';
@@ -534,15 +535,17 @@ export default function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <GamificationProvider>
-          <WishlistProvider>
-            <StudentProvider>
-              <InstructorStudentProvider>
-                <ThemedApp />
-              </InstructorStudentProvider>
-            </StudentProvider>
-          </WishlistProvider>
-        </GamificationProvider>
+        <CurrencyProvider>
+          <GamificationProvider>
+            <WishlistProvider>
+              <StudentProvider>
+                <InstructorStudentProvider>
+                  <ThemedApp />
+                </InstructorStudentProvider>
+              </StudentProvider>
+            </WishlistProvider>
+          </GamificationProvider>
+        </CurrencyProvider>
       </ThemeProvider>
     </AuthProvider>
   );

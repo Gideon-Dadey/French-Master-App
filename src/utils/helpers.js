@@ -1,7 +1,37 @@
 // Helper functions
 
-export const formatCurrency = (amount, currency = 'GHS') => {
-  return `${currency} ${amount.toFixed(2)}`;
+/**
+ * Format currency amount
+ * @param {number} amount - The amount to format
+ * @param {string} currency - Currency code (default: 'GHS')
+ * @param {Function} formatPrice - Optional formatPrice function from CurrencyContext
+ * @returns {string} Formatted currency string
+ */
+export const formatCurrency = (amount, currency = 'GHS', formatPrice = null) => {
+  // If formatPrice function is provided (from CurrencyContext), use it
+  if (formatPrice && typeof formatPrice === 'function') {
+    return formatPrice(amount, currency);
+  }
+
+  // Fallback to basic formatting
+  const currencySymbols = {
+    GHS: 'GH₵',
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    NGN: '₦',
+    XOF: 'CFA',
+    ZAR: 'R',
+    KES: 'KSh',
+  };
+
+  const symbol = currencySymbols[currency] || currency;
+  
+  if (currency === 'USD' || currency === 'EUR' || currency === 'GBP') {
+    return `${symbol}${amount.toFixed(2)}`;
+  } else {
+    return `${symbol} ${amount.toFixed(2)}`;
+  }
 };
 
 export const formatDuration = (seconds) => {

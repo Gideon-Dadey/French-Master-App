@@ -21,7 +21,8 @@ import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils
 import { formatCurrency } from '../src/utils/helpers';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import { getCourseImage } from '../src/utils/courseImages';
-import { getCourseThumbnail } from '../src/utils/courseThumbnailMap';
+import getCourseThumbnail from '../src/utils/courseThumbnailMap';
+import { useCurrency } from '../src/context/CurrencyContext';
 
 export default function CoursePaymentScreen({ route, navigation }) {
   const { course, courseId } = route.params || {};
@@ -262,7 +263,7 @@ export default function CoursePaymentScreen({ route, navigation }) {
                 {hasDiscount && (
                   <View style={styles.discountContainer}>
                     <Text style={[styles.originalPrice, { color: colors.secondaryText }]}>
-                      {formatCurrency(courseData.originalPrice, courseData.currency || 'GHS')}
+                      {formatPrice(courseData.originalPrice, courseData.currency || 'GHS')}
                     </Text>
                     <View style={[styles.discountBadge, { backgroundColor: premiumColors.accent.emerald + '20' }]}>
                       <Text style={[styles.discountText, { color: premiumColors.accent.emerald }]}>
@@ -365,7 +366,7 @@ export default function CoursePaymentScreen({ route, navigation }) {
             ) : (
               <>
                 <Text style={styles.payButtonText}>
-                  Complete Purchase - {formatCurrency(coursePrice, courseData?.currency || 'GHS')}
+                  Complete Purchase - {formatPrice(coursePrice, courseData?.currency || 'GHS')}
                 </Text>
                 <Ionicons name="lock-closed" size={20} color="#FFFFFF" />
               </>
