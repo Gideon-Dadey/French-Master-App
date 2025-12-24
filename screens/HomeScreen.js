@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Dimensions,
   Animated,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -201,68 +202,51 @@ export default function HomeScreen({ navigation }) {
         <LinearGradient
           colors={isDarkMode 
             ? ['#0F172A', '#1E293B', '#334155']
-            : ['#FFFFFF', '#F8FAFC', '#F1F5F9']
+            : ['#1E3A8A', '#3B82F6', '#60A5FA']
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-          {/* Header Top Row */}
+          {/* Header Top Row - App Title */}
           <View style={styles.headerTopRow}>
-            <View style={styles.headerLeft}>
-              <View style={styles.headerBadge}>
-                <LinearGradient
-                  colors={['#3B82F6', '#2563EB']}
-                  style={styles.headerBadgeGradient}
-                >
-                  <Text style={styles.headerBadgeText}>🇫🇷</Text>
-                </LinearGradient>
-              </View>
-              <View style={styles.headerTitles}>
-                <Text style={[styles.greeting, { color: colors.secondaryText }]}>{greeting}</Text>
-                <Text style={[styles.userName, { color: colors.text }]}>{userName}! 👋</Text>
-              </View>
-            </View>
+            <Text style={styles.appTitle}>FRENCH MASTER GH</Text>
             <View style={styles.headerActions}>
               <TouchableOpacity
-                style={[styles.headerActionBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+                style={styles.headerActionBtn}
+                onPress={() => navigation.navigate('Notifications')}
+              >
+                <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
+                <View style={styles.notificationDot} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerActionBtn}
                 onPress={toggleTheme}
               >
                 <Ionicons 
-                  name={isDarkMode ? 'sunny' : 'moon'} 
-                  size={20} 
-                  color={isDarkMode ? '#FCD34D' : '#6B7280'} 
+                  name={isDarkMode ? 'sunny-outline' : 'moon-outline'} 
+                  size={22} 
+                  color="#FFFFFF" 
                 />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.headerActionBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-                onPress={() => navigation.navigate('Notifications')}
-              >
-                <Ionicons name="notifications" size={20} color={colors.text} />
-                <View style={styles.notificationDot} />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Stats Row for Authenticated Users */}
-          {isAuthenticated && userStats && (
-            <View style={styles.statsRow}>
-              <View style={[styles.statPill, { backgroundColor: isDarkMode ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)' }]}>
-                <Ionicons name="flame" size={16} color="#F97316" />
-                <Text style={[styles.statPillValue, { color: colors.text }]}>{userStats.streak}</Text>
-                <Text style={[styles.statPillLabel, { color: colors.secondaryText }]}>day</Text>
-              </View>
-              <View style={[styles.statPill, { backgroundColor: isDarkMode ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.1)' }]}>
-                <Ionicons name="star" size={16} color="#F59E0B" />
-                <Text style={[styles.statPillValue, { color: colors.text }]}>{userStats.xp}</Text>
-                <Text style={[styles.statPillLabel, { color: colors.secondaryText }]}>XP</Text>
-              </View>
-              <View style={[styles.statPill, { backgroundColor: isDarkMode ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.1)' }]}>
-                <Ionicons name="trophy" size={16} color="#8B5CF6" />
-                <Text style={[styles.statPillValue, { color: colors.text }]}>Lvl {userStats.level}</Text>
-              </View>
+          {/* What do you want to learn? */}
+          <Text style={styles.welcomeQuestion}>What do you want to learn?</Text>
+
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Browse courses..."
+                placeholderTextColor="rgba(255,255,255,0.5)"
+                onSubmitEditing={() => navigation.navigate('Courses')}
+              />
             </View>
-          )}
+          </View>
         </LinearGradient>
       </Animated.View>
 
@@ -631,7 +615,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   header: {
-    paddingTop: 55,
+    paddingTop: 50,
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
   },
@@ -639,56 +623,58 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  headerBadge: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  headerBadgeGradient: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerBadgeText: {
-    fontSize: 24,
-  },
-  headerTitles: {},
-  greeting: {
-    fontSize: fontSize.sm,
-    fontWeight: '500',
-  },
-  userName: {
-    fontSize: fontSize.xl,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+  appTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
   headerActions: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: spacing.md,
   },
   headerActionBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   notificationDot: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 8,
+    right: 8,
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#EF4444',
+  },
+  welcomeQuestion: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: spacing.md,
+  },
+  searchContainer: {
+    marginBottom: spacing.xs,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 14,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    gap: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#FFFFFF',
+    paddingVertical: 0,
   },
   statsRow: {
     flexDirection: 'row',
@@ -1147,3 +1133,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
