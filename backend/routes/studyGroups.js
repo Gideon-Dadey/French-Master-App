@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const StudyGroup = require('../models/StudyGroup');
-const { protect } = require('../middleware/auth');
+const { protect, optionalAuth } = require('../middleware/auth');
 
 // @route   GET /api/study-groups
 // @desc    Get all study groups with filters
 // @access  Public (for public groups) / Protected (for private groups)
-router.get('/', async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const {
       level,
@@ -75,7 +75,7 @@ router.get('/', async (req, res) => {
 // @route   GET /api/study-groups/:id
 // @desc    Get single study group
 // @access  Public (for public groups) / Protected (for private groups)
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const studyGroup = await StudyGroup.findById(req.params.id)
       .populate('creator', 'name avatar email')

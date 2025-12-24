@@ -143,10 +143,14 @@ export default function StudyGroupsScreen({ navigation }) {
   };
 
   const isMember = (group) => {
-    if (!user) return false;
-    return group.members?.some(member => 
-      (typeof member.user === 'object' ? member.user._id : member.user) === user._id
-    );
+    if (!user || !user._id) return false;
+    const userId = user._id.toString();
+    return group.members?.some(member => {
+      const memberId = typeof member.user === 'object' 
+        ? member.user?._id?.toString() 
+        : member.user?.toString();
+      return memberId === userId;
+    });
   };
 
   if (loading && !refreshing) {
