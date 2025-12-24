@@ -38,10 +38,20 @@ export default function BlogDetailScreen({ route, navigation }) {
       setLoading(true);
       setError(null);
       const response = await blogAPI.getById(postId);
-      setPost(response.data.data);
+      if (response.data && response.data.data) {
+        setPost(response.data.data);
+      } else {
+        setError('Blog post not found.');
+      }
     } catch (error) {
       console.error('Failed to load blog post:', error);
-      setError('Failed to load blog post. Please try again.');
+      if (error.response?.status === 404) {
+        setError('Blog post not found.');
+      } else if (error.response?.status === 500) {
+        setError('Server error. The blog post may not exist.');
+      } else {
+        setError('Failed to load blog post. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

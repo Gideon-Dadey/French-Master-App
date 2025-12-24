@@ -165,7 +165,18 @@ router.get('/', async (req, res) => {
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    const post = await Blog.findById(req.params.id);
+    const { id } = req.params;
+    
+    // Validate ObjectId format
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid blog post ID format' 
+      });
+    }
+
+    const post = await Blog.findById(id);
     if (!post) {
       return res.status(404).json({ success: false, message: 'Blog post not found' });
     }

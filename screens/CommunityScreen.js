@@ -25,10 +25,12 @@ const { width } = Dimensions.get('window');
 export default function CommunityScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
   const { colors, isDarkMode } = useTheme();
-  const { stats: gamificationStats } = useGamification();
+  const gamificationContext = useGamification();
+  const gamificationStats = gamificationContext?.stats || {};
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [recentPosts, setRecentPosts] = useState([]);
+  const [trendingTopics, setTrendingTopics] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
 
@@ -40,44 +42,6 @@ export default function CommunityScreen({ navigation }) {
     { id: 'culture', name: 'Culture', icon: 'globe-outline', color: premiumColors.accent.sky },
   ];
 
-  const trendingTopics = [
-    { 
-      _id: 1, 
-      id: 1,
-      title: 'Best way to learn French verbs?', 
-      replies: 24, 
-      views: 156, 
-      author: 'Sarah M.',
-      excerpt: 'Looking for effective methods to master French verb conjugations...',
-      publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      category: 'grammar',
-      likes: 15,
-    },
-    { 
-      _id: 2, 
-      id: 2,
-      title: 'French pronunciation tips', 
-      replies: 18, 
-      views: 203, 
-      author: 'Jean P.',
-      excerpt: 'Share your best techniques for improving French pronunciation...',
-      publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      category: 'pronunciation',
-      likes: 22,
-    },
-    { 
-      _id: 3, 
-      id: 3,
-      title: 'Study group for A2 level', 
-      replies: 12, 
-      views: 89, 
-      author: 'Marie L.',
-      excerpt: 'Forming a study group for A2 level French learners...',
-      publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-      category: 'vocabulary',
-      likes: 8,
-    },
-  ];
 
   const communityStats = {
     totalMembers: 1250,
@@ -93,10 +57,17 @@ export default function CommunityScreen({ navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const response = await blogAPI.getAll({ limit: 5 }).catch(() => ({ data: { data: [] } }));
-      setRecentPosts(response.data.data || []);
+      // Fetch recent posts
+      const recentResponse = await blogAPI.getAll({ limit: 5 }).catch(() => ({ data: { data: [] } }));
+      setRecentPosts(recentResponse.data.data || []);
+      
+      // Fetch trending posts (most viewed/recent posts)
+      const trendingResponse = await blogAPI.getAll({ limit: 3 }).catch(() => ({ data: { data: [] } }));
+      setTrendingTopics(trendingResponse.data.data || []);
     } catch (error) {
       console.error('Failed to load community data:', error);
+      setRecentPosts([]);
+      setTrendingTopics([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -280,14 +251,22 @@ export default function CommunityScreen({ navigation }) {
                 <Text style={[styles.seeAllText, { color: premiumColors.primary.main }]}>See All</Text>
               </TouchableOpacity>
             </View>
-            {trendingTopics.slice(0, 3).map((topic, index) => (
-              <DiscussionCard
-                key={topic._id || topic.id || index}
-                post={topic}
-                colors={colors}
-                onPress={() => navigation.navigate('BlogDetail', { postId: topic._id || topic.id })}
-              />
-            ))}
+            {trendingTopics.slice(0, 3).map((topic, index) => {
+              // Only use _id if it's a valid MongoDB ObjectId string (24 hex characters)
+              // Don't use numeric IDs as fallback
+              const postId = topic._id && typeof topic._id === 'string' && topic._id.length === 24 
+                ? topic._id 
+                : null;
+              
+              return (
+                <DiscussionCard
+                  key={topic._id || `trending-${index}`}
+                  post={topic}
+                  colors={colors}
+                  onPress={postId ? () => navigation.navigate('BlogDetail', { postId, post: topic }) : undefined}
+                />
+              );
+            })}
           </View>
         )}
 
