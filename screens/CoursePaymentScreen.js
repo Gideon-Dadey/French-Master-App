@@ -21,6 +21,7 @@ import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils
 import { formatCurrency } from '../src/utils/helpers';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import { getCourseImage } from '../src/utils/courseImages';
+import { getCourseThumbnail } from '../src/utils/courseThumbnailMap';
 
 export default function CoursePaymentScreen({ route, navigation }) {
   const { course, courseId } = route.params || {};
@@ -125,11 +126,27 @@ export default function CoursePaymentScreen({ route, navigation }) {
   const coursePrice = courseData?.price || 0;
   const courseTitle = courseData?.title || 'Course';
   const courseThumbnail = courseData?.thumbnail;
+  const courseIdForImage = courseId || courseData?.id;
   const isFree = courseData?.isFree || coursePrice === 0;
   const hasDiscount = courseData?.originalPrice && courseData.originalPrice > coursePrice;
   const discount = hasDiscount 
     ? Math.round(((courseData.originalPrice - coursePrice) / courseData.originalPrice) * 100) 
     : 0;
+
+  // Get image source using the same logic as CourseCard
+  let imageSource;
+  if (courseThumbnail) {
+    if (typeof courseThumbnail === 'string' && (courseThumbnail.startsWith('http://') || courseThumbnail.startsWith('https://'))) {
+      imageSource = { uri: courseThumbnail };
+    } else if (typeof courseThumbnail === 'string') {
+      const mappedImage = getCourseThumbnail(courseThumbnail);
+      imageSource = mappedImage || getCourseImage(courseIdForImage, 0);
+    } else {
+      imageSource = courseThumbnail;
+    }
+  } else {
+    imageSource = getCourseImage(courseIdForImage, 0);
+  }
 
   const handleFreeEnrollment = async () => {
     if (!isAuthenticated) {
@@ -232,16 +249,11 @@ export default function CoursePaymentScreen({ route, navigation }) {
         >
           {/* Course Summary */}
           <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
-            {courseThumbnail && (
-              <Image
-                source={typeof courseThumbnail === 'string' 
-                  ? { uri: courseThumbnail }
-                  : courseThumbnail
-                }
-                style={styles.courseThumbnail}
-                resizeMode="cover"
-              />
-            )}
+            <Image
+              source={imageSource}
+              style={styles.courseThumbnail}
+              resizeMode="cover"
+            />
             <View style={styles.courseInfo}>
               <Text style={[styles.courseTitle, { color: colors.text }]} numberOfLines={2}>
                 {courseTitle}
