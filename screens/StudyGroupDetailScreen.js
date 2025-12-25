@@ -2161,34 +2161,25 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           </View>
           <View style={styles.chatHeaderRight}>
             <TouchableOpacity 
-              style={[
-                styles.chatHeaderIconBtn,
-                { backgroundColor: isDarkMode ? 'rgba(134, 150, 160, 0.15)' : 'rgba(0, 0, 0, 0.05)' }
-              ]}
+              style={styles.chatHeaderIconBtn}
               onPress={() => startCall('video')}
-              activeOpacity={0.7}
+              activeOpacity={0.6}
             >
-              <Ionicons name="videocam" size={20} color={isDarkMode ? '#8696A0' : '#54656F'} />
+              <Ionicons name="videocam" size={22} color={isDarkMode ? '#E9EDEF' : '#54656F'} />
             </TouchableOpacity>
             <TouchableOpacity 
-              style={[
-                styles.chatHeaderIconBtn,
-                { backgroundColor: isDarkMode ? 'rgba(134, 150, 160, 0.15)' : 'rgba(0, 0, 0, 0.05)' }
-              ]}
+              style={styles.chatHeaderIconBtn}
               onPress={() => startCall('voice')}
-              activeOpacity={0.7}
+              activeOpacity={0.6}
             >
-              <Ionicons name="call" size={19} color={isDarkMode ? '#8696A0' : '#54656F'} />
+              <Ionicons name="call" size={21} color={isDarkMode ? '#E9EDEF' : '#54656F'} />
             </TouchableOpacity>
             <TouchableOpacity 
-              style={[
-                styles.chatHeaderIconBtn,
-                { backgroundColor: isDarkMode ? 'rgba(134, 150, 160, 0.15)' : 'rgba(0, 0, 0, 0.05)' }
-              ]}
+              style={styles.chatHeaderIconBtn}
               onPress={openGroupOptions}
-              activeOpacity={0.7}
+              activeOpacity={0.6}
             >
-              <Ionicons name="ellipsis-vertical" size={19} color={isDarkMode ? '#8696A0' : '#54656F'} />
+              <Ionicons name="ellipsis-vertical" size={21} color={isDarkMode ? '#E9EDEF' : '#54656F'} />
             </TouchableOpacity>
           </View>
         </View>
@@ -6058,9 +6049,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chatHeaderIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
