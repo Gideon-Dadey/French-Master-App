@@ -139,7 +139,7 @@ export default function LessonScreen({ route, navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Video Player */}
+
       <View style={styles.videoContainer}>
         <VideoPlayer
           source={{ uri: lesson.videoUrl }}
@@ -148,7 +148,7 @@ export default function LessonScreen({ route, navigation }) {
           onProgress={handleProgress}
           downloadable={lesson.isDownloadable}
         />
-        {/* Overlay Header */}
+
         <View style={styles.videoOverlay}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
@@ -166,10 +166,9 @@ export default function LessonScreen({ route, navigation }) {
         </View>
       </View>
 
-      {/* Content */}
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         <Animated.View style={{ opacity: fadeAnim }}>
-          {/* Title Card */}
+
           <View style={[styles.titleCard, { backgroundColor: colors.card }]}>
             <View style={styles.titleRow}>
               <View style={styles.titleInfo}>
@@ -193,7 +192,6 @@ export default function LessonScreen({ route, navigation }) {
               )}
             </View>
 
-            {/* Progress Bar */}
             {!isCompleted && progress > 0 && (
               <View style={styles.progressSection}>
                 <View style={styles.progressHeader}>
@@ -207,7 +205,6 @@ export default function LessonScreen({ route, navigation }) {
             )}
           </View>
 
-          {/* Description */}
           {lesson.description && (
             <View style={[styles.descriptionCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>About This Lesson</Text>
@@ -215,7 +212,6 @@ export default function LessonScreen({ route, navigation }) {
             </View>
           )}
 
-          {/* Resources */}
           {lesson.resources?.length > 0 && (
             <View style={[styles.resourcesCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Resources</Text>
@@ -244,7 +240,6 @@ export default function LessonScreen({ route, navigation }) {
             </View>
           )}
 
-          {/* Quiz Button */}
           {lesson.quiz?.enabled && (
             <TouchableOpacity style={styles.quizBtn}>
               <LinearGradient colors={['#8B5CF6', '#6366F1']} style={styles.quizBtnGradient}>
@@ -262,7 +257,6 @@ export default function LessonScreen({ route, navigation }) {
             </TouchableOpacity>
           )}
 
-          {/* Actions */}
           <View style={[styles.actionsCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Actions</Text>
             <View style={styles.actionsGrid}>
@@ -287,7 +281,6 @@ export default function LessonScreen({ route, navigation }) {
             </View>
           </View>
 
-          {/* Next Lesson */}
           <TouchableOpacity style={styles.nextLessonBtn}>
             <LinearGradient colors={['#10B981', '#059669']} style={styles.nextLessonGradient}>
               <View style={styles.nextLessonContent}>

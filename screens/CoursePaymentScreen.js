@@ -31,8 +31,8 @@ export default function CoursePaymentScreen({ route, navigation }) {
   const { formatPrice } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('stripe'); // Default to stripe
-  const [mobileNetwork, setMobileNetwork] = useState('mtn'); // Default mobile network
+  const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [mobileNetwork, setMobileNetwork] = useState('mtn');
   const [courseData, setCourseData] = useState(course);
 
   useEffect(() => {
@@ -62,25 +62,23 @@ export default function CoursePaymentScreen({ route, navigation }) {
 
     try {
       setProcessing(true);
-      
-      // Create payment intent
+
       const intentResponse = await paymentsAPI.createIntent({
         courseId: finalCourseId,
         paymentMethod: paymentMethod === 'mobile-money' ? mobileNetwork : paymentMethod
       });
 
       if (intentResponse.data.success) {
-        // Update course data if returned
+
         if (intentResponse.data.course) {
           setCourseData(intentResponse.data.course);
         }
 
         if (paymentMethod === 'stripe') {
-          // For Stripe, we would integrate Stripe SDK here
-          // For now, simulate successful payment
+
           await handlePaymentConfirmation(intentResponse.data);
         } else {
-          // For mobile money and other payment methods, confirm immediately
+
           await handlePaymentConfirmation(intentResponse.data);
         }
       }
@@ -105,10 +103,10 @@ export default function CoursePaymentScreen({ route, navigation }) {
 
       if (confirmResponse.data.success) {
         Alert.alert('Success!', 'You have been enrolled in this course!', [
-          { 
-            text: 'OK', 
+          {
+            text: 'OK',
             onPress: () => {
-              // Navigate back to course detail or main screen
+
               navigation.reset({
                 index: 0,
                 routes: [{ name: 'Main' }],
@@ -132,11 +130,10 @@ export default function CoursePaymentScreen({ route, navigation }) {
   const courseIdForImage = courseId || courseData?.id;
   const isFree = courseData?.isFree || coursePrice === 0;
   const hasDiscount = courseData?.originalPrice && courseData.originalPrice > coursePrice;
-  const discount = hasDiscount 
-    ? Math.round(((courseData.originalPrice - coursePrice) / courseData.originalPrice) * 100) 
+  const discount = hasDiscount
+    ? Math.round(((courseData.originalPrice - coursePrice) / courseData.originalPrice) * 100)
     : 0;
 
-  // Get image source using the same logic as CourseCard
   let imageSource;
   if (courseThumbnail) {
     if (typeof courseThumbnail === 'string' && (courseThumbnail.startsWith('http://') || courseThumbnail.startsWith('https://'))) {
@@ -175,8 +172,8 @@ export default function CoursePaymentScreen({ route, navigation }) {
 
       if (response.data.success) {
         Alert.alert('Success!', 'You have been enrolled in this course!', [
-          { 
-            text: 'OK', 
+          {
+            text: 'OK',
             onPress: () => {
               navigation.reset({
                 index: 0,
@@ -194,7 +191,7 @@ export default function CoursePaymentScreen({ route, navigation }) {
   };
 
   if (isFree) {
-    // Handle free course enrollment directly
+
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.freeEnrollmentContainer}>
@@ -225,7 +222,7 @@ export default function CoursePaymentScreen({ route, navigation }) {
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <LinearGradient
-        colors={isDarkMode 
+        colors={isDarkMode
           ? ['#1a0a2e', '#16213e', '#0f3460']
           : ['#F5F7FA', '#FFFFFF', '#FFFFFF']
         }
@@ -233,7 +230,7 @@ export default function CoursePaymentScreen({ route, navigation }) {
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        {/* Header */}
+
         <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -250,7 +247,7 @@ export default function CoursePaymentScreen({ route, navigation }) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Course Summary */}
+
           <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
             <Image
               source={imageSource}
@@ -286,14 +283,13 @@ export default function CoursePaymentScreen({ route, navigation }) {
             </View>
           </View>
 
-          {/* Payment Method Selection */}
           <View style={[styles.paymentSection, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Method</Text>
-            
+
             <TouchableOpacity
               style={[
                 styles.paymentMethod,
-                { 
+                {
                   backgroundColor: paymentMethod === 'stripe' ? premiumColors.primary.main + '20' : colors.background,
                   borderColor: paymentMethod === 'stripe' ? premiumColors.primary.main : colors.border
                 }
@@ -313,7 +309,7 @@ export default function CoursePaymentScreen({ route, navigation }) {
             <TouchableOpacity
               style={[
                 styles.paymentMethod,
-                { 
+                {
                   backgroundColor: paymentMethod === 'mobile-money' ? premiumColors.primary.main + '20' : colors.background,
                   borderColor: paymentMethod === 'mobile-money' ? premiumColors.primary.main : colors.border
                 }
@@ -330,7 +326,6 @@ export default function CoursePaymentScreen({ route, navigation }) {
               )}
             </TouchableOpacity>
 
-            {/* Mobile Network Selection - Show only when Mobile Money is selected */}
             {paymentMethod === 'mobile-money' && (
               <View style={[styles.mobileNetworkSection, { backgroundColor: colors.background, borderColor: colors.border }]}>
                 <Text style={[styles.networkSectionTitle, { color: colors.text }]}>Select Mobile Network</Text>
@@ -419,7 +414,6 @@ export default function CoursePaymentScreen({ route, navigation }) {
             )}
           </View>
 
-          {/* Payment Button */}
           <TouchableOpacity
             style={[
               styles.payButton,

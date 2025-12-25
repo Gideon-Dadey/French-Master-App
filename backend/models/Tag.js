@@ -40,7 +40,6 @@ const tagSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate slug before saving
 tagSchema.pre('save', function(next) {
   if (this.isModified('name') && !this.slug) {
     this.slug = this.name

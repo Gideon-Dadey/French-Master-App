@@ -7,9 +7,6 @@ const Subscription = require('../models/Subscription');
 const { protect } = require('../middleware/auth');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// @route   POST /api/payments/create-intent
-// @desc    Create payment intent for course purchase
-// @access  Private
 router.post('/create-intent', protect, async (req, res) => {
   try {
     const { courseId, paymentMethod } = req.body;
@@ -22,7 +19,6 @@ router.post('/create-intent', protect, async (req, res) => {
       });
     }
 
-    // Check if already enrolled
     const user = await User.findById(req.user._id);
     const isEnrolled = user.enrolledCourses.some(
       ec => ec.course.toString() === courseId
@@ -37,7 +33,7 @@ router.post('/create-intent', protect, async (req, res) => {
 
     if (paymentMethod === 'stripe') {
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(course.price * 100), // Convert to cents
+        amount: Math.round(course.price * 100),
         currency: course.currency.toLowerCase(),
         metadata: {
           userId: req.user._id.toString(),
@@ -59,7 +55,7 @@ router.post('/create-intent', protect, async (req, res) => {
         }
       });
     } else {
-      // For other payment methods, create pending payment
+
       const payment = await Payment.create({
         user: req.user._id,
         course: courseId,
@@ -93,9 +89,6 @@ router.post('/create-intent', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/payments/confirm
-// @desc    Confirm payment and enroll user
-// @access  Private
 router.post('/confirm', protect, async (req, res) => {
   try {
     const { paymentId, transactionId } = req.body;
@@ -122,12 +115,10 @@ router.post('/confirm', protect, async (req, res) => {
       });
     }
 
-    // Update payment status
     payment.status = 'completed';
     payment.paidAt = new Date();
     await payment.save();
 
-    // Enroll user in course
     const user = await User.findById(req.user._id);
     if (payment.course) {
       user.enrolledCourses.push({
@@ -136,7 +127,6 @@ router.post('/confirm', protect, async (req, res) => {
       });
       await user.save();
 
-      // Update course enrollment count
       await Course.findByIdAndUpdate(payment.course, {
         $inc: { studentsEnrolled: 1 }
       });
@@ -156,9 +146,6 @@ router.post('/confirm', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/payments/create-subscription-intent
-// @desc    Create payment intent for teacher subscription
-// @access  Private
 router.post('/create-subscription-intent', protect, async (req, res) => {
   try {
     const { planId, planName, price, period, paymentMethod } = req.body;
@@ -170,12 +157,11 @@ router.post('/create-subscription-intent', protect, async (req, res) => {
       });
     }
 
-    // Calculate duration in days based on period
     const durationDays = period === 'month' ? 30 : 365;
 
     if (paymentMethod === 'stripe') {
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(price * 100), // Convert to cents
+        amount: Math.round(price * 100),
         currency: 'ghs',
         metadata: {
           userId: req.user._id.toString(),
@@ -198,7 +184,7 @@ router.post('/create-subscription-intent', protect, async (req, res) => {
         durationDays
       });
     } else {
-      // For other payment methods, create pending payment
+
       const payment = await Payment.create({
         user: req.user._id,
         type: 'subscription',
@@ -237,16 +223,13 @@ router.post('/create-subscription-intent', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/payments/confirm-subscription
-// @desc    Confirm subscription payment
-// @access  Private
 router.post('/confirm-subscription', protect, async (req, res) => {
   try {
     const { paymentId, transactionId, paymentIntentId } = req.body;
 
     let payment;
     if (paymentIntentId) {
-      // Stripe payment
+
       const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
       if (paymentIntent.status !== 'succeeded') {
         return res.status(400).json({
@@ -261,7 +244,7 @@ router.post('/confirm-subscription', protect, async (req, res) => {
       });
 
       if (!payment) {
-        // Create payment record from Stripe metadata
+
         const metadata = paymentIntent.metadata;
         const durationDays = metadata.period === 'month' ? 30 : 365;
         payment = await Payment.create({
@@ -307,7 +290,6 @@ router.post('/confirm-subscription', protect, async (req, res) => {
       await payment.save();
     }
 
-    // Create subscription
     try {
       const planId = payment.metadata?.get('planId') || payment.metadata?.planId || 'basic';
       const planName = payment.metadata?.get('planName') || payment.metadata?.planName || 'Basic Teacher';
@@ -342,7 +324,6 @@ router.post('/confirm-subscription', protect, async (req, res) => {
         autoRenew: false
       });
 
-      // Update user subscription
       await User.findByIdAndUpdate(req.user._id, {
         'subscription.type': planType,
         'subscription.startDate': startDate,
@@ -354,8 +335,7 @@ router.post('/confirm-subscription', protect, async (req, res) => {
       await payment.save();
     } catch (subError) {
       console.error('Failed to create subscription:', subError);
-      // Payment is confirmed, but subscription creation failed
-      // This can be handled separately if needed
+
     }
 
     res.json({
@@ -373,9 +353,6 @@ router.post('/confirm-subscription', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/payments/history
-// @desc    Get user payment history
-// @access  Private
 router.get('/history', protect, async (req, res) => {
   try {
     const payments = await Payment.find({ user: req.user._id })

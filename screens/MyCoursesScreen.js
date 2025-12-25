@@ -126,7 +126,7 @@ export default function MyCoursesScreen({ navigation }) {
           courses.map((enrollment) => {
             const course = enrollment.course;
             const progress = getProgressPercentage(enrollment);
-            
+
             return (
               <TouchableOpacity
                 key={enrollment._id}
@@ -165,7 +165,7 @@ export default function MyCoursesScreen({ navigation }) {
                   <TouchableOpacity
                     style={[styles.continueButton, { backgroundColor: colors.primary }]}
                     onPress={() => {
-                      // Navigate to course lessons
+
                       navigation.navigate('CourseDetail', { courseId: course._id });
                     }}
                   >

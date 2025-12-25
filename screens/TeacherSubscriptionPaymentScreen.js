@@ -29,8 +29,8 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
   const { formatPrice, formatPriceValue, getCurrencyData } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('stripe'); // Default to stripe
-  const [mobileNetwork, setMobileNetwork] = useState('mtn'); // Default mobile network
+  const [paymentMethod, setPaymentMethod] = useState('stripe');
+  const [mobileNetwork, setMobileNetwork] = useState('mtn');
 
   useEffect(() => {
     if (!plan) {
@@ -52,8 +52,7 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
 
     try {
       setProcessing(true);
-      
-      // Create payment intent
+
       const intentResponse = await subscriptionsAPI.createSubscriptionIntent({
         planId: plan.id,
         planName: plan.name,
@@ -64,11 +63,10 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
 
       if (intentResponse.data.success) {
         if (paymentMethod === 'stripe') {
-          // For Stripe, we would integrate Stripe SDK here
-          // For now, simulate successful payment
+
           await handlePaymentConfirmation(intentResponse.data);
         } else {
-          // For other payment methods, confirm immediately
+
           await handlePaymentConfirmation(intentResponse.data);
         }
       }
@@ -115,7 +113,7 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
       style={[styles.container, { backgroundColor: colors.background }]}
     >
       <LinearGradient
-        colors={isDarkMode 
+        colors={isDarkMode
           ? ['#1a0a2e', '#16213e', '#0f3460']
           : ['#F5F7FA', '#FFFFFF', '#FFFFFF']
         }
@@ -123,7 +121,7 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
-        {/* Header */}
+
         <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -140,7 +138,7 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Plan Summary */}
+
           <View style={[styles.summaryCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
             <View style={styles.summaryHeader}>
               <View style={[styles.planIcon, { backgroundColor: plan.color + '20' }]}>
@@ -180,7 +178,6 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
               </View>
             </View>
 
-            {/* Features List */}
             <View style={styles.featuresList}>
               <Text style={[styles.featuresTitle, { color: colors.text }]}>What's included:</Text>
               {plan.features.map((feature, index) => (
@@ -192,14 +189,13 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
             </View>
           </View>
 
-          {/* Payment Method Selection */}
           <View style={[styles.paymentSection, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Payment Method</Text>
-            
+
             <TouchableOpacity
               style={[
                 styles.paymentMethod,
-                { 
+                {
                   backgroundColor: paymentMethod === 'stripe' ? plan.color + '20' : colors.background,
                   borderColor: paymentMethod === 'stripe' ? plan.color : colors.border
                 }
@@ -219,7 +215,7 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
             <TouchableOpacity
               style={[
                 styles.paymentMethod,
-                { 
+                {
                   backgroundColor: paymentMethod === 'mobile-money' ? plan.color + '20' : colors.background,
                   borderColor: paymentMethod === 'mobile-money' ? plan.color : colors.border
                 }
@@ -236,7 +232,6 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
               )}
             </TouchableOpacity>
 
-            {/* Mobile Network Selection - Show only when Mobile Money is selected */}
             {paymentMethod === 'mobile-money' && (
               <View style={[styles.mobileNetworkSection, { backgroundColor: colors.background, borderColor: colors.border }]}>
                 <Text style={[styles.networkSectionTitle, { color: colors.text }]}>Select Mobile Network</Text>
@@ -325,7 +320,6 @@ export default function TeacherSubscriptionPaymentScreen({ route, navigation }) 
             )}
           </View>
 
-          {/* Payment Button */}
           <TouchableOpacity
             style={[
               styles.payButton,

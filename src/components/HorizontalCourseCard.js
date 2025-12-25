@@ -8,18 +8,9 @@ import { spacing, fontSize, normalize } from '../utils/responsive';
 import Spacer from './Spacer';
 import Rating from './Rating';
 
-/**
- * Horizontal course card component
- * Adapted from HEYY TopCourseItem design
- *
- * @param {object} course - Course data
- * @param {function} onPress - Press handler
- * @param {number} index - Index for image selection
- */
 export default function HorizontalCourseCard({ course, onPress, index = 0 }) {
   const { colors } = useTheme();
 
-  // Try to get thumbnail from mapping, fallback to getCourseImage, or use URL
   let imageSource;
   if (course.thumbnail) {
     if (course.thumbnail.startsWith('http://') || course.thumbnail.startsWith('https://')) {
@@ -95,7 +86,7 @@ export default function HorizontalCourseCard({ course, onPress, index = 0 }) {
 
         <View style={styles.footerContainer}>
           <View style={styles.footerItem}>
-            <Rating 
+            <Rating
               rating={course.rating?.average || course.meta?.rating || 0}
               size={14}
             />
@@ -123,24 +114,23 @@ export default function HorizontalCourseCard({ course, onPress, index = 0 }) {
   );
 }
 
-// Calculate card width responsively (calculated at module load)
 const calculateCardWidth = () => {
   const { width: currentWidth } = Dimensions.get('window');
   const isTabletDevice = currentWidth >= 768;
   const isSmallDeviceCheck = currentWidth < 375;
-  
+
   if (isTabletDevice) {
-    return currentWidth * 0.45; // Tablet: ~45% of screen
+    return currentWidth * 0.45;
   }
   if (isSmallDeviceCheck) {
-    return currentWidth - spacing.lg * 2 - spacing.md; // Small: screen - padding - margin
+    return currentWidth - spacing.lg * 2 - spacing.md;
   }
-  return currentWidth * 0.85; // Mobile: 85% of screen width
+  return currentWidth * 0.85;
 };
 
 const CARD_WIDTH = calculateCardWidth();
 const CARD_PADDING = spacing.md;
-const IMAGE_WIDTH = normalize(100); // Responsive image width
+const IMAGE_WIDTH = normalize(100);
 
 const styles = StyleSheet.create({
   container: {
@@ -150,7 +140,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     width: CARD_WIDTH,
     marginRight: spacing.md,
-    minHeight: normalize(120), // Minimum height for consistency
+    minHeight: normalize(120),
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -158,20 +148,20 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2, // Android shadow
+    elevation: 2,
   },
   cover: {
     aspectRatio: 4 / 3,
     borderRadius: normalize(8),
     width: IMAGE_WIDTH,
-    height: IMAGE_WIDTH * 0.75, // Maintain aspect ratio
-    flexShrink: 0, // Prevent image from shrinking
+    height: IMAGE_WIDTH * 0.75,
+    flexShrink: 0,
   },
   infoContainer: {
     flex: 1,
     marginLeft: spacing.md,
     justifyContent: 'space-between',
-    minWidth: 0, // Allow text to shrink properly
+    minWidth: 0,
   },
   category: {
     fontSize: fontSize.xs,
@@ -189,7 +179,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
     alignItems: 'center',
-    flexWrap: 'wrap', // Allow wrapping on very small screens
+    flexWrap: 'wrap',
   },
   footerItem: {
     flexDirection: 'row',

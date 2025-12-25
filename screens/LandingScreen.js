@@ -27,7 +27,6 @@ export default function LandingScreen({ navigation }) {
       Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 7, useNativeDriver: true }),
     ]).start();
 
-    // Pulse animation for the get started button
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.05, duration: 1500, useNativeDriver: true }),
@@ -72,13 +71,13 @@ export default function LandingScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <LinearGradient colors={['#0F172A', '#1E293B', '#0F172A']} style={styles.gradient}>
-        {/* Decorative Background Elements */}
+
         <View style={styles.bgDecor1} />
         <View style={styles.bgDecor2} />
         <View style={styles.bgDecor3} />
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Premium Logo Section */}
+
           <Animated.View
             style={[
               styles.logoSection,
@@ -91,7 +90,7 @@ export default function LandingScreen({ navigation }) {
                   <Image source={require('../assets/logo.jpeg')} style={styles.logo} resizeMode="contain" />
                 </View>
               </LinearGradient>
-              {/* Animated Ring */}
+
               <Animated.View style={[styles.animatedRing, { transform: [{ scale: pulseAnim }] }]} />
             </View>
 
@@ -106,7 +105,6 @@ export default function LandingScreen({ navigation }) {
             </View>
           </Animated.View>
 
-          {/* Welcome Section */}
           <Animated.View style={[styles.welcomeSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <Text style={styles.welcomeText}>Welcome!</Text>
             <Text style={styles.description}>
@@ -115,7 +113,6 @@ export default function LandingScreen({ navigation }) {
             </Text>
           </Animated.View>
 
-          {/* Premium Stats */}
           <Animated.View style={[styles.statsContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             {stats.map((stat, index) => (
               <View key={index} style={styles.statItem}>
@@ -128,7 +125,6 @@ export default function LandingScreen({ navigation }) {
             ))}
           </Animated.View>
 
-          {/* Premium Feature Cards */}
           <Animated.View style={[styles.featuresContainer, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <View style={styles.featuresGrid}>
               {features.map((feature, index) => (
@@ -137,7 +133,6 @@ export default function LandingScreen({ navigation }) {
             </View>
           </Animated.View>
 
-          {/* Premium Action Buttons */}
           <Animated.View style={[styles.actions, { opacity: fadeAnim, transform: [{ translateY: slideAnim }, { scale: pulseAnim }] }]}>
             <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.replace('Main')} activeOpacity={0.9}>
               <LinearGradient colors={['#3B82F6', '#8B5CF6', '#EC4899']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.primaryButtonGradient}>
@@ -156,7 +151,6 @@ export default function LandingScreen({ navigation }) {
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Trust Badges */}
           <Animated.View style={[styles.trustSection, { opacity: fadeAnim }]}>
             <View style={styles.trustBadge}>
               <Ionicons name="shield-checkmark" size={16} color="#10B981" />

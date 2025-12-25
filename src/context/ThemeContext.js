@@ -13,7 +13,6 @@ export const useTheme = () => {
   return context;
 };
 
-// Premium purple theme colors
 const lightTheme = {
   background: '#FFFFFF',
   secondaryBackground: '#F7F9FA',
@@ -21,7 +20,7 @@ const lightTheme = {
   text: '#0F1419',
   secondaryText: '#536471',
   border: '#EFF3F4',
-  primary: '#9C27B0', // Premium purple
+  primary: '#9C27B0',
   primaryHover: '#7B1FA2',
   success: '#4CAF50',
   error: '#E53935',
@@ -37,7 +36,7 @@ const darkTheme = {
   text: '#F7F9FA',
   secondaryText: '#71767A',
   border: '#2F3336',
-  primary: '#BB86FC', // Premium purple for dark mode
+  primary: '#BB86FC',
   primaryHover: '#9C27B0',
   success: '#4CAF50',
   error: '#E53935',
@@ -57,12 +56,12 @@ export const ThemeProvider = ({ children }) => {
 
   const loadThemePreference = async () => {
     try {
-      // Try to get from secure store first
+
       const savedTheme = await SecureStore.getItemAsync('theme');
       if (savedTheme) {
         setIsDarkMode(savedTheme === 'dark');
       } else if (isAuthenticated && user?.preferences?.theme) {
-        // Fallback to user preferences
+
         setIsDarkMode(user.preferences.theme === 'dark');
       }
     } catch (error) {
@@ -75,12 +74,11 @@ export const ThemeProvider = ({ children }) => {
   const toggleTheme = async () => {
     const newTheme = !isDarkMode;
     setIsDarkMode(newTheme);
-    
+
     try {
-      // Save to secure store
+
       await SecureStore.setItemAsync('theme', newTheme ? 'dark' : 'light');
-      
-      // Update user preferences if authenticated
+
       if (isAuthenticated) {
         try {
           await usersAPI.updateProfile({

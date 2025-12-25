@@ -16,6 +16,7 @@ import {
   KeyboardAvoidingView,
   Dimensions,
   Animated,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,24 +60,30 @@ export default function ProfileScreen({ navigation }) {
     phone: '',
   });
 
-  // Animations
   const headerAnim = useRef(new Animated.Value(0)).current;
   const contentAnim = useRef(new Animated.Value(0)).current;
   const avatarScale = useRef(new Animated.Value(0.8)).current;
+  const guestAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isAuthenticated) {
       loadProfile();
+
+      Animated.parallel([
+        Animated.spring(headerAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
+        Animated.spring(avatarScale, { toValue: 1, useNativeDriver: true, tension: 100, friction: 8 }),
+        Animated.timing(contentAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      ]).start();
     } else {
       setLoading(false);
-    }
 
-    // Entrance animations
-    Animated.parallel([
-      Animated.spring(headerAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
-      Animated.spring(avatarScale, { toValue: 1, useNativeDriver: true, tension: 100, friction: 8 }),
-      Animated.timing(contentAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-    ]).start();
+      Animated.spring(guestAnim, {
+        toValue: 1,
+        tension: 40,
+        friction: 8,
+        useNativeDriver: true
+      }).start();
+    }
   }, [isAuthenticated]);
 
   const loadProfile = async () => {
@@ -95,7 +102,7 @@ export default function ProfileScreen({ navigation }) {
           name: profileData.name || '',
           phone: profileData.phone || '',
         });
-        
+
         const enrolledCount = profileData.enrolledCourses?.length || 0;
         const dashboardData = progressResponse?.data?.data || {};
         const completedCount = dashboardData.totalLessonsCompleted || 0;
@@ -286,65 +293,130 @@ export default function ProfileScreen({ navigation }) {
     );
   }
 
-  // Guest View
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <LinearGradient
-          colors={isDarkMode ? ['#0F172A', '#1E293B'] : ['#3B82F6', '#2563EB']}
-          style={styles.guestHeader}
-        >
-          <View style={styles.guestDecor1} />
-          <View style={styles.guestDecor2} />
-          <View style={styles.guestContent}>
-            <View style={styles.guestIconContainer}>
-              <Ionicons name="person-circle" size={80} color="rgba(255,255,255,0.9)" />
-            </View>
-            <Text style={styles.guestTitle}>Join French Master</Text>
-            <Text style={styles.guestSubtitle}>
-              Sign in to track your progress, save courses, and connect with learners
-            </Text>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.guestActions}>
-          <TouchableOpacity
-            style={styles.signInBtn}
-            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+        <StatusBar barStyle="light-content" />
+        <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+          <Animated.View
+            style={[
+              styles.guestHeader,
+              {
+                opacity: guestAnim,
+                transform: [{ translateY: guestAnim.interpolate({ inputRange: [0, 1], outputRange: [-50, 0] }) }]
+              }
+            ]}
           >
-            <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.signInGradient}>
-              <Ionicons name="log-in" size={20} color="#FFFFFF" />
-              <Text style={styles.signInText}>Sign In</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.createAccountBtn, { borderColor: '#3B82F6' }]}
-            onPress={() => navigation.navigate('Auth', { screen: 'Register' })}
-          >
-            <Ionicons name="person-add" size={20} color="#3B82F6" />
-            <Text style={[styles.createAccountText, { color: '#3B82F6' }]}>Create Account</Text>
-          </TouchableOpacity>
-        </View>
+            <LinearGradient
+              colors={isDarkMode ? ['#1E293B', '#0F172A'] : ['#3B82F6', '#1D4ED8']}
+              style={StyleSheet.absoluteFill}
+            />
 
-        {/* Features */}
-        <View style={styles.featuresSection}>
-          <Text style={[styles.featuresTitle, { color: colors.text }]}>Why Join?</Text>
-          <View style={styles.featuresGrid}>
-            {[
-              { icon: 'analytics', title: 'Track Progress', color: '#3B82F6' },
-              { icon: 'trophy', title: 'Earn Badges', color: '#F59E0B' },
-              { icon: 'people', title: 'Community', color: '#10B981' },
-              { icon: 'cloud-download', title: 'Sync Data', color: '#8B5CF6' },
-            ].map((feature, index) => (
-              <View key={index} style={[styles.featureCard, { backgroundColor: colors.card }]}>
-                <View style={[styles.featureIcon, { backgroundColor: feature.color + '15' }]}>
-                  <Ionicons name={feature.icon} size={24} color={feature.color} />
+            <View style={[styles.guestDecor1, { backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255, 255, 255, 0.15)' }]} />
+            <View style={[styles.guestDecor2, { backgroundColor: isDarkMode ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255, 255, 255, 0.1)' }]} />
+
+            <View style={styles.guestContent}>
+              <Animated.View style={[styles.guestIconContainer, { transform: [{ scale: guestAnim }] }]}>
+                <View style={styles.guestIconOuter}>
+                  <LinearGradient
+                    colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
+                    style={styles.guestIconGlow}
+                  />
+                  <Ionicons name="person" size={50} color="#FFFFFF" />
                 </View>
-                <Text style={[styles.featureText, { color: colors.text }]}>{feature.title}</Text>
+              </Animated.View>
+
+              <Text style={styles.guestTitle}>Join French Master</Text>
+              <Text style={styles.guestSubtitle}>
+                Unlock the full potential of your language journey. Track progress, earn rewards, and join our global community.
+              </Text>
+            </View>
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.guestActions,
+              {
+                opacity: guestAnim,
+                transform: [{ translateY: guestAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }]
+              }
+            ]}
+          >
+            <TouchableOpacity
+              style={styles.signInBtn}
+              onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={['#3B82F6', '#2563EB']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.signInGradient}
+              >
+                <Ionicons name="log-in" size={22} color="#FFFFFF" />
+                <Text style={styles.signInText}>Sign In</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.createAccountBtn, { borderColor: isDarkMode ? '#334155' : '#E2E8F0' }]}
+              onPress={() => navigation.navigate('Auth', { screen: 'Register' })}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="person-add-outline" size={20} color={isDarkMode ? '#94A3B8' : '#64748B'} />
+              <Text style={[styles.createAccountText, { color: isDarkMode ? '#F8FAFC' : '#1E293B' }]}>Create Account</Text>
+            </TouchableOpacity>
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.featuresSection,
+              {
+                opacity: guestAnim,
+                transform: [{ translateY: guestAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }]
+              }
+            ]}
+          >
+            <View style={styles.featureHeaderRow}>
+              <Text style={[styles.featuresTitle, { color: colors.text }]}>Why Join?</Text>
+              <View style={styles.featureBadge}>
+                <Text style={styles.featureBadgeText}>ELITE ACCESS</Text>
               </View>
-            ))}
-          </View>
-        </View>
+            </View>
+
+            <View style={styles.featuresGrid}>
+              {[
+                { icon: 'analytics-outline', title: 'Track Progress', color: '#3B82F6', desc: 'See your daily growth' },
+                { icon: 'trophy-outline', title: 'Earn Badges', color: '#F59E0B', desc: 'Unlock achievements' },
+                { icon: 'people-outline', title: 'Community', color: '#10B981', desc: 'Learn with others' },
+                { icon: 'cloud-download-outline', title: 'Offline Mode', color: '#8B5CF6', desc: 'Study anywhere' },
+              ].map((feature, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.featureCard,
+                    {
+                      backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
+                      borderColor: isDarkMode ? '#334155' : '#F1F5F9',
+                      borderWidth: 1
+                    },
+                    premiumShadows.sm
+                  ]}
+                >
+                  <View style={[styles.featureIcon, { backgroundColor: feature.color + '15' }]}>
+                    <Ionicons name={feature.icon} size={24} color={feature.color} />
+                  </View>
+                  <View style={styles.featureContent}>
+                    <Text style={[styles.featureText, { color: colors.text }]}>{feature.title}</Text>
+                    <Text style={[styles.featureDesc, { color: colors.secondaryText }]}>{feature.desc}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </Animated.View>
+
+          <View style={{ height: 100 }} />
+        </ScrollView>
       </View>
     );
   }
@@ -368,7 +440,7 @@ export default function ProfileScreen({ navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* Premium Header */}
+
         <Animated.View style={{ opacity: headerAnim, transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }) }] }}>
           <LinearGradient
             colors={isDarkMode ? ['#0F172A', '#1E3A5F', '#1E40AF'] : ['#3B82F6', '#2563EB', '#1D4ED8']}
@@ -376,17 +448,15 @@ export default function ProfileScreen({ navigation }) {
             end={{ x: 1, y: 1 }}
             style={styles.header}
           >
-            {/* Decorative Elements */}
+
             <View style={styles.headerDecor1} />
             <View style={styles.headerDecor2} />
             <View style={styles.headerDecor3} />
 
-            {/* Settings Button */}
             <TouchableOpacity style={styles.settingsBtn} onPress={() => {}}>
               <Ionicons name="settings-outline" size={24} color="rgba(255,255,255,0.8)" />
             </TouchableOpacity>
 
-            {/* Avatar Section */}
             <Animated.View style={[styles.avatarSection, { transform: [{ scale: avatarScale }] }]}>
               <View style={styles.avatarContainer}>
                 <Image source={{ uri: avatarUrl }} style={styles.avatar} />
@@ -401,7 +471,7 @@ export default function ProfileScreen({ navigation }) {
                     <Ionicons name="camera" size={16} color="#FFFFFF" />
                   )}
                 </TouchableOpacity>
-                {/* Level Badge */}
+
                 <View style={styles.levelBadge}>
                   <Text style={styles.levelText}>Lvl {stats.level}</Text>
                 </View>
@@ -409,7 +479,6 @@ export default function ProfileScreen({ navigation }) {
               <Text style={styles.userName}>{displayName}</Text>
               <Text style={styles.userEmail}>{displayEmail}</Text>
 
-              {/* Streak Badge */}
               {stats.streak > 0 && (
                 <View style={styles.streakBadge}>
                   <Ionicons name="flame" size={16} color="#F97316" />
@@ -417,14 +486,12 @@ export default function ProfileScreen({ navigation }) {
                 </View>
               )}
 
-              {/* Edit Profile Button */}
               <TouchableOpacity style={styles.editProfileBtn} onPress={handleOpenEditModal}>
                 <Ionicons name="create-outline" size={16} color="#FFFFFF" />
                 <Text style={styles.editProfileText}>Edit Profile</Text>
               </TouchableOpacity>
             </Animated.View>
 
-            {/* XP Progress Bar */}
             <View style={styles.xpSection}>
               <View style={styles.xpHeader}>
                 <Text style={styles.xpLabel}>XP Progress</Text>
@@ -438,7 +505,6 @@ export default function ProfileScreen({ navigation }) {
           </LinearGradient>
         </Animated.View>
 
-        {/* Stats Cards */}
         <Animated.View style={[styles.statsSection, { opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }] }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll}>
             <StatCard icon="book" value={stats.enrolledCourses} label="Courses" color="#3B82F6" colors={colors} />
@@ -448,7 +514,6 @@ export default function ProfileScreen({ navigation }) {
           </ScrollView>
         </Animated.View>
 
-        {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
@@ -462,7 +527,6 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Settings Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
           <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
@@ -495,7 +559,31 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
 
-        {/* More Options */}
+        {(user?.role === 'instructor' || user?.role === 'admin' || true) && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Content Management</Text>
+            <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
+              <SettingRow
+                icon="videocam"
+                title="Sample Videos"
+                subtitle="Upload & manage previews"
+                colors={colors}
+                isDarkMode={isDarkMode}
+                onPress={() => navigation.navigate('ManageSampleVideos')}
+              />
+              <SettingRow
+                icon="analytics"
+                title="Analytics"
+                subtitle="View insights"
+                colors={colors}
+                isDarkMode={isDarkMode}
+                onPress={() => navigation.navigate('AnalyticsDashboard')}
+                isLast
+              />
+            </View>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>More</Text>
           <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
@@ -506,7 +594,6 @@ export default function ProfileScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Logout */}
         <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: colors.card }]} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={22} color="#EF4444" />
           <Text style={styles.logoutText}>Logout</Text>
@@ -515,7 +602,6 @@ export default function ProfileScreen({ navigation }) {
         <Text style={[styles.version, { color: colors.secondaryText }]}>Version 1.0.0</Text>
       </ScrollView>
 
-      {/* Edit Profile Modal */}
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={handleCloseEditModal}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
@@ -569,7 +655,6 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-// Stat Card Component
 function StatCard({ icon, value, label, color, colors }) {
   return (
     <View style={[styles.statCard, { backgroundColor: colors.card }]}>
@@ -582,7 +667,6 @@ function StatCard({ icon, value, label, color, colors }) {
   );
 }
 
-// Action Card Component
 function ActionCard({ icon, title, subtitle, color, colors, onPress }) {
   return (
     <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card }]} onPress={onPress} activeOpacity={0.8}>
@@ -595,10 +679,9 @@ function ActionCard({ icon, title, subtitle, color, colors, onPress }) {
   );
 }
 
-// Setting Row Component
 function SettingRow({ icon, title, subtitle, colors, isDarkMode, isSwitch, value, onValueChange, onPress, isLast }) {
   const iconColor = isDarkMode ? '#60A5FA' : '#3B82F6';
-  
+
   const Content = (
     <View style={[styles.settingRow, !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
       <View style={[styles.settingIcon, { backgroundColor: iconColor + '15' }]}>
@@ -636,119 +719,172 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // Guest Styles
+
   guestHeader: {
-    paddingTop: 80,
-    paddingBottom: 50,
+    paddingTop: Platform.OS === 'ios' ? 100 : 80,
+    paddingBottom: 60,
     paddingHorizontal: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
     overflow: 'hidden',
     position: 'relative',
+    minHeight: 380,
+    justifyContent: 'center',
   },
   guestDecor1: {
     position: 'absolute',
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    top: -50,
-    right: -30,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    top: -100,
+    right: -80,
   },
   guestDecor2: {
     position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    bottom: -30,
-    left: -20,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    bottom: -60,
+    left: -50,
   },
   guestContent: {
     alignItems: 'center',
+    zIndex: 1,
   },
   guestIconContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
+  },
+  guestIconOuter: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    position: 'relative',
+  },
+  guestIconGlow: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 50,
+    opacity: 0.5,
   },
   guestTitle: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 32,
+    fontWeight: '900',
     color: '#FFFFFF',
-    marginBottom: 12,
+    marginBottom: 16,
+    textAlign: 'center',
+    letterSpacing: -0.5,
   },
   guestSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.8)',
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 20,
+    lineHeight: 24,
+    paddingHorizontal: 15,
   },
   guestActions: {
-    padding: 24,
-    gap: 14,
+    paddingHorizontal: 24,
+    marginTop: -30,
+    gap: 16,
+    zIndex: 2,
   },
   signInBtn: {
-    borderRadius: 14,
+    borderRadius: 20,
     overflow: 'hidden',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 8,
   },
   signInGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 10,
+    paddingVertical: 18,
+    gap: 12,
   },
   signInText: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   createAccountBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 14,
+    paddingVertical: 18,
+    borderRadius: 20,
     borderWidth: 2,
-    gap: 10,
+    gap: 12,
+    backgroundColor: 'transparent',
   },
   createAccountText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
   },
   featuresSection: {
     paddingHorizontal: 24,
-    paddingTop: 10,
+    paddingTop: 40,
+  },
+  featureHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   featuresTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 16,
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  featureBadge: {
+    backgroundColor: '#F59E0B20',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F59E0B40',
+  },
+  featureBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#D97706',
   },
   featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    gap: 14,
   },
   featureCard: {
-    width: (width - 60) / 2,
-    padding: 16,
-    borderRadius: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    borderRadius: 24,
+    gap: 16,
   },
   featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+  },
+  featureContent: {
+    flex: 1,
   },
   featureText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
   },
-  // Header Styles
+  featureDesc: {
+    fontSize: 13,
+    opacity: 0.7,
+  },
+
   header: {
     paddingTop: 60,
     paddingBottom: 30,
@@ -916,7 +1052,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
   },
-  // Stats Section
+
   statsSection: {
     marginTop: -20,
     marginBottom: 20,
@@ -953,7 +1089,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
   },
-  // Section Styles
+
   section: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -964,7 +1100,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     letterSpacing: -0.3,
   },
-  // Actions Grid
+
   actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -999,7 +1135,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: 'center',
   },
-  // Settings Card
+
   settingsCard: {
     borderRadius: 16,
     overflow: 'hidden',
@@ -1033,7 +1169,7 @@ const styles = StyleSheet.create({
   settingSubtitle: {
     fontSize: 12,
   },
-  // Logout Button
+
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1059,7 +1195,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 20,
   },
-  // Modal Styles
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

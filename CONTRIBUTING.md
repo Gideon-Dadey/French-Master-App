@@ -450,7 +450,6 @@ When adding features:
 
 ### High Priority
 
-- [ ] Performance optimizations
 - [ ] Accessibility improvements
 - [ ] Test coverage
 - [ ] Documentation improvements
@@ -500,5 +499,11 @@ Contributors will be:
 
 Thank you for contributing to French Master GH! 🎉
 
-**Last Updated:** January 2025
+**Last Updated:** December 2025
+
+---
+
+## Version History
+
+See [CHANGELOG.md](./CHANGELOG.md) for detailed version history.
 

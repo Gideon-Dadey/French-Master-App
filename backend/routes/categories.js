@@ -5,9 +5,6 @@ const Course = require('../models/Course');
 const Blog = require('../models/Blog');
 const { protect, authorize } = require('../middleware/auth');
 
-// @route   GET /api/categories
-// @desc    Get all categories
-// @access  Public
 router.get('/', async (req, res) => {
   try {
     const { search, parent, active } = req.query;
@@ -41,9 +38,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/categories/:id
-// @desc    Get category by ID
-// @access  Public
 router.get('/:id', async (req, res) => {
   try {
     const category = await Category.findById(req.params.id)
@@ -69,9 +63,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// @route   GET /api/categories/slug/:slug
-// @desc    Get category by slug
-// @access  Public
 router.get('/slug/:slug', async (req, res) => {
   try {
     const category = await Category.findOne({ slug: req.params.slug })
@@ -97,9 +88,6 @@ router.get('/slug/:slug', async (req, res) => {
   }
 });
 
-// @route   POST /api/categories
-// @desc    Create a new category
-// @access  Private (Admin)
 router.post('/', protect, authorize('admin'), async (req, res) => {
   try {
     const category = await Category.create(req.body);
@@ -117,9 +105,6 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// @route   PUT /api/categories/:id
-// @desc    Update category
-// @access  Private (Admin)
 router.put('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const category = await Category.findByIdAndUpdate(
@@ -148,9 +133,6 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// @route   DELETE /api/categories/:id
-// @desc    Delete category
-// @access  Private (Admin)
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const category = await Category.findByIdAndDelete(req.params.id);
@@ -175,9 +157,6 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// @route   GET /api/categories/:id/courses
-// @desc    Get courses in this category
-// @access  Public
 router.get('/:id/courses', async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);

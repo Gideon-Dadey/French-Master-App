@@ -36,7 +36,7 @@ const quizSchema = new mongoose.Schema({
         default: false
       }
     }],
-    correctAnswer: String, // For short answer questions
+    correctAnswer: String,
     points: {
       type: Number,
       default: 1
@@ -48,12 +48,12 @@ const quizSchema = new mongoose.Schema({
     }
   }],
   timeLimit: {
-    type: Number, // in minutes
-    default: 0 // 0 means no time limit
+    type: Number,
+    default: 0
   },
   passingScore: {
     type: Number,
-    default: 70, // percentage
+    default: 70,
     min: 0,
     max: 100
   },

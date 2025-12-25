@@ -1,103 +1,161 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
   Dimensions,
   Alert,
+  Image,
 } from 'react-native';
-// Using expo-video instead of deprecated expo-av
-// For now, using a placeholder - install expo-video for full functionality
-// import { VideoView } from 'expo-video';
+import { Video, ResizeMode } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 
 const { width } = Dimensions.get('window');
 
-export default function VideoPlayer({ source, thumbnail, style, onProgress, downloadable = false }) {
+export default function VideoPlayer({ 
+  source, 
+  thumbnail, 
+  style, 
+  onProgress, 
+  downloadable = false,
+  autoPlay = false,
+}) {
   const videoRef = useRef(null);
   const [status, setStatus] = useState({});
   const [loading, setLoading] = useState(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [showControls, setShowControls] = useState(true);
+  const [error, setError] = useState(null);
+  const [showThumbnail, setShowThumbnail] = useState(!autoPlay && thumbnail);
 
-  const togglePlayPause = async () => {
-    if (videoRef.current) {
-      if (status.isPlaying) {
-        await videoRef.current.pauseAsync();
-        setIsPlaying(false);
-      } else {
-        await videoRef.current.playAsync();
-        setIsPlaying(true);
+  const handlePlaybackStatusUpdate = (playbackStatus) => {
+    setStatus(playbackStatus);
+    
+    if (playbackStatus.isLoaded) {
+      setLoading(false);
+      if (onProgress && playbackStatus.positionMillis) {
+        onProgress(playbackStatus.positionMillis / 1000);
       }
+    }
+    
+    if (playbackStatus.error) {
+      setError('Failed to load video');
+      setLoading(false);
+    }
+  };
+
+  const handlePlay = async () => {
+    setShowThumbnail(false);
+    if (videoRef.current) {
+      await videoRef.current.playAsync();
     }
   };
 
   const handleDownload = async () => {
-    if (!downloadable) return;
+    if (!downloadable || !source?.uri) return;
     
     try {
-      // Implement download logic
-      // This would download the video to local storage for offline viewing
+      const fileName = source.uri.split('/').pop() || 'video.mp4';
+      const fileUri = FileSystem.documentDirectory + fileName;
+      
       Alert.alert('Download', 'Video download started');
-    } catch (error) {
+      
+      const downloadResumable = FileSystem.createDownloadResumable(
+        source.uri,
+        fileUri,
+        {},
+        (downloadProgress) => {
+          const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
+          console.log('Download progress:', Math.round(progress * 100) + '%');
+        }
+      );
+      
+      const result = await downloadResumable.downloadAsync();
+      if (result?.uri) {
+        Alert.alert('Success', 'Video downloaded successfully!');
+      }
+    } catch (err) {
+      console.error('Download error:', err);
       Alert.alert('Error', 'Failed to download video');
     }
   };
 
+  if (error) {
+    return (
+      <View style={[styles.container, styles.errorContainer, style]}>
+        <Ionicons name="alert-circle" size={48} color="#ef4444" />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity 
+          style={styles.retryButton}
+          onPress={() => {
+            setError(null);
+            setLoading(true);
+          }}
+        >
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, style]}>
-      {/* Video player - Replace with expo-video when available */}
-      <View style={styles.video}>
-        <Text style={styles.videoPlaceholder}>Video Player</Text>
-        <Text style={styles.videoUrl}>{source.uri}</Text>
-      </View>
-      {/* TODO: Replace with expo-video VideoView component */}
-      {/* 
-      <VideoView
-        ref={videoRef}
-        source={source}
-        style={styles.video}
-        onLoadStart={() => setLoading(true)}
-        onLoad={() => setLoading(false)}
-        onPlaybackStatusUpdate={(status) => {
-          setStatus(() => status);
-          if (onProgress && status.positionMillis) {
-            onProgress(status.positionMillis / 1000);
-          }
-        }}
-      />
-      */}
+      {/* Thumbnail overlay */}
+      {showThumbnail && thumbnail && (
+        <TouchableOpacity 
+          style={styles.thumbnailContainer}
+          onPress={handlePlay}
+          activeOpacity={0.9}
+        >
+          <Image 
+            source={typeof thumbnail === 'string' ? { uri: thumbnail } : thumbnail}
+            style={styles.thumbnail}
+          />
+          <View style={styles.playOverlay}>
+            <View style={styles.playButton}>
+              <Ionicons name="play" size={36} color="#fff" />
+            </View>
+          </View>
+        </TouchableOpacity>
+      )}
 
-      {loading && (
-        <View style={styles.loading}>
+      {/* Video Player */}
+      {!showThumbnail && (
+        <Video
+          ref={videoRef}
+          source={typeof source === 'string' ? { uri: source } : source}
+          style={styles.video}
+          useNativeControls
+          resizeMode={ResizeMode.CONTAIN}
+          isLooping={false}
+          shouldPlay={autoPlay}
+          onLoadStart={() => setLoading(true)}
+          onLoad={() => setLoading(false)}
+          onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+          onError={(err) => {
+            console.error('Video error:', err);
+            setError('Failed to load video');
+          }}
+        />
+      )}
+
+      {/* Loading indicator */}
+      {loading && !showThumbnail && (
+        <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#fff" />
+          <Text style={styles.loadingText}>Loading video...</Text>
         </View>
       )}
 
-      {showControls && !loading && (
-        <View style={styles.controls}>
-          <TouchableOpacity
-            style={styles.playButton}
-            onPress={togglePlayPause}
-          >
-            <Ionicons
-              name={isPlaying ? 'pause' : 'play'}
-              size={40}
-              color="#fff"
-            />
-          </TouchableOpacity>
-
-          {downloadable && (
-            <TouchableOpacity
-              style={styles.downloadButton}
-              onPress={handleDownload}
-            >
-              <Ionicons name="download-outline" size={24} color="#fff" />
-            </TouchableOpacity>
-          )}
-        </View>
+      {/* Download button */}
+      {downloadable && !showThumbnail && (
+        <TouchableOpacity
+          style={styles.downloadButton}
+          onPress={handleDownload}
+        >
+          <Ionicons name="download-outline" size={22} color="#fff" />
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -107,53 +165,86 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#000',
     position: 'relative',
+    width: '100%',
+    aspectRatio: 16 / 9,
   },
   video: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#000',
+  },
+  thumbnailContainer: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  playOverlay: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  videoPlaceholder: {
-    color: '#fff',
-    fontSize: 16,
-    marginBottom: 10,
-  },
-  videoUrl: {
-    color: '#999',
-    fontSize: 12,
-  },
-  loading: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  controls: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   playButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 30,
-    padding: 15,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(99, 102, 241, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 4,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 14,
+    marginTop: 12,
+  },
+  errorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1c1c1e',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 14,
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  retryButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#6366f1',
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   downloadButton: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 20,
-    padding: 10,
+    bottom: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
 });
-

@@ -74,7 +74,7 @@ export default function LearningStreak({ currentStreak = 0, longestStreak = 0, o
         <Text style={[styles.message, { color: colors.text }]}>
           {getStreakMessage()}
         </Text>
-        
+
         <View style={[styles.progressContainer, { backgroundColor: colors.secondaryBackground }]}>
           <Animated.View
             style={[

@@ -3,9 +3,6 @@ const router = express.Router();
 const Notification = require('../models/Notification');
 const { protect } = require('../middleware/auth');
 
-// @route   GET /api/notifications
-// @desc    Get user notifications
-// @access  Private
 router.get('/', protect, async (req, res) => {
   try {
     const notifications = await Notification.find({ user: req.user._id })
@@ -31,9 +28,6 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// @route   PUT /api/notifications/:id/read
-// @desc    Mark notification as read
-// @access  Private
 router.put('/:id/read', protect, async (req, res) => {
   try {
     const notification = await Notification.findOneAndUpdate(

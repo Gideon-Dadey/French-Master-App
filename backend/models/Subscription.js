@@ -26,7 +26,7 @@ const subscriptionSchema = new mongoose.Schema({
     },
     features: [String],
     duration: {
-      type: Number, // in days
+      type: Number,
       required: true
     }
   },
@@ -72,7 +72,6 @@ const subscriptionSchema = new mongoose.Schema({
 subscriptionSchema.index({ user: 1, status: 1 });
 subscriptionSchema.index({ endDate: 1 });
 
-// Check if subscription is active
 subscriptionSchema.methods.isActive = function() {
   return this.status === 'active' && new Date() < this.endDate;
 };

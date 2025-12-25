@@ -1,26 +1,21 @@
-/**
- * Premium Design System
- * Advanced design tokens and utilities for a premium SaaS platform
- */
+
 
 export const premiumColors = {
-  // Primary Brand Colors
+
   primary: {
-    main: '#6366F1', // Indigo
+    main: '#6366F1',
     light: '#818CF8',
     dark: '#4F46E5',
-    gradient: ['#6366F1', '#8B5CF6', '#EC4899'], // Premium gradient
+    gradient: ['#6366F1', '#8B5CF6', '#EC4899'],
   },
-  
-  // Accent Colors
+
   accent: {
     gold: '#F59E0B',
     emerald: '#10B981',
     rose: '#F43F5E',
     sky: '#0EA5E9',
   },
-  
-  // Neutral Palette
+
   neutral: {
     50: '#F9FAFB',
     100: '#F3F4F6',
@@ -33,14 +28,12 @@ export const premiumColors = {
     800: '#1F2937',
     900: '#111827',
   },
-  
-  // Semantic Colors
+
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#3B82F6',
-  
-  // Status Colors
+
   status: {
     completed: '#10B981',
     inProgress: '#3B82F6',
@@ -79,7 +72,7 @@ export const premiumShadows = {
     elevation: 12,
   },
   premium: {
-    // Premium glow effect
+
     shadowColor: '#6366F1',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
@@ -159,9 +152,6 @@ export const premiumAnimations = {
   },
 };
 
-/**
- * Premium gradient generator
- */
 export const getPremiumGradient = (variant = 'primary') => {
   const gradients = {
     primary: ['#6366F1', '#8B5CF6'],
@@ -173,9 +163,6 @@ export const getPremiumGradient = (variant = 'primary') => {
   return gradients[variant] || gradients.primary;
 };
 
-/**
- * Premium card style
- */
 export const premiumCardStyle = {
   backgroundColor: '#FFFFFF',
   borderRadius: premiumBorderRadius.xl,
@@ -183,9 +170,6 @@ export const premiumCardStyle = {
   padding: premiumSpacing.lg,
 };
 
-/**
- * Glass morphism effect
- */
 export const glassMorphism = {
   backgroundColor: 'rgba(255, 255, 255, 0.7)',
   backdropFilter: 'blur(20px)',
@@ -193,9 +177,6 @@ export const glassMorphism = {
   borderColor: 'rgba(255, 255, 255, 0.18)',
 };
 
-/**
- * Premium button variants
- */
 export const buttonVariants = {
   primary: {
     backgroundColor: premiumColors.primary.main,

@@ -3,20 +3,16 @@ const router = express.Router();
 const Discussion = require('../models/Discussion');
 const { protect } = require('../middleware/auth');
 
-// @route   GET /api/discussions
-// @desc    Get all discussions with filters
-// @access  Public
 router.get('/', async (req, res) => {
   try {
     const {
       category,
       search,
-      sort = 'recent', // recent, popular, trending, most-replied
+      sort = 'recent',
       page = 1,
       limit = 20
     } = req.query;
 
-    // Build query
     const query = {};
 
     if (category) query.category = category;
@@ -24,15 +20,14 @@ router.get('/', async (req, res) => {
       query.$text = { $search: search };
     }
 
-    // Sort options
     let sortOption = {};
     switch (sort) {
       case 'popular':
         sortOption = { views: -1, likeCount: -1, createdAt: -1 };
         break;
       case 'trending':
-        // Recent discussions with high engagement
-        sortOption = { 
+
+        sortOption = {
           lastActivityAt: -1,
           replyCount: -1,
           views: -1
@@ -41,11 +36,10 @@ router.get('/', async (req, res) => {
       case 'most-replied':
         sortOption = { replyCount: -1, createdAt: -1 };
         break;
-      default: // recent
+      default:
         sortOption = { isPinned: -1, createdAt: -1 };
     }
 
-    // Pagination
     const skip = (page - 1) * limit;
 
     const discussions = await Discussion.find(query)
@@ -54,7 +48,7 @@ router.get('/', async (req, res) => {
       .sort(sortOption)
       .skip(skip)
       .limit(Number(limit))
-      .select('-replies.likes'); // Don't load all likes in list view
+      .select('-replies.likes');
 
     const total = await Discussion.countDocuments(query);
 
@@ -75,9 +69,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/discussions/:id
-// @desc    Get single discussion with replies
-// @access  Public
 router.get('/:id', async (req, res) => {
   try {
     const discussion = await Discussion.findById(req.params.id)
@@ -93,7 +84,6 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // Increment views
     discussion.incrementViews();
     await discussion.save();
 
@@ -110,9 +100,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// @route   POST /api/discussions
-// @desc    Create a new discussion
-// @access  Protected
 router.post('/', protect, async (req, res) => {
   try {
     const {
@@ -154,9 +141,6 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// @route   PUT /api/discussions/:id
-// @desc    Update a discussion
-// @access  Protected (author only)
 router.put('/:id', protect, async (req, res) => {
   try {
     const discussion = await Discussion.findById(req.params.id);
@@ -168,7 +152,6 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    // Check if user is author
     if (discussion.author.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -176,7 +159,6 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    // Update allowed fields
     const allowedUpdates = ['title', 'content', 'category', 'tags', 'relatedCourse', 'relatedLesson'];
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
@@ -205,9 +187,6 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/discussions/:id
-// @desc    Delete a discussion
-// @access  Protected (author only)
 router.delete('/:id', protect, async (req, res) => {
   try {
     const discussion = await Discussion.findById(req.params.id);
@@ -219,7 +198,6 @@ router.delete('/:id', protect, async (req, res) => {
       });
     }
 
-    // Check if user is author
     if (discussion.author.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -242,9 +220,6 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/discussions/:id/like
-// @desc    Toggle like on a discussion
-// @access  Protected
 router.post('/:id/like', protect, async (req, res) => {
   try {
     const discussion = await Discussion.findById(req.params.id);
@@ -275,9 +250,6 @@ router.post('/:id/like', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/discussions/:id/replies
-// @desc    Add a reply to a discussion
-// @access  Protected
 router.post('/:id/replies', protect, async (req, res) => {
   try {
     const { content } = req.body;
@@ -318,9 +290,6 @@ router.post('/:id/replies', protect, async (req, res) => {
   }
 });
 
-// @route   PUT /api/discussions/:id/replies/:replyId
-// @desc    Update a reply
-// @access  Protected (author only)
 router.put('/:id/replies/:replyId', protect, async (req, res) => {
   try {
     const { content } = req.body;
@@ -341,7 +310,6 @@ router.put('/:id/replies/:replyId', protect, async (req, res) => {
       });
     }
 
-    // Check if user is reply author
     if (reply.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -370,9 +338,6 @@ router.put('/:id/replies/:replyId', protect, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/discussions/:id/replies/:replyId
-// @desc    Delete a reply
-// @access  Protected (author only)
 router.delete('/:id/replies/:replyId', protect, async (req, res) => {
   try {
     const discussion = await Discussion.findById(req.params.id);
@@ -392,7 +357,6 @@ router.delete('/:id/replies/:replyId', protect, async (req, res) => {
       });
     }
 
-    // Check if user is reply author
     if (reply.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -417,9 +381,6 @@ router.delete('/:id/replies/:replyId', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/discussions/:id/replies/:replyId/like
-// @desc    Toggle like on a reply
-// @access  Protected
 router.post('/:id/replies/:replyId/like', protect, async (req, res) => {
   try {
     const discussion = await Discussion.findById(req.params.id);

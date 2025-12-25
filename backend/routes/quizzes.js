@@ -4,9 +4,6 @@ const Quiz = require('../models/Quiz');
 const QuizAttempt = require('../models/QuizAttempt');
 const { protect, authorize } = require('../middleware/auth');
 
-// @route   GET /api/quizzes
-// @desc    Get all quizzes
-// @access  Public
 router.get('/', async (req, res) => {
   try {
     const { lesson, course, status } = req.query;
@@ -35,9 +32,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/quizzes/:id
-// @desc    Get quiz by ID
-// @access  Public
 router.get('/:id', async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id)
@@ -64,9 +58,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// @route   POST /api/quizzes
-// @desc    Create a new quiz
-// @access  Private (Instructor/Admin)
 router.post('/', protect, authorize('instructor', 'admin'), async (req, res) => {
   try {
     const quiz = await Quiz.create({
@@ -87,9 +78,6 @@ router.post('/', protect, authorize('instructor', 'admin'), async (req, res) => 
   }
 });
 
-// @route   PUT /api/quizzes/:id
-// @desc    Update quiz
-// @access  Private (Instructor/Admin)
 router.put('/:id', protect, authorize('instructor', 'admin'), async (req, res) => {
   try {
     const quiz = await Quiz.findByIdAndUpdate(
@@ -118,9 +106,6 @@ router.put('/:id', protect, authorize('instructor', 'admin'), async (req, res) =
   }
 });
 
-// @route   DELETE /api/quizzes/:id
-// @desc    Delete quiz
-// @access  Private (Instructor/Admin)
 router.delete('/:id', protect, authorize('instructor', 'admin'), async (req, res) => {
   try {
     const quiz = await Quiz.findByIdAndDelete(req.params.id);
@@ -145,9 +130,6 @@ router.delete('/:id', protect, authorize('instructor', 'admin'), async (req, res
   }
 });
 
-// @route   POST /api/quizzes/:id/attempt
-// @desc    Submit quiz attempt
-// @access  Private
 router.post('/:id/attempt', protect, async (req, res) => {
   try {
     const quiz = await Quiz.findById(req.params.id);
@@ -158,7 +140,6 @@ router.post('/:id/attempt', protect, async (req, res) => {
       });
     }
 
-    // Check max attempts
     const attempts = await QuizAttempt.countDocuments({
       user: req.user.id,
       quiz: quiz._id
@@ -171,7 +152,6 @@ router.post('/:id/attempt', protect, async (req, res) => {
       });
     }
 
-    // Calculate score
     let score = 0;
     let totalPoints = 0;
     const answers = req.body.answers || [];
@@ -179,13 +159,13 @@ router.post('/:id/attempt', protect, async (req, res) => {
     quiz.questions.forEach((question, index) => {
       totalPoints += question.points;
       const userAnswer = answers[index];
-      
+
       if (question.type === 'multiple_choice' || question.type === 'single_choice') {
         const selectedOptions = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
         const correctOptions = question.options
           .map((opt, idx) => opt.isCorrect ? idx : null)
           .filter(idx => idx !== null);
-        
+
         if (JSON.stringify(selectedOptions.sort()) === JSON.stringify(correctOptions.sort())) {
           score += question.points;
         }
@@ -207,7 +187,7 @@ router.post('/:id/attempt', protect, async (req, res) => {
       answers: answers.map((answer, index) => ({
         questionId: quiz.questions[index]._id,
         answer: answer,
-        isCorrect: false, // Will be calculated
+        isCorrect: false,
         points: 0
       })),
       score,
@@ -231,9 +211,6 @@ router.post('/:id/attempt', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/quizzes/:id/attempts
-// @desc    Get user's quiz attempts
-// @access  Private
 router.get('/:id/attempts', protect, async (req, res) => {
   try {
     const attempts = await QuizAttempt.find({

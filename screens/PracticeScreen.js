@@ -37,14 +37,12 @@ export default function PracticeScreen({ navigation }) {
     mastery: 85,
   });
   const [flashcardFlipped, setFlashcardFlipped] = useState(false);
-  
-  // Animations
+
   const headerAnim = useRef(new Animated.Value(0)).current;
   const cardsAnim = useRef(new Animated.Value(0)).current;
   const flipAnimation = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Practice categories with premium design
   const practiceCategories = [
     {
       id: 'flashcards',
@@ -108,7 +106,15 @@ export default function PracticeScreen({ navigation }) {
     },
   ];
 
-  // Quick practice sessions
+  const wordOfTheDayCard = {
+    id: 'wordofday',
+    title: 'Word of the Day',
+    subtitle: 'Expand your vocabulary daily',
+    icon: 'sunny',
+    gradient: ['#F59E0B', '#D97706'],
+    onPress: () => navigation.navigate('WordOfTheDay'),
+  };
+
   const quickSessions = [
     { id: '5min', title: '5 Min', subtitle: 'Quick review', icon: 'flash', color: '#6366F1' },
     { id: '10min', title: '10 Min', subtitle: 'Focus session', icon: 'time', color: '#10B981' },
@@ -118,13 +124,12 @@ export default function PracticeScreen({ navigation }) {
 
   useEffect(() => {
     loadData();
-    // Entrance animations
+
     Animated.stagger(100, [
       Animated.spring(headerAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
       Animated.spring(cardsAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
     ]).start();
 
-    // Pulse animation for streak
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.1, duration: 1000, useNativeDriver: true }),
@@ -205,7 +210,7 @@ export default function PracticeScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Animated Header */}
+
       <Animated.View
         style={[
           styles.headerWrapper,
@@ -216,7 +221,7 @@ export default function PracticeScreen({ navigation }) {
         ]}
       >
         <LinearGradient
-          colors={isDarkMode 
+          colors={isDarkMode
             ? ['#0F172A', '#1E1B4B', '#312E81']
             : ['#FEF3C7', '#FDE68A', '#FCD34D']
           }
@@ -224,29 +229,19 @@ export default function PracticeScreen({ navigation }) {
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-          {/* Decorative Elements */}
+
           <View style={styles.headerDecor}>
             <View style={[styles.decorCircle, styles.decorCircle1, { backgroundColor: isDarkMode ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.2)' }]} />
             <View style={[styles.decorCircle, styles.decorCircle2, { backgroundColor: isDarkMode ? 'rgba(139,92,246,0.1)' : 'rgba(251,191,36,0.15)' }]} />
           </View>
 
           <View style={styles.headerContent}>
-            {/* Top Row */}
+
             <View style={styles.headerTopRow}>
               <View style={styles.headerTitleSection}>
-                <View style={styles.headerBadge}>
-                  <LinearGradient
-                    colors={['#F59E0B', '#D97706']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.headerBadgeGradient}
-                  >
-                    <Ionicons name="fitness" size={14} color="#FFFFFF" />
-                  </LinearGradient>
-                  <Text style={[styles.headerBadgeText, { color: isDarkMode ? '#FCD34D' : '#B45309' }]}>
-                    PRACTICE
-                  </Text>
-                </View>
+                <Text style={[styles.headerBadgeText, { color: isDarkMode ? '#FCD34D' : '#B45309' }]}>
+                  PRACTICE
+                </Text>
                 <Text style={[styles.headerTitle, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
                   Training Center
                 </Text>
@@ -255,14 +250,12 @@ export default function PracticeScreen({ navigation }) {
                 </Text>
               </View>
 
-              {/* Streak Badge */}
               {practiceStats && (
                 <Animated.View style={[styles.streakContainer, { transform: [{ scale: pulseAnim }] }]}>
                   <LinearGradient
                     colors={['#F97316', '#EA580C']}
                     style={styles.streakBadge}
                   >
-                    <Ionicons name="flame" size={20} color="#FFFFFF" />
                     <Text style={styles.streakNumber}>{practiceStats.practiceStreak}</Text>
                     <Text style={styles.streakLabel}>Day Streak</Text>
                   </LinearGradient>
@@ -270,24 +263,20 @@ export default function PracticeScreen({ navigation }) {
               )}
             </View>
 
-            {/* Stats Pills */}
             <View style={styles.statsPillsRow}>
               <View style={[styles.statPill, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)' }]}>
-                <Ionicons name="book" size={16} color="#6366F1" />
                 <Text style={[styles.statPillValue, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
                   {practiceStats?.wordsLearned || 0}
                 </Text>
                 <Text style={[styles.statPillLabel, { color: isDarkMode ? '#94A3B8' : '#6B7280' }]}>Words</Text>
               </View>
               <View style={[styles.statPill, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)' }]}>
-                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
                 <Text style={[styles.statPillValue, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
                   {practiceStats?.accuracy || 0}%
                 </Text>
                 <Text style={[styles.statPillLabel, { color: isDarkMode ? '#94A3B8' : '#6B7280' }]}>Accuracy</Text>
               </View>
               <View style={[styles.statPill, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)' }]}>
-                <Ionicons name="star" size={16} color="#F59E0B" />
                 <Text style={[styles.statPillValue, { color: isDarkMode ? '#FFFFFF' : '#1F2937' }]}>
                   {practiceStats?.xpEarned || 0}
                 </Text>
@@ -306,7 +295,7 @@ export default function PracticeScreen({ navigation }) {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Daily Challenge Card */}
+
         <Animated.View
           style={[
             styles.challengeSection,
@@ -323,11 +312,6 @@ export default function PracticeScreen({ navigation }) {
             style={[styles.dailyChallengeCard, premiumShadows.lg]}
           >
             <View style={styles.challengeHeader}>
-              <View style={styles.challengeIconContainer}>
-                <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.challengeIcon}>
-                  <Ionicons name="trophy" size={24} color="#FFFFFF" />
-                </LinearGradient>
-              </View>
               <View style={styles.challengeInfo}>
                 <Text style={[styles.challengeLabel, { color: isDarkMode ? '#FCD34D' : '#B45309' }]}>
                   DAILY CHALLENGE
@@ -337,7 +321,6 @@ export default function PracticeScreen({ navigation }) {
                 </Text>
               </View>
               <View style={styles.challengeReward}>
-                <Ionicons name="star" size={16} color="#F59E0B" />
                 <Text style={[styles.challengeXP, { color: '#F59E0B' }]}>+100 XP</Text>
               </View>
             </View>
@@ -355,13 +338,9 @@ export default function PracticeScreen({ navigation }) {
           </LinearGradient>
         </Animated.View>
 
-        {/* Quick Sessions */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Sessions</Text>
-            <View style={styles.sectionBadge}>
-              <Ionicons name="flash" size={14} color="#F59E0B" />
-            </View>
           </View>
           <ScrollView
             horizontal
@@ -375,9 +354,6 @@ export default function PracticeScreen({ navigation }) {
                 onPress={() => navigation.navigate('Flashcards', { duration: session.id })}
                 activeOpacity={0.85}
               >
-                <View style={[styles.quickSessionIcon, { backgroundColor: session.color + '15' }]}>
-                  <Ionicons name={session.icon} size={24} color={session.color} />
-                </View>
                 <Text style={[styles.quickSessionTitle, { color: colors.text }]}>{session.title}</Text>
                 <Text style={[styles.quickSessionSubtitle, { color: colors.secondaryText }]}>{session.subtitle}</Text>
               </TouchableOpacity>
@@ -385,7 +361,6 @@ export default function PracticeScreen({ navigation }) {
           </ScrollView>
         </View>
 
-        {/* Interactive Flashcard Preview */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Word of the Day</Text>
@@ -408,7 +383,7 @@ export default function PracticeScreen({ navigation }) {
                 <Ionicons name="star" size={12} color="#FFFFFF" />
                 <Text style={styles.flashcardMasteryText}>{currentFlashcard.mastery}% Mastered</Text>
               </View>
-              
+
               <Animated.View style={[styles.flashcardFront, { transform: [{ rotateY: frontInterpolate }] }]}>
                 <Text style={styles.flashcardWord}>{currentFlashcard.word}</Text>
                 <View style={styles.flashcardHint}>
@@ -444,7 +419,36 @@ export default function PracticeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Practice Categories */}
+        <TouchableOpacity
+          style={styles.wordOfDayCard}
+          onPress={wordOfTheDayCard.onPress}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={['#F59E0B', '#D97706']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.wordOfDayGradient}
+          >
+            <View style={styles.wordOfDayDecor1} />
+            <View style={styles.wordOfDayDecor2} />
+            <View style={styles.wordOfDayContent}>
+              <View style={styles.wordOfDayLeft}>
+                <View style={styles.wordOfDayIconWrap}>
+                  <Ionicons name="sunny" size={28} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.wordOfDayTitle}>Word of the Day</Text>
+                  <Text style={styles.wordOfDaySubtitle}>Learn a new word daily</Text>
+                </View>
+              </View>
+              <View style={styles.wordOfDayArrow}>
+                <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
+              </View>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Practice Modes</Text>
@@ -469,18 +473,15 @@ export default function PracticeScreen({ navigation }) {
                   <Text style={[styles.categoryTitle, { color: colors.text }]}>{category.title}</Text>
                   <Text style={[styles.categorySubtitle, { color: colors.secondaryText }]}>{category.subtitle}</Text>
                   <View style={styles.categoryMeta}>
-                    <View style={styles.categoryExercises}>
-                      <Ionicons name="play-circle" size={12} color={category.gradient[0]} />
-                      <Text style={[styles.categoryExercisesText, { color: category.gradient[0] }]}>
-                        {category.exercises} exercises
-                      </Text>
-                    </View>
+                    <Text style={[styles.categoryExercisesText, { color: category.gradient[0] }]}>
+                      {category.exercises} exercises
+                    </Text>
                     <View style={[styles.categoryProgress, { backgroundColor: colors.border }]}>
-                      <View 
+                      <View
                         style={[
-                          styles.categoryProgressFill, 
+                          styles.categoryProgressFill,
                           { width: `${category.progress}%`, backgroundColor: category.gradient[0] }
-                        ]} 
+                        ]}
                       />
                     </View>
                   </View>
@@ -491,7 +492,6 @@ export default function PracticeScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Achievements Section */}
         {isAuthenticated && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -506,28 +506,24 @@ export default function PracticeScreen({ navigation }) {
               contentContainerStyle={styles.achievementsScroll}
             >
               <AchievementCard
-                icon="trophy"
                 title="Practice Master"
                 subtitle="50 sessions done"
                 gradient={['#F59E0B', '#D97706']}
                 colors={colors}
               />
               <AchievementCard
-                icon="flame"
                 title="Streak Keeper"
                 subtitle="7 day streak"
                 gradient={['#EF4444', '#DC2626']}
                 colors={colors}
               />
               <AchievementCard
-                icon="star"
                 title="Vocabulary Pro"
                 subtitle="200+ words"
                 gradient={['#6366F1', '#8B5CF6']}
                 colors={colors}
               />
               <AchievementCard
-                icon="medal"
                 title="Perfect Score"
                 subtitle="100% accuracy"
                 gradient={['#10B981', '#059669']}
@@ -537,7 +533,6 @@ export default function PracticeScreen({ navigation }) {
           </View>
         )}
 
-        {/* Motivation Banner */}
         <View style={styles.section}>
           <LinearGradient
             colors={isDarkMode ? ['#1E1B4B', '#312E81'] : ['#FEF3C7', '#FDE68A']}
@@ -581,13 +576,9 @@ export default function PracticeScreen({ navigation }) {
   );
 }
 
-// Achievement Card Component
-function AchievementCard({ icon, title, subtitle, gradient, colors }) {
+function AchievementCard({ title, subtitle, gradient, colors }) {
   return (
     <View style={[styles.achievementCard, { backgroundColor: colors.card }]}>
-      <LinearGradient colors={gradient} style={styles.achievementIcon}>
-        <Ionicons name={icon} size={24} color="#FFFFFF" />
-      </LinearGradient>
       <Text style={[styles.achievementTitle, { color: colors.text }]}>{title}</Text>
       <Text style={[styles.achievementSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
     </View>
@@ -1048,5 +1039,71 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: fontSize.md,
     fontWeight: '700',
+  },
+
+  wordOfDayCard: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    borderRadius: premiumBorderRadius.xl,
+    overflow: 'hidden',
+    ...premiumShadows.lg,
+  },
+  wordOfDayGradient: {
+    padding: spacing.lg,
+    overflow: 'hidden',
+  },
+  wordOfDayDecor1: {
+    position: 'absolute',
+    top: -30,
+    right: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  wordOfDayDecor2: {
+    position: 'absolute',
+    bottom: -20,
+    left: -20,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  wordOfDayContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  wordOfDayLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  wordOfDayIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wordOfDayTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  wordOfDaySubtitle: {
+    fontSize: fontSize.sm,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  wordOfDayArrow: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

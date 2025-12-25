@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,22 +9,42 @@ import {
   TextInput,
   Dimensions,
   Alert,
+  Animated,
+  Platform,
+  StatusBar,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
-import { spacing, fontSize } from '../src/utils/responsive';
 import { discussionsAPI } from '../src/services/api';
-import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import LoadingSpinner from '../src/components/LoadingSpinner';
-import ErrorMessage from '../src/components/ErrorMessage';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+const CATEGORIES = [
+  { id: null, name: 'All', icon: 'apps', color: '#8B5CF6', gradient: ['#8B5CF6', '#7C3AED'] },
+  { id: 'general', name: 'General', icon: 'chatbubbles', color: '#3B82F6', gradient: ['#3B82F6', '#2563EB'] },
+  { id: 'grammar', name: 'Grammar', icon: 'school', color: '#10B981', gradient: ['#10B981', '#059669'] },
+  { id: 'vocabulary', name: 'Vocabulary', icon: 'book', color: '#F59E0B', gradient: ['#F59E0B', '#D97706'] },
+  { id: 'pronunciation', name: 'Pronunciation', icon: 'mic', color: '#EC4899', gradient: ['#EC4899', '#DB2777'] },
+  { id: 'culture', name: 'Culture', icon: 'earth', color: '#06B6D4', gradient: ['#06B6D4', '#0891B2'] },
+  { id: 'tips', name: 'Tips & Tricks', icon: 'bulb', color: '#EAB308', gradient: ['#EAB308', '#CA8A04'] },
+  { id: 'resources', name: 'Resources', icon: 'folder-open', color: '#14B8A6', gradient: ['#14B8A6', '#0D9488'] },
+];
+
+const SORT_OPTIONS = [
+  { id: 'recent', name: 'Recent', icon: 'time' },
+  { id: 'popular', name: 'Popular', icon: 'flame' },
+  { id: 'trending', name: 'Trending', icon: 'trending-up' },
+  { id: 'most-replied', name: 'Active', icon: 'chatbubbles' },
+];
 
 export default function DiscussionsScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
   const { colors, isDarkMode } = useTheme();
+
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,24 +52,31 @@ export default function DiscussionsScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSort, setSelectedSort] = useState('recent');
+  const [showSearch, setShowSearch] = useState(false);
+  const [stats, setStats] = useState({ total: 0, active: 0, replies: 0 });
 
-  const categories = [
-    { id: null, name: 'All', icon: 'grid-outline', color: premiumColors.primary.main },
-    { id: 'general', name: 'General', icon: 'chatbubbles-outline', color: premiumColors.primary.main },
-    { id: 'grammar', name: 'Grammar', icon: 'school-outline', color: premiumColors.accent.emerald },
-    { id: 'vocabulary', name: 'Vocabulary', icon: 'book-outline', color: premiumColors.accent.gold },
-    { id: 'pronunciation', name: 'Pronunciation', icon: 'mic-outline', color: premiumColors.accent.rose },
-    { id: 'culture', name: 'Culture', icon: 'globe-outline', color: premiumColors.accent.sky },
-    { id: 'tips', name: 'Tips', icon: 'bulb-outline', color: premiumColors.accent.gold },
-    { id: 'resources', name: 'Resources', icon: 'folder-outline', color: premiumColors.primary.main },
-  ];
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const searchAnim = useRef(new Animated.Value(0)).current;
+  const cardAnims = useRef([]).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const scrollY = useRef(new Animated.Value(0)).current;
 
-  const sortOptions = [
-    { id: 'recent', name: 'Recent', icon: 'time-outline' },
-    { id: 'popular', name: 'Popular', icon: 'flame-outline' },
-    { id: 'trending', name: 'Trending', icon: 'trending-up-outline' },
-    { id: 'most-replied', name: 'Most Replied', icon: 'chatbubbles-outline' },
-  ];
+  useEffect(() => {
+    loadDiscussions();
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 8, useNativeDriver: true }),
+    ]).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.08, duration: 1500, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
 
   useEffect(() => {
     loadDiscussions();
@@ -59,7 +86,7 @@ export default function DiscussionsScreen({ navigation }) {
     try {
       if (!refreshing) setLoading(true);
       setError(null);
-      
+
       const params = {
         category: selectedCategory || undefined,
         sort: selectedSort,
@@ -68,15 +95,42 @@ export default function DiscussionsScreen({ navigation }) {
         page: 1,
       };
 
-      Object.keys(params).forEach(key => 
+      Object.keys(params).forEach(key =>
         params[key] === null || params[key] === undefined ? delete params[key] : {}
       );
 
       const response = await discussionsAPI.getAll(params);
-      setDiscussions(response.data.data || []);
+      const data = response.data.data || [];
+      setDiscussions(data);
+
+      const totalReplies = data.reduce((sum, d) => sum + (d.replies?.length || 0), 0);
+      const activeToday = data.filter(d => {
+        const date = new Date(d.createdAt);
+        const today = new Date();
+        return date.toDateString() === today.toDateString();
+      }).length;
+      setStats({ total: data.length, active: activeToday, replies: totalReplies });
+
+      data.forEach((_, index) => {
+        if (!cardAnims[index]) {
+          cardAnims[index] = new Animated.Value(0);
+        }
+      });
+
+      Animated.stagger(60,
+        data.map((_, index) =>
+          Animated.spring(cardAnims[index] || new Animated.Value(0), {
+            toValue: 1,
+            tension: 50,
+            friction: 8,
+            useNativeDriver: true,
+          })
+        )
+      ).start();
+
     } catch (error) {
       console.error('Failed to load discussions:', error);
-      setError('Failed to load discussions. Please check your connection.');
+      setError('Failed to load discussions');
       setDiscussions([]);
     } finally {
       setLoading(false);
@@ -91,287 +145,466 @@ export default function DiscussionsScreen({ navigation }) {
 
   const handleCreateDiscussion = () => {
     if (!isAuthenticated) {
-      Alert.alert('Login Required', 'Please login to start a discussion', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Login', onPress: () => navigation.navigate('Auth') },
-      ]);
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to start a discussion',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Sign In', onPress: () => navigation.navigate('Auth') },
+        ]
+      );
       return;
     }
     navigation.navigate('CreateDiscussion');
+  };
+
+  const toggleSearch = () => {
+    const toValue = showSearch ? 0 : 1;
+    Animated.spring(searchAnim, {
+      toValue,
+      tension: 50,
+      friction: 8,
+      useNativeDriver: false,
+    }).start();
+    setShowSearch(!showSearch);
+    if (showSearch && searchQuery) {
+      setSearchQuery('');
+      loadDiscussions();
+    }
   };
 
   const formatTimeAgo = (date) => {
     if (!date) return 'Recently';
     const now = new Date();
     const postDate = new Date(date);
-    const diffInHours = Math.floor((now - postDate) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInMinutes = Math.floor((now - postDate) / (1000 * 60));
+
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}h`;
     const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-    return new Date(date).toLocaleDateString();
+    if (diffInDays < 7) return `${diffInDays}d`;
+    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)}w`;
+    return `${Math.floor(diffInDays / 30)}mo`;
+  };
+
+  const getCategoryInfo = (categoryId) => {
+    return CATEGORIES.find(c => c.id === categoryId) || CATEGORIES[1];
   };
 
   if (loading && !refreshing) {
-    return <LoadingSpinner />;
+    return (
+      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+        <StatusBar barStyle="light-content" />
+        <LinearGradient colors={['#8B5CF6', '#7C3AED']} style={styles.loadingHeader}>
+          <Text style={styles.loadingText}>Loading Discussions...</Text>
+        </LinearGradient>
+        <LoadingSpinner />
+      </View>
+    );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Header */}
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+      <StatusBar barStyle="light-content" />
+
       <LinearGradient
-        colors={isDarkMode 
-          ? ['#1a0a2e', '#16213e', '#0f3460']
-          : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
-        }
+        colors={isDarkMode ? ['#4C1D95', '#5B21B6'] : ['#8B5CF6', '#7C3AED']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <View style={styles.headerContent}>
-          <View style={styles.headerTop}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#FFFFFF' : '#424242'} />
-            </TouchableOpacity>
-            <View>
-              <Text style={[styles.title, { color: isDarkMode ? '#BB86FC' : '#9C27B0' }]}>
-                Discussions
-              </Text>
-              <Text style={[styles.subtitle, { color: isDarkMode ? '#FFFFFF' : '#424242' }]}>
-                Join the conversation
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.createButton, { backgroundColor: premiumColors.primary.main }]}
-              onPress={handleCreateDiscussion}
-            >
-              <Ionicons name="add" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.headerDecor1} />
+        <View style={styles.headerDecor2} />
+        <View style={styles.headerDecor3} />
 
-          {/* Search Bar */}
-          <View style={[styles.searchBar, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)' }]}>
-            <Ionicons name="search" size={20} color={isDarkMode ? '#FFFFFF' : '#424242'} style={styles.searchIcon} />
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <Animated.View
+            style={[
+              styles.headerTitleWrap,
+              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+            ]}
+          >
+            <Text style={styles.headerTitle}>Discussions</Text>
+            <Text style={styles.headerSubtitle}>
+              Connect with fellow learners
+            </Text>
+          </Animated.View>
+
+          <TouchableOpacity
+            style={styles.searchBtn}
+            onPress={toggleSearch}
+          >
+            <Ionicons name={showSearch ? 'close' : 'search'} size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        <Animated.View
+          style={[
+            styles.searchBarContainer,
+            {
+              height: searchAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 56],
+              }),
+              opacity: searchAnim,
+              marginTop: searchAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 16],
+              }),
+            }
+          ]}
+        >
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={20} color="rgba(255,255,255,0.7)" />
             <TextInput
-              style={[styles.searchInput, { color: isDarkMode ? '#FFFFFF' : '#000' }]}
+              style={styles.searchInput}
               placeholder="Search discussions..."
-              placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.6)' : '#9E9E9E'}
+              placeholderTextColor="rgba(255,255,255,0.5)"
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={loadDiscussions}
+              returnKeyType="search"
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => { setSearchQuery(''); loadDiscussions(); }}>
-                <Ionicons name="close-circle" size={20} color={isDarkMode ? '#FFFFFF' : '#424242'} />
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={20} color="rgba(255,255,255,0.7)" />
               </TouchableOpacity>
             )}
           </View>
-        </View>
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.statsRow,
+            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+          ]}
+        >
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']}
+              style={styles.statCardGradient}
+            >
+              <Ionicons name="chatbubbles" size={22} color="#FFFFFF" />
+              <Text style={styles.statValue}>{stats.total}</Text>
+              <Text style={styles.statLabel}>Topics</Text>
+            </LinearGradient>
+          </View>
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']}
+              style={styles.statCardGradient}
+            >
+              <Ionicons name="flash" size={22} color="#FCD34D" />
+              <Text style={styles.statValue}>{stats.active}</Text>
+              <Text style={styles.statLabel}>Today</Text>
+            </LinearGradient>
+          </View>
+          <View style={styles.statCard}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']}
+              style={styles.statCardGradient}
+            >
+              <Ionicons name="chatbox" size={22} color="#34D399" />
+              <Text style={styles.statValue}>{stats.replies}</Text>
+              <Text style={styles.statLabel}>Replies</Text>
+            </LinearGradient>
+          </View>
+        </Animated.View>
       </LinearGradient>
 
-      {/* Categories Filter */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoriesContainer}
-        contentContainerStyle={styles.categoriesContent}
-      >
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category.id || 'all'}
-            style={[
-              styles.categoryChip,
-              {
-                backgroundColor: selectedCategory === category.id
-                  ? category.color
-                  : colors.card,
-                borderColor: selectedCategory === category.id
-                  ? category.color
-                  : colors.border,
-              },
-              premiumShadows.sm,
-            ]}
-            onPress={() => setSelectedCategory(category.id)}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={category.icon}
-              size={16}
-              color={selectedCategory === category.id ? '#FFFFFF' : colors.text}
-            />
-            <Text
-              style={[
-                styles.categoryText,
-                {
-                  color: selectedCategory === category.id ? '#FFFFFF' : colors.text,
-                },
-              ]}
-            >
-              {category.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Sort Options */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.sortContainer}
-        contentContainerStyle={styles.sortContent}
-      >
-        {sortOptions.map((option) => (
-          <TouchableOpacity
-            key={option.id}
-            style={[
-              styles.sortChip,
-              {
-                backgroundColor: selectedSort === option.id
-                  ? premiumColors.primary.main
-                  : colors.card,
-                borderColor: selectedSort === option.id
-                  ? premiumColors.primary.main
-                  : colors.border,
-              },
-            ]}
-            onPress={() => setSelectedSort(option.id)}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={option.icon}
-              size={14}
-              color={selectedSort === option.id ? '#FFFFFF' : colors.text}
-            />
-            <Text
-              style={[
-                styles.sortText,
-                {
-                  color: selectedSort === option.id ? '#FFFFFF' : colors.text,
-                },
-              ]}
-            >
-              {option.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Content */}
-      {error && !loading ? (
-        <ErrorMessage message={error} onRetry={loadDiscussions} />
-      ) : (
+      <View style={styles.categoriesSection}>
         <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-          }
-          showsVerticalScrollIndicator={false}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesScroll}
         >
-          {discussions.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="chatbubbles-outline" size={64} color={colors.secondaryText} />
-              <Text style={[styles.emptyText, { color: colors.text }]}>
-                No discussions yet
-              </Text>
-              <Text style={[styles.emptySubtext, { color: colors.secondaryText }]}>
-                Be the first to start a discussion!
-              </Text>
+          {CATEGORIES.map((category) => {
+            const isActive = selectedCategory === category.id;
+            return (
               <TouchableOpacity
-                style={[styles.emptyButton, { backgroundColor: premiumColors.primary.main }]}
-                onPress={handleCreateDiscussion}
+                key={category.id || 'all'}
+                style={[
+                  styles.categoryChip,
+                  isActive && { backgroundColor: category.color },
+                  !isActive && { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }
+                ]}
+                onPress={() => setSelectedCategory(category.id)}
+                activeOpacity={0.8}
               >
-                <Text style={styles.emptyButtonText}>Start Discussion</Text>
+                <Ionicons
+                  name={category.icon}
+                  size={16}
+                  color={isActive ? '#FFFFFF' : category.color}
+                />
+                <Text style={[
+                  styles.categoryChipText,
+                  { color: isActive ? '#FFFFFF' : colors.text }
+                ]}>
+                  {category.name}
+                </Text>
               </TouchableOpacity>
-            </View>
-          ) : (
-            discussions.map((discussion) => (
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      <View style={[styles.sortSection, { backgroundColor: isDarkMode ? '#0F172A' : '#F1F5F9' }]}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.sortScroll}
+        >
+          {SORT_OPTIONS.map((option) => {
+            const isActive = selectedSort === option.id;
+            return (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.sortChip,
+                  { backgroundColor: isActive ? '#8B5CF6' : 'transparent' }
+                ]}
+                onPress={() => setSelectedSort(option.id)}
+              >
+                <Ionicons
+                  name={option.icon}
+                  size={14}
+                  color={isActive ? '#FFFFFF' : colors.secondaryText}
+                />
+                <Text style={[
+                  styles.sortChipText,
+                  { color: isActive ? '#FFFFFF' : colors.secondaryText }
+                ]}>
+                  {option.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      <Animated.ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#8B5CF6"
+            colors={['#8B5CF6']}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+      >
+        {discussions.length === 0 ? (
+          <EmptyState onCreateDiscussion={handleCreateDiscussion} colors={colors} isDarkMode={isDarkMode} />
+        ) : (
+          discussions.map((discussion, index) => (
+            <Animated.View
+              key={discussion._id}
+              style={{
+                opacity: cardAnims[index] || 1,
+                transform: [{
+                  translateY: (cardAnims[index] || new Animated.Value(1)).interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [40, 0],
+                  })
+                }]
+              }}
+            >
               <DiscussionCard
-                key={discussion._id}
                 discussion={discussion}
                 colors={colors}
+                isDarkMode={isDarkMode}
                 onPress={() => navigation.navigate('DiscussionDetail', { discussionId: discussion._id })}
                 formatTimeAgo={formatTimeAgo}
+                getCategoryInfo={getCategoryInfo}
               />
-            ))
-          )}
-          <View style={{ height: 100 }} />
-        </ScrollView>
-      )}
+            </Animated.View>
+          ))
+        )}
+        <View style={{ height: 100 }} />
+      </Animated.ScrollView>
+
+      <Animated.View style={[styles.fabContainer, { transform: [{ scale: pulseAnim }] }]}>
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={handleCreateDiscussion}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={['#8B5CF6', '#7C3AED']}
+            style={styles.fabGradient}
+          >
+            <Ionicons name="create" size={26} color="#FFFFFF" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 }
 
-function DiscussionCard({ discussion, colors, onPress, formatTimeAgo }) {
+function EmptyState({ onCreateDiscussion, colors, isDarkMode }) {
+  return (
+    <View style={styles.emptyContainer}>
+      <View style={[styles.emptyIcon, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
+        <Ionicons name="chatbubbles-outline" size={60} color="#8B5CF6" />
+      </View>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>Start the Conversation</Text>
+      <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
+        No discussions yet in this category.{'\n'}Share your thoughts with the community!
+      </Text>
+      <TouchableOpacity style={styles.emptyBtn} onPress={onCreateDiscussion}>
+        <LinearGradient
+          colors={['#8B5CF6', '#7C3AED']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.emptyBtnGradient}
+        >
+          <Ionicons name="add-circle" size={22} color="#FFFFFF" />
+          <Text style={styles.emptyBtnText}>Start Discussion</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function DiscussionCard({ discussion, colors, isDarkMode, onPress, formatTimeAgo, getCategoryInfo }) {
   const author = typeof discussion.author === 'object' ? discussion.author : null;
   const replyCount = discussion.replies?.length || 0;
   const likeCount = discussion.likes?.length || 0;
-  const categoryColors = {
-    general: premiumColors.primary.main,
-    grammar: premiumColors.accent.emerald,
-    vocabulary: premiumColors.accent.gold,
-    pronunciation: premiumColors.accent.rose,
-    culture: premiumColors.accent.sky,
-    tips: premiumColors.accent.gold,
-    resources: premiumColors.primary.main,
-  };
+  const categoryInfo = getCategoryInfo(discussion.category);
+  const isHot = likeCount >= 5 || replyCount >= 10;
 
   return (
     <TouchableOpacity
-      style={[styles.discussionCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}
+      style={[
+        styles.discussionCard,
+        {
+          backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
+          borderLeftColor: categoryInfo.color,
+        }
+      ]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
     >
-      {discussion.isPinned && (
-        <View style={styles.pinnedBadge}>
-          <Ionicons name="pin" size={14} color={premiumColors.accent.gold} />
-          <Text style={[styles.pinnedText, { color: premiumColors.accent.gold }]}>Pinned</Text>
+
+      {(discussion.isPinned || isHot) && (
+        <View style={styles.badgesRow}>
+          {discussion.isPinned && (
+            <View style={[styles.pinnedBadge, { backgroundColor: '#F59E0B15' }]}>
+              <Ionicons name="pin" size={12} color="#F59E0B" />
+              <Text style={[styles.badgeText, { color: '#F59E0B' }]}>Pinned</Text>
+            </View>
+          )}
+          {isHot && (
+            <View style={[styles.hotBadge, { backgroundColor: '#EF444415' }]}>
+              <Ionicons name="flame" size={12} color="#EF4444" />
+              <Text style={[styles.badgeText, { color: '#EF4444' }]}>Hot</Text>
+            </View>
+          )}
         </View>
       )}
-      <View style={styles.discussionHeader}>
-        <View style={styles.discussionLeft}>
-          <View style={[styles.categoryBadge, { backgroundColor: (categoryColors[discussion.category] || premiumColors.primary.main) + '20' }]}>
-            <Text style={[styles.categoryBadgeText, { color: categoryColors[discussion.category] || premiumColors.primary.main }]}>
-              {discussion.category?.toUpperCase() || 'GENERAL'}
+
+      <View style={styles.cardHeader}>
+        <View style={[styles.categoryBadge, { backgroundColor: categoryInfo.color + '15' }]}>
+          <Ionicons name={categoryInfo.icon} size={12} color={categoryInfo.color} />
+          <Text style={[styles.categoryBadgeText, { color: categoryInfo.color }]}>
+            {categoryInfo.name}
+          </Text>
+        </View>
+        <Text style={[styles.timeAgo, { color: colors.secondaryText }]}>
+          {formatTimeAgo(discussion.createdAt)}
+        </Text>
+      </View>
+
+      <Text style={[styles.discussionTitle, { color: colors.text }]} numberOfLines={2}>
+        {discussion.title}
+      </Text>
+      <Text style={[styles.discussionExcerpt, { color: colors.secondaryText }]} numberOfLines={2}>
+        {discussion.content?.replace(/<[^>]*>/g, '').substring(0, 150)}
+      </Text>
+
+      {discussion.tags?.length > 0 && (
+        <View style={styles.tagsRow}>
+          {discussion.tags.slice(0, 3).map((tag, idx) => (
+            <View
+              key={idx}
+              style={[styles.tag, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' }]}
+            >
+              <Text style={[styles.tagText, { color: colors.secondaryText }]}>#{tag}</Text>
+            </View>
+          ))}
+          {discussion.tags.length > 3 && (
+            <Text style={[styles.moreTags, { color: colors.secondaryText }]}>
+              +{discussion.tags.length - 3}
+            </Text>
+          )}
+        </View>
+      )}
+
+      <View style={[styles.cardFooter, { borderTopColor: isDarkMode ? '#334155' : '#F1F5F9' }]}>
+        <View style={styles.footerLeft}>
+          <View style={[styles.authorAvatar, { backgroundColor: categoryInfo.color + '25' }]}>
+            <Text style={[styles.authorInitial, { color: categoryInfo.color }]}>
+              {(author?.name || 'A')[0].toUpperCase()}
             </Text>
           </View>
-          <Text style={[styles.discussionTitle, { color: colors.text }]} numberOfLines={2}>
-            {discussion.title}
-          </Text>
-          <Text style={[styles.discussionExcerpt, { color: colors.secondaryText }]} numberOfLines={2}>
-            {discussion.content}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.discussionFooter}>
-        <View style={styles.footerLeft}>
-          <View style={[styles.avatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
-            <Ionicons name="person" size={16} color={premiumColors.primary.main} />
+          <View style={styles.authorInfo}>
+            <Text style={[styles.authorName, { color: colors.text }]} numberOfLines={1}>
+              {author?.name || 'Anonymous'}
+            </Text>
+            {author?.role === 'instructor' && (
+              <View style={styles.instructorBadge}>
+                <Ionicons name="shield-checkmark" size={10} color="#8B5CF6" />
+              </View>
+            )}
           </View>
-          <Text style={[styles.authorName, { color: colors.text }]}>
-            {author?.name || 'Anonymous'}
-          </Text>
-          <Text style={[styles.discussionTime, { color: colors.secondaryText }]}>
-            {formatTimeAgo(discussion.createdAt)}
-          </Text>
         </View>
+
         <View style={styles.footerRight}>
-          <View style={styles.footerItem}>
-            <Ionicons name="heart-outline" size={16} color={colors.secondaryText} />
-            <Text style={[styles.footerText, { color: colors.secondaryText }]}>
+          <View style={styles.footerStat}>
+            <Ionicons
+              name={likeCount > 0 ? 'heart' : 'heart-outline'}
+              size={16}
+              color={likeCount > 0 ? '#EC4899' : colors.secondaryText}
+            />
+            <Text style={[
+              styles.footerStatText,
+              { color: likeCount > 0 ? '#EC4899' : colors.secondaryText }
+            ]}>
               {likeCount}
             </Text>
           </View>
-          <View style={styles.footerItem}>
-            <Ionicons name="chatbubble-outline" size={16} color={colors.secondaryText} />
-            <Text style={[styles.footerText, { color: colors.secondaryText }]}>
+          <View style={styles.footerStat}>
+            <Ionicons
+              name="chatbubble"
+              size={15}
+              color={replyCount > 0 ? '#8B5CF6' : colors.secondaryText}
+            />
+            <Text style={[
+              styles.footerStatText,
+              { color: replyCount > 0 ? '#8B5CF6' : colors.secondaryText }
+            ]}>
               {replyCount}
             </Text>
           </View>
-          <View style={styles.footerItem}>
-            <Ionicons name="eye-outline" size={16} color={colors.secondaryText} />
-            <Text style={[styles.footerText, { color: colors.secondaryText }]}>
+          <View style={styles.footerStat}>
+            <Ionicons name="eye-outline" size={15} color={colors.secondaryText} />
+            <Text style={[styles.footerStatText, { color: colors.secondaryText }]}>
               {discussion.views || 0}
             </Text>
           </View>
@@ -385,222 +618,391 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: 50,
-    paddingBottom: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+  loadingHeader: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 30,
+    alignItems: 'center',
   },
-  headerContent: {
-    width: '100%',
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    overflow: 'hidden',
+  },
+  headerDecor1: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  headerDecor2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  headerDecor3: {
+    position: 'absolute',
+    top: 70,
+    left: 120,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
   headerTop: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
   },
-  title: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    fontSize: fontSize.md,
-  },
-  createButton: {
+  backBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
-    ...premiumShadows.md,
+    justifyContent: 'center',
+  },
+  headerTitleWrap: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
+  searchBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchBarContainer: {
+    overflow: 'hidden',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: premiumBorderRadius.lg,
-  },
-  searchIcon: {
-    marginRight: spacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 48,
+    gap: 12,
   },
   searchInput: {
     flex: 1,
-    fontSize: fontSize.md,
-    paddingVertical: spacing.xs,
+    fontSize: 16,
+    color: '#FFFFFF',
   },
-  categoriesContainer: {
-    maxHeight: 60,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+  statsRow: {
+    flexDirection: 'row',
+    marginTop: 20,
+    gap: 12,
   },
-  categoriesContent: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+  statCard: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  statCardGradient: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    gap: 4,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  statLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+  },
+  categoriesSection: {
+    paddingVertical: 14,
+  },
+  categoriesScroll: {
+    paddingHorizontal: 16,
+    gap: 10,
   },
   categoryChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: premiumBorderRadius.full,
-    borderWidth: 1,
-    marginRight: spacing.sm,
-    gap: spacing.xs,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    gap: 7,
+    marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  categoryText: {
-    fontSize: fontSize.sm,
+  categoryChipText: {
+    fontSize: 13,
     fontWeight: '600',
   },
-  sortContainer: {
-    maxHeight: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+  sortSection: {
+    paddingVertical: 10,
   },
-  sortContent: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    gap: spacing.sm,
+  sortScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
   },
   sortChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: premiumBorderRadius.full,
-    borderWidth: 1,
-    marginRight: spacing.sm,
-    gap: spacing.xs / 2,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+    marginRight: 8,
   },
-  sortText: {
-    fontSize: fontSize.xs,
-    fontWeight: '500',
+  sortChipText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.lg,
+    padding: 16,
   },
+
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xxxl,
+    paddingVertical: 60,
+    paddingHorizontal: 32,
   },
-  emptyText: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
+  emptyIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
-  emptySubtext: {
-    fontSize: fontSize.md,
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 12,
+    letterSpacing: -0.3,
+  },
+  emptySubtitle: {
+    fontSize: 15,
     textAlign: 'center',
-    marginBottom: spacing.lg,
+    lineHeight: 24,
+    marginBottom: 28,
   },
-  emptyButton: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    ...premiumShadows.md,
+  emptyBtn: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 10,
   },
-  emptyButtonText: {
+  emptyBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingVertical: 16,
+    gap: 10,
+  },
+  emptyBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
     color: '#FFFFFF',
-    fontSize: fontSize.md,
-    fontWeight: '600',
   },
+
   discussionCard: {
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    borderWidth: 1,
-    marginBottom: spacing.md,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 5,
+  },
+  badgesRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
   },
   pinnedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs / 2,
-    borderRadius: premiumBorderRadius.base,
-    backgroundColor: premiumColors.accent.gold + '20',
-    marginBottom: spacing.sm,
-    gap: spacing.xs / 2,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    gap: 5,
   },
-  pinnedText: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
+  hotBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    gap: 5,
   },
-  discussionHeader: {
-    marginBottom: spacing.sm,
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
-  discussionLeft: {
-    flex: 1,
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   categoryBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: premiumBorderRadius.base,
-    marginBottom: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    gap: 5,
   },
   categoryBadgeText: {
-    fontSize: fontSize.xs,
+    fontSize: 11,
     fontWeight: '700',
+  },
+  timeAgo: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   discussionTitle: {
-    fontSize: fontSize.lg,
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: spacing.xs,
+    lineHeight: 26,
+    marginBottom: 8,
+    letterSpacing: -0.2,
   },
   discussionExcerpt: {
-    fontSize: fontSize.sm,
-    lineHeight: 18,
-    marginBottom: spacing.sm,
+    fontSize: 14,
+    lineHeight: 22,
+    marginBottom: 14,
   },
-  discussionFooter: {
+  tagsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing.sm,
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  tag: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  moreTags: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
   },
   footerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 10,
     flex: 1,
   },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
+  authorAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  authorInitial: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  authorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   authorName: {
-    fontSize: fontSize.sm,
+    fontSize: 14,
     fontWeight: '600',
   },
-  discussionTime: {
-    fontSize: fontSize.xs,
+  instructorBadge: {
+    backgroundColor: '#8B5CF620',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 18,
   },
-  footerItem: {
+  footerStat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs / 2,
+    gap: 5,
   },
-  footerText: {
-    fontSize: fontSize.xs,
+  footerStatText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  fabContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 100 : 90,
+    right: 20,
+  },
+  fab: {
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    elevation: 12,
+  },
+  fabGradient: {
+    width: 58,
+    height: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
-

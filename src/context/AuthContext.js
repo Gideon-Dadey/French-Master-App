@@ -41,12 +41,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.login({ email, password });
       const { token, refreshToken, user } = response.data;
-      
+
       await SecureStore.setItemAsync('authToken', token);
       if (refreshToken) {
         await SecureStore.setItemAsync('refreshToken', refreshToken);
       }
-      
+
       setUser(user);
       setIsAuthenticated(true);
       return { success: true };
@@ -62,12 +62,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.register({ name, email, password, phone, role });
       const { token, refreshToken, user } = response.data;
-      
+
       await SecureStore.setItemAsync('authToken', token);
       if (refreshToken) {
         await SecureStore.setItemAsync('refreshToken', refreshToken);
       }
-      
+
       setUser(user);
       setIsAuthenticated(true);
       return { success: true };
@@ -93,10 +93,10 @@ export const AuthProvider = ({ children }) => {
   const updateUser = async (userData) => {
     try {
       if (userData) {
-        // Immediately update user state with provided data
+
         setUser(prevUser => ({ ...prevUser, ...userData }));
       }
-      // Also try to fetch latest user data from API
+
       const token = await SecureStore.getItemAsync('authToken');
       if (token) {
         try {
@@ -105,12 +105,27 @@ export const AuthProvider = ({ children }) => {
             setUser(response.data.user);
           }
         } catch (apiError) {
-          // If API call fails, keep the userData update
+
           console.warn('Failed to refresh user from API, using provided data:', apiError);
         }
       }
     } catch (error) {
       console.error('Failed to update user:', error);
+    }
+  };
+
+  const loadUser = async () => {
+    try {
+      const token = await SecureStore.getItemAsync('authToken');
+      if (token) {
+        const response = await authAPI.getMe();
+        if (response?.data?.user) {
+          setUser(response.data.user);
+          setIsAuthenticated(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load user:', error);
     }
   };
 
@@ -123,7 +138,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     checkAuth,
     updateUser,
-    setUser
+    setUser,
+    loadUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

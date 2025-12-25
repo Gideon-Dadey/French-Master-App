@@ -55,7 +55,7 @@ export default function PremiumCard({
 
 const styles = StyleSheet.create({
   container: {
-    // marginBottom removed - should be controlled by parent
+
   },
   card: {
     borderRadius: premiumBorderRadius.xl,

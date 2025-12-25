@@ -1,491 +1,512 @@
-# Setup Guide - French Master GH
+# 🛠 French Master GH - Complete Setup Guide
 
-Complete step-by-step guide to set up the French Master GH application for development.
-
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [Frontend Setup](#frontend-setup)
-3. [Backend Setup](#backend-setup)
-4. [Database Setup](#database-setup)
-5. [Environment Configuration](#environment-configuration)
-6. [Running the Application](#running-the-application)
-7. [Troubleshooting](#troubleshooting)
+This guide will walk you through setting up the French Master GH application from scratch.
 
 ---
 
-## Prerequisites
+## 📋 Prerequisites
+
+Before you begin, ensure you have the following installed:
 
 ### Required Software
 
-1. **Node.js** (v18 or higher)
-   - Download from [nodejs.org](https://nodejs.org/)
-   - Verify: `node --version`
+| Software | Version | Download Link |
+|----------|---------|---------------|
+| Node.js | 18+ | [nodejs.org](https://nodejs.org/) |
+| npm | 9+ | Comes with Node.js |
+| Git | Latest | [git-scm.com](https://git-scm.com/) |
+| MongoDB | 6+ | [mongodb.com](https://www.mongodb.com/try/download/community) |
+| VS Code | Latest | [code.visualstudio.com](https://code.visualstudio.com/) |
 
-2. **npm** (comes with Node.js)
-   - Verify: `npm --version`
+### Mobile Development
 
-3. **MongoDB**
-   - **Option A**: Local MongoDB
-     - Download from [mongodb.com](https://www.mongodb.com/try/download/community)
-   - **Option B**: MongoDB Atlas (Cloud - Recommended)
-     - Sign up at [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
-     - Free tier available
+| Platform | Requirement |
+|----------|-------------|
+| iOS | Mac with Xcode, or Expo Go app |
+| Android | Android Studio, or Expo Go app |
 
-4. **Git**
-   - Download from [git-scm.com](https://git-scm.com/)
-   - Verify: `git --version`
+### Verify Installation
 
-5. **Expo CLI** (for mobile development)
-   ```bash
-   npm install -g expo-cli
-   ```
+```bash
+# Check Node.js
+node --version
+# Should output: v18.x.x or higher
 
-6. **Development Tools**
-   - **iOS**: Xcode (macOS only)
-   - **Android**: Android Studio
-   - **Physical Device**: Expo Go app ([iOS](https://apps.apple.com/app/expo-go/id982107779) | [Android](https://play.google.com/store/apps/details?id=host.exp.exponent))
+# Check npm
+npm --version
+# Should output: 9.x.x or higher
+
+# Check Git
+git --version
+# Should output: git version 2.x.x
+
+# Check MongoDB
+mongod --version
+# Should output: db version v6.x.x or higher
+```
 
 ---
 
-## Frontend Setup
+## 🚀 Step-by-Step Setup
 
-### Step 1: Clone Repository
+### Step 1: Clone or Create Project
 
+**Option A: Clone existing repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/yourusername/french-master-gh.git
 cd "FRENCH MASTER"
 ```
 
-### Step 2: Install Dependencies
-
+**Option B: Create new project**
 ```bash
-npm install
+# Create new Expo project
+npx create-expo-app@latest "FRENCH MASTER" --template blank
+
+# Navigate to project
+cd "FRENCH MASTER"
 ```
-
-This will install all React Native and Expo dependencies.
-
-### Step 3: Configure API Endpoint
-
-Edit `src/services/api.js`:
-
-```javascript
-// For local development
-const API_URL = __DEV__ 
-  ? 'http://localhost:5000/api' 
-  : 'https://api.frenchmastergh.com/api';
-
-// For Android emulator, use:
-// const API_URL = 'http://10.0.2.2:5000/api';
-
-// For iOS simulator, use:
-// const API_URL = 'http://localhost:5000/api';
-
-// For physical device, use your computer's IP:
-// const API_URL = 'http://192.168.1.100:5000/api';
-```
-
-**Finding your IP address:**
-- **Windows**: `ipconfig` (look for IPv4 Address)
-- **macOS/Linux**: `ifconfig` or `ip addr`
-
-### Step 4: Start Development Server
-
-```bash
-npm start
-```
-
-This will:
-- Start Metro bundler
-- Open Expo DevTools in browser
-- Display QR code for Expo Go app
-
-### Step 5: Run on Device/Emulator
-
-**Option A: Physical Device (Recommended for testing)**
-1. Install Expo Go app on your phone
-2. Scan QR code from terminal/browser
-3. App will load on your device
-
-**Option B: iOS Simulator (macOS only)**
-```bash
-npm run ios
-```
-
-**Option C: Android Emulator**
-```bash
-npm run android
-```
-
-**Note**: Make sure emulator/simulator is running before executing these commands.
 
 ---
 
-## Backend Setup
-
-### Step 1: Navigate to Backend Directory
+### Step 2: Install Frontend Dependencies
 
 ```bash
+# Install all frontend dependencies at once
+npm install @react-navigation/native @react-navigation/stack @react-navigation/bottom-tabs react-native-screens react-native-safe-area-context react-native-gesture-handler react-native-reanimated expo-linear-gradient @expo/vector-icons react-native-svg axios expo-secure-store expo-image-picker expo-document-picker expo-file-system expo-media-library expo-sharing expo-clipboard expo-av expo-camera expo-haptics expo-status-bar
+```
+
+**Or install one by one:**
+
+```bash
+# Navigation
+npm install @react-navigation/native
+npm install @react-navigation/stack
+npm install @react-navigation/bottom-tabs
+npm install react-native-screens
+npm install react-native-safe-area-context
+npm install react-native-gesture-handler
+npm install react-native-reanimated
+
+# UI
+npm install expo-linear-gradient
+npm install @expo/vector-icons
+npm install react-native-svg
+
+# Data & State
+npm install axios
+npm install expo-secure-store
+
+# Media
+npm install expo-image-picker
+npm install expo-document-picker
+npm install expo-file-system
+npm install expo-media-library
+npm install expo-sharing
+npm install expo-clipboard
+
+# Audio/Video
+npm install expo-av
+npm install expo-camera
+
+# Utilities
+npm install expo-haptics
+npm install expo-status-bar
+```
+
+---
+
+### Step 3: Setup Backend
+
+```bash
+# Create backend directory
+mkdir backend
 cd backend
+
+# Initialize package.json
+npm init -y
+
+# Install backend dependencies
+npm install express mongoose dotenv cors bcryptjs jsonwebtoken multer cloudinary stripe socket.io
+
+# Install dev dependencies
+npm install nodemon --save-dev
 ```
 
-### Step 2: Install Dependencies
+**Update `backend/package.json`:**
+
+```json
+{
+  "name": "french-master-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node seeder.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.41.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.3",
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.7.2",
+    "stripe": "^14.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
+```
+
+---
+
+### Step 4: Create Backend Structure
 
 ```bash
-npm install
+# From backend directory
+cd backend
+
+# Create directories
+mkdir -p config models routes middleware controllers uploads
+
+# Create main files
+touch server.js .env config/db.js
+
+# Create models
+touch models/User.js models/Course.js models/Lesson.js models/Progress.js models/Payment.js models/Review.js models/StudyGroup.js models/Notification.js models/Blog.js models/Question.js models/Discussion.js
+
+# Create routes
+touch routes/auth.js routes/courses.js routes/lessons.js routes/payments.js routes/progress.js routes/users.js routes/reviews.js routes/studyGroups.js routes/notifications.js routes/blog.js routes/questions.js routes/discussions.js routes/leaderboard.js routes/subscriptions.js
+
+# Create middleware
+touch middleware/auth.js middleware/error.js middleware/upload.js
 ```
 
-### Step 3: Create Environment File
+---
 
-Create a `.env` file in the `backend/` directory:
+### Step 5: Configure Environment Variables
 
-```bash
-# On Windows
-copy .env.example .env
-
-# On macOS/Linux
-cp .env.example .env
-```
-
-### Step 4: Configure Environment Variables
-
-Edit `backend/.env` with your configuration:
+**Create `backend/.env`:**
 
 ```env
-# Server Configuration
+# Server
 NODE_ENV=development
-PORT=5000
+PORT=5001
 
 # Database
 MONGODB_URI=mongodb://localhost:27017/frenchmaster
-# Or for MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/frenchmaster?retryWrites=true&w=majority
 
-# JWT Authentication
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-JWT_EXPIRE=7d
-JWT_REFRESH_SECRET=your-refresh-token-secret-change-this
-JWT_REFRESH_EXPIRE=30d
+# JWT
+JWT_SECRET=your-super-secret-jwt-key-make-it-long-and-random
+JWT_EXPIRE=30d
 
-# Stripe Payment (Optional - for payment features)
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
+# Cloudinary (for image uploads)
+CLOUDINARY_CLOUD_NAME=your-cloudinary-cloud-name
+CLOUDINARY_API_KEY=your-cloudinary-api-key
+CLOUDINARY_API_SECRET=your-cloudinary-api-secret
 
-# AWS S3 (Optional - for file uploads)
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-AWS_REGION=us-east-1
-AWS_BUCKET_NAME=french-master-uploads
+# Stripe (for payments)
+STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
+STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
 
-# Email Configuration (Optional)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-
-# CORS (Optional)
-CORS_ORIGIN=http://localhost:19006,http://localhost:3000
+# Frontend URL (for CORS)
+FRONTEND_URL=http://localhost:19006
 ```
 
-**Important**: 
-- Never commit `.env` file to version control
-- Use strong, random strings for JWT secrets
-- Keep production secrets secure
+---
 
-### Step 5: Start Backend Server
+### Step 6: Configure API URL in Frontend
 
-**Development mode (with auto-reload):**
+**Find your computer's IP address:**
+
 ```bash
+# Windows
+ipconfig | findstr IPv4
+
+# Mac/Linux
+ifconfig | grep inet
+```
+
+**Update `src/services/api.js`:**
+
+```javascript
+import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
+
+// Replace with your IP address
+const API_URL = 'http://192.168.0.135:5001/api';
+
+console.log('API URL:', API_URL);
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 15000,
+});
+
+// Add auth token to requests
+api.interceptors.request.use(
+  async (config) => {
+    try {
+      const token = await SecureStore.getItemAsync('authToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('Error getting token:', error);
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+export default api;
+```
+
+---
+
+### Step 7: Start MongoDB
+
+**Option A: Local MongoDB**
+```bash
+# Start MongoDB service
+mongod
+
+# Or on Windows
+net start MongoDB
+```
+
+**Option B: MongoDB Atlas (Cloud)**
+1. Go to [MongoDB Atlas](https://www.mongodb.com/atlas)
+2. Create free cluster
+3. Get connection string
+4. Update `MONGODB_URI` in `.env`
+
+---
+
+### Step 8: Start Backend Server
+
+```bash
+# From backend directory
+cd backend
+
+# Start in development mode
 npm run dev
-```
-
-**Production mode:**
-```bash
-npm start
 ```
 
 You should see:
 ```
-Server running on port 5000
-MongoDB connected successfully
+Server running on port 5001
+MongoDB Connected: localhost
 ```
 
 ---
 
-## Database Setup
-
-### Option A: Local MongoDB
-
-1. **Install MongoDB**
-   - Follow [MongoDB installation guide](https://docs.mongodb.com/manual/installation/)
-
-2. **Start MongoDB**
-   ```bash
-   # macOS (using Homebrew)
-   brew services start mongodb-community
-
-   # Linux
-   sudo systemctl start mongod
-
-   # Windows
-   # MongoDB runs as a service automatically
-   ```
-
-3. **Verify MongoDB is running**
-   ```bash
-   mongosh
-   # Or
-   mongo
-   ```
-
-4. **Update `.env`**
-   ```env
-   MONGODB_URI=mongodb://localhost:27017/frenchmaster
-   ```
-
-### Option B: MongoDB Atlas (Cloud - Recommended)
-
-1. **Create Account**
-   - Go to [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
-   - Sign up for free account
-
-2. **Create Cluster**
-   - Click "Build a Database"
-   - Choose free tier (M0)
-   - Select region closest to you
-   - Click "Create"
-
-3. **Create Database User**
-   - Go to "Database Access"
-   - Click "Add New Database User"
-   - Choose "Password" authentication
-   - Create username and password
-   - Save credentials securely
-
-4. **Whitelist IP Address**
-   - Go to "Network Access"
-   - Click "Add IP Address"
-   - For development: Click "Allow Access from Anywhere" (0.0.0.0/0)
-   - For production: Add specific IPs
-
-5. **Get Connection String**
-   - Go to "Database" → "Connect"
-   - Choose "Connect your application"
-   - Copy connection string
-   - Replace `<password>` with your database user password
-   - Replace `<dbname>` with `frenchmaster`
-
-6. **Update `.env`**
-   ```env
-   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/frenchmaster?retryWrites=true&w=majority
-   ```
-
-### Seed Database (Optional)
-
-Populate database with sample data:
+### Step 9: Start Frontend
 
 ```bash
-cd backend
+# From project root
+cd "FRENCH MASTER"
 
-# Seed courses
-npm run seed
+# Start Expo
+npx expo start
 
-# Seed blog posts
-npm run seed:blog
+# Or with cache clear
+npx expo start --clear
 ```
 
 ---
 
-## Environment Configuration
+### Step 10: Run on Device
 
-### Frontend Environment
+**Option A: Expo Go (Recommended for development)**
+1. Install "Expo Go" from App Store / Play Store
+2. Scan QR code from terminal
+3. App will load on your phone
 
-The frontend uses `__DEV__` flag to determine environment:
+**Option B: iOS Simulator (Mac only)**
+```bash
+npx expo start --ios
+```
+
+**Option C: Android Emulator**
+```bash
+npx expo start --android
+```
+
+---
+
+## 🔧 Configuration Files
+
+### `app.json`
+
+```json
+{
+  "expo": {
+    "name": "French Master GH",
+    "slug": "french-master-gh",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logo.jpeg",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/logo.jpeg",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.frenchmastergh.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.jpeg",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.frenchmastergh.app"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow French Master to access your photos",
+          "cameraPermission": "Allow French Master to access your camera"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow French Master to access your microphone"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow French Master to access your camera"
+        }
+      ]
+    ]
+  }
+}
+```
+
+### `babel.config.js`
 
 ```javascript
-// Development
-const API_URL = 'http://localhost:5000/api';
-
-// Production
-const API_URL = 'https://api.frenchmastergh.com/api';
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: ['babel-preset-expo'],
+    plugins: ['react-native-reanimated/plugin'],
+  };
+};
 ```
-
-### Backend Environment
-
-Backend uses `.env` file for configuration. See [Backend Setup](#backend-setup) for details.
 
 ---
 
-## Running the Application
+## 🐛 Troubleshooting
 
-### Complete Setup Checklist
-
-- [ ] Node.js installed
-- [ ] MongoDB running (local or Atlas)
-- [ ] Frontend dependencies installed
-- [ ] Backend dependencies installed
-- [ ] `.env` file configured
-- [ ] API endpoint configured in `src/services/api.js`
-- [ ] Database seeded (optional)
-
-### Start Both Servers
-
-**Terminal 1 - Backend:**
+### Issue: "Unable to resolve module"
 ```bash
-cd backend
-npm run dev
-```
-
-**Terminal 2 - Frontend:**
-```bash
-npm start
-```
-
-### Verify Setup
-
-1. **Backend is running**
-   - Check terminal: `Server running on port 5000`
-   - Visit: `http://localhost:5000/api/courses` (should return JSON)
-
-2. **Frontend connects to backend**
-   - Check Expo DevTools for network requests
-   - Verify no connection errors in console
-
-3. **Database connected**
-   - Check backend terminal: `MongoDB connected successfully`
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. "Cannot connect to backend"
-
-**Problem**: Frontend can't reach backend API
-
-**Solutions**:
-- Verify backend is running on port 5000
-- Check API_URL in `src/services/api.js`
-- For physical device: Use computer's IP address, not `localhost`
-- For Android emulator: Use `10.0.2.2` instead of `localhost`
-- Check firewall settings
-- Verify CORS configuration in backend
-
-#### 2. "MongoDB connection failed"
-
-**Problem**: Backend can't connect to MongoDB
-
-**Solutions**:
-- Verify MongoDB is running (local) or cluster is active (Atlas)
-- Check MONGODB_URI in `.env` file
-- For Atlas: Verify IP is whitelisted
-- For Atlas: Check username/password are correct
-- Test connection: `mongosh "your-connection-string"`
-
-#### 3. "Module not found" errors
-
-**Problem**: Missing dependencies
-
-**Solutions**:
-```bash
-# Delete node_modules and reinstall
-rm -rf node_modules package-lock.json
+# Clear cache and reinstall
+rm -rf node_modules
+rm package-lock.json
 npm install
-
-# Clear npm cache
-npm cache clean --force
+npx expo start --clear
 ```
 
-#### 4. "Port already in use"
+### Issue: "Network Error" on API calls
+1. Ensure backend is running: `cd backend && npm run dev`
+2. Check IP address is correct in `api.js`
+3. Ensure phone and computer on same WiFi
+4. Check firewall allows port 5001
 
-**Problem**: Port 5000 or 19000 is already in use
-
-**Solutions**:
+### Issue: "Metro bundler cache"
 ```bash
-# Find process using port (macOS/Linux)
-lsof -i :5000
-kill -9 <PID>
+# Clear all caches
+rm -rf node_modules/.cache
+rm -rf .expo
+npx expo start --clear
+```
 
+### Issue: Port already in use
+```bash
+# Find and kill process on port
 # Windows
-netstat -ano | findstr :5000
+netstat -ano | findstr :5001
 taskkill /PID <PID> /F
 
-# Or change port in .env
-PORT=5001
+# Mac/Linux
+lsof -i :5001
+kill -9 <PID>
 ```
 
-#### 5. "Expo Go can't load app"
+### Issue: MongoDB connection failed
+```bash
+# Check MongoDB is running
+mongosh
 
-**Problem**: App won't load on physical device
-
-**Solutions**:
-- Ensure phone and computer are on same WiFi network
-- Check firewall isn't blocking connections
-- Try restarting Expo server: `npm start -- --clear`
-- Clear Expo cache: `expo start -c`
-
-#### 6. "JWT token errors"
-
-**Problem**: Authentication not working
-
-**Solutions**:
-- Verify JWT_SECRET is set in `.env`
-- Check token expiration settings
-- Clear app data and re-login
-- Verify token is being sent in Authorization header
-
-#### 7. "Payment integration not working"
-
-**Problem**: Stripe payments failing
-
-**Solutions**:
-- Verify Stripe keys are set in `.env`
-- Use test keys for development
-- Check Stripe dashboard for errors
-- Verify webhook endpoints (if configured)
-
-### Getting Help
-
-1. **Check Logs**
-   - Frontend: Expo DevTools console
-   - Backend: Terminal output
-   - Database: MongoDB logs
-
-2. **Common Commands**
-   ```bash
-   # Clear all caches
-   npm start -- --clear
-   expo start -c
-   npm cache clean --force
-
-   # Reset Metro bundler
-   watchman watch-del-all
-   rm -rf node_modules
-   npm install
-   ```
-
-3. **Resources**
-   - [Expo Documentation](https://docs.expo.dev/)
-   - [React Native Documentation](https://reactnative.dev/)
-   - [MongoDB Documentation](https://docs.mongodb.com/)
-   - [Express.js Documentation](https://expressjs.com/)
+# Check connection string
+echo $MONGODB_URI
+```
 
 ---
 
-## Next Steps
+## 📱 Testing on Physical Device
 
-After successful setup:
+### Android
+1. Enable USB debugging on phone
+2. Connect via USB
+3. Run `npx expo start --android`
 
-1. ✅ Explore the app interface
-2. ✅ Test authentication (register/login)
-3. ✅ Browse courses
-4. ✅ Test course enrollment
-5. ✅ Review code structure
-6. ✅ Read [DOCUMENTATION.md](./DOCUMENTATION.md) for detailed information
-7. ✅ Check [API_REFERENCE.md](./API_REFERENCE.md) for API usage
+### iOS
+1. Install Expo Go from App Store
+2. Scan QR code with camera
+3. App opens in Expo Go
+
+### Tunnel Mode (for network issues)
+```bash
+npx expo start --tunnel
+```
 
 ---
 
-**Last Updated:** January 2025
+## 🚀 Building for Production
 
+### Android APK
+```bash
+# Install EAS CLI
+npm install -g eas-cli
+
+# Login
+eas login
+
+# Build APK
+eas build --platform android --profile preview
+```
+
+### iOS Build
+```bash
+# Build for iOS (requires Apple Developer account)
+eas build --platform ios
+```
+
+---
+
+## 📞 Getting Help
+
+- **Expo Documentation**: https://docs.expo.dev/
+- **React Native Docs**: https://reactnative.dev/docs/getting-started
+- **MongoDB Manual**: https://docs.mongodb.com/manual/
+
+---
+
+**Happy Coding! 🎉**

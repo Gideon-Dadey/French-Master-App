@@ -91,7 +91,7 @@ export default function ResourcesScreen({ navigation }) {
     try {
       setError(null);
       setLoading(true);
-      
+
       const params = {
         status: 'published',
         ...(selectedCategory && { category: selectedCategory }),
@@ -99,7 +99,7 @@ export default function ResourcesScreen({ navigation }) {
       };
 
       const response = await resourcesAPI.getAll(params);
-      
+
       if (response.data.success) {
         setResources(response.data.data || []);
       } else {
@@ -108,7 +108,7 @@ export default function ResourcesScreen({ navigation }) {
     } catch (err) {
       console.error('Error fetching resources:', err);
       setError(err.response?.data?.message || err.message || 'Failed to load resources');
-      // Fallback to empty array on error
+
       setResources([]);
     } finally {
       setLoading(false);
@@ -138,7 +138,7 @@ export default function ResourcesScreen({ navigation }) {
       }
     } catch (err) {
       console.error('Error fetching blog posts:', err);
-      // Don't show error for blog posts, just leave empty
+
       setFeaturedBlogPosts([]);
     } finally {
       setLoadingBlogPosts(false);
@@ -147,7 +147,7 @@ export default function ResourcesScreen({ navigation }) {
 
   const formatFileSize = (bytes) => {
     if (!bytes || bytes === 0) return '0 MB';
-    if (typeof bytes === 'string') return bytes; // Already formatted
+    if (typeof bytes === 'string') return bytes;
     const mb = bytes / (1024 * 1024);
     return mb >= 1 ? `${mb.toFixed(1)} MB` : `${(bytes / 1024).toFixed(1)} KB`;
   };
@@ -167,29 +167,27 @@ export default function ResourcesScreen({ navigation }) {
 
     try {
       setDownloadingId(resource._id || resource.id);
-      
-      // Get download URL from API
+
       const response = await resourcesAPI.getDownloadUrl(resource._id || resource.id);
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'Failed to get download URL');
       }
 
       const downloadUrl = response.data.data.downloadUrl || resource.fileUrl;
-      
+
       if (!downloadUrl) {
         throw new Error('Download URL not available');
       }
 
-      // For web URLs, open in browser or download based on platform
       if (downloadUrl.startsWith('http://') || downloadUrl.startsWith('https://')) {
         if (Platform.OS !== 'web') {
-          // Try to download file first
+
           try {
             const fileExtension = resource.type?.toLowerCase() || 'pdf';
             const fileName = `${resource.title || 'resource'}.${fileExtension}`;
             const fileUri = FileSystem.documentDirectory + fileName.replace(/[^a-z0-9.]/gi, '_');
-            
+
             const downloadResumable = FileSystem.createDownloadResumable(
               downloadUrl,
               fileUri,
@@ -201,7 +199,7 @@ export default function ResourcesScreen({ navigation }) {
             );
 
             const result = await downloadResumable.downloadAsync();
-            
+
             if (result) {
               Alert.alert(
                 'Download Complete',
@@ -211,7 +209,7 @@ export default function ResourcesScreen({ navigation }) {
             }
           } catch (downloadError) {
             console.error('Download error:', downloadError);
-            // Fallback to opening in browser
+
             const supported = await Linking.canOpenURL(downloadUrl);
             if (supported) {
               await Linking.openURL(downloadUrl);
@@ -221,7 +219,7 @@ export default function ResourcesScreen({ navigation }) {
             }
           }
         } else {
-          // Web platform - open in new tab
+
           const supported = await Linking.canOpenURL(downloadUrl);
           if (supported) {
             await Linking.openURL(downloadUrl);
@@ -230,7 +228,7 @@ export default function ResourcesScreen({ navigation }) {
           }
         }
       } else {
-        // Direct file path
+
         const supported = await Linking.canOpenURL(downloadUrl);
         if (supported) {
           await Linking.openURL(downloadUrl);
@@ -239,7 +237,6 @@ export default function ResourcesScreen({ navigation }) {
         }
       }
 
-      // Track download
       try {
         await resourcesAPI.trackDownload(resource._id || resource.id);
       } catch (trackError) {
@@ -326,8 +323,8 @@ export default function ResourcesScreen({ navigation }) {
         <View style={[styles.resourceIcon, { backgroundColor: category?.color + '20' }]}>
           <Ionicons
             name={
-              resource.type === 'MP3' || resource.type === 'audio' 
-                ? 'musical-notes' 
+              resource.type === 'MP3' || resource.type === 'audio'
+                ? 'musical-notes'
                 : resource.type === 'MP4' || resource.type === 'video'
                 ? 'videocam'
                 : 'document-text'
@@ -369,11 +366,11 @@ export default function ResourcesScreen({ navigation }) {
         </View>
         <TouchableOpacity
           style={[
-            styles.downloadButton, 
-            { 
-              backgroundColor: isDownloading 
-                ? colors.secondaryText 
-                : category?.color || colors.primary 
+            styles.downloadButton,
+            {
+              backgroundColor: isDownloading
+                ? colors.secondaryText
+                : category?.color || colors.primary
             }
           ]}
           onPress={() => handleDownload(resource)}
@@ -407,7 +404,7 @@ export default function ResourcesScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
+
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerText}>
@@ -419,7 +416,6 @@ export default function ResourcesScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Search Bar */}
       <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
         <View style={[styles.searchBarWrapper, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.searchIcon} />
@@ -445,7 +441,6 @@ export default function ResourcesScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
 
-      {/* Categories */}
       <View style={styles.categoriesSection}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Browse by Category</Text>
         <ScrollView
@@ -457,7 +452,6 @@ export default function ResourcesScreen({ navigation }) {
         </ScrollView>
       </View>
 
-      {/* Resources List */}
       <View style={styles.resourcesSection}>
         <View style={styles.resourcesHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -475,7 +469,7 @@ export default function ResourcesScreen({ navigation }) {
             <Ionicons name="document-outline" size={64} color={colors.secondaryText} />
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No Resources Found</Text>
             <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
-              {searchQuery 
+              {searchQuery
                 ? 'Try a different search term'
                 : selectedCategory
                 ? 'Try selecting a different category'
@@ -500,7 +494,6 @@ export default function ResourcesScreen({ navigation }) {
         )}
       </View>
 
-      {/* Blog Section */}
       <View style={styles.blogSection}>
         <View style={styles.blogHeader}>
           <Heading
@@ -530,7 +523,6 @@ export default function ResourcesScreen({ navigation }) {
         ) : null}
       </View>
 
-      {/* Info Banner */}
       {!isAuthenticated && (
         <View style={[styles.infoBanner, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}>
           <Ionicons name="information-circle" size={24} color={colors.primary} />

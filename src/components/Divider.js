@@ -2,13 +2,6 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
-/**
- * Divider component
- * Adapted from HEYY app
- * 
- * @param {string} orientation - 'vertical' or 'horizontal'
- * @param {number} stroke - Thickness of the divider (default: 1)
- */
 export default function Divider({ orientation = 'horizontal', stroke = 1 }) {
   const { colors } = useTheme();
 
@@ -39,9 +32,6 @@ export default function Divider({ orientation = 'horizontal', stroke = 1 }) {
   );
 }
 
-/**
- * List divider component with default styling
- */
 export function ListDivider() {
   return <Divider orientation="horizontal" stroke={0.8} />;
 }

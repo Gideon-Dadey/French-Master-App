@@ -2,43 +2,26 @@ import axios from 'axios';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-// Use your backend URL - update this to your actual backend
-// For Android Emulator: use 'http://10.0.2.2:5001/api'
-// For iOS Simulator: use 'http://localhost:5001/api'
-// For Physical Device: use your computer's local IP (e.g., 'http://192.168.0.135:5001/api')
-// Find your IP: Windows (ipconfig) or Mac/Linux (ifconfig)
-
-// Auto-detect platform and set appropriate URL
 const getApiUrl = () => {
   if (__DEV__) {
-    // For Android
+
     if (Platform.OS === 'android') {
-      // Try to detect if running on emulator or physical device
-      // Physical device: use your computer's local IP
-      // Emulator: use 10.0.2.2 to access host machine
-      // 
-      // IMPORTANT: If you're using a PHYSICAL Android device, 
-      // change this to your computer's IP address (192.168.0.135)
-      // If you're using Android EMULATOR, use 10.0.2.2
-      
-      // For physical device (uncomment and use your IP):
+
       return 'http://192.168.0.135:5001/api';
-      
-      // For Android emulator (uncomment this instead):
-      // return 'http://10.0.2.2:5001/api';
+
     }
-    // For iOS simulator
+
     if (Platform.OS === 'ios') {
       return 'http://localhost:5001/api';
     }
-    // Default for physical device
+
     return 'http://192.168.0.135:5000/api';
   }
   return 'https://api.frenchmastergh.com/api';
 };
 
 const API_URL = getApiUrl();
-console.log('API URL:', API_URL); // Debug: Check which URL is being used
+console.log('API URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -48,7 +31,6 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add token
 api.interceptors.request.use(
   async (config) => {
     try {
@@ -66,32 +48,30 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 401 errors (unauthorized)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       try {
-        // Try to refresh token
+
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
         if (refreshToken) {
           const response = await axios.post(`${API_URL}/auth/refresh`, {
             refreshToken,
           });
-          
+
           const { token } = response.data;
           await SecureStore.setItemAsync('authToken', token);
-          
+
           originalRequest.headers.Authorization = `Bearer ${token}`;
           return api(originalRequest);
         }
       } catch (refreshError) {
-        // Refresh failed, clear tokens and redirect to login
+
         await SecureStore.deleteItemAsync('authToken');
         await SecureStore.deleteItemAsync('refreshToken');
       }
@@ -101,7 +81,6 @@ api.interceptors.response.use(
   }
 );
 
-// Auth API
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
@@ -110,7 +89,6 @@ export const authAPI = {
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
 };
 
-// Courses API
 export const coursesAPI = {
   getAll: (params) => api.get('/courses', { params }),
   getById: (id) => api.get(`/courses/${id}`),
@@ -118,54 +96,47 @@ export const coursesAPI = {
   search: (query) => api.get('/courses', { params: { search: query } }),
 };
 
-// Lessons API
 export const lessonsAPI = {
   getByCourse: (courseId) => api.get(`/lessons/course/${courseId}`),
   getById: (id) => api.get(`/lessons/${id}`),
   updateProgress: (id, data) => api.post(`/lessons/${id}/progress`, data),
 };
 
-// Payments API
 export const paymentsAPI = {
   createIntent: (data) => api.post('/payments/create-intent', data),
   confirm: (data) => api.post('/payments/confirm', data),
-  confirmCourse: (data) => api.post('/payments/confirm', data), // Alias for course payments
+  confirmCourse: (data) => api.post('/payments/confirm', data),
   getHistory: () => api.get('/payments/history'),
 };
 
-// Progress API
 export const progressAPI = {
   getByCourse: (courseId) => api.get(`/progress/course/${courseId}`),
   getDashboard: () => api.get('/progress/dashboard'),
 };
 
-// Users API
 export const usersAPI = {
   getProfile: () => api.get('/users/profile'),
   updateProfile: (data) => api.put('/users/profile', data),
   getMyCourses: () => api.get('/users/my-courses'),
+  updatePushToken: (pushToken) => api.put('/users/push-token', { pushToken }),
 };
 
-// Reviews API
 export const reviewsAPI = {
   getByCourse: (courseId) => api.get(`/reviews/course/${courseId}`),
   create: (data) => api.post('/reviews', data),
 };
 
-// Notifications API
 export const notificationsAPI = {
   getAll: () => api.get('/notifications'),
   markAsRead: (id) => api.put(`/notifications/${id}/read`),
 };
 
-// Wishlist API
 export const wishlistAPI = {
   getAll: () => api.get('/wishlist'),
   add: (courseId) => api.post('/wishlist', { courseId }),
   remove: (courseId) => api.delete(`/wishlist/${courseId}`),
 };
 
-// Resources API
 export const resourcesAPI = {
   getAll: (params) => api.get('/resources', { params }),
   getById: (id) => api.get(`/resources/${id}`),
@@ -174,15 +145,18 @@ export const resourcesAPI = {
   trackDownload: (id) => api.post(`/resources/${id}/download`),
 };
 
-// Blog API
 export const blogAPI = {
   getAll: (params) => api.get('/blog', { params }),
   getById: (id) => api.get(`/blog/${id}`),
   getByCategory: (category, params) => api.get(`/blog/category/${category}`, { params }),
   getFeatured: () => api.get('/blog/featured/list'),
+  create: (data) => api.post('/blog', data),
+  update: (id, data) => api.put(`/blog/${id}`, data),
+  delete: (id) => api.delete(`/blog/${id}`),
+  like: (id) => api.post(`/blog/${id}/like`),
+  comment: (id, content) => api.post(`/blog/${id}/comments`, { content }),
 };
 
-// Study Groups API
 export const studyGroupsAPI = {
   getAll: (params) => api.get('/study-groups', { params }),
   getById: (id) => api.get(`/study-groups/${id}`),
@@ -193,11 +167,11 @@ export const studyGroupsAPI = {
   removeMember: (groupId, userId) => api.post(`/study-groups/${groupId}/members/${userId}/remove`),
   addDiscussion: (id, message) => api.post(`/study-groups/${id}/discussions`, { message }),
   deleteDiscussion: (groupId, messageId) => api.delete(`/study-groups/${groupId}/discussions/${messageId}`),
+  reactToDiscussion: (groupId, messageId, emoji) => api.post(`/study-groups/${groupId}/discussions/${messageId}/react`, { emoji }),
   addResource: (id, data) => api.post(`/study-groups/${id}/resources`, data),
   delete: (id) => api.delete(`/study-groups/${id}`),
 };
 
-// Leaderboard API
 export const leaderboardAPI = {
   getAll: (params) => api.get('/leaderboard', { params }),
   getMe: () => api.get('/leaderboard/me'),
@@ -205,7 +179,6 @@ export const leaderboardAPI = {
   updateStats: (data) => api.post('/leaderboard/update-stats', data),
 };
 
-// Questions API (Q&A Forum)
 export const questionsAPI = {
   getAll: (params) => api.get('/questions', { params }),
   getById: (id) => api.get(`/questions/${id}`),
@@ -221,7 +194,6 @@ export const questionsAPI = {
   addComment: (questionId, answerId, content) => api.post(`/questions/${questionId}/answers/${answerId}/comments`, { content }),
 };
 
-// Progress Share API
 export const progressShareAPI = {
   getAll: (params) => api.get('/progress-share', { params }),
   getById: (id) => api.get(`/progress-share/${id}`),
@@ -234,7 +206,6 @@ export const progressShareAPI = {
   getByUser: (userId, params) => api.get(`/progress-share/user/${userId}`, { params }),
 };
 
-// Discussions API
 export const discussionsAPI = {
   getAll: (params) => api.get('/discussions', { params }),
   getById: (id) => api.get(`/discussions/${id}`),
@@ -248,13 +219,11 @@ export const discussionsAPI = {
   likeReply: (id, replyId) => api.post(`/discussions/${id}/replies/${replyId}/like`),
 };
 
-// Topics API
 export const topicsAPI = {
   getAll: () => api.get('/topics'),
   getById: (topicId, params) => api.get(`/topics/${topicId}`, { params }),
 };
 
-// Admin Students API
 export const studentsAPI = {
   getAll: (params) => api.get('/admin/students', { params }),
   getById: (id) => api.get(`/admin/students/${id}`),
@@ -262,13 +231,11 @@ export const studentsAPI = {
   delete: (id) => api.delete(`/admin/students/${id}`),
 };
 
-// Instructor Students API
 export const instructorStudentsAPI = {
   getAll: (params) => api.get('/users/instructor/students', { params }),
   getById: (id) => api.get(`/users/instructor/students/${id}`),
 };
 
-// Subscriptions API
 export const subscriptionsAPI = {
   getAll: () => api.get('/subscriptions'),
   getActive: () => api.get('/subscriptions/active'),
@@ -276,6 +243,64 @@ export const subscriptionsAPI = {
   cancel: (id) => api.put(`/subscriptions/${id}/cancel`),
   createSubscriptionIntent: (data) => api.post('/payments/create-subscription-intent', data),
   confirmSubscription: (data) => api.post('/payments/confirm-subscription', data),
+};
+
+export const uploadsAPI = {
+
+  uploadVideo: async (videoData, onProgress) => {
+    const formData = new FormData();
+    formData.append('video', {
+      uri: videoData.uri,
+      type: videoData.type || 'video/mp4',
+      name: videoData.name || `video_${Date.now()}.mp4`,
+    });
+
+    return api.post('/uploads/video', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(progress);
+        }
+      },
+    });
+  },
+
+  uploadImage: async (imageData) => {
+    const formData = new FormData();
+    formData.append('image', {
+      uri: imageData.uri,
+      type: imageData.type || 'image/jpeg',
+      name: imageData.name || `image_${Date.now()}.jpg`,
+    });
+
+    return api.post('/uploads/image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  getSignedUrl: (fileType, fileName) =>
+    api.post('/uploads/signed-url', { fileType, fileName }),
+
+  deleteFile: (fileUrl) =>
+    api.delete('/uploads/file', { data: { fileUrl } }),
+};
+
+export const sampleVideosAPI = {
+  getAll: (params) => api.get('/sample-videos', { params }),
+  getById: (id) => api.get(`/sample-videos/${id}`),
+  create: (data) => api.post('/sample-videos', data),
+  update: (id, data) => api.put(`/sample-videos/${id}`, data),
+  delete: (id) => api.delete(`/sample-videos/${id}`),
+  publish: (id) => api.put(`/sample-videos/${id}/publish`),
+  unpublish: (id) => api.put(`/sample-videos/${id}/unpublish`),
+  getByCourse: (courseId) => api.get(`/sample-videos/course/${courseId}`),
+  assignToCourse: (videoId, courseId) =>
+    api.put(`/sample-videos/${videoId}/assign`, { courseId }),
 };
 
 export default api;

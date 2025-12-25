@@ -5,13 +5,9 @@ const User = require('../models/User');
 const Payment = require('../models/Payment');
 const { protect, authorize } = require('../middleware/auth');
 
-// All routes require admin role
 router.use(protect);
 router.use(authorize('admin'));
 
-// @route   GET /api/admin/stats
-// @desc    Get platform statistics
-// @access  Private/Admin
 router.get('/stats', async (req, res) => {
   try {
     const stats = {
@@ -55,9 +51,6 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-// @route   GET /api/admin/students
-// @desc    Get all students
-// @access  Private/Admin
 router.get('/students', async (req, res) => {
   try {
     const { page = 1, limit = 20, search } = req.query;
@@ -99,9 +92,6 @@ router.get('/students', async (req, res) => {
   }
 });
 
-// @route   GET /api/admin/students/:id
-// @desc    Get student by ID
-// @access  Private/Admin
 router.get('/students/:id', async (req, res) => {
   try {
     const student = await User.findOne({ _id: req.params.id, role: 'student' })
@@ -129,9 +119,6 @@ router.get('/students/:id', async (req, res) => {
   }
 });
 
-// @route   PUT /api/admin/students/:id
-// @desc    Update student
-// @access  Private/Admin
 router.put('/students/:id', async (req, res) => {
   try {
     const { name, email, phone, role, subscription } = req.body;
@@ -171,9 +158,6 @@ router.put('/students/:id', async (req, res) => {
   }
 });
 
-// @route   DELETE /api/admin/students/:id
-// @desc    Delete student
-// @access  Private/Admin
 router.delete('/students/:id', async (req, res) => {
   try {
     const student = await User.findOne({ _id: req.params.id, role: 'student' });

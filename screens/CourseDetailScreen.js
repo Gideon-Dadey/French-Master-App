@@ -30,6 +30,40 @@ import { useCurrency } from '../src/context/CurrencyContext';
 
 const { width, height } = Dimensions.get('window');
 
+const IncludeRow = ({ icon, label, colors, isDarkMode, isLast }) => (
+  <View style={[
+    includeRowStyles.row,
+    !isLast && { borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#2c2c2e' : '#f0f0f5' }
+  ]}>
+    <View style={[includeRowStyles.iconWrapper, { backgroundColor: isDarkMode ? '#2c2c2e' : '#f0f9ff' }]}>
+      <Ionicons name={icon} size={20} color="#0ea5e9" />
+    </View>
+    <Text style={[includeRowStyles.label, { color: colors.text }]}>{label}</Text>
+    <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+  </View>
+);
+
+const includeRowStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  iconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  label: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+});
+
 export default function CourseDetailScreen({ route, navigation }) {
   const { courseId } = route.params;
   const { isAuthenticated, user } = useAuth();
@@ -44,7 +78,6 @@ export default function CourseDetailScreen({ route, navigation }) {
   const [activeTab, setActiveTab] = useState('about');
   const [expandedLessons, setExpandedLessons] = useState({});
 
-  // Animations
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -164,12 +197,11 @@ export default function CourseDetailScreen({ route, navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header Image */}
+
       <Animated.View style={[styles.headerImage, { opacity: fadeAnim }]}>
         <Image source={imageSource} style={styles.coverImage} />
         <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={styles.imageOverlay} />
 
-        {/* Back & Actions */}
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
@@ -182,7 +214,6 @@ export default function CourseDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Course Info Overlay */}
         <View style={styles.headerInfo}>
           <View style={[styles.levelBadge, { backgroundColor: getLevelColor(course.level) }]}>
             <Text style={styles.levelText}>{course.level || 'All Levels'}</Text>
@@ -205,11 +236,37 @@ export default function CourseDetailScreen({ route, navigation }) {
             </View>
           </View>
         </View>
+
+        {!isEnrolled && (
+          <TouchableOpacity
+            style={styles.previewButton}
+            onPress={() => {
+              if (course.previewVideo || course.lessons?.[0]?.videoUrl) {
+                navigation.navigate('VideoPreview', {
+                  videoUrl: course.previewVideo || course.lessons[0].videoUrl,
+                  title: 'Course Preview'
+                });
+              } else {
+                Alert.alert('Preview', 'Watch the first lesson free after enrolling!');
+              }
+            }}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.5)']}
+              style={styles.previewButtonGradient}
+            >
+              <View style={styles.playIconCircle}>
+                <Ionicons name="play" size={24} color="#fff" />
+              </View>
+              <Text style={styles.previewButtonText}>Watch Preview</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </Animated.View>
 
-      {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} bounces={false}>
-        {/* Price & Enroll Card */}
+
         <View style={[styles.priceCard, { backgroundColor: colors.card }]}>
           <View style={styles.priceRow}>
             <View>
@@ -255,7 +312,33 @@ export default function CourseDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Tabs */}
+        {!isEnrolled && (
+          <View style={styles.trustSection}>
+
+            <View style={[styles.urgencyBanner, { backgroundColor: isDarkMode ? '#1e1b4b' : '#fef3c7' }]}>
+              <Ionicons name="flame" size={18} color="#f59e0b" />
+              <Text style={[styles.urgencyText, { color: isDarkMode ? '#fcd34d' : '#92400e' }]}>
+                🔥 {Math.floor(Math.random() * 50) + 20} students enrolled this week
+              </Text>
+            </View>
+
+            <View style={styles.trustBadges}>
+              <View style={[styles.trustBadge, { backgroundColor: isDarkMode ? '#1c1c1e' : '#f0fdf4' }]}>
+                <Ionicons name="shield-checkmark" size={16} color="#22c55e" />
+                <Text style={[styles.trustBadgeText, { color: isDarkMode ? '#86efac' : '#166534' }]}>
+                  30-Day Guarantee
+                </Text>
+              </View>
+              <View style={[styles.trustBadge, { backgroundColor: isDarkMode ? '#1c1c1e' : '#eff6ff' }]}>
+                <Ionicons name="medal" size={16} color="#3b82f6" />
+                <Text style={[styles.trustBadgeText, { color: isDarkMode ? '#93c5fd' : '#1e40af' }]}>
+                  Verified Course
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         <View style={[styles.tabsContainer, { backgroundColor: colors.card }]}>
           {['about', 'curriculum', 'reviews'].map((tab) => (
             <TouchableOpacity
@@ -270,10 +353,9 @@ export default function CourseDetailScreen({ route, navigation }) {
           ))}
         </View>
 
-        {/* Tab Content */}
         {activeTab === 'about' && (
           <Animated.View style={[styles.tabContent, { opacity: fadeAnim }]}>
-            {/* Description */}
+
             <View style={[styles.section, { backgroundColor: colors.card }]}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>About This Course</Text>
               <Text style={[styles.description, { color: colors.secondaryText }]}>
@@ -281,7 +363,30 @@ export default function CourseDetailScreen({ route, navigation }) {
               </Text>
             </View>
 
-            {/* What You'll Learn */}
+            <View style={[styles.section, { backgroundColor: colors.card }]}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Requirements</Text>
+              <View style={styles.requirementsList}>
+                <View style={styles.requirementItem}>
+                  <Ionicons name="ellipse" size={8} color={colors.secondaryText} />
+                  <Text style={[styles.requirementText, { color: colors.text }]}>
+                    No prior French knowledge needed
+                  </Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons name="ellipse" size={8} color={colors.secondaryText} />
+                  <Text style={[styles.requirementText, { color: colors.text }]}>
+                    A device with internet connection
+                  </Text>
+                </View>
+                <View style={styles.requirementItem}>
+                  <Ionicons name="ellipse" size={8} color={colors.secondaryText} />
+                  <Text style={[styles.requirementText, { color: colors.text }]}>
+                    Willingness to practice 15-30 mins daily
+                  </Text>
+                </View>
+              </View>
+            </View>
+
             {course.whatYoullLearn?.length > 0 && (
               <View style={[styles.section, { backgroundColor: colors.card }]}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>What You'll Learn</Text>
@@ -296,18 +401,49 @@ export default function CourseDetailScreen({ route, navigation }) {
               </View>
             )}
 
-            {/* Course Stats */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>Course Includes</Text>
-              <View style={styles.statsGrid}>
-                <StatItem icon="play-circle" label="Lessons" value={totalLessons} colors={colors} />
-                <StatItem icon="time" label="Duration" value={formatDuration(totalDuration)} colors={colors} />
-                <StatItem icon="ribbon" label="Certificate" value="Yes" colors={colors} />
-                <StatItem icon="infinite" label="Access" value="Lifetime" colors={colors} />
+              <View style={styles.includesList}>
+                <IncludeRow
+                  icon="play-circle"
+                  label={`${totalLessons} video lessons`}
+                  colors={colors}
+                  isDarkMode={isDarkMode}
+                />
+                <IncludeRow
+                  icon="time-outline"
+                  label={`${formatDuration(totalDuration)} of content`}
+                  colors={colors}
+                  isDarkMode={isDarkMode}
+                />
+                <IncludeRow
+                  icon="ribbon-outline"
+                  label="Certificate of completion"
+                  colors={colors}
+                  isDarkMode={isDarkMode}
+                />
+                <IncludeRow
+                  icon="infinite-outline"
+                  label="Full lifetime access"
+                  colors={colors}
+                  isDarkMode={isDarkMode}
+                />
+                <IncludeRow
+                  icon="phone-portrait-outline"
+                  label="Access on mobile & desktop"
+                  colors={colors}
+                  isDarkMode={isDarkMode}
+                />
+                <IncludeRow
+                  icon="cloud-download-outline"
+                  label="Downloadable resources"
+                  colors={colors}
+                  isDarkMode={isDarkMode}
+                  isLast
+                />
               </View>
             </View>
 
-            {/* Instructor */}
             {course.instructor && (
               <View style={[styles.section, { backgroundColor: colors.card }]}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Instructor</Text>
@@ -348,21 +484,48 @@ export default function CourseDetailScreen({ route, navigation }) {
                     key={lesson._id || index}
                     style={[styles.lessonCard, { borderBottomColor: colors.border }]}
                     onPress={() => {
-                      if (isEnrolled) {
+                      if (isEnrolled || index === 0) {
+
                         navigation.navigate('Lesson', { courseId: course._id, lessonId: lesson._id });
                       } else {
-                        toggleLesson(index);
+                        Alert.alert(
+                          'Lesson Locked',
+                          'Enroll in this course to unlock all lessons.',
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Enroll Now', onPress: handlePurchase }
+                          ]
+                        );
                       }
                     }}
                   >
                     <View style={styles.lessonLeft}>
-                      <View style={[styles.lessonNumber, { backgroundColor: isEnrolled ? '#3B82F6' : colors.border }]}>
-                        <Text style={[styles.lessonNumberText, { color: isEnrolled ? '#FFFFFF' : colors.secondaryText }]}>
-                          {index + 1}
-                        </Text>
+                      <View style={[
+                        styles.lessonNumber,
+                        { backgroundColor: (isEnrolled || index === 0) ? '#3B82F6' : colors.border }
+                      ]}>
+                        {index === 0 && !isEnrolled ? (
+                          <Ionicons name="play" size={14} color="#FFFFFF" />
+                        ) : (
+                          <Text style={[
+                            styles.lessonNumberText,
+                            { color: (isEnrolled || index === 0) ? '#FFFFFF' : colors.secondaryText }
+                          ]}>
+                            {index + 1}
+                          </Text>
+                        )}
                       </View>
                       <View style={styles.lessonInfo}>
-                        <Text style={[styles.lessonTitle, { color: colors.text }]}>{lesson.title}</Text>
+                        <View style={styles.lessonTitleRow}>
+                          <Text style={[styles.lessonTitle, { color: colors.text }]} numberOfLines={1}>
+                            {lesson.title}
+                          </Text>
+                          {index === 0 && !isEnrolled && (
+                            <View style={styles.freeBadge}>
+                              <Text style={styles.freeBadgeText}>FREE</Text>
+                            </View>
+                          )}
+                        </View>
                         <View style={styles.lessonMeta}>
                           <Ionicons name="time-outline" size={12} color={colors.secondaryText} />
                           <Text style={[styles.lessonDuration, { color: colors.secondaryText }]}>
@@ -373,6 +536,8 @@ export default function CourseDetailScreen({ route, navigation }) {
                     </View>
                     {isEnrolled ? (
                       <Ionicons name="play-circle" size={28} color="#3B82F6" />
+                    ) : index === 0 ? (
+                      <Ionicons name="play-circle" size={28} color="#10b981" />
                     ) : (
                       <Ionicons name="lock-closed" size={20} color={colors.secondaryText} />
                     )}
@@ -444,7 +609,6 @@ export default function CourseDetailScreen({ route, navigation }) {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Certificate Modal */}
       {showCertificate && (
         <CertificateView
           visible={showCertificate}
@@ -453,18 +617,6 @@ export default function CourseDetailScreen({ route, navigation }) {
           user={user}
         />
       )}
-    </View>
-  );
-}
-
-function StatItem({ icon, label, value, colors }) {
-  return (
-    <View style={styles.statItem}>
-      <View style={[styles.statIcon, { backgroundColor: '#3B82F6' + '15' }]}>
-        <Ionicons name={icon} size={20} color="#3B82F6" />
-      </View>
-      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.secondaryText }]}>{label}</Text>
     </View>
   );
 }
@@ -553,6 +705,36 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.5)',
     marginHorizontal: 10,
   },
+  previewButton: {
+    position: 'absolute',
+    top: '40%',
+    left: '50%',
+    marginLeft: -70,
+    marginTop: -25,
+  },
+  previewButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 30,
+    gap: 10,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  playIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  previewButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   content: {
     flex: 1,
     marginTop: -20,
@@ -606,6 +788,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  trustSection: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  urgencyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 12,
+  },
+  urgencyText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  trustBadges: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  trustBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    gap: 6,
+  },
+  trustBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -668,33 +886,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  requirementsList: {
     gap: 12,
   },
-  statItem: {
-    width: (width - 72) / 2,
+  requirementItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: '#F8FAFC',
+    gap: 12,
   },
-  statIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
+  requirementText: {
+    fontSize: 14,
+    flex: 1,
   },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 12,
+  includesList: {
+    gap: 0,
   },
   instructorRow: {
     flexDirection: 'row',
@@ -765,10 +970,27 @@ const styles = StyleSheet.create({
   lessonInfo: {
     flex: 1,
   },
+  lessonTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
   lessonTitle: {
     fontSize: 15,
     fontWeight: '600',
-    marginBottom: 4,
+    flex: 1,
+  },
+  freeBadge: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  freeBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   lessonMeta: {
     flexDirection: 'row',

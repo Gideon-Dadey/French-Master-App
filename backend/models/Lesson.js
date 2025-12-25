@@ -23,7 +23,7 @@ const lessonSchema = new mongoose.Schema({
     required: true
   },
   videoDuration: {
-    type: Number, // in seconds
+    type: Number,
     default: 0
   },
   thumbnail: {

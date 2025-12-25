@@ -19,11 +19,11 @@ export const InstructorStudentProvider = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
-    // Only load students if user is authenticated and is instructor or admin
+
     if (isAuthenticated && (user?.role === 'instructor' || user?.role === 'admin')) {
       loadStudents();
     } else {
-      // Clear students when user logs out or is not instructor
+
       setStudents([]);
       setLoading(false);
       setPagination(null);
@@ -31,7 +31,7 @@ export const InstructorStudentProvider = ({ children }) => {
   }, [isAuthenticated, user?.role]);
 
   const loadStudents = async (params = {}) => {
-    // Only allow instructors/admins to load students
+
     if (!isAuthenticated || (user?.role !== 'instructor' && user?.role !== 'admin')) {
       setStudents([]);
       setLoading(false);
@@ -44,12 +44,12 @@ export const InstructorStudentProvider = ({ children }) => {
       setStudents(response.data.data || []);
       setPagination(response.data.pagination || null);
     } catch (error) {
-      // Silently handle 401 errors (user not authenticated) - this is expected
+
       if (error.response?.status === 401) {
         setStudents([]);
         return;
       }
-      // Only log other errors
+
       console.error('Failed to load instructor students:', error);
       setStudents([]);
     } finally {

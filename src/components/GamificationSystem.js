@@ -5,10 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import PremiumBadge from './PremiumBadge';
 import { premiumColors, premiumSpacing, premiumBorderRadius, premiumTypography } from '../utils/premiumDesign';
 
-/**
- * Gamification System Component
- * Tracks and displays user achievements, XP, streaks, and levels
- */
 export default function GamificationSystem({ userStats, onAchievementUnlocked }) {
   const [animatedXP, setAnimatedXP] = useState(userStats?.xp || 0);
   const xpAnimation = React.useRef(new Animated.Value(userStats?.xp || 0)).current;
@@ -31,7 +27,7 @@ export default function GamificationSystem({ userStats, onAchievementUnlocked })
 
   return (
     <View style={styles.container}>
-      {/* Level and XP Display */}
+
       <View style={styles.levelContainer}>
         <LinearGradient
           colors={['#6366F1', '#8B5CF6']}
@@ -75,7 +71,6 @@ export default function GamificationSystem({ userStats, onAchievementUnlocked })
         </View>
       </View>
 
-      {/* Stats Grid */}
       <View style={styles.statsGrid}>
         <StatItem
           icon="flame"
@@ -103,7 +98,6 @@ export default function GamificationSystem({ userStats, onAchievementUnlocked })
         />
       </View>
 
-      {/* Recent Achievements */}
       {userStats?.recentAchievements && userStats.recentAchievements.length > 0 && (
         <View style={styles.achievementsContainer}>
           <Text style={styles.sectionTitle}>Recent Achievements</Text>
@@ -141,14 +135,13 @@ function AchievementBadge({ achievement }) {
   );
 }
 
-// Helper functions
 function calculateLevel(xp) {
-  // Exponential leveling: level = floor(sqrt(xp / 100))
+
   return Math.floor(Math.sqrt(xp / 100)) + 1;
 }
 
 function getXPForLevel(level) {
-  // XP needed = 100 * (level - 1)^2
+
   return 100 * Math.pow(level - 1, 2);
 }
 

@@ -4,9 +4,6 @@ const Progress = require('../models/Progress');
 const Course = require('../models/Course');
 const { protect } = require('../middleware/auth');
 
-// @route   GET /api/progress/course/:courseId
-// @desc    Get user progress for a course
-// @access  Private
 router.get('/course/:courseId', protect, async (req, res) => {
   try {
     const course = await Course.findById(req.params.courseId)
@@ -26,13 +23,12 @@ router.get('/course/:courseId', protect, async (req, res) => {
 
     const totalLessons = course.lessons.length;
     const completedLessons = progressRecords.filter(p => p.isCompleted).length;
-    const progressPercentage = totalLessons > 0 
-      ? Math.round((completedLessons / totalLessons) * 100) 
+    const progressPercentage = totalLessons > 0
+      ? Math.round((completedLessons / totalLessons) * 100)
       : 0;
 
-    // Calculate total watched time
     const totalWatched = progressRecords.reduce(
-      (sum, p) => sum + (p.watchedDuration || 0), 
+      (sum, p) => sum + (p.watchedDuration || 0),
       0
     );
 
@@ -63,9 +59,6 @@ router.get('/course/:courseId', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/progress/dashboard
-// @desc    Get user progress dashboard
-// @access  Private
 router.get('/dashboard', protect, async (req, res) => {
   try {
     const user = await req.user.populate('enrolledCourses.course');
@@ -89,8 +82,8 @@ router.get('/dashboard', protect, async (req, res) => {
 
       const completedCount = progressRecords.filter(p => p.isCompleted).length;
       const totalLessons = course.lessons.length;
-      const progress = totalLessons > 0 
-        ? Math.round((completedCount / totalLessons) * 100) 
+      const progress = totalLessons > 0
+        ? Math.round((completedCount / totalLessons) * 100)
         : 0;
 
       if (progress === 100) {
@@ -101,7 +94,7 @@ router.get('/dashboard', protect, async (req, res) => {
 
       stats.totalLessonsCompleted += completedCount;
       stats.totalTimeSpent += progressRecords.reduce(
-        (sum, p) => sum + (p.watchedDuration || 0), 
+        (sum, p) => sum + (p.watchedDuration || 0),
         0
       );
     }

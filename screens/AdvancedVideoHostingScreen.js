@@ -85,7 +85,6 @@ export default function AdvancedVideoHostingScreen({ navigation }) {
       setUploading(true);
       setUploadProgress(0);
 
-      // Simulate upload progress
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {
           if (prev >= 90) {
@@ -96,13 +95,11 @@ export default function AdvancedVideoHostingScreen({ navigation }) {
         });
       }, 500);
 
-      // Simulate video upload
       await new Promise((resolve) => setTimeout(resolve, 3000));
 
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      // Add new video to list
       const newVideo = {
         id: videos.length + 1,
         title: uploadForm.title,
@@ -149,7 +146,7 @@ export default function AdvancedVideoHostingScreen({ navigation }) {
     });
 
     if (!result.canceled && result.assets[0]) {
-      // Handle thumbnail selection
+
       Alert.alert('Success', 'Thumbnail selected successfully');
     }
   };
@@ -190,9 +187,9 @@ export default function AdvancedVideoHostingScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Header */}
+
       <LinearGradient
-        colors={isDarkMode 
+        colors={isDarkMode
           ? ['#1a0a2e', '#16213e', '#0f3460']
           : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
         }
@@ -228,7 +225,7 @@ export default function AdvancedVideoHostingScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Statistics Cards */}
+
         <View style={styles.statsSection}>
           <View style={[styles.statsCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.lg]}>
             <View style={styles.statsGrid}>
@@ -264,7 +261,6 @@ export default function AdvancedVideoHostingScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Storage Usage */}
         <View style={styles.section}>
           <View style={[styles.storageCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
             <View style={styles.storageHeader}>
@@ -287,7 +283,6 @@ export default function AdvancedVideoHostingScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Video Library */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Video Library</Text>
@@ -307,7 +302,6 @@ export default function AdvancedVideoHostingScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Features Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Premium Features</Text>
           <View style={styles.featuresGrid}>
@@ -338,11 +332,9 @@ export default function AdvancedVideoHostingScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Bottom spacing */}
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Upload Modal */}
       {showUploadModal && (
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.border }]}>

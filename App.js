@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -62,6 +63,9 @@ import AnalyticsDashboardScreen from './screens/AnalyticsDashboardScreen';
 import StudentManagementScreen from './screens/StudentManagementScreen';
 import TeacherSubscriptionPaymentScreen from './screens/TeacherSubscriptionPaymentScreen';
 import CoursePaymentScreen from './screens/CoursePaymentScreen';
+import ManageSampleVideosScreen from './screens/ManageSampleVideosScreen';
+import CreatePostScreen from './screens/CreatePostScreen';
+import WordOfTheDayScreen from './screens/WordOfTheDayScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -363,6 +367,13 @@ function AppNavigator() {
               }}
             />
             <Stack.Screen
+              name="WordOfTheDay"
+              component={WordOfTheDayScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
               name="StudyGroups"
               component={StudyGroupsScreen}
               options={{
@@ -379,6 +390,13 @@ function AppNavigator() {
             <Stack.Screen
               name="CreateStudyGroup"
               component={CreateStudyGroupScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="CreatePost"
+              component={CreatePostScreen}
               options={{
                 headerShown: false,
               }}
@@ -495,6 +513,13 @@ function AppNavigator() {
                 headerShown: false,
               }}
             />
+            <Stack.Screen
+              name="ManageSampleVideos"
+              component={ManageSampleVideosScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
           </Stack.Navigator>
     </NavigationContainer>
   );
@@ -502,21 +527,23 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <CurrencyProvider>
-        <GamificationProvider>
-          <WishlistProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <ThemeProvider>
+          <CurrencyProvider>
+          <GamificationProvider>
+            <WishlistProvider>
               <StudentProvider>
                 <InstructorStudentProvider>
-            <ThemedApp />
+                  <ThemedApp />
                 </InstructorStudentProvider>
               </StudentProvider>
-          </WishlistProvider>
-        </GamificationProvider>
-        </CurrencyProvider>
-      </ThemeProvider>
-    </AuthProvider>
+            </WishlistProvider>
+          </GamificationProvider>
+          </CurrencyProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
 

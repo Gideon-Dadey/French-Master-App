@@ -32,7 +32,7 @@ export default function AchievementsScreen({ navigation }) {
   }, []);
 
   const loadAchievements = async () => {
-    // Mock achievements - replace with API call
+
     setAchievements({
       first_course: true,
       week_streak: true,
@@ -73,7 +73,7 @@ export default function AchievementsScreen({ navigation }) {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
+
       <View style={[styles.header, { backgroundColor: colors.card }]}>
         <View style={styles.headerContent}>
           <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
@@ -99,7 +99,6 @@ export default function AchievementsScreen({ navigation }) {
         </View>
       </View>
 
-      {/* Achievements Grid */}
       <View style={styles.grid}>
         {ALL_ACHIEVEMENTS.map((achievementId) => (
           <AchievementBadge
@@ -111,7 +110,6 @@ export default function AchievementsScreen({ navigation }) {
         ))}
       </View>
 
-      {/* Stats */}
       <View style={[styles.statsContainer, { backgroundColor: colors.card }]}>
         <Text style={[styles.statsTitle, { color: colors.text }]}>Your Progress</Text>
         <View style={styles.statsRow}>

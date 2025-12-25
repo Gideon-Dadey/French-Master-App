@@ -3,9 +3,6 @@ const router = express.Router();
 const StudyGroup = require('../models/StudyGroup');
 const { protect, optionalAuth } = require('../middleware/auth');
 
-// @route   GET /api/study-groups
-// @desc    Get all study groups with filters
-// @access  Public (for public groups) / Protected (for private groups)
 router.get('/', optionalAuth, async (req, res) => {
   try {
     const {
@@ -18,23 +15,21 @@ router.get('/', optionalAuth, async (req, res) => {
       myGroups
     } = req.query;
 
-    // Build query
     const query = { status };
 
-    // If user is authenticated and wants their groups
     if (myGroups === 'true' && req.user) {
       query.$or = [
         { creator: req.user._id },
         { 'members.user': req.user._id }
       ];
     } else if (!req.user) {
-      // Non-authenticated users can only see public groups
+
       query.isPrivate = false;
     }
 
     if (level && level !== 'all') query.level = level;
     if (focus) query.focus = focus;
-    
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -43,7 +38,6 @@ router.get('/', optionalAuth, async (req, res) => {
       ];
     }
 
-    // Pagination
     const skip = (page - 1) * limit;
 
     const studyGroups = await StudyGroup.find(query)
@@ -72,9 +66,6 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-// @route   GET /api/study-groups/:id
-// @desc    Get single study group
-// @access  Public (for public groups) / Protected (for private groups)
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const studyGroup = await StudyGroup.findById(req.params.id)
@@ -90,7 +81,6 @@ router.get('/:id', optionalAuth, async (req, res) => {
       });
     }
 
-    // Check if user can access private group
     if (studyGroup.isPrivate && (!req.user || !studyGroup.isMember(req.user._id))) {
       return res.status(403).json({
         success: false,
@@ -111,9 +101,6 @@ router.get('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-// @route   POST /api/study-groups
-// @desc    Create a new study group
-// @access  Protected
 router.post('/', protect, async (req, res) => {
   try {
     const {
@@ -128,19 +115,17 @@ router.post('/', protect, async (req, res) => {
       tags
     } = req.body;
 
-    // Clean up meetingSchedule - remove empty dayOfWeek
     let cleanedMeetingSchedule = meetingSchedule || {};
     if (cleanedMeetingSchedule.dayOfWeek === '' || !cleanedMeetingSchedule.dayOfWeek) {
       const { dayOfWeek, ...rest } = cleanedMeetingSchedule;
       cleanedMeetingSchedule = rest;
     }
-    // Remove empty time if not provided
+
     if (cleanedMeetingSchedule.time === '') {
       const { time, ...rest } = cleanedMeetingSchedule;
       cleanedMeetingSchedule = rest;
     }
 
-    // Create study group
     const studyGroup = new StudyGroup({
       name,
       description,
@@ -154,10 +139,8 @@ router.post('/', protect, async (req, res) => {
       tags: tags || []
     });
 
-    // Add creator as first member
     studyGroup.addMember(req.user._id, 'member');
 
-    // Generate invite code if private
     if (isPrivate) {
       studyGroup.generateInviteCode();
     }
@@ -181,9 +164,6 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// @route   PUT /api/study-groups/:id
-// @desc    Update study group
-// @access  Protected (creator or moderator only)
 router.put('/:id', protect, async (req, res) => {
   try {
     const studyGroup = await StudyGroup.findById(req.params.id);
@@ -195,7 +175,6 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    // Check if user is creator or moderator
     if (!studyGroup.isModerator(req.user._id)) {
       return res.status(403).json({
         success: false,
@@ -203,19 +182,17 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    // Update allowed fields
     const allowedUpdates = [
       'name', 'description', 'level', 'focus', 'maxMembers',
       'isPrivate', 'meetingSchedule', 'studyGoals', 'tags', 'image', 'status'
     ];
-    
+
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
         studyGroup[field] = req.body[field];
       }
     });
 
-    // Regenerate invite code if privacy changed to private
     if (req.body.isPrivate && !studyGroup.inviteCode) {
       studyGroup.generateInviteCode();
     }
@@ -240,9 +217,6 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/study-groups/:id/join
-// @desc    Join a study group
-// @access  Protected
 router.post('/:id/join', protect, async (req, res) => {
   try {
     const { inviteCode } = req.body;
@@ -262,7 +236,6 @@ router.post('/:id/join', protect, async (req, res) => {
       });
     }
 
-    // Check if already a member
     if (studyGroup.isMember(req.user._id)) {
       return res.status(400).json({
         success: false,
@@ -270,7 +243,6 @@ router.post('/:id/join', protect, async (req, res) => {
       });
     }
 
-    // Check if private group requires invite code
     if (studyGroup.isPrivate) {
       if (!inviteCode || inviteCode !== studyGroup.inviteCode) {
         return res.status(403).json({
@@ -280,7 +252,6 @@ router.post('/:id/join', protect, async (req, res) => {
       }
     }
 
-    // Add member
     studyGroup.addMember(req.user._id);
     await studyGroup.save();
 
@@ -302,9 +273,6 @@ router.post('/:id/join', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/study-groups/:id/leave
-// @desc    Leave a study group
-// @access  Protected
 router.post('/:id/leave', protect, async (req, res) => {
   try {
     const studyGroup = await StudyGroup.findById(req.params.id);
@@ -323,7 +291,6 @@ router.post('/:id/leave', protect, async (req, res) => {
       });
     }
 
-    // Remove member
     studyGroup.removeMember(req.user._id);
     await studyGroup.save();
 
@@ -340,9 +307,6 @@ router.post('/:id/leave', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/study-groups/:id/members/:userId/remove
-// @desc    Remove a member from study group
-// @access  Protected (creator or moderator only)
 router.post('/:id/members/:userId/remove', protect, async (req, res) => {
   try {
     const studyGroup = await StudyGroup.findById(req.params.id);
@@ -354,7 +318,6 @@ router.post('/:id/members/:userId/remove', protect, async (req, res) => {
       });
     }
 
-    // Check if user is creator or moderator
     if (!studyGroup.isModerator(req.user._id)) {
       return res.status(403).json({
         success: false,
@@ -362,7 +325,6 @@ router.post('/:id/members/:userId/remove', protect, async (req, res) => {
       });
     }
 
-    // Remove member
     studyGroup.removeMember(req.params.userId);
     await studyGroup.save();
 
@@ -379,9 +341,6 @@ router.post('/:id/members/:userId/remove', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/study-groups/:id/discussions
-// @desc    Add a discussion message to study group
-// @access  Protected (members only)
 router.post('/:id/discussions', protect, async (req, res) => {
   try {
     const { message } = req.body;
@@ -426,9 +385,6 @@ router.post('/:id/discussions', protect, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/study-groups/:id/discussions/:messageId
-// @desc    Delete a discussion message from study group
-// @access  Protected (message owner or moderator only)
 router.delete('/:id/discussions/:messageId', protect, async (req, res) => {
   try {
     const studyGroup = await StudyGroup.findById(req.params.id);
@@ -481,9 +437,68 @@ router.delete('/:id/discussions/:messageId', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/study-groups/:id/resources
-// @desc    Add a resource to study group
-// @access  Protected (members only)
+router.post('/:id/discussions/:messageId/react', protect, async (req, res) => {
+  try {
+    const { emoji } = req.body;
+    const studyGroup = await StudyGroup.findById(req.params.id);
+
+    if (!studyGroup) {
+      return res.status(404).json({
+        success: false,
+        message: 'Study group not found'
+      });
+    }
+
+    if (!studyGroup.isMember(req.user._id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You must be a member to react'
+      });
+    }
+
+    const discussion = studyGroup.discussions.id(req.params.messageId);
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        message: 'Message not found'
+      });
+    }
+
+    if (!discussion.reactions) {
+      discussion.reactions = [];
+    }
+
+    const reactionIndex = discussion.reactions.findIndex(
+      r => r.user.toString() === req.user._id.toString() && r.emoji === emoji
+    );
+
+    if (reactionIndex > -1) {
+
+      discussion.reactions.splice(reactionIndex, 1);
+    } else {
+
+      discussion.reactions.push({
+        user: req.user._id,
+        emoji,
+        addedAt: new Date()
+      });
+    }
+
+    await studyGroup.save();
+
+    res.json({
+      success: true,
+      data: discussion.reactions
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 router.post('/:id/resources', protect, async (req, res) => {
   try {
     const { title, url, type } = req.body;
@@ -530,9 +545,6 @@ router.post('/:id/resources', protect, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/study-groups/:id
-// @desc    Delete study group
-// @access  Protected (creator only)
 router.delete('/:id', protect, async (req, res) => {
   try {
     const studyGroup = await StudyGroup.findById(req.params.id);
@@ -544,7 +556,6 @@ router.delete('/:id', protect, async (req, res) => {
       });
     }
 
-    // Only creator can delete
     if (studyGroup.creator.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,

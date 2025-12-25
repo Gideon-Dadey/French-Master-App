@@ -20,7 +20,6 @@ import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils
 
 const { width } = Dimensions.get('window');
 
-// French Writing Practice Exercises
 const WRITING_EXERCISES = [
   {
     id: 1,
@@ -148,14 +147,14 @@ export default function WritingPracticeScreen({ navigation }) {
   }, [startTime]);
 
   useEffect(() => {
-    // Count words in user writing
+
     const words = userWriting.trim().split(/\s+/).filter(word => word.length > 0);
     setWordCount(words.length);
   }, [userWriting]);
 
   const handleSubmit = () => {
     if (wordCount < currentExercise.minWords) {
-      return; // Don't submit if minimum word count not met
+      return;
     }
 
     const submission = {
@@ -194,8 +193,7 @@ export default function WritingPracticeScreen({ navigation }) {
   const finishSession = () => {
     setSessionCompleted(true);
     const completionRate = (submissions.length / WRITING_EXERCISES.length) * 100;
-    
-    // Award XP based on completion
+
     if (completionRate >= 80) {
       awardXP(50, 'Excellent writing practice!');
     } else if (completionRate >= 60) {
@@ -248,7 +246,7 @@ export default function WritingPracticeScreen({ navigation }) {
           contentContainerStyle={styles.resultContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Stats Card */}
+
           <View
             style={[
               styles.statsCard,
@@ -293,7 +291,6 @@ export default function WritingPracticeScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Performance Card */}
           <View
             style={[
               styles.performanceCard,
@@ -348,7 +345,6 @@ export default function WritingPracticeScreen({ navigation }) {
             </Text>
           </View>
 
-          {/* Review Submissions */}
           <View style={styles.reviewSection}>
             <Text style={[styles.reviewTitle, { color: colors.text }]}>
               Your Writing Exercises
@@ -411,7 +407,6 @@ export default function WritingPracticeScreen({ navigation }) {
             })}
           </View>
 
-          {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={[styles.actionButton, styles.restartButton, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -443,7 +438,7 @@ export default function WritingPracticeScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      {/* Header */}
+
       <LinearGradient
         colors={
           isDarkMode
@@ -476,7 +471,6 @@ export default function WritingPracticeScreen({ navigation }) {
         </View>
       </LinearGradient>
 
-      {/* Progress Bar */}
       <View style={styles.progressContainer}>
         <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
           <Animated.View
@@ -494,7 +488,6 @@ export default function WritingPracticeScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Exercise Card */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
@@ -552,14 +545,12 @@ export default function WritingPracticeScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Prompt */}
           <View style={styles.promptContainer}>
             <Text style={[styles.prompt, { color: colors.text }]}>
               {currentExercise.prompt}
             </Text>
           </View>
 
-          {/* Word Count Requirement */}
           <View style={styles.requirementContainer}>
             <Ionicons name="information-circle" size={16} color={premiumColors.accent.gold} />
             <Text style={[styles.requirementText, { color: colors.secondaryText }]}>
@@ -567,7 +558,6 @@ export default function WritingPracticeScreen({ navigation }) {
             </Text>
           </View>
 
-          {/* Writing Area */}
           <View style={styles.writingContainer}>
             <TextInput
               style={[
@@ -614,7 +604,6 @@ export default function WritingPracticeScreen({ navigation }) {
             </View>
           </View>
 
-          {/* Example Toggle */}
           <TouchableOpacity
             style={styles.exampleToggle}
             onPress={() => setShowExample(!showExample)}
@@ -629,7 +618,6 @@ export default function WritingPracticeScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
 
-          {/* Example Card */}
           {showExample && (
             <View
               style={[
@@ -655,7 +643,6 @@ export default function WritingPracticeScreen({ navigation }) {
             </View>
           )}
 
-          {/* Tips Card */}
           <View
             style={[
               styles.tipsCard,
@@ -676,7 +663,6 @@ export default function WritingPracticeScreen({ navigation }) {
             </Text>
           </View>
 
-          {/* Action Buttons */}
           <View style={styles.actionButtons}>
             {!isSubmitted ? (
               <TouchableOpacity
@@ -978,7 +964,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  // Results Screen Styles
+
   resultHeader: {
     paddingTop: 60,
     paddingBottom: spacing.xl,

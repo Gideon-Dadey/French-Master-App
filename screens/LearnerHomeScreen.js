@@ -1,59 +1,168 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   RefreshControl,
   Image,
   Dimensions,
+  Animated,
+  Platform,
+  StatusBar,
+  Vibration,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
+import { useGamification } from '../src/context/GamificationContext';
 import { spacing, fontSize } from '../src/utils/responsive';
 import { coursesAPI, blogAPI } from '../src/services/api';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import { getCourseImage } from '../src/utils/courseImages';
 import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import { formatCurrency } from '../src/utils/helpers';
+import PremiumErrorState from '../src/components/PremiumErrorState';
+import { offlineService } from '../src/services/offlineService';
+import { gamificationService } from '../src/services/gamificationService';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+const DAILY_WORDS = [
+  { french: 'Bonjour', english: 'Hello', phonetic: 'bohn-ZHOOR' },
+  { french: 'Merci', english: 'Thank you', phonetic: 'mehr-SEE' },
+  { french: 'S\'il vous plaît', english: 'Please', phonetic: 'seel voo PLEH' },
+  { french: 'Au revoir', english: 'Goodbye', phonetic: 'oh ruh-VWAHR' },
+  { french: 'Enchanté', english: 'Nice to meet you', phonetic: 'ahn-shahn-TAY' },
+];
 
 export default function LearnerHomeScreen({ navigation }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loadUser } = useAuth();
   const { colors, isDarkMode, toggleTheme } = useTheme();
+  const gamification = useGamification();
+  const gamificationStats = gamification?.stats || {};
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [topCourses, setTopCourses] = useState([]);
   const [recentPosts, setRecentPosts] = useState([]);
-  const [categories] = useState([
-    'French',
-    'English',
-    'Grammar',
-    'Vocabulary',
-  ]);
+  const [error, setError] = useState(null);
+  const [dailyWord, setDailyWord] = useState(DAILY_WORDS[0]);
+  const [headerInteractable, setHeaderInteractable] = useState(false);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(40)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const orb1Anim = useRef(new Animated.Value(0)).current;
+  const orb2Anim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const cardAnims = useRef([...Array(6)].map(() => new Animated.Value(0))).current;
+
+  const userName = user?.name?.split(' ')[0] || 'Learner';
+  const userLevel = gamificationStats.level || user?.level || 1;
+  const userXP = gamificationStats.xp || user?.xp || 0;
+  const userStreak = gamificationStats.streak || user?.streak?.current || 0;
+
+  const xpForCurrentLevel = Math.pow(userLevel - 1, 2) * 100;
+  const xpForNextLevel = Math.pow(userLevel, 2) * 100;
+  const xpProgress = (userXP - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel);
 
   useEffect(() => {
-    loadData();
+    navigation.setOptions({ headerShown: false });
+
+    const today = new Date().getDate();
+    setDailyWord(DAILY_WORDS[today % DAILY_WORDS.length]);
+
+    initScreen();
+    startAnimations();
+
+    return () => {
+
+    };
   }, []);
+
+  const startAnimations = () => {
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 10, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
+    ]).start();
+
+    Animated.stagger(80, cardAnims.map(anim =>
+      Animated.spring(anim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true })
+    )).start();
+
+    Animated.timing(progressAnim, {
+      toValue: xpProgress,
+      duration: 1500,
+      useNativeDriver: false,
+    }).start();
+
+    const orbLoop = Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(orb1Anim, { toValue: 1, duration: 3000, useNativeDriver: true }),
+          Animated.timing(orb1Anim, { toValue: 0, duration: 3000, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(orb2Anim, { toValue: 1, duration: 4000, useNativeDriver: true }),
+          Animated.timing(orb2Anim, { toValue: 0, duration: 4000, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    orbLoop.start();
+
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      ])
+    );
+    if (userStreak > 0) pulseLoop.start();
+  };
+
+  const initScreen = async () => {
+    await loadData();
+    if (isAuthenticated && user) {
+      await gamificationService.checkAndUpdateStreak(user);
+    }
+  };
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: true,
+      listener: (event) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        setHeaderInteractable(offsetY > 100);
+      }
+    }
+  );
 
   const loadData = async () => {
     try {
       if (!refreshing) setLoading(true);
-      
+      setError(null);
+
       const [coursesResponse, postsResponse] = await Promise.all([
-        coursesAPI.getFeatured().catch(() => ({ data: { data: [] } })),
-        blogAPI.getAll({ limit: 5 }).catch(() => ({ data: { data: [] } })),
+        coursesAPI.getFeatured(),
+        blogAPI.getAll({ limit: 5 }),
       ]);
 
-      setTopCourses(coursesResponse.data.data || []);
-      setRecentPosts(postsResponse.data.data || []);
-    } catch (error) {
-      console.error('Failed to load home data:', error);
+      const coursesData = coursesResponse.data.data || [];
+      const postsData = postsResponse.data.data || [];
+
+      setTopCourses(coursesData);
+      setRecentPosts(postsData);
+
+    } catch (err) {
+      console.error('Failed to load home data:', err);
+      setError('Network Error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -62,7 +171,16 @@ export default function LearnerHomeScreen({ navigation }) {
 
   const onRefresh = () => {
     setRefreshing(true);
+    Vibration.vibrate(50);
     loadData();
+    if (isAuthenticated) loadUser();
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
   };
 
   const formatTimeAgo = (date) => {
@@ -70,368 +188,522 @@ export default function LearnerHomeScreen({ navigation }) {
     const now = new Date();
     const postDate = new Date(date);
     const diffInHours = Math.floor((now - postDate) / (1000 * 60 * 60));
-    
     if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    return 'Recently';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    return `${Math.floor(diffInHours / 24)}d ago`;
   };
 
   const getLevelColor = (level) => {
-    const levelLower = (level || '').toLowerCase();
-    switch (levelLower) {
-      case 'beginner':
-        return '#4CAF50';
-      case 'intermediate':
-        return '#FF9800';
-      case 'advanced':
-        return '#F44336';
-      default:
-        return '#2196F3';
-    }
+    const l = (level || '').toLowerCase();
+    if (l === 'beginner') return '#10B981';
+    if (l === 'intermediate') return '#F59E0B';
+    if (l === 'advanced') return '#EF4444';
+    return '#6366F1';
   };
 
-  const formatStudentCount = (count) => {
-    if (!count) return '0';
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
-    return count.toString();
-  };
+  const quickActions = [
+    { id: 'courses', icon: 'book', label: 'Courses', screen: 'Learn', gradient: ['#6366F1', '#8B5CF6'], badge: topCourses.length },
+    { id: 'practice', icon: 'fitness', label: 'Practice', screen: 'Practice', gradient: ['#10B981', '#059669'], badge: null },
+    { id: 'flashcards', icon: 'albums', label: 'Flashcards', screen: 'Flashcards', gradient: ['#F59E0B', '#D97706'], badge: null },
+    { id: 'community', icon: 'people', label: 'Community', screen: 'Community', gradient: ['#EC4899', '#DB2777'], badge: null },
+  ];
 
-  const renderCourseCard = (course, index) => {
-    const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
-      ? { uri: course.thumbnail }
-      : getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 80, 120],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
 
-    const isBestseller = course.studentsEnrolled > 1000;
-    const isNew = course.publishedAt && new Date(course.publishedAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const isPremium = course.isPremium || course.price > 0;
-    const levelColor = getLevelColor(course.level);
-    const instructorName = course.instructor?.name || 'Expert Instructor';
-    const hasDiscount = course.originalPrice && course.originalPrice > course.price;
-    const discountPercent = hasDiscount 
-      ? Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)
-      : 0;
+  const heroScale = scrollY.interpolate({
+    inputRange: [-100, 0, 100],
+    outputRange: [1.2, 1, 0.95],
+    extrapolate: 'clamp',
+  });
 
-    return (
-      <TouchableOpacity
-        key={course._id || course.id}
-        style={[styles.courseCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
-        onPress={() => navigation.navigate('CourseDetail', { courseId: course._id || course.id })}
-        activeOpacity={0.9}
-      >
-        <View style={styles.courseImageContainer}>
-          <Image
-            source={imageSource}
-            style={styles.courseImage}
-            resizeMode="cover"
-          />
-          
-          {/* Gradient Overlay */}
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.7)']}
-            style={styles.imageOverlay}
-          />
-
-          {/* Play Button Overlay */}
-          {course.previewVideo && (
-            <View style={styles.playButtonOverlay}>
-              <View style={styles.playButton}>
-                <Ionicons name="play" size={24} color="#FFFFFF" />
-              </View>
-            </View>
-          )}
-
-          {/* Top Badges */}
-          <View style={styles.topBadges}>
-            {isBestseller && (
-              <View style={[styles.badge, styles.bestsellerBadge]}>
-                <Ionicons name="trophy" size={12} color="#FFFFFF" />
-                <Text style={styles.badgeText}>Bestseller</Text>
-              </View>
-            )}
-            {isNew && !isBestseller && (
-              <View style={[styles.badge, styles.newBadge]}>
-                <Text style={styles.badgeText}>NEW</Text>
-              </View>
-            )}
-            {isPremium && (
-              <View style={[styles.badge, styles.premiumBadge]}>
-                <Ionicons name="diamond" size={12} color="#FFFFFF" />
-                <Text style={styles.badgeText}>Premium</Text>
-              </View>
-            )}
-            {hasDiscount && (
-              <View style={[styles.badge, styles.discountBadge]}>
-                <Text style={styles.badgeText}>-{discountPercent}%</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Level Badge */}
-          <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
-            <Text style={styles.levelText}>{course.level || 'Advanced'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.courseContent}>
-          <Text style={[styles.courseCategory, { color: colors.primary }]}>
-            {course.category?.toUpperCase() || 'FRENCH'}
-          </Text>
-          
-          <Text style={[styles.courseTitle, { color: colors.text }]} numberOfLines={2}>
-            {course.title || 'Backend development with NestJS'}
-          </Text>
-
-          {/* Instructor Row */}
-          <View style={styles.instructorRow}>
-            <View style={[styles.instructorAvatar, { backgroundColor: colors.primary + '20' }]}>
-              <Ionicons name="person" size={12} color={colors.primary} />
-            </View>
-            <Text style={[styles.instructorName, { color: colors.secondaryText }]} numberOfLines={1}>
-              {instructorName}
-            </Text>
-          </View>
-
-          {/* Meta Row */}
-          <View style={styles.courseMeta}>
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" size={14} color="#FFB703" />
-              <Text style={[styles.ratingText, { color: colors.text }]}>
-                {course.rating?.average?.toFixed(1) || '4.5'}
-              </Text>
-              {course.rating?.count > 0 && (
-                <Text style={[styles.ratingCount, { color: colors.secondaryText }]}>
-                  ({course.rating.count})
-                </Text>
-              )}
-            </View>
-            
-            {course.studentsEnrolled > 0 && (
-              <View style={styles.studentsRow}>
-                <Ionicons name="people" size={14} color={colors.secondaryText} />
-                <Text style={[styles.studentsText, { color: colors.secondaryText }]}>
-                  {formatStudentCount(course.studentsEnrolled)}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Price Row */}
-          <View style={styles.priceRow}>
-            {course.price === 0 || course.price === null ? (
-              <View style={styles.freeBadge}>
-                <Text style={[styles.freeText, { color: premiumColors.success }]}>FREE</Text>
-              </View>
-            ) : (
-              <>
-                {hasDiscount && (
-                  <Text style={[styles.originalPrice, { color: colors.secondaryText }]}>
-                    {formatCurrency(course.originalPrice, 'GHS')}
-                  </Text>
-                )}
-                <Text style={[styles.price, { color: colors.primary }]}>
-                  {formatCurrency(course.price, 'GHS')}
-                </Text>
-              </>
-            )}
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderPostCard = (post, index) => {
-    // Create a blackboard-like thumbnail for posts
-    const postImage = post.thumbnail && (post.thumbnail.startsWith('http') || post.thumbnail.startsWith('https'))
-      ? { uri: post.thumbnail }
-      : require('../assets/logo.jpeg'); // Fallback image
-
-    return (
-      <TouchableOpacity
-        key={post._id || post.id || index}
-        style={[styles.postCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-        onPress={() => navigation.navigate('BlogDetail', { postId: post._id || post.id })}
-        activeOpacity={0.8}
-      >
-        <Image
-          source={postImage}
-          style={styles.postImage}
-          resizeMode="cover"
-        />
-        <View style={styles.postContent}>
-          <Text style={[styles.postTitle, { color: colors.text }]} numberOfLines={2}>
-            {post.title || 'Mathematical equation with LaTeX expression'}
-          </Text>
-          <Text style={[styles.postReadTime, { color: colors.secondaryText }]}>
-            {post.readTime || '1'} min read
-          </Text>
-          <View style={styles.postMeta}>
-            <View style={styles.postMetaItem}>
-              <Ionicons name="calendar-outline" size={12} color={colors.secondaryText} />
-              <Text style={[styles.postMetaText, { color: colors.secondaryText }]}>
-                {formatTimeAgo(post.createdAt)}
-              </Text>
-            </View>
-            <View style={styles.postMetaItem}>
-              <Ionicons name="eye-outline" size={12} color={colors.secondaryText} />
-              <Text style={[styles.postMetaText, { color: colors.secondaryText }]}>
-                {post.views || '19'}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  const heroOpacity = scrollY.interpolate({
+    inputRange: [0, 150],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
 
   if (loading && !refreshing) {
     return <LoadingSpinner />;
   }
 
-  // Theme-aware gradient colors
-  const headerGradientColors = isDarkMode
-    ? ['#1a0a2e', '#16213e', '#0f3460'] // Dark purple-blue gradient
-    : ['#E8EAF6', '#F3E5F5', '#E1BEE7']; // Light purple gradient
-
-  const appNameColor = isDarkMode ? '#BB86FC' : '#9C27B0'; // Purple that works in both themes
+  if (error && topCourses.length === 0) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <PremiumErrorState onRetry={loadData} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <LinearGradient
-        colors={headerGradientColors}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
+      <StatusBar barStyle="light-content" />
+
+      <Animated.View
+        pointerEvents={headerInteractable ? 'auto' : 'none'}
+        style={[
+          styles.floatingNavBar,
+          {
+            backgroundColor: isDarkMode ? 'rgba(0,0,0,0.95)' : 'rgba(255,255,255,0.95)',
+            opacity: headerOpacity,
+            borderBottomColor: isDarkMode ? '#1F2937' : '#E5E7EB',
+          }
+        ]}
       >
-        <View style={styles.headerTop}>
-          <Text style={[styles.appName, { color: appNameColor }]}>FRENCH MASTER GH</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.headerIcon}
-              onPress={() => navigation.navigate('Notifications')}
-            >
-              <Ionicons name="notifications-outline" size={24} color={isDarkMode ? '#FFFFFF' : '#424242'} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.headerIcon}
-              onPress={toggleTheme}
-            >
-              <Ionicons 
-                name={isDarkMode ? 'sunny-outline' : 'moon-outline'} 
-                size={24} 
-                color={isDarkMode ? '#FFFFFF' : '#424242'} 
-              />
+        <View style={styles.navBarContent}>
+          <View style={styles.navBarLeft}>
+            <Image source={require('../assets/logo.jpeg')} style={styles.navLogo} />
+            <Text style={[styles.navTitle, { color: colors.text }]}>French Master</Text>
+          </View>
+          <View style={styles.navBarRight}>
+            <TouchableOpacity style={styles.navIconBtn} onPress={toggleTheme}>
+              <Ionicons name={isDarkMode ? "sunny" : "moon"} size={20} color={colors.text} />
             </TouchableOpacity>
           </View>
         </View>
-      </LinearGradient>
+      </Animated.View>
 
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFFFFF"
+            colors={['#6366F1']}
+          />
         }
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
-        {/* Search Section */}
-        <View style={styles.searchSection}>
-          <Text style={[styles.searchHeading, { color: colors.text }]}>
-            What do you want to learn?
-          </Text>
-          <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Browse courses..."
-              placeholderTextColor={colors.secondaryText}
-              onFocus={() => navigation.navigate('Courses')}
-            />
-          </View>
-        </View>
 
-        {/* Categories Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Categories</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Courses')}>
-              <Text style={[styles.seeAllText, { color: '#2196F3' }]}>See all</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesContainer}
+        <Animated.View style={[styles.heroSection, { transform: [{ scale: heroScale }], opacity: heroOpacity }]}>
+          <LinearGradient
+            colors={isDarkMode ? ['#1E1B4B', '#312E81', '#4338CA'] : ['#4F46E5', '#6366F1', '#818CF8']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
           >
-            {categories.map((category, index) => (
+
+            <Animated.View style={[
+              styles.floatingOrb,
+              styles.orb1,
+              {
+                transform: [
+                  { translateY: orb1Anim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) },
+                  { scale: orb1Anim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] }) },
+                ],
+              },
+            ]} />
+            <Animated.View style={[
+              styles.floatingOrb,
+              styles.orb2,
+              {
+                transform: [
+                  { translateY: orb2Anim.interpolate({ inputRange: [0, 1], outputRange: [0, 15] }) },
+                  { scale: orb2Anim.interpolate({ inputRange: [0, 1], outputRange: [1, 0.85] }) },
+                ],
+              },
+            ]} />
+            <View style={[styles.floatingOrb, styles.orb3]} />
+            <View style={[styles.floatingOrb, styles.orb4]} />
+
+            <View style={styles.heroHeader}>
+              <View style={styles.headerBranding}>
+                <Image source={require('../assets/logo.jpeg')} style={styles.heroLogo} />
+                <View>
+                  <View style={styles.brandNameRow}>
+                    <Text style={styles.heroAppName}>French Master</Text>
+                  </View>
+                  <Text style={styles.heroTagline}>Master French, One Day at a Time</Text>
+                </View>
+              </View>
               <TouchableOpacity
-                key={index}
-                style={[styles.categoryTag, { backgroundColor: colors.card, borderColor: colors.border }]}
-                onPress={() => navigation.navigate('Courses', { category: category.toLowerCase() })}
-                activeOpacity={0.7}
+                style={styles.heroIconBtn}
+                onPress={toggleTheme}
               >
-                <Text style={[styles.categoryText, { color: colors.text }]}>{category}</Text>
+                <Ionicons name={isDarkMode ? "sunny-outline" : "moon-outline"} size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <Animated.View style={[
+              styles.heroContent,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}>
+
+              <View style={styles.greetingCard}>
+                <View style={styles.greetingLeft}>
+                  <Text style={styles.greetingText}>{getGreeting()}</Text>
+                  <Text style={styles.greetingName}>{userName} 👋</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.avatarContainer}
+                  onPress={() => navigation.navigate('Profile')}
+                >
+                  <LinearGradient
+                    colors={['#F59E0B', '#F97316']}
+                    style={styles.avatarRing}
+                  >
+                    <View style={styles.avatarInner}>
+                      <Text style={styles.avatarText}>{userName.charAt(0)}</Text>
+                    </View>
+                  </LinearGradient>
+                  <View style={styles.levelBadge}>
+                    <Text style={styles.levelBadgeText}>{userLevel}</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.statsRow}>
+                <TouchableOpacity
+                  style={styles.statCard}
+                  onPress={() => navigation.navigate('Practice')}
+                >
+                  <Text style={styles.statValue}>{userStreak}</Text>
+                  <Text style={styles.statLabel}>Day Streak</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.statCard}
+                  onPress={() => navigation.navigate('Leaderboard')}
+                >
+                  <Text style={styles.statValue}>
+                    {userXP >= 1000 ? `${(userXP / 1000).toFixed(1)}K` : userXP}
+                  </Text>
+                  <Text style={styles.statLabel}>Total XP</Text>
+                </TouchableOpacity>
+
+                <View style={styles.statCard}>
+                  <Text style={styles.statValue}>Lv.{userLevel}</Text>
+                  <Text style={styles.statLabel}>Level</Text>
+                </View>
+              </View>
+
+              <View style={styles.xpProgressContainer}>
+                <View style={styles.xpProgressHeader}>
+                  <Text style={styles.xpProgressLabel}>Level {userLevel} Progress</Text>
+                  <Text style={styles.xpProgressValue}>
+                    {userXP - xpForCurrentLevel}/{xpForNextLevel - xpForCurrentLevel} XP
+                  </Text>
+                </View>
+                <View style={styles.xpProgressTrack}>
+                  <Animated.View
+                    style={[
+                      styles.xpProgressFill,
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0%', '100%'],
+                        }),
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            </Animated.View>
+          </LinearGradient>
+        </Animated.View>
+
+        <View style={[styles.contentBody, { backgroundColor: colors.background }]}>
+
+          <Animated.View style={[
+            styles.section,
+            {
+              opacity: cardAnims[0],
+              transform: [{ translateY: cardAnims[0].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+            },
+          ]}>
+            <TouchableOpacity
+              style={[styles.wordCard, premiumShadows.lg]}
+              onPress={() => navigation.navigate('WordOfTheDay')}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={isDarkMode ? ['#1E1B4B', '#312E81'] : ['#EEF2FF', '#E0E7FF']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.wordCardGradient}
+              >
+                <View style={styles.wordCardHeader}>
+                  <Text style={[styles.wordCardBadgeText, { color: '#6366F1' }]}>WORD OF THE DAY</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#6366F1" />
+                </View>
+                <Text style={[styles.wordFrench, { color: colors.text }]}>{dailyWord.french}</Text>
+                <Text style={[styles.wordPhonetic, { color: colors.secondaryText }]}>/{dailyWord.phonetic}/</Text>
+                <Text style={[styles.wordEnglish, { color: '#6366F1' }]}>{dailyWord.english}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+
+          <Animated.View style={[
+            styles.section,
+            {
+              opacity: cardAnims[1],
+              transform: [{ translateY: cardAnims[1].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+            },
+          ]}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
+            </View>
+            <View style={styles.quickActionsGrid}>
+              {quickActions.map((action, index) => (
+                <TouchableOpacity
+                  key={action.id}
+                  style={[
+                    styles.quickActionCard,
+                    { backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF' },
+                    premiumShadows.sm,
+                  ]}
+                  onPress={() => navigation.navigate(action.screen)}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={action.gradient}
+                    style={styles.quickActionIconBg}
+                  >
+                    <Ionicons name={action.icon} size={22} color="#FFFFFF" />
+                  </LinearGradient>
+                  <Text style={[styles.quickActionLabel, { color: colors.text }]}>{action.label}</Text>
+                  {action.badge && (
+                    <View style={styles.quickActionBadge}>
+                      <Text style={styles.quickActionBadgeText}>{action.badge}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </Animated.View>
+
+          {topCourses.length > 0 && (
+            <Animated.View style={[
+              styles.section,
+              {
+                opacity: cardAnims[2],
+                transform: [{ translateY: cardAnims[2].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+              },
+            ]}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Continue Learning</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('MyCourses')}>
+                <Text style={styles.seeAllBtn}>See All</Text>
+              </TouchableOpacity>
+            </View>
+
+              <TouchableOpacity
+                style={[styles.continueCard, premiumShadows.lg]}
+                onPress={() => navigation.navigate('CourseDetail', { courseId: topCourses[0]._id })}
+                activeOpacity={0.95}
+              >
+                <Image
+                  source={getCourseImage(topCourses[0]._id, 0, topCourses[0].category, topCourses[0].title)}
+                  style={styles.continueImage}
+                />
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.9)']}
+                  style={styles.continueOverlay}
+                />
+
+                <View style={styles.playButtonContainer}>
+                  <LinearGradient
+                    colors={['#6366F1', '#8B5CF6']}
+                    style={styles.playButton}
+                  >
+                    <Ionicons name="play" size={28} color="#FFFFFF" />
+                  </LinearGradient>
+                </View>
+
+                <View style={styles.continueContent}>
+                  <View style={styles.continueTopRow}>
+                    <View style={styles.continueBadge}>
+                      <Text style={styles.continueBadgeText}>IN PROGRESS</Text>
+                    </View>
+                    <View style={[styles.levelTag, { backgroundColor: getLevelColor(topCourses[0].level) }]}>
+                      <Text style={styles.levelTagText}>{topCourses[0].level || 'Beginner'}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.continueTitle} numberOfLines={2}>
+                    {topCourses[0].title}
+                  </Text>
+
+                  <View style={styles.continueProgress}>
+                    <View style={styles.progressBarContainer}>
+                      <View style={styles.progressTrack}>
+                        <LinearGradient
+                          colors={['#6366F1', '#8B5CF6']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={[styles.progressFill, { width: '45%' }]}
+                        />
+                      </View>
+                      <Text style={styles.progressPercent}>45%</Text>
+                    </View>
+                    <Text style={styles.progressHint}>Keep going! You're doing great 🔥</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+
+          <Animated.View style={[
+            styles.section,
+            {
+              opacity: cardAnims[3],
+              transform: [{ translateY: cardAnims[3].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+            },
+          ]}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Courses</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Courses')}>
+                <Text style={styles.seeAllBtn}>Explore</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.coursesScroll}
+            >
+              {topCourses.map((course, index) => (
+                <TouchableOpacity
+                  key={course._id || index}
+                  style={[
+                    styles.courseCard,
+                    { backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF' },
+                    premiumShadows.md
+                  ]}
+                  onPress={() => navigation.navigate('CourseDetail', { courseId: course._id })}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.courseImageContainer}>
+                    <Image
+                      source={getCourseImage(course._id, index, course.category, course.title)}
+                      style={styles.courseImage}
+                    />
+                    <View style={[styles.courseLevelBadge, { backgroundColor: getLevelColor(course.level) }]}>
+                      <Text style={styles.courseLevelText}>{course.level || 'All'}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.courseInfo}>
+                    <Text style={[styles.courseCategory, { color: '#6366F1' }]}>
+                      {(course.category || 'French').toUpperCase()}
+                    </Text>
+                    <Text style={[styles.courseTitle, { color: colors.text }]} numberOfLines={2}>
+                      {course.title}
+                    </Text>
+                    <View style={styles.courseMeta}>
+                      <View style={styles.courseRating}>
+                        <Ionicons name="star" size={14} color="#F59E0B" />
+                        <Text style={[styles.courseRatingText, { color: colors.text }]}>
+                          {course.rating?.average?.toFixed(1) || '4.8'}
+                        </Text>
+                      </View>
+                      <Text style={[styles.coursePrice, { color: '#6366F1' }]}>
+                        {course.price === 0 ? 'FREE' : formatCurrency(course.price, 'GHS')}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
+
+          <Animated.View style={[
+            styles.section,
+            {
+              opacity: cardAnims[4],
+              transform: [{ translateY: cardAnims[4].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+            },
+          ]}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Latest Stories</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('BlogList')}>
+                <Text style={styles.seeAllBtn}>View All</Text>
+              </TouchableOpacity>
+            </View>
+
+            {recentPosts.slice(0, 3).map((post, index) => (
+              <TouchableOpacity
+                key={post._id || index}
+                style={[
+                  styles.postCard,
+                  { backgroundColor: isDarkMode ? '#1F2937' : '#FFFFFF' },
+                  premiumShadows.sm
+                ]}
+                onPress={() => navigation.navigate('BlogDetail', { postId: post._id, post })}
+                activeOpacity={0.8}
+              >
+                <Image
+                  source={post.thumbnail ? { uri: post.thumbnail } : require('../assets/logo.jpeg')}
+                  style={styles.postImage}
+                />
+                <View style={styles.postInfo}>
+                  <View style={[styles.postCategoryBadge, { backgroundColor: '#6366F115' }]}>
+                    <Text style={[styles.postCategoryText, { color: '#6366F1' }]}>
+                      {(post.category || 'Article').toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={[styles.postTitle, { color: colors.text }]} numberOfLines={2}>
+                    {post.title}
+                  </Text>
+                  <View style={styles.postMeta}>
+                    <Text style={[styles.postTime, { color: colors.secondaryText }]}>
+                      {formatTimeAgo(post.createdAt)}
+                    </Text>
+                    <View style={styles.postDot} />
+                    <Text style={[styles.postTime, { color: colors.secondaryText }]}>
+                      {post.readTime || '3'} min read
+                    </Text>
+                  </View>
+                </View>
               </TouchableOpacity>
             ))}
-          </ScrollView>
-        </View>
+          </Animated.View>
 
-        {/* Top Courses Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Top courses</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Courses')}>
-              <Text style={[styles.seeAllText, { color: '#2196F3' }]}>See all</Text>
+          <Animated.View style={[
+            styles.section,
+            {
+              opacity: cardAnims[5],
+              transform: [{ translateY: cardAnims[5].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+            },
+          ]}>
+            <TouchableOpacity
+              style={[styles.goalCard, premiumShadows.md]}
+              onPress={() => navigation.navigate('Practice')}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.goalCardGradient}
+              >
+                <View style={styles.goalCardContent}>
+                  <View style={styles.goalCardLeft}>
+                    <View>
+                      <Text style={styles.goalCardTitle}>Daily Goal</Text>
+                      <Text style={styles.goalCardSubtitle}>Complete 1 lesson today</Text>
+                    </View>
+                  </View>
+                  <View style={styles.goalProgress}>
+                    <Text style={styles.goalProgressText}>0/1</Text>
+                    <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+                  </View>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.coursesContainer}
-          >
-            {topCourses.length > 0 ? (
-              topCourses.map((course, index) => renderCourseCard(course, index))
-            ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="book-outline" size={48} color={colors.secondaryText} />
-                <Text style={[styles.emptyStateText, { color: colors.secondaryText }]}>
-                  No courses available
-                </Text>
-              </View>
-            )}
-          </ScrollView>
-        </View>
+          </Animated.View>
 
-        {/* Recent Posts Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent posts</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('BlogList')}>
-              <Text style={[styles.seeAllText, { color: '#2196F3' }]}>See all</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.postsContainer}
-          >
-            {recentPosts.length > 0 ? (
-              recentPosts.map((post, index) => renderPostCard(post, index))
-            ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="document-text-outline" size={48} color={colors.secondaryText} />
-                <Text style={[styles.emptyStateText, { color: colors.secondaryText }]}>
-                  No posts available
-                </Text>
-              </View>
-            )}
-          </ScrollView>
+          <View style={{ height: 120 }} />
         </View>
-
-        {/* Bottom spacing */}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -440,337 +712,666 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: 50,
-    paddingBottom: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+  floatingNavBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 100 : 80,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    zIndex: 1000,
+    borderBottomWidth: 1,
   },
-  headerTop: {
+  navBarContent: {
+    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
   },
-  appName: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  headerActions: {
+  navBarLeft: {
     flexDirection: 'row',
-    gap: spacing.md,
+    alignItems: 'center',
+    gap: 10,
   },
-  headerIcon: {
-    padding: spacing.xs,
+  navLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  navTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  navBarRight: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  navIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
   },
-  searchSection: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
+  heroSection: {
+    overflow: 'hidden',
   },
-  searchHeading: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
-    marginBottom: spacing.md,
-    letterSpacing: -0.5,
+  heroGradient: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 40,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
-  searchBar: {
+  floatingOrb: {
+    position: 'absolute',
+    borderRadius: 100,
+    opacity: 0.25,
+  },
+  orb1: {
+    width: 180,
+    height: 180,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    top: -50,
+    right: -60,
+  },
+  orb2: {
+    width: 120,
+    height: 120,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    bottom: 60,
+    left: -40,
+  },
+  orb3: {
+    width: 80,
+    height: 80,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    top: '40%',
+    right: 40,
+  },
+  orb4: {
+    width: 50,
+    height: 50,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    bottom: 100,
+    right: 100,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  headerBranding: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderRadius: 12,
-    borderWidth: 1,
+    gap: 12,
   },
-  searchIcon: {
-    marginRight: spacing.sm,
+  streakButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
   },
-  searchInput: {
+  streakButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  streakButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  heroHeaderRight: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  heroIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroContent: {
+    gap: 20,
+  },
+  heroLogo: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  brandNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  heroAppName: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  proBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245,158,11,0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+  },
+  proBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  heroTagline: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 4,
+  },
+  greetingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    padding: 16,
+    borderRadius: 20,
+  },
+  greetingLeft: {
+    gap: 4,
+  },
+  greetingText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+  },
+  greetingName: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  avatarContainer: {
+    position: 'relative',
+  },
+  avatarRing: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    padding: 3,
+  },
+  avatarInner: {
     flex: 1,
-    fontSize: fontSize.md,
-    paddingVertical: spacing.xs,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  levelBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    backgroundColor: '#10B981',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#4F46E5',
+  },
+  levelBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  statCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    padding: 12,
+    borderRadius: 16,
+    gap: 10,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  statLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+  },
+  xpProgressContainer: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    padding: 16,
+    borderRadius: 16,
+  },
+  xpProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  xpProgressLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+  },
+  xpProgressValue: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+  },
+  xpProgressTrack: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  xpProgressFill: {
+    height: '100%',
+    backgroundColor: '#F59E0B',
+    borderRadius: 4,
+  },
+  contentBody: {
+    marginTop: -20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
   },
   section: {
-    marginBottom: spacing.xl,
+    paddingHorizontal: 20,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
+    marginBottom: 16,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sectionIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sectionTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    letterSpacing: -0.3,
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
-  seeAllText: {
-    fontSize: fontSize.md,
+  seeAllBtn: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#6366F1',
+  },
+  wordCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  wordCardGradient: {
+    padding: 20,
+  },
+  wordCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  wordCardBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  wordCardBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  wordFrench: {
+    fontSize: 32,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  wordPhonetic: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    marginBottom: 8,
+  },
+  wordEnglish: {
+    fontSize: 16,
     fontWeight: '600',
   },
-  categoriesContainer: {
-    paddingLeft: spacing.lg,
-    paddingRight: spacing.md,
-    gap: spacing.sm,
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
-  categoryTag: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+  quickActionCard: {
+    width: (width - 52) / 2,
+    padding: 16,
     borderRadius: 20,
-    borderWidth: 1,
-    marginRight: spacing.sm,
-  },
-  categoryText: {
-    fontSize: fontSize.sm,
-    fontWeight: '500',
-  },
-  coursesContainer: {
-    paddingLeft: spacing.lg,
-    paddingRight: spacing.md,
-  },
-  courseCard: {
-    width: 300,
-    borderRadius: premiumBorderRadius.xl,
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginRight: spacing.md,
-  },
-  courseImageContainer: {
+    alignItems: 'center',
+    gap: 12,
     position: 'relative',
-    width: '100%',
-    height: 180,
   },
-  courseImage: {
+  quickActionIconBg: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  quickActionBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  quickActionBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  continueCard: {
+    height: 220,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  continueImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#1a1a1a',
-  },
-  imageOverlay: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
   },
-  playButtonOverlay: {
+  continueOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  playButtonContainer: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    top: 20,
+    right: 20,
   },
   playButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    ...premiumShadows.lg,
   },
-  topBadges: {
-    position: 'absolute',
-    top: spacing.sm,
-    left: spacing.sm,
+  continueContent: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: 20,
+  },
+  continueTopRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    zIndex: 2,
+    gap: 10,
+    marginBottom: 10,
   },
-  badge: {
+  continueBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: premiumBorderRadius.base,
-    gap: spacing.xs / 2,
-    ...premiumShadows.sm,
+    backgroundColor: 'rgba(99,102,241,0.8)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    gap: 5,
   },
-  bestsellerBadge: {
-    backgroundColor: '#F59E0B',
-  },
-  newBadge: {
-    backgroundColor: '#4CAF50',
-  },
-  premiumBadge: {
-    backgroundColor: premiumColors.primary.main,
-  },
-  discountBadge: {
-    backgroundColor: '#E53935',
-  },
-  badgeText: {
+  continueBadgeText: {
     color: '#FFFFFF',
-    fontSize: fontSize.xs,
+    fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
-  levelBadge: {
+  levelTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  levelTagText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  continueTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 14,
+    letterSpacing: -0.5,
+  },
+  continueProgress: {
+    gap: 8,
+  },
+  progressBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  progressTrack: {
+    flex: 1,
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressPercent: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  progressHint: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  coursesScroll: {
+    paddingRight: 20,
+    gap: 16,
+  },
+  courseCard: {
+    width: 220,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  courseImageContainer: {
+    position: 'relative',
+  },
+  courseImage: {
+    width: '100%',
+    height: 130,
+  },
+  courseLevelBadge: {
     position: 'absolute',
-    bottom: spacing.sm,
-    right: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: premiumBorderRadius.base,
-    ...premiumShadows.sm,
+    top: 10,
+    left: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
-  levelText: {
+  courseLevelText: {
     color: '#FFFFFF',
-    fontSize: fontSize.xs,
+    fontSize: 10,
     fontWeight: '700',
-    textTransform: 'capitalize',
-    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
-  courseContent: {
-    padding: spacing.md,
+  courseInfo: {
+    padding: 14,
+    gap: 6,
   },
   courseCategory: {
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   courseTitle: {
-    fontSize: fontSize.lg,
+    fontSize: 15,
     fontWeight: '700',
-    marginBottom: spacing.sm,
-    lineHeight: 22,
-    minHeight: 44,
-  },
-  instructorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-    gap: spacing.xs,
-  },
-  instructorAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  instructorName: {
-    fontSize: fontSize.xs,
-    flex: 1,
+    lineHeight: 20,
+    height: 40,
   },
   courseMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginTop: 4,
   },
-  ratingRow: {
+  courseRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs / 2,
+    gap: 4,
   },
-  ratingText: {
-    fontSize: fontSize.sm,
+  courseRatingText: {
+    fontSize: 13,
     fontWeight: '700',
   },
-  ratingCount: {
-    fontSize: fontSize.xs,
-    marginLeft: 2,
+  coursePrice: {
+    fontSize: 15,
+    fontWeight: '800',
   },
-  studentsRow: {
+  postCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs / 2,
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 12,
+    gap: 14,
   },
-  studentsText: {
-    fontSize: fontSize.xs,
-    fontWeight: '500',
+  postImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 14,
   },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
+  postInfo: {
+    flex: 1,
+    gap: 6,
   },
-  freeBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: premiumBorderRadius.base,
-    backgroundColor: premiumColors.success + '20',
+  postCategoryBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  freeText: {
-    fontSize: fontSize.sm,
+  postCategoryText: {
+    fontSize: 9,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  originalPrice: {
-    fontSize: fontSize.sm,
-    textDecorationLine: 'line-through',
-    fontWeight: '500',
-  },
-  price: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-  },
-  postsContainer: {
-    paddingLeft: spacing.lg,
-    paddingRight: spacing.md,
-  },
-  postCard: {
-    width: 280,
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginRight: spacing.md,
-  },
-  postImage: {
-    width: '100%',
-    height: 160,
-    backgroundColor: '#1a1a1a',
-  },
-  postContent: {
-    padding: spacing.md,
-  },
   postTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
+    fontSize: 15,
+    fontWeight: '700',
     lineHeight: 20,
-    minHeight: 40,
-  },
-  postReadTime: {
-    fontSize: fontSize.xs,
-    marginBottom: spacing.xs,
   },
   postMeta: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.xs,
-  },
-  postMetaItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: 5,
   },
-  postMetaText: {
-    fontSize: fontSize.xs,
+  postTime: {
+    fontSize: 12,
+    fontWeight: '500',
   },
-  emptyState: {
-    width: width - spacing.lg * 2,
+  postDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#9CA3AF',
+  },
+  postArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xxl,
   },
-  emptyStateText: {
-    fontSize: fontSize.md,
-    marginTop: spacing.md,
+  goalCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  goalCardGradient: {
+    padding: 20,
+  },
+  goalCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  goalCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  goalIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  goalCardSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
+  },
+  goalProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  goalProgressText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

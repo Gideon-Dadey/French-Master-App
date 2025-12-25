@@ -34,8 +34,7 @@ export const GamificationProvider = ({ children }) => {
 
   const loadGamificationData = async () => {
     try {
-      // In production, this would fetch from your backend
-      // For now, using mock data structure
+
       const mockStats = {
         xp: 1250,
         level: 5,
@@ -62,16 +61,15 @@ export const GamificationProvider = ({ children }) => {
     try {
       const newXP = stats.xp + amount;
       const newLevel = calculateLevel(newXP);
-      
+
       setStats((prev) => ({
         ...prev,
         xp: newXP,
         level: newLevel,
       }));
 
-      // Check for level up
       if (newLevel > stats.level) {
-        // Level up notification
+
         return { leveledUp: true, newLevel };
       }
 
@@ -83,7 +81,7 @@ export const GamificationProvider = ({ children }) => {
 
   const updateStreak = async () => {
     try {
-      // In production, update streak in backend
+
       setStats((prev) => ({
         ...prev,
         streak: prev.streak + 1,
@@ -100,10 +98,9 @@ export const GamificationProvider = ({ children }) => {
         achievements: [...prev.achievements, achievement],
         recentAchievements: [achievement, ...prev.recentAchievements.slice(0, 2)],
       }));
-      
-      // Award XP for achievement
+
       await awardXP(achievement.xpReward || 50, `Achievement: ${achievement.name}`);
-      
+
       return achievement;
     } catch (error) {
       console.error('Failed to unlock achievement:', error);

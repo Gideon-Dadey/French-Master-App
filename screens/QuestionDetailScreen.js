@@ -201,7 +201,7 @@ export default function QuestionDetailScreen({ route, navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Header */}
+
       <Animated.View style={[styles.headerContainer, { opacity: fadeAnim }]}>
         <LinearGradient colors={['#8B5CF6', '#6366F1', '#4F46E5']} style={styles.headerGradient}>
           <View style={styles.headerContent}>
@@ -229,9 +229,9 @@ export default function QuestionDetailScreen({ route, navigation }) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Question Card */}
+
         <View style={[styles.questionCard, { backgroundColor: colors.card }]}>
-          {/* Status Badge */}
+
           <View style={styles.statusRow}>
             {question.isSolved ? (
               <View style={[styles.statusBadge, { backgroundColor: '#10B981' + '20' }]}>
@@ -249,13 +249,10 @@ export default function QuestionDetailScreen({ route, navigation }) {
             </Text>
           </View>
 
-          {/* Title */}
           <Text style={[styles.questionTitle, { color: colors.text }]}>{question.title}</Text>
 
-          {/* Content */}
           <Text style={[styles.questionContent, { color: colors.text }]}>{question.content}</Text>
 
-          {/* Tags */}
           {question.tags?.length > 0 && (
             <View style={styles.tagsRow}>
               {question.tags.map((tag, index) => (
@@ -266,7 +263,6 @@ export default function QuestionDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          {/* Author & Meta */}
           <View style={styles.authorSection}>
             <View style={styles.authorRow}>
               <View style={[styles.avatar, { backgroundColor: '#8B5CF6' }]}>
@@ -285,7 +281,6 @@ export default function QuestionDetailScreen({ route, navigation }) {
             </View>
           </View>
 
-          {/* Voting Row */}
           <View style={styles.votingRow}>
             <View style={styles.voteButtons}>
               <TouchableOpacity
@@ -313,7 +308,6 @@ export default function QuestionDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Answers Section */}
         <View style={styles.answersSection}>
           <View style={styles.answersSectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -337,7 +331,7 @@ export default function QuestionDetailScreen({ route, navigation }) {
 
             return (
               <View key={answer._id || index} style={[styles.answerCard, { backgroundColor: colors.card }]}>
-                {/* Accepted Badge */}
+
                 {answer.isAccepted && (
                   <LinearGradient colors={['#10B981', '#059669']} style={styles.acceptedBanner}>
                     <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
@@ -345,7 +339,6 @@ export default function QuestionDetailScreen({ route, navigation }) {
                   </LinearGradient>
                 )}
 
-                {/* Answer Author */}
                 <View style={styles.answerAuthorRow}>
                   <View style={[styles.answerAvatar, { backgroundColor: '#3B82F6' }]}>
                     {answerUser?.avatar ? (
@@ -370,10 +363,8 @@ export default function QuestionDetailScreen({ route, navigation }) {
                   )}
                 </View>
 
-                {/* Answer Content */}
                 <Text style={[styles.answerContent, { color: colors.text }]}>{answer.content}</Text>
 
-                {/* Answer Actions */}
                 <View style={styles.answerActions}>
                   <View style={styles.answerVoteButtons}>
                     <TouchableOpacity
@@ -404,7 +395,6 @@ export default function QuestionDetailScreen({ route, navigation }) {
                   </TouchableOpacity>
                 </View>
 
-                {/* Comments */}
                 {answer.comments?.length > 0 && (
                   <View style={styles.commentsContainer}>
                     {answer.comments.map((comment, cIdx) => {
@@ -425,7 +415,6 @@ export default function QuestionDetailScreen({ route, navigation }) {
           })}
         </View>
 
-        {/* Answer Input */}
         {!question.isLocked && (
           <View style={[styles.answerInputCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.answerInputTitle, { color: colors.text }]}>Your Answer</Text>
@@ -450,7 +439,6 @@ export default function QuestionDetailScreen({ route, navigation }) {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Comment Modal */}
       <Modal visible={showCommentModal} transparent animationType="slide" onRequestClose={() => setShowCommentModal(false)}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={[styles.modalContent, { backgroundColor: colors.card }]}>

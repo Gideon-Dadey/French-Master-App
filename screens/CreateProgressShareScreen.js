@@ -84,8 +84,7 @@ export default function CreateProgressShareScreen({ navigation }) {
 
     try {
       setLoading(true);
-      
-      // Prepare share data based on type
+
       const shareData = {
         type: formData.type,
         title: formData.title,
@@ -98,7 +97,6 @@ export default function CreateProgressShareScreen({ navigation }) {
         },
       };
 
-      // Add type-specific data
       if (formData.type === 'course-completed' && formData.course) {
         shareData.course = formData.course;
       } else if (formData.type === 'achievement' && formData.achievement) {
@@ -166,9 +164,9 @@ export default function CreateProgressShareScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
+
       <LinearGradient
-        colors={isDarkMode 
+        colors={isDarkMode
           ? ['#1a0a2e', '#16213e', '#0f3460']
           : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
         }
@@ -194,7 +192,7 @@ export default function CreateProgressShareScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Share Type */}
+
         <View style={styles.section}>
           <Text style={[styles.label, { color: colors.text }]}>What are you sharing? *</Text>
           <View style={styles.typesGrid}>
@@ -234,7 +232,6 @@ export default function CreateProgressShareScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Type-specific fields */}
         {formData.type === 'course-completed' && (
           <View style={styles.section}>
             <Text style={[styles.label, { color: colors.text }]}>Select Course</Text>
@@ -303,7 +300,6 @@ export default function CreateProgressShareScreen({ navigation }) {
           </View>
         )}
 
-        {/* Title */}
         <View style={styles.section}>
           <Text style={[styles.label, { color: colors.text }]}>Title *</Text>
           <TextInput
@@ -319,7 +315,6 @@ export default function CreateProgressShareScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Description */}
         <View style={styles.section}>
           <Text style={[styles.label, { color: colors.text }]}>Description (Optional)</Text>
           <TextInput
@@ -334,7 +329,6 @@ export default function CreateProgressShareScreen({ navigation }) {
           />
         </View>
 
-        {/* Tags */}
         <View style={styles.section}>
           <Text style={[styles.label, { color: colors.text }]}>Tags (Optional)</Text>
           <View style={styles.tagInputContainer}>
@@ -369,7 +363,6 @@ export default function CreateProgressShareScreen({ navigation }) {
           )}
         </View>
 
-        {/* Submit Button */}
         <TouchableOpacity
           style={[styles.submitButton, { backgroundColor: premiumColors.primary.main }]}
           onPress={handleSubmit}
@@ -385,7 +378,6 @@ export default function CreateProgressShareScreen({ navigation }) {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Course Picker Modal */}
       {showCoursePicker && (
         <Modal
           visible={showCoursePicker}

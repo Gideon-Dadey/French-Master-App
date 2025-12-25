@@ -59,7 +59,7 @@ export default function ShareProgressScreen({ navigation }) {
     try {
       if (!refreshing) setLoading(true);
       setError(null);
-      
+
       const params = {
         type: selectedType || undefined,
         sort: selectedSort,
@@ -67,7 +67,7 @@ export default function ShareProgressScreen({ navigation }) {
         page: 1,
       };
 
-      Object.keys(params).forEach(key => 
+      Object.keys(params).forEach(key =>
         params[key] === null || params[key] === undefined ? delete params[key] : {}
       );
 
@@ -146,7 +146,7 @@ export default function ShareProgressScreen({ navigation }) {
     const now = new Date();
     const postDate = new Date(date);
     const diffInHours = Math.floor((now - postDate) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
     const diffInDays = Math.floor(diffInHours / 24);
@@ -160,9 +160,9 @@ export default function ShareProgressScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Header */}
+
       <LinearGradient
-        colors={isDarkMode 
+        colors={isDarkMode
           ? ['#1a0a2e', '#16213e', '#0f3460']
           : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
         }
@@ -193,7 +193,6 @@ export default function ShareProgressScreen({ navigation }) {
         </View>
       </LinearGradient>
 
-      {/* Filters */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -237,7 +236,6 @@ export default function ShareProgressScreen({ navigation }) {
         ))}
       </ScrollView>
 
-      {/* Sort Options */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -280,7 +278,6 @@ export default function ShareProgressScreen({ navigation }) {
         ))}
       </ScrollView>
 
-      {/* Content */}
       {error && !loading ? (
         <ErrorMessage message={error} onRetry={loadShares} />
       ) : (
@@ -327,7 +324,6 @@ export default function ShareProgressScreen({ navigation }) {
         </ScrollView>
       )}
 
-      {/* Comment Modal */}
       <Modal
         visible={showCommentModal}
         transparent
@@ -367,7 +363,7 @@ export default function ShareProgressScreen({ navigation }) {
 
 function ProgressShareCard({ share, colors, onPress, onLike, onComment, formatTimeAgo, isAuthenticated, currentUserId }) {
   const shareUser = typeof share.user === 'object' ? share.user : null;
-  const hasLiked = share.likes?.some(like => 
+  const hasLiked = share.likes?.some(like =>
     (typeof like.user === 'object' ? like.user._id : like.user) === currentUserId
   );
   const likeCount = share.likes?.length || 0;
@@ -437,7 +433,6 @@ function ProgressShareCard({ share, colors, onPress, onLike, onComment, formatTi
         </Text>
       )}
 
-      {/* Stats Display */}
       {share.stats && (
         <View style={styles.statsContainer}>
           {share.stats.level && (
@@ -467,10 +462,10 @@ function ProgressShareCard({ share, colors, onPress, onLike, onComment, formatTi
             onLike();
           }}
         >
-          <Ionicons 
-            name={hasLiked ? 'heart' : 'heart-outline'} 
-            size={20} 
-            color={hasLiked ? premiumColors.accent.rose : colors.secondaryText} 
+          <Ionicons
+            name={hasLiked ? 'heart' : 'heart-outline'}
+            size={20}
+            color={hasLiked ? premiumColors.accent.rose : colors.secondaryText}
           />
           <Text style={[styles.footerButtonText, { color: hasLiked ? premiumColors.accent.rose : colors.secondaryText }]}>
             {likeCount}

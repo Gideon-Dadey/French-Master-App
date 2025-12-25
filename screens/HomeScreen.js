@@ -42,7 +42,6 @@ export default function HomeScreen({ navigation }) {
     'exam-prep': 5,
   });
 
-  // Animations
   const headerAnim = useRef(new Animated.Value(0)).current;
   const cardsAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -59,7 +58,7 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     loadData();
-    // Entrance animations
+
     Animated.stagger(100, [
       Animated.spring(headerAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
       Animated.spring(cardsAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
@@ -71,12 +70,12 @@ export default function HomeScreen({ navigation }) {
     try {
       if (!refreshing) setLoading(true);
       setError(null);
-      
+
       const [coursesRes, progressRes] = await Promise.all([
         coursesAPI.getFeatured().catch(() => ({ data: { data: [] } })),
         isAuthenticated ? progressAPI.getDashboard().catch(() => null) : Promise.resolve(null),
       ]);
-      
+
       setFeaturedCourses(coursesRes.data.data || []);
 
       if (progressRes?.data?.data) {
@@ -122,7 +121,7 @@ export default function HomeScreen({ navigation }) {
     try {
       const categories = ['french', 'english', 'exam-prep'];
       const counts = {};
-      
+
       for (const category of categories) {
         try {
           const response = await coursesAPI.getAll({ category, limit: 1 });
@@ -131,7 +130,7 @@ export default function HomeScreen({ navigation }) {
           counts[category] = Math.floor(Math.random() * 15) + 5;
         }
       }
-      
+
       setCategoryCounts(counts);
     } catch (error) {
       console.error('Failed to load category counts:', error);
@@ -143,7 +142,6 @@ export default function HomeScreen({ navigation }) {
     loadData();
   };
 
-  // Quick Actions
   const quickActions = [
     { id: 'learn', icon: 'book', label: 'Learn', color: '#3B82F6', screen: 'Learn' },
     { id: 'practice', icon: 'fitness', label: 'Practice', color: '#F59E0B', screen: 'Practice' },
@@ -151,7 +149,6 @@ export default function HomeScreen({ navigation }) {
     { id: 'profile', icon: 'person', label: 'Profile', color: '#10B981', screen: 'Profile' },
   ];
 
-  // Learning Categories
   const categories = [
     {
       id: 'french',
@@ -189,7 +186,7 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Animated Header */}
+
       <Animated.View
         style={[
           styles.headerWrapper,
@@ -200,7 +197,7 @@ export default function HomeScreen({ navigation }) {
         ]}
       >
         <LinearGradient
-          colors={isDarkMode 
+          colors={isDarkMode
             ? ['#0F172A', '#1E293B', '#334155']
             : ['#1E3A8A', '#3B82F6', '#60A5FA']
           }
@@ -208,7 +205,7 @@ export default function HomeScreen({ navigation }) {
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-          {/* Header Top Row - App Title */}
+
           <View style={styles.headerTopRow}>
             <Text style={styles.appTitle}>FRENCH MASTER GH</Text>
             <View style={styles.headerActions}>
@@ -223,19 +220,17 @@ export default function HomeScreen({ navigation }) {
                 style={styles.headerActionBtn}
                 onPress={toggleTheme}
               >
-                <Ionicons 
-                  name={isDarkMode ? 'sunny-outline' : 'moon-outline'} 
-                  size={22} 
-                  color="#FFFFFF" 
+                <Ionicons
+                  name={isDarkMode ? 'sunny-outline' : 'moon-outline'}
+                  size={22}
+                  color="#FFFFFF"
                 />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* What do you want to learn? */}
           <Text style={styles.welcomeQuestion}>What do you want to learn?</Text>
 
-          {/* Search Bar */}
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
               <Ionicons name="search" size={20} color="rgba(255,255,255,0.6)" />
@@ -258,7 +253,7 @@ export default function HomeScreen({ navigation }) {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Quick Actions */}
+
         <Animated.View
           style={[
             styles.quickActionsSection,
@@ -285,7 +280,6 @@ export default function HomeScreen({ navigation }) {
           </View>
         </Animated.View>
 
-        {/* Continue Learning Banner */}
         {isAuthenticated && featuredCourses.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -329,7 +323,6 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        {/* Learning Categories */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Explore Categories</Text>
@@ -355,24 +348,24 @@ export default function HomeScreen({ navigation }) {
                   end={{ x: 1, y: 1 }}
                   style={styles.categoryGradient}
                 >
-                  {/* Decorative circles */}
+
                   <View style={styles.categoryDecor1} />
                   <View style={styles.categoryDecor2} />
-                  
+
                   <View style={styles.categoryCourseBadge}>
                     <Text style={styles.categoryCourseCount}>{category.courses}+</Text>
                     <Text style={styles.categoryCourseLabel}>Courses</Text>
                   </View>
-                  
+
                   <View style={styles.categoryIconContainer}>
                     <Ionicons name={category.icon} size={32} color="#FFFFFF" />
                   </View>
-                  
+
                   <View style={styles.categoryContent}>
                     <Text style={styles.categoryTitle}>{category.title}</Text>
                     <Text style={styles.categorySubtitle}>{category.subtitle}</Text>
                   </View>
-                  
+
                   <View style={styles.categoryExploreBtn}>
                     <Text style={styles.categoryExploreText}>Explore</Text>
                     <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
@@ -383,7 +376,6 @@ export default function HomeScreen({ navigation }) {
           </ScrollView>
         </View>
 
-        {/* Featured Courses */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Courses</Text>
@@ -418,7 +410,6 @@ export default function HomeScreen({ navigation }) {
           )}
         </View>
 
-        {/* Daily Goal Card */}
         {isAuthenticated && (
           <View style={styles.section}>
             <LinearGradient
@@ -457,7 +448,6 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        {/* Login Prompt for Guests */}
         {!isAuthenticated && (
           <View style={styles.section}>
             <LinearGradient
@@ -500,7 +490,6 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        {/* Why Learn French */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Why Learn With Us?</Text>
           <View style={styles.featuresGrid}>
@@ -541,7 +530,6 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-// Course Card Component
 function CourseCard({ course, index, colors, onPress }) {
   const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
     ? { uri: course.thumbnail }
@@ -594,7 +582,6 @@ function CourseCard({ course, index, colors, onPress }) {
   );
 }
 
-// Feature Card Component
 function FeatureCard({ icon, title, subtitle, color, colors }) {
   return (
     <View style={[styles.featureCard, { backgroundColor: colors.card }]}>

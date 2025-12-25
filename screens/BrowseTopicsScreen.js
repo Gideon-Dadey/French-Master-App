@@ -111,7 +111,7 @@ export default function BrowseTopicsScreen({ navigation }) {
     const now = new Date();
     const postDate = new Date(date);
     const diffInHours = Math.floor((now - postDate) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
     const diffInDays = Math.floor(diffInHours / 24);
@@ -123,13 +123,12 @@ export default function BrowseTopicsScreen({ navigation }) {
     return <LoadingSpinner />;
   }
 
-  // Show topic detail view
   if (selectedTopic) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* Header */}
+
         <LinearGradient
-          colors={isDarkMode 
+          colors={isDarkMode
             ? ['#1a0a2e', '#16213e', '#0f3460']
             : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
           }
@@ -160,7 +159,6 @@ export default function BrowseTopicsScreen({ navigation }) {
           </View>
         </LinearGradient>
 
-        {/* Content Type Filters */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -203,7 +201,6 @@ export default function BrowseTopicsScreen({ navigation }) {
           ))}
         </ScrollView>
 
-        {/* Content List */}
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -239,12 +236,11 @@ export default function BrowseTopicsScreen({ navigation }) {
     );
   }
 
-  // Show topics list view
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Header */}
+
       <LinearGradient
-        colors={isDarkMode 
+        colors={isDarkMode
           ? ['#1a0a2e', '#16213e', '#0f3460']
           : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
         }
@@ -268,7 +264,6 @@ export default function BrowseTopicsScreen({ navigation }) {
             <View style={{ width: 24 }} />
           </View>
 
-          {/* Search Bar */}
           <View style={[styles.searchBar, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)' }]}>
             <Ionicons name="search" size={20} color={isDarkMode ? '#FFFFFF' : '#424242'} style={styles.searchIcon} />
             <TextInput
@@ -287,7 +282,6 @@ export default function BrowseTopicsScreen({ navigation }) {
         </View>
       </LinearGradient>
 
-      {/* Content */}
       {error && !loading ? (
         <ErrorMessage message={error} onRetry={loadTopics} />
       ) : (
@@ -308,7 +302,7 @@ export default function BrowseTopicsScreen({ navigation }) {
             </View>
           ) : (
             <>
-              {/* Trending Topics */}
+
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Trending Topics</Text>
                 <View style={styles.trendingContainer}>
@@ -324,7 +318,6 @@ export default function BrowseTopicsScreen({ navigation }) {
                 </View>
               </View>
 
-              {/* All Topics */}
               <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>All Topics</Text>
                 <View style={styles.topicsGrid}>

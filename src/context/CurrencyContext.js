@@ -12,7 +12,6 @@ export const useCurrency = () => {
   return context;
 };
 
-// Currency data with exchange rates (base: GHS)
 const CURRENCIES = {
   GHS: { code: 'GHS', symbol: 'GH₵', name: 'Ghanaian Cedi', rate: 1, countries: ['GH'] },
   USD: { code: 'USD', symbol: '$', name: 'US Dollar', rate: 0.062, countries: ['US'] },
@@ -24,7 +23,6 @@ const CURRENCIES = {
   KES: { code: 'KES', symbol: 'KSh', name: 'Kenyan Shilling', rate: 8.5, countries: ['KE'] },
 };
 
-// Country to currency mapping
 const COUNTRY_TO_CURRENCY = {
   GH: 'GHS',
   US: 'USD',
@@ -58,15 +56,13 @@ export const CurrencyProvider = ({ children }) => {
   const initializeCurrency = async () => {
     try {
       setLoading(true);
-      
-      // Check if user has a saved currency preference
+
       if (user?.currency) {
         setCurrency(user.currency);
         setLoading(false);
         return;
       }
 
-      // Check device storage for saved currency
       const savedCurrency = await SecureStore.getItemAsync('userCurrency');
       if (savedCurrency && CURRENCIES[savedCurrency]) {
         setCurrency(savedCurrency);
@@ -74,7 +70,6 @@ export const CurrencyProvider = ({ children }) => {
         return;
       }
 
-      // Try to detect location and set currency
       const detectedCountry = await detectUserLocation();
       if (detectedCountry) {
         setCountry(detectedCountry);
@@ -82,12 +77,12 @@ export const CurrencyProvider = ({ children }) => {
         setCurrency(countryCurrency);
         await SecureStore.setItemAsync('userCurrency', countryCurrency);
       } else {
-        // Default to GHS
+
         setCurrency('GHS');
       }
     } catch (error) {
       console.error('Error initializing currency:', error);
-      setCurrency('GHS'); // Fallback to GHS
+      setCurrency('GHS');
     } finally {
       setLoading(false);
     }
@@ -95,14 +90,14 @@ export const CurrencyProvider = ({ children }) => {
 
   const detectUserLocation = async () => {
     try {
-      // Use IP-based geolocation (free service)
+
       const response = await fetch('https://ipapi.co/json/', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -119,13 +114,12 @@ export const CurrencyProvider = ({ children }) => {
       } catch (parseError) {
         throw new Error('Invalid JSON response');
       }
-      
+
       if (data.country_code) {
         return data.country_code;
       }
     } catch (error) {
-      // Silently fail - don't log errors for location detection
-      // Fallback: Try alternative service
+
       try {
         const response = await fetch('https://ip-api.com/json/', {
           method: 'GET',
@@ -133,7 +127,7 @@ export const CurrencyProvider = ({ children }) => {
             'Accept': 'application/json',
           },
         });
-        
+
         if (!response.ok) {
           return null;
         }
@@ -155,7 +149,7 @@ export const CurrencyProvider = ({ children }) => {
           return data.countryCode;
         }
       } catch (err) {
-        // Silently fail - app will use default currency
+
         return null;
       }
     }
@@ -171,8 +165,6 @@ export const CurrencyProvider = ({ children }) => {
     setCurrency(newCurrency);
     await SecureStore.setItemAsync('userCurrency', newCurrency);
 
-    // Update user currency preference if authenticated
-    // This would be done via API call in a real implementation
   };
 
   const convertPrice = (amount, fromCurrency = 'GHS') => {
@@ -183,19 +175,17 @@ export const CurrencyProvider = ({ children }) => {
     const fromRate = CURRENCIES[fromCurrency]?.rate || 1;
     const toRate = CURRENCIES[currency]?.rate || 1;
 
-    // Convert to base (GHS), then to target currency
     const baseAmount = amount / fromRate;
     const convertedAmount = baseAmount * toRate;
 
-    return Math.round(convertedAmount * 100) / 100; // Round to 2 decimal places
+    return Math.round(convertedAmount * 100) / 100;
   };
 
   const formatPrice = (amount, fromCurrency = 'GHS') => {
     const convertedAmount = convertPrice(amount, fromCurrency);
     const currencyData = CURRENCIES[currency];
     const symbol = currencyData?.symbol || currency;
-    
-    // Format based on currency type
+
     if (currency === 'USD' || currency === 'EUR' || currency === 'GBP') {
       return `${symbol}${convertedAmount.toFixed(2)}`;
     } else {
@@ -204,7 +194,7 @@ export const CurrencyProvider = ({ children }) => {
   };
 
   const formatPriceValue = (amount, fromCurrency = 'GHS') => {
-    // Returns just the numeric value without symbol (useful for custom formatting)
+
     return convertPrice(amount, fromCurrency).toFixed(2);
   };
 

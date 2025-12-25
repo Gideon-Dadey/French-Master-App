@@ -5,9 +5,6 @@ const Question = require('../models/Question');
 const Blog = require('../models/Blog');
 const Course = require('../models/Course');
 
-// @route   GET /api/topics
-// @desc    Get all topics with aggregated content counts
-// @access  Public
 router.get('/', async (req, res) => {
   try {
     const topics = [
@@ -21,7 +18,6 @@ router.get('/', async (req, res) => {
       { id: 'exam-prep', name: 'Exam Prep', icon: 'document-text-outline', color: '#6366F1' },
     ];
 
-    // Get counts for each topic
     const topicsWithCounts = await Promise.all(
       topics.map(async (topic) => {
         const [discussions, questions, blogs, courses] = await Promise.all([
@@ -31,7 +27,6 @@ router.get('/', async (req, res) => {
           Course.countDocuments({ category: topic.id, status: 'published' }),
         ]);
 
-        // Get recent activity
         const recentDiscussions = await Discussion.find({ category: topic.id })
           .sort({ lastActivityAt: -1 })
           .limit(1)
@@ -51,7 +46,6 @@ router.get('/', async (req, res) => {
       })
     );
 
-    // Sort by total activity
     topicsWithCounts.sort((a, b) => b.counts.total - a.counts.total);
 
     res.json({
@@ -68,9 +62,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/topics/:topicId
-// @desc    Get topic details with content
-// @access  Public
 router.get('/:topicId', async (req, res) => {
   try {
     const { topicId } = req.params;
@@ -100,7 +91,7 @@ router.get('/:topicId', async (req, res) => {
     let total = 0;
 
     if (!type || type === 'all') {
-      // Get all content types
+
       const [discussions, questions, blogs, courses] = await Promise.all([
         Discussion.find({ category: topicId })
           .populate('author', 'name avatar')
@@ -144,7 +135,7 @@ router.get('/:topicId', async (req, res) => {
 
       total = discussionsCount + questionsCount + blogsCount + coursesCount;
     } else {
-      // Get specific content type
+
       let query = { category: topicId };
       if (type === 'discussions') {
         const discussions = await Discussion.find(query)

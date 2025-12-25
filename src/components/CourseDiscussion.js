@@ -81,7 +81,6 @@ export default function CourseDiscussion({ courseId, comments = [] }) {
         </Text>
       </View>
 
-      {/* Comment Input */}
       <View style={[styles.inputContainer, { backgroundColor: colors.secondaryBackground, borderColor: colors.border }]}>
         <TextInput
           style={[styles.input, { color: colors.text }]}
@@ -101,7 +100,6 @@ export default function CourseDiscussion({ courseId, comments = [] }) {
         </TouchableOpacity>
       </View>
 
-      {/* Comments List */}
       <FlatList
         data={localComments}
         renderItem={renderComment}

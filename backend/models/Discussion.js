@@ -101,36 +101,31 @@ const discussionSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Virtual for reply count
 discussionSchema.virtual('replyCount').get(function() {
   return this.replies.length;
 });
 
-// Virtual for like count
 discussionSchema.virtual('likeCount').get(function() {
   return this.likes.length;
 });
 
-// Method to check if user has liked
 discussionSchema.methods.hasLiked = function(userId) {
   return this.likes.some(like => like.user.toString() === userId.toString());
 };
 
-// Method to toggle like
 discussionSchema.methods.toggleLike = function(userId) {
   const likeIndex = this.likes.findIndex(like => like.user.toString() === userId.toString());
-  
+
   if (likeIndex > -1) {
     this.likes.splice(likeIndex, 1);
   } else {
     this.likes.push({ user: userId });
   }
-  
+
   this.lastActivityAt = new Date();
   return this;
 };
 
-// Method to add reply
 discussionSchema.methods.addReply = function(userId, content) {
   this.replies.push({
     user: userId,
@@ -140,33 +135,30 @@ discussionSchema.methods.addReply = function(userId, content) {
   return this;
 };
 
-// Method to increment views
 discussionSchema.methods.incrementViews = function() {
   this.views += 1;
   return this;
 };
 
-// Method to mark as edited
 discussionSchema.methods.markAsEdited = function() {
   this.isEdited = true;
   this.editedAt = new Date();
   return this;
 };
 
-// Reply methods
 discussionReplySchema.methods.hasLiked = function(userId) {
   return this.likes.some(like => like.user.toString() === userId.toString());
 };
 
 discussionReplySchema.methods.toggleLike = function(userId) {
   const likeIndex = this.likes.findIndex(like => like.user.toString() === userId.toString());
-  
+
   if (likeIndex > -1) {
     this.likes.splice(likeIndex, 1);
   } else {
     this.likes.push({ user: userId });
   }
-  
+
   return this;
 };
 
@@ -176,7 +168,6 @@ discussionReplySchema.methods.markAsEdited = function() {
   return this;
 };
 
-// Indexes for better query performance
 discussionSchema.index({ author: 1 });
 discussionSchema.index({ category: 1 });
 discussionSchema.index({ isPinned: -1 });
@@ -184,7 +175,7 @@ discussionSchema.index({ createdAt: -1 });
 discussionSchema.index({ lastActivityAt: -1 });
 discussionSchema.index({ views: -1 });
 discussionSchema.index({ tags: 1 });
-discussionSchema.index({ title: 'text', content: 'text' }); // Text search index
+discussionSchema.index({ title: 'text', content: 'text' });
 
 module.exports = mongoose.model('Discussion', discussionSchema);
 

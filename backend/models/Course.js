@@ -64,7 +64,7 @@ const courseSchema = new mongoose.Schema({
     default: false
   },
   duration: {
-    type: Number, // in hours
+    type: Number,
     default: 0
   },
   lessons: [{
@@ -123,14 +123,12 @@ const courseSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes for better query performance
 courseSchema.index({ category: 1, level: 1 });
 courseSchema.index({ rating: -1 });
 courseSchema.index({ studentsEnrolled: -1 });
 courseSchema.index({ createdAt: -1 });
 courseSchema.index({ featured: 1, status: 1 });
 
-// Generate slug before saving
 courseSchema.pre('save', function(next) {
   if (this.isModified('title') && !this.slug) {
     this.slug = this.title

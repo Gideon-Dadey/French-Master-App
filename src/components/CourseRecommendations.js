@@ -27,37 +27,30 @@ export default function CourseRecommendations({ userId, enrolledCourses = [], on
   const loadRecommendations = async () => {
     try {
       setLoading(true);
-      // Get all courses
+
       const response = await coursesAPI.getAll();
       const allCourses = response.data.data || [];
-      
-      // Simple recommendation algorithm:
-      // 1. Filter out already enrolled courses
-      // 2. Prioritize courses in same category/level as enrolled
-      // 3. Sort by rating and popularity
+
       const enrolledIds = enrolledCourses.map(c => c._id || c.course?._id);
       const available = allCourses.filter(c => !enrolledIds.includes(c._id));
-      
-      // Get categories and levels from enrolled courses
+
       const enrolledCategories = enrolledCourses
         .map(c => c.course?.category || c.category)
         .filter(Boolean);
       const enrolledLevels = enrolledCourses
         .map(c => c.course?.level || c.level)
         .filter(Boolean);
-      
-      // Score and sort recommendations
+
       const scored = available.map(course => {
         let score = course.rating?.average || 0;
-        score += (course.studentsEnrolled || 0) / 1000; // Popularity boost
-        
-        // Boost if matches user's interests
+        score += (course.studentsEnrolled || 0) / 1000;
+
         if (enrolledCategories.includes(course.category)) score += 2;
         if (enrolledLevels.includes(course.level)) score += 1.5;
-        
+
         return { course, score };
       });
-      
+
       scored.sort((a, b) => b.score - a.score);
       setRecommendations(scored.slice(0, 6).map(s => s.course));
     } catch (error) {

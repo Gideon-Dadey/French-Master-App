@@ -6,12 +6,9 @@ const Course = require('../models/Course');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
-// @route   GET /api/reviews/course/:courseId
-// @desc    Get reviews for a course
-// @access  Public
 router.get('/course/:courseId', async (req, res) => {
   try {
-    // Validate ObjectId format
+
     if (!mongoose.Types.ObjectId.isValid(req.params.courseId)) {
       return res.status(400).json({
         success: false,
@@ -38,14 +35,10 @@ router.get('/course/:courseId', async (req, res) => {
   }
 });
 
-// @route   POST /api/reviews
-// @desc    Create a review
-// @access  Private
 router.post('/', protect, async (req, res) => {
   try {
     const { courseId, rating, comment } = req.body;
 
-    // Check if user is enrolled
     const user = await User.findById(req.user._id);
     const isEnrolled = user.enrolledCourses.some(
       ec => ec.course.toString() === courseId
@@ -58,7 +51,6 @@ router.post('/', protect, async (req, res) => {
       });
     }
 
-    // Check if review already exists
     const existingReview = await Review.findOne({
       user: req.user._id,
       course: courseId
@@ -78,7 +70,6 @@ router.post('/', protect, async (req, res) => {
       comment
     });
 
-    // Update course rating
     await updateCourseRating(courseId);
 
     res.status(201).json({

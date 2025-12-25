@@ -22,7 +22,7 @@ export const WishlistProvider = ({ children }) => {
     if (isAuthenticated) {
       loadWishlist();
     } else {
-      // Clear wishlist when user logs out or is not authenticated
+
       setWishlist([]);
       setLoading(false);
     }
@@ -40,12 +40,12 @@ export const WishlistProvider = ({ children }) => {
       const response = await wishlistAPI.getAll();
       setWishlist(response.data.data?.courses || response.data.data || []);
     } catch (error) {
-      // Silently handle 401 errors (user not authenticated) - this is expected
+
       if (error.response?.status === 401) {
         setWishlist([]);
         return;
       }
-      // Only log other errors
+
       console.error('Failed to load wishlist:', error);
       setWishlist([]);
     } finally {
@@ -80,7 +80,7 @@ export const WishlistProvider = ({ children }) => {
   };
 
   const isInWishlist = (courseId) => {
-    return wishlist.some(item => 
+    return wishlist.some(item =>
       (item.course?._id || item.course) === courseId || item._id === courseId
     );
   };

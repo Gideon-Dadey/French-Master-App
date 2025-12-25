@@ -5,9 +5,6 @@ const Course = require('../models/Course');
 const Progress = require('../models/Progress');
 const { protect } = require('../middleware/auth');
 
-// @route   GET /api/lessons/course/:courseId
-// @desc    Get all lessons for a course
-// @access  Private (if course is paid)
 router.get('/course/:courseId', protect, async (req, res) => {
   try {
     const course = await Course.findById(req.params.courseId);
@@ -18,9 +15,8 @@ router.get('/course/:courseId', protect, async (req, res) => {
       });
     }
 
-    // Check if user has access
     const user = req.user;
-    const hasAccess = course.isFree || 
+    const hasAccess = course.isFree ||
       user.enrolledCourses.some(ec => ec.course.toString() === course._id.toString());
 
     if (!hasAccess) {
@@ -47,9 +43,6 @@ router.get('/course/:courseId', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/lessons/:id
-// @desc    Get single lesson
-// @access  Private
 router.get('/:id', protect, async (req, res) => {
   try {
     const lesson = await Lesson.findById(req.params.id)
@@ -62,10 +55,9 @@ router.get('/:id', protect, async (req, res) => {
       });
     }
 
-    // Check access
     const course = await Course.findById(lesson.course._id);
     const user = req.user;
-    const hasAccess = course.isFree || 
+    const hasAccess = course.isFree ||
       user.enrolledCourses.some(ec => ec.course.toString() === course._id.toString());
 
     if (!hasAccess) {
@@ -75,7 +67,6 @@ router.get('/:id', protect, async (req, res) => {
       });
     }
 
-    // Get user progress for this lesson
     const progress = await Progress.findOne({
       user: user._id,
       lesson: lesson._id
@@ -97,9 +88,6 @@ router.get('/:id', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/lessons/:id/progress
-// @desc    Update lesson progress
-// @access  Private
 router.post('/:id/progress', protect, async (req, res) => {
   try {
     const { watchedDuration, isCompleted } = req.body;

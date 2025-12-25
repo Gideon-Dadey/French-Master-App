@@ -135,7 +135,7 @@ export default function DiscussionDetailScreen({ route, navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Header */}
+
       <Animated.View style={[styles.headerContainer, { opacity: fadeAnim }]}>
         <LinearGradient colors={['#10B981', '#059669', '#047857']} style={styles.headerGradient}>
           <View style={styles.headerContent}>
@@ -164,9 +164,9 @@ export default function DiscussionDetailScreen({ route, navigation }) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           showsVerticalScrollIndicator={false}
         >
-          {/* Discussion Card */}
+
           <View style={[styles.discussionCard, { backgroundColor: colors.card }]}>
-            {/* Pinned Badge */}
+
             {discussion.isPinned && (
               <View style={styles.pinnedBadge}>
                 <Ionicons name="pin" size={14} color="#F59E0B" />
@@ -174,13 +174,10 @@ export default function DiscussionDetailScreen({ route, navigation }) {
               </View>
             )}
 
-            {/* Title */}
             <Text style={[styles.discussionTitle, { color: colors.text }]}>{discussion.title}</Text>
 
-            {/* Content */}
             <Text style={[styles.discussionContent, { color: colors.text }]}>{discussion.content}</Text>
 
-            {/* Tags */}
             {discussion.tags?.length > 0 && (
               <View style={styles.tagsRow}>
                 {discussion.tags.map((tag, index) => (
@@ -191,7 +188,6 @@ export default function DiscussionDetailScreen({ route, navigation }) {
               </View>
             )}
 
-            {/* Author & Meta */}
             <View style={styles.authorSection}>
               <View style={styles.authorRow}>
                 <View style={[styles.avatar, { backgroundColor: '#10B981' }]}>
@@ -211,7 +207,6 @@ export default function DiscussionDetailScreen({ route, navigation }) {
               </View>
             </View>
 
-            {/* Actions Row */}
             <View style={styles.actionsRow}>
               <TouchableOpacity style={[styles.actionBtn, hasLiked && styles.actionBtnActive]} onPress={handleLike}>
                 <Ionicons name={hasLiked ? 'heart' : 'heart-outline'} size={22} color={hasLiked ? '#EF4444' : colors.secondaryText} />
@@ -230,7 +225,6 @@ export default function DiscussionDetailScreen({ route, navigation }) {
             </View>
           </View>
 
-          {/* Replies Section */}
           <View style={styles.repliesSection}>
             <View style={styles.repliesSectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -253,7 +247,7 @@ export default function DiscussionDetailScreen({ route, navigation }) {
 
               return (
                 <View key={reply._id || index} style={[styles.replyCard, { backgroundColor: colors.card }]}>
-                  {/* Reply Author */}
+
                   <View style={styles.replyAuthorRow}>
                     <View style={[styles.replyAvatar, { backgroundColor: '#3B82F6' }]}>
                       {replyUser?.avatar ? (
@@ -271,10 +265,8 @@ export default function DiscussionDetailScreen({ route, navigation }) {
                     </View>
                   </View>
 
-                  {/* Reply Content */}
                   <Text style={[styles.replyContent, { color: colors.text }]}>{reply.content}</Text>
 
-                  {/* Reply Actions */}
                   <View style={styles.replyActions}>
                     <TouchableOpacity
                       style={[styles.replyActionBtn, replyHasLiked && styles.replyActionBtnActive]}
@@ -293,7 +285,6 @@ export default function DiscussionDetailScreen({ route, navigation }) {
             })}
           </View>
 
-          {/* Reply Input */}
           {!discussion.isLocked && (
             <View style={[styles.replyInputCard, { backgroundColor: colors.card }]}>
               <Text style={[styles.replyInputTitle, { color: colors.text }]}>Join the Discussion</Text>

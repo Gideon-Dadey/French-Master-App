@@ -5,9 +5,6 @@ const Course = require('../models/Course');
 const Blog = require('../models/Blog');
 const { protect, authorize } = require('../middleware/auth');
 
-// @route   GET /api/tags
-// @desc    Get all tags
-// @access  Public
 router.get('/', async (req, res) => {
   try {
     const { search, sort } = req.query;
@@ -37,9 +34,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/tags/:id
-// @desc    Get tag by ID
-// @access  Public
 router.get('/:id', async (req, res) => {
   try {
     const tag = await Tag.findById(req.params.id);
@@ -64,9 +58,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// @route   GET /api/tags/slug/:slug
-// @desc    Get tag by slug
-// @access  Public
 router.get('/slug/:slug', async (req, res) => {
   try {
     const tag = await Tag.findOne({ slug: req.params.slug });
@@ -91,9 +82,6 @@ router.get('/slug/:slug', async (req, res) => {
   }
 });
 
-// @route   POST /api/tags
-// @desc    Create a new tag
-// @access  Private (Admin)
 router.post('/', protect, authorize('admin'), async (req, res) => {
   try {
     const tag = await Tag.create(req.body);
@@ -111,9 +99,6 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// @route   PUT /api/tags/:id
-// @desc    Update tag
-// @access  Private (Admin)
 router.put('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const tag = await Tag.findByIdAndUpdate(
@@ -142,9 +127,6 @@ router.put('/:id', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// @route   DELETE /api/tags/:id
-// @desc    Delete tag
-// @access  Private (Admin)
 router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const tag = await Tag.findByIdAndDelete(req.params.id);
@@ -169,9 +151,6 @@ router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   }
 });
 
-// @route   GET /api/tags/:id/courses
-// @desc    Get courses with this tag
-// @access  Public
 router.get('/:id/courses', async (req, res) => {
   try {
     const tag = await Tag.findById(req.params.id);

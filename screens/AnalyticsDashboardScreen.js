@@ -116,9 +116,9 @@ export default function AnalyticsDashboardScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Header */}
+
       <LinearGradient
-        colors={isDarkMode 
+        colors={isDarkMode
           ? ['#1a0a2e', '#16213e', '#0f3460']
           : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
         }
@@ -154,7 +154,7 @@ export default function AnalyticsDashboardScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Period Selector */}
+
         <View style={styles.section}>
           <View style={styles.periodSelector}>
             {periods.map((period) => (
@@ -188,7 +188,6 @@ export default function AnalyticsDashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Overview Statistics */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Overview</Text>
           <View style={styles.statsGrid}>
@@ -227,7 +226,6 @@ export default function AnalyticsDashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Performance Metrics */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Performance Metrics</Text>
           <View style={[styles.metricsCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
@@ -255,7 +253,6 @@ export default function AnalyticsDashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Revenue Analytics */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Revenue Analytics</Text>
@@ -304,7 +301,6 @@ export default function AnalyticsDashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Student Engagement */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Student Engagement</Text>
           <View style={[styles.engagementCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
@@ -339,7 +335,6 @@ export default function AnalyticsDashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Course Performance */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Top Performing Courses</Text>
@@ -358,7 +353,6 @@ export default function AnalyticsDashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Quick Insights */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Insights</Text>
           <View style={[styles.insightsCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
@@ -386,7 +380,6 @@ export default function AnalyticsDashboardScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Bottom spacing */}
         <View style={{ height: 100 }} />
       </ScrollView>
     </View>

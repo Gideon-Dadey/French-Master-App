@@ -4,23 +4,19 @@ const Leaderboard = require('../models/Leaderboard');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
-// @route   GET /api/leaderboard
-// @desc    Get leaderboard with filters
-// @access  Public
 router.get('/', async (req, res) => {
   try {
     const {
-      type = 'overall', // overall, weekly, monthly, streak, level
+      type = 'overall',
       limit = 50,
       page = 1,
-      courseId // Optional: filter by course
+      courseId
     } = req.query;
 
     const skip = (page - 1) * limit;
     let sortOption = {};
     let selectFields = 'user totalXP totalPoints level currentStreak longestStreak coursesCompleted lessonsCompleted achievementsUnlocked overallRank weeklyRank monthlyRank lastActivityAt';
 
-    // Determine sort based on type
     switch (type) {
       case 'weekly':
         sortOption = { weeklyXP: -1, weeklyPoints: -1 };
@@ -42,12 +38,11 @@ router.get('/', async (req, res) => {
       case 'achievements':
         sortOption = { achievementsUnlocked: -1, totalXP: -1 };
         break;
-      default: // overall
+      default:
         sortOption = { totalXP: -1, totalPoints: -1 };
         selectFields += ' overallRank';
     }
 
-    // Get leaderboard entries
     const entries = await Leaderboard.find()
       .select(selectFields)
       .populate('user', 'name avatar email')
@@ -55,25 +50,23 @@ router.get('/', async (req, res) => {
       .skip(skip)
       .limit(Number(limit));
 
-    // Get total count
     const total = await Leaderboard.countDocuments();
 
-    // Get current user's rank if authenticated
     let userRank = null;
     let userEntry = null;
     if (req.user) {
       userEntry = await Leaderboard.findOne({ user: req.user._id })
         .populate('user', 'name avatar email');
-      
+
       if (userEntry) {
         let rankField = 'overallRank';
         if (type === 'weekly') rankField = 'weeklyRank';
         if (type === 'monthly') rankField = 'monthlyRank';
-        
+
         if (userEntry[rankField]) {
           userRank = userEntry[rankField];
         } else {
-          // Calculate rank if not set
+
           const rankQuery = {};
           if (type === 'weekly') {
             rankQuery.weeklyXP = { $gt: userEntry.weeklyXP };
@@ -111,27 +104,23 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/leaderboard/me
-// @desc    Get current user's leaderboard stats
-// @access  Protected
 router.get('/me', protect, async (req, res) => {
   try {
     const entry = await Leaderboard.findOne({ user: req.user._id })
       .populate('user', 'name avatar email');
 
     if (!entry) {
-      // Create entry if doesn't exist
+
       const newEntry = await Leaderboard.getOrCreateEntry(req.user._id);
       const populated = await Leaderboard.findById(newEntry._id)
         .populate('user', 'name avatar email');
-      
+
       return res.json({
         success: true,
         data: populated
       });
     }
 
-    // Calculate current ranks
     const overallRank = await Leaderboard.countDocuments({ totalXP: { $gt: entry.totalXP } }) + 1;
     const weeklyRank = await Leaderboard.countDocuments({ weeklyXP: { $gt: entry.weeklyXP } }) + 1;
     const monthlyRank = await Leaderboard.countDocuments({ monthlyXP: { $gt: entry.monthlyXP } }) + 1;
@@ -156,15 +145,12 @@ router.get('/me', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/leaderboard/around-me
-// @desc    Get leaderboard entries around current user
-// @access  Protected
 router.get('/around-me', protect, async (req, res) => {
   try {
     const { type = 'overall', range = 5 } = req.query;
-    
+
     const userEntry = await Leaderboard.findOne({ user: req.user._id });
-    
+
     if (!userEntry) {
       return res.json({
         success: true,
@@ -191,9 +177,8 @@ router.get('/around-me', protect, async (req, res) => {
         userValue = userEntry.totalXP;
     }
 
-    // Get users above
     const above = await Leaderboard.find(
-      type === 'weekly' 
+      type === 'weekly'
         ? { weeklyXP: { $gt: userValue } }
         : type === 'monthly'
         ? { monthlyXP: { $gt: userValue } }
@@ -203,7 +188,6 @@ router.get('/around-me', protect, async (req, res) => {
       .sort(sortOption)
       .limit(Number(range));
 
-    // Get users below
     const below = await Leaderboard.find(
       type === 'weekly'
         ? { weeklyXP: { $lt: userValue } }
@@ -215,7 +199,6 @@ router.get('/around-me', protect, async (req, res) => {
       .sort(type === 'weekly' ? { weeklyXP: -1 } : type === 'monthly' ? { monthlyXP: -1 } : { totalXP: -1 })
       .limit(Number(range));
 
-    // Get user's rank
     const userRank = await Leaderboard.countDocuments(
       type === 'weekly'
         ? { weeklyXP: { $gt: userValue } }
@@ -230,7 +213,7 @@ router.get('/around-me', protect, async (req, res) => {
     res.json({
       success: true,
       data: {
-        above: above.reverse(), // Reverse to show closest first
+        above: above.reverse(),
         user: userEntryPopulated,
         below
       },
@@ -245,9 +228,6 @@ router.get('/around-me', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/leaderboard/update-stats
-// @desc    Update user's leaderboard stats (called internally)
-// @access  Protected
 router.post('/update-stats', protect, async (req, res) => {
   try {
     const {
@@ -302,13 +282,10 @@ router.post('/update-stats', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/leaderboard/update-rankings
-// @desc    Update all rankings (admin/cron job)
-// @access  Protected (should be admin only in production)
 router.post('/update-rankings', protect, async (req, res) => {
   try {
     await Leaderboard.updateRankings();
-    
+
     res.json({
       success: true,
       message: 'Rankings updated successfully'

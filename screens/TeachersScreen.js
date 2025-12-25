@@ -23,8 +23,7 @@ export default function TeachersScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
   const { colors, isDarkMode } = useTheme();
   const currencyContext = useCurrency();
-  
-  // Safely extract functions with fallbacks
+
   const formatPriceValue = currencyContext?.formatPriceValue || ((amount, currency) => amount.toFixed(2));
   const getCurrencyData = currencyContext?.getCurrencyData || (() => ({ symbol: 'GH₵', code: 'GHS', name: 'Ghanaian Cedi', rate: 1 }));
   const [loading, setLoading] = useState(false);
@@ -147,7 +146,7 @@ export default function TeachersScreen({ navigation }) {
     }
 
     setSelectedPlan(plan);
-    // Navigate to payment screen
+
     navigation.navigate('TeacherSubscriptionPayment', { plan });
   };
 
@@ -157,9 +156,9 @@ export default function TeachersScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Header */}
+
       <LinearGradient
-        colors={isDarkMode 
+        colors={isDarkMode
           ? ['#1a0a2e', '#16213e', '#0f3460']
           : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
         }
@@ -186,7 +185,7 @@ export default function TeachersScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero Section */}
+
         <View style={styles.heroSection}>
           <View style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.lg]}>
             <LinearGradient
@@ -207,7 +206,6 @@ export default function TeachersScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Advanced Features */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Advanced Features</Text>
           <View style={styles.featuresGrid}>
@@ -222,7 +220,6 @@ export default function TeachersScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Subscription Plans */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Choose Your Plan</Text>
@@ -247,7 +244,6 @@ export default function TeachersScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Why Choose Us */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Why Choose Us</Text>
           <View style={[styles.whyCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
@@ -278,7 +274,6 @@ export default function TeachersScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Success Stories */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Success Stories</Text>
           <ScrollView
@@ -307,7 +302,6 @@ export default function TeachersScreen({ navigation }) {
           </ScrollView>
         </View>
 
-        {/* CTA Section */}
         <View style={styles.section}>
           <View style={[styles.ctaCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.lg]}>
             <LinearGradient
@@ -334,7 +328,6 @@ export default function TeachersScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Bottom spacing */}
         <View style={{ height: 100 }} />
       </ScrollView>
     </View>
@@ -350,7 +343,7 @@ function FeatureCard({ feature, colors, navigation }) {
     } else if (feature.title === 'Student Management') {
       navigation.navigate('StudentManagement');
     } else {
-      // Handle other features
+
       Alert.alert('Coming Soon', `${feature.title} feature will be available soon!`);
     }
   };

@@ -17,7 +17,7 @@ export default function PremiumStatsCard({
   onPress,
 }) {
   const { colors, isDarkMode } = useTheme();
-  
+
   const content = (
     <View style={styles.content}>
       <View style={styles.header}>
@@ -52,12 +52,12 @@ export default function PremiumStatsCard({
       </View>
 
       <View style={styles.body}>
-        <Text 
+        <Text
           style={[
-            styles.title, 
-            { 
-              color: isDarkMode 
-                ? 'rgba(255, 255, 255, 0.75)' 
+            styles.title,
+            {
+              color: isDarkMode
+                ? 'rgba(255, 255, 255, 0.75)'
                 : premiumColors.neutral[600],
               fontWeight: '600',
             }
@@ -65,12 +65,12 @@ export default function PremiumStatsCard({
         >
           {title || ''}
         </Text>
-        <Text 
+        <Text
           style={[
-            styles.value, 
-            { 
-              color: isDarkMode 
-                ? '#FFFFFF' 
+            styles.value,
+            {
+              color: isDarkMode
+                ? '#FFFFFF'
                 : premiumColors.neutral[900],
               fontWeight: '700',
             }
@@ -79,12 +79,12 @@ export default function PremiumStatsCard({
           {value != null ? String(value) : '0'}
         </Text>
         {subtitle && (
-          <Text 
+          <Text
             style={[
-              styles.subtitle, 
-              { 
-                color: isDarkMode 
-                  ? 'rgba(255, 255, 255, 0.65)' 
+              styles.subtitle,
+              {
+                color: isDarkMode
+                  ? 'rgba(255, 255, 255, 0.65)'
                   : premiumColors.neutral[500],
                 fontWeight: '500',
               }

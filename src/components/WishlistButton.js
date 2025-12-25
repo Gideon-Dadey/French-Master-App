@@ -14,7 +14,7 @@ export default function WishlistButton({ courseId, style }) {
     if (!isAuthenticated) {
       return;
     }
-    
+
     if (inWishlist) {
       await removeFromWishlist(courseId);
     } else {

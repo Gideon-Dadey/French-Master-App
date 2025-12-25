@@ -12,12 +12,15 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  Image,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { CommonActions } from '@react-navigation/native';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
+import { premiumShadows, premiumColors } from '../../src/utils/premiumDesign';
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,178 +41,234 @@ export default function RegisterScreen({ navigation }) {
   const { register } = useAuth();
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const logoScale = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 20,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.spring(logoScale, {
+        toValue: 1,
+        tension: 15,
+        friction: 6,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const handleRegister = async () => {
     if (!formData.name || !formData.email || !formData.password) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert('Missing Fields', 'Please fill in all required fields (Name, Email, Password).');
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert('Password Mismatch', 'The passwords you entered do not match.');
       return;
     }
     if (formData.password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert('Weak Password', 'Password must be at least 6 characters long.');
       return;
     }
 
     setLoading(true);
-    const result = await register(formData.name, formData.email, formData.password, formData.phone, formData.role);
-    setLoading(false);
+    try {
+      const result = await register(
+        formData.name,
+        formData.email,
+        formData.password,
+        formData.phone,
+        formData.role
+      );
 
-    if (result.success) {
-      const parent = navigation.getParent();
-      if (parent) {
-        parent.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Main' }] }));
+      if (result.success) {
+        const parent = navigation.getParent();
+        if (parent) {
+          parent.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'Main' }] }));
+        }
+      } else {
+        Alert.alert('Registration Failed', result.message || 'An error occurred during registration.');
       }
-    } else {
-      Alert.alert('Registration Failed', result.message);
+    } catch (error) {
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? '#0F172A' : '#F8FAFC' }]}>
-      {/* Fixed Header */}
-      <LinearGradient
-        colors={isDarkMode ? ['#065F46', '#047857'] : ['#10B981', '#059669']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.headerDecor1} />
-        <View style={styles.headerDecor2} />
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#FFFFFF' }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+      <View style={styles.bgContainer}>
+        <LinearGradient
+          colors={isDarkMode ? ['#064e3b', '#000000'] : ['#ecfdf5', '#ffffff']}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={[styles.decorCircle, styles.circle1, { backgroundColor: isDarkMode ? '#10b98115' : '#d1fae550' }]} />
+        <View style={[styles.decorCircle, styles.circle2, { backgroundColor: isDarkMode ? '#05966910' : '#a7f3d040' }]} />
+      </View>
 
-        <View style={styles.headerContent}>
-          <View style={styles.logoBox}>
-            <Ionicons name="person-add" size={32} color="#10B981" />
-          </View>
-          <Text style={styles.headerTitle}>Create Account</Text>
-          <Text style={styles.headerSubtitle}>Join thousands of learners</Text>
-        </View>
-      </LinearGradient>
-
-      {/* Form Section */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.formSection}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
       >
         <ScrollView
-          style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
-          bounces={false}
         >
-          <Animated.View style={[styles.formCard, { backgroundColor: colors.card, opacity: fadeAnim }]}>
-            {/* Role Selection */}
-            <Text style={[styles.sectionLabel, { color: colors.text }]}>I am joining as</Text>
-            <View style={styles.roleRow}>
-              <TouchableOpacity
-                style={[
-                  styles.roleBtn,
-                  { backgroundColor: formData.role === 'student' ? '#3B82F6' : (isDarkMode ? '#1E293B' : '#F1F5F9') },
-                ]}
-                onPress={() => setFormData({ ...formData, role: 'student' })}
-              >
-                <Ionicons name="school" size={20} color={formData.role === 'student' ? '#FFFFFF' : '#64748B'} />
-                <Text style={[styles.roleBtnText, { color: formData.role === 'student' ? '#FFFFFF' : colors.text }]}>Student</Text>
-                {formData.role === 'student' && <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.roleBtn,
-                  { backgroundColor: formData.role === 'instructor' ? '#10B981' : (isDarkMode ? '#1E293B' : '#F1F5F9') },
-                ]}
-                onPress={() => setFormData({ ...formData, role: 'instructor' })}
-              >
-                <Ionicons name="person" size={20} color={formData.role === 'instructor' ? '#FFFFFF' : '#64748B'} />
-                <Text style={[styles.roleBtnText, { color: formData.role === 'instructor' ? '#FFFFFF' : colors.text }]}>Teacher</Text>
-                {formData.role === 'instructor' && <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />}
-              </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.backButton, { backgroundColor: isDarkMode ? '#1c1c1e' : '#f2f2f7' }]}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+
+          <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ scale: logoScale }] }]}>
+            <View style={styles.logoWrapper}>
+              <View style={[styles.logoGlow, { shadowColor: isDarkMode ? '#10b981' : '#059669' }]} />
+              <Image
+                source={require('../../assets/logo.jpeg')}
+                style={styles.logo}
+              />
+            </View>
+            <Text style={[styles.title, { color: colors.text }]}>Join the Master</Text>
+            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
+              Start your journey to French fluency today.
+            </Text>
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.formCard,
+              {
+                backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              },
+              premiumShadows.lg
+            ]}
+          >
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>I AM JOINING AS</Text>
+              <View style={styles.roleRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.roleBtn,
+                    {
+                      backgroundColor: formData.role === 'student' ? (isDarkMode ? '#059669' : '#10b981') : (isDarkMode ? '#2c2c2e' : '#f2f2f7'),
+                    },
+                  ]}
+                  onPress={() => setFormData({ ...formData, role: 'student' })}
+                >
+                  <Ionicons
+                    name="school-outline"
+                    size={20}
+                    color={formData.role === 'student' ? '#FFFFFF' : (isDarkMode ? '#8e8e93' : '#636366')}
+                  />
+                  <Text style={[styles.roleBtnText, { color: formData.role === 'student' ? '#FFFFFF' : colors.text }]}>Student</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.roleBtn,
+                    {
+                      backgroundColor: formData.role === 'instructor' ? (isDarkMode ? '#059669' : '#10b981') : (isDarkMode ? '#2c2c2e' : '#f2f2f7'),
+                    },
+                  ]}
+                  onPress={() => setFormData({ ...formData, role: 'instructor' })}
+                >
+                  <Ionicons
+                    name="person-outline"
+                    size={20}
+                    color={formData.role === 'instructor' ? '#FFFFFF' : (isDarkMode ? '#8e8e93' : '#636366')}
+                  />
+                  <Text style={[styles.roleBtnText, { color: formData.role === 'instructor' ? '#FFFFFF' : colors.text }]}>Teacher</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            {/* Name Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Full Name *</Text>
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>FULL NAME</Text>
               <View
                 style={[
-                  styles.inputBox,
-                  { 
-                    backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9',
-                    borderColor: focusedInput === 'name' ? '#10B981' : 'transparent',
-                    borderWidth: focusedInput === 'name' ? 2 : 0,
-                  },
+                  styles.inputWrapper,
+                  {
+                    backgroundColor: isDarkMode ? '#2c2c2e' : '#f8f9fa',
+                    borderColor: focusedInput === 'name' ? '#10b981' : 'transparent',
+                    borderWidth: 1
+                  }
                 ]}
               >
-                <Ionicons name="person" size={20} color={focusedInput === 'name' ? '#10B981' : '#94A3B8'} />
+                <Ionicons name="person-outline" size={20} color={focusedInput === 'name' ? '#10b981' : '#8e8e93'} />
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
-                  placeholder="Enter your full name"
-                  placeholderTextColor="#94A3B8"
+                  placeholder="John Doe"
+                  placeholderTextColor="#8e8e93"
                   value={formData.name}
                   onChangeText={(text) => setFormData({ ...formData, name: text })}
-                  autoCorrect={false}
                   onFocus={() => setFocusedInput('name')}
                   onBlur={() => setFocusedInput(null)}
                 />
               </View>
             </View>
 
-            {/* Email Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Email Address *</Text>
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>EMAIL ADDRESS</Text>
               <View
                 style={[
-                  styles.inputBox,
-                  { 
-                    backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9',
-                    borderColor: focusedInput === 'email' ? '#10B981' : 'transparent',
-                    borderWidth: focusedInput === 'email' ? 2 : 0,
-                  },
+                  styles.inputWrapper,
+                  {
+                    backgroundColor: isDarkMode ? '#2c2c2e' : '#f8f9fa',
+                    borderColor: focusedInput === 'email' ? '#10b981' : 'transparent',
+                    borderWidth: 1
+                  }
                 ]}
               >
-                <Ionicons name="mail" size={20} color={focusedInput === 'email' ? '#10B981' : '#94A3B8'} />
+                <Ionicons name="mail-outline" size={20} color={focusedInput === 'email' ? '#10b981' : '#8e8e93'} />
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
-                  placeholder="Enter your email"
-                  placeholderTextColor="#94A3B8"
+                  placeholder="name@example.com"
+                  placeholderTextColor="#8e8e93"
                   value={formData.email}
                   onChangeText={(text) => setFormData({ ...formData, email: text })}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  autoCorrect={false}
                   onFocus={() => setFocusedInput('email')}
                   onBlur={() => setFocusedInput(null)}
                 />
               </View>
             </View>
 
-            {/* Phone Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Phone (Optional)</Text>
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>PHONE (OPTIONAL)</Text>
               <View
                 style={[
-                  styles.inputBox,
-                  { 
-                    backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9',
-                    borderColor: focusedInput === 'phone' ? '#10B981' : 'transparent',
-                    borderWidth: focusedInput === 'phone' ? 2 : 0,
-                  },
+                  styles.inputWrapper,
+                  {
+                    backgroundColor: isDarkMode ? '#2c2c2e' : '#f8f9fa',
+                    borderColor: focusedInput === 'phone' ? '#10b981' : 'transparent',
+                    borderWidth: 1
+                  }
                 ]}
               >
-                <Ionicons name="call" size={20} color={focusedInput === 'phone' ? '#10B981' : '#94A3B8'} />
+                <Ionicons name="call-outline" size={20} color={focusedInput === 'phone' ? '#10b981' : '#8e8e93'} />
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
-                  placeholder="Enter your phone"
-                  placeholderTextColor="#94A3B8"
+                  placeholder="+1 (555) 000-0000"
+                  placeholderTextColor="#8e8e93"
                   value={formData.phone}
                   onChangeText={(text) => setFormData({ ...formData, phone: text })}
                   keyboardType="phone-pad"
@@ -219,109 +278,102 @@ export default function RegisterScreen({ navigation }) {
               </View>
             </View>
 
-            {/* Password Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Password *</Text>
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>PASSWORD</Text>
               <View
                 style={[
-                  styles.inputBox,
-                  { 
-                    backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9',
-                    borderColor: focusedInput === 'password' ? '#10B981' : 'transparent',
-                    borderWidth: focusedInput === 'password' ? 2 : 0,
-                  },
+                  styles.inputWrapper,
+                  {
+                    backgroundColor: isDarkMode ? '#2c2c2e' : '#f8f9fa',
+                    borderColor: focusedInput === 'password' ? '#10b981' : 'transparent',
+                    borderWidth: 1
+                  }
                 ]}
               >
-                <Ionicons name="lock-closed" size={20} color={focusedInput === 'password' ? '#10B981' : '#94A3B8'} />
+                <Ionicons name="lock-closed-outline" size={20} color={focusedInput === 'password' ? '#10b981' : '#8e8e93'} />
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
-                  placeholder="Create a password"
-                  placeholderTextColor="#94A3B8"
+                  placeholder="••••••••"
+                  placeholderTextColor="#8e8e93"
                   value={formData.password}
                   onChangeText={(text) => setFormData({ ...formData, password: text })}
                   secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
                   onFocus={() => setFocusedInput('password')}
                   onBlur={() => setFocusedInput(null)}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Ionicons name={showPassword ? 'eye' : 'eye-off'} size={20} color="#94A3B8" />
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#8e8e93" />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Confirm Password Input */}
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Confirm Password *</Text>
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>CONFIRM PASSWORD</Text>
               <View
                 style={[
-                  styles.inputBox,
-                  { 
-                    backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9',
-                    borderColor: focusedInput === 'confirmPassword' ? '#10B981' : 'transparent',
-                    borderWidth: focusedInput === 'confirmPassword' ? 2 : 0,
-                  },
+                  styles.inputWrapper,
+                  {
+                    backgroundColor: isDarkMode ? '#2c2c2e' : '#f8f9fa',
+                    borderColor: focusedInput === 'confirm' ? '#10b981' : 'transparent',
+                    borderWidth: 1
+                  }
                 ]}
               >
-                <Ionicons name="lock-closed" size={20} color={focusedInput === 'confirmPassword' ? '#10B981' : '#94A3B8'} />
+                <Ionicons name="shield-checkmark-outline" size={20} color={focusedInput === 'confirm' ? '#10b981' : '#8e8e93'} />
                 <TextInput
                   style={[styles.input, { color: colors.text }]}
-                  placeholder="Confirm your password"
-                  placeholderTextColor="#94A3B8"
+                  placeholder="••••••••"
+                  placeholderTextColor="#8e8e93"
                   value={formData.confirmPassword}
                   onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
                   secureTextEntry={!showConfirmPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  onFocus={() => setFocusedInput('confirmPassword')}
+                  onFocus={() => setFocusedInput('confirm')}
                   onBlur={() => setFocusedInput(null)}
                 />
                 <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                  <Ionicons name={showConfirmPassword ? 'eye' : 'eye-off'} size={20} color="#94A3B8" />
+                  <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#8e8e93" />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Terms */}
-            <Text style={[styles.termsText, { color: colors.secondaryText }]}>
-              By creating an account, you agree to our{' '}
-              <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-              <Text style={styles.termsLink}>Privacy Policy</Text>
-            </Text>
-
-            {/* Create Account Button */}
             <TouchableOpacity
-              style={[styles.registerBtn, loading && { opacity: 0.6 }]}
+              style={[styles.registerButton, loading && styles.disabledButton]}
               onPress={handleRegister}
               disabled={loading}
-              activeOpacity={0.8}
+              activeOpacity={0.9}
             >
               <LinearGradient
-                colors={['#10B981', '#059669']}
+                colors={['#10b981', '#059669']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.registerGradient}
+                style={styles.gradientButton}
               >
                 {loading ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <>
-                    <Text style={styles.registerText}>Create Account</Text>
+                    <Text style={styles.registerButtonText}>Create Account</Text>
                     <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
                   </>
                 )}
               </LinearGradient>
             </TouchableOpacity>
 
-            {/* Sign In Link */}
-            <View style={styles.signInRow}>
-              <Text style={[styles.signInText, { color: colors.secondaryText }]}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                <Text style={styles.signInLink}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={[styles.termsText, { color: colors.secondaryText }]}>
+              By joining, you agree to our{' '}
+              <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
+              <Text style={styles.termsLink}>Privacy Policy</Text>.
+            </Text>
           </Animated.View>
+
+          <View style={styles.footer}>
+            <Text style={[styles.footerText, { color: colors.secondaryText }]}>
+              Already a member?{' '}
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.signInLink}>Sign In</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -332,103 +384,105 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 25,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+  bgContainer: {
+    ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
   },
-  headerDecor1: {
+  decorCircle: {
     position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    top: -30,
-    right: -30,
+    borderRadius: 200,
   },
-  headerDecor2: {
-    position: 'absolute',
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    bottom: -20,
-    left: -20,
+  circle1: {
+    width: 300,
+    height: 300,
+    top: -100,
+    right: -100,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
+  circle2: {
+    width: 200,
+    height: 200,
+    bottom: -50,
+    left: -50,
   },
-  headerContent: {
-    alignItems: 'center',
-  },
-  logoBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  formSection: {
-    flex: 1,
-  },
-  scrollView: {
+  keyboardView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: 40,
   },
-  formCard: {
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 5,
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  sectionLabel: {
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  logoWrapper: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  logoGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 36,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    backgroundColor: 'transparent',
+  },
+  logo: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -1,
+    marginBottom: 6,
+  },
+  subtitle: {
     fontSize: 15,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 20,
+  },
+  formCard: {
+    borderRadius: 32,
+    padding: 24,
+    gap: 16,
+  },
+  inputContainer: {
+    gap: 8,
+  },
+  inputLabel: {
+    fontSize: 11,
     fontWeight: '700',
-    marginBottom: 12,
+    letterSpacing: 1,
+    marginLeft: 4,
   },
   roleRow: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 24,
   },
   roleBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    height: 48,
     borderRadius: 14,
     gap: 8,
   },
@@ -436,65 +490,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  inputGroup: {
-    marginBottom: 18,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  inputBox: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
+    height: 56,
+    borderRadius: 16,
     paddingHorizontal: 16,
-    height: 52,
     gap: 12,
   },
   input: {
     flex: 1,
     fontSize: 15,
+    fontWeight: '500',
+  },
+  registerButton: {
+    height: 58,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  gradientButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  registerButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
   termsText: {
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
-    marginBottom: 20,
-    marginTop: 8,
+    paddingHorizontal: 10,
   },
   termsLink: {
-    color: '#10B981',
-    fontWeight: '600',
-  },
-  registerBtn: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginBottom: 24,
-  },
-  registerGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 54,
-    gap: 10,
-  },
-  registerText: {
-    fontSize: 17,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#10b981',
   },
-  signInRow: {
+  footer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 32,
   },
-  signInText: {
+  footerText: {
     fontSize: 15,
   },
   signInLink: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#10B981',
+    color: '#10b981',
   },
 });

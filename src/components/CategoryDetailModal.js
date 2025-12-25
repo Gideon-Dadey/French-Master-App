@@ -14,10 +14,6 @@ import { spacing, fontSize, normalize } from '../utils/responsive';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-/**
- * Category Detail Modal
- * Displays category information and descriptions
- */
 export default function CategoryDetailModal({ visible, category, onClose }) {
   const { colors } = useTheme();
 
@@ -32,7 +28,7 @@ export default function CategoryDetailModal({ visible, category, onClose }) {
     >
       <View style={styles.overlay}>
         <View style={[styles.container, { backgroundColor: colors.background }]}>
-          {/* Header */}
+
           <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
             <View style={styles.headerContent}>
               <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
@@ -56,13 +52,12 @@ export default function CategoryDetailModal({ visible, category, onClose }) {
             </TouchableOpacity>
           </View>
 
-          {/* Content */}
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Description */}
+
             {category.fullDescription && (
               <View style={[styles.descriptionSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Text style={[styles.descriptionTitle, { color: colors.text }]}>
@@ -74,7 +69,6 @@ export default function CategoryDetailModal({ visible, category, onClose }) {
               </View>
             )}
 
-            {/* Descriptions List */}
             {category.descriptions && category.descriptions.length > 0 && (
               <View style={styles.descriptionsSection}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -105,7 +99,6 @@ export default function CategoryDetailModal({ visible, category, onClose }) {
               </View>
             )}
 
-            {/* Footer Button */}
             <TouchableOpacity
               style={[styles.exploreButton, { backgroundColor: colors.primary }]}
               onPress={() => {

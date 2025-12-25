@@ -2,12 +2,12 @@ import React from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function SearchBar({ 
-  value, 
-  onChangeText, 
-  onSubmitEditing, 
+export default function SearchBar({
+  value,
+  onChangeText,
+  onSubmitEditing,
   placeholder = "Search...",
-  onClear 
+  onClear
 }) {
   return (
     <View style={styles.container}>

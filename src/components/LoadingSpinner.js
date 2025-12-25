@@ -4,7 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 
 export default function LoadingSpinner({ message = 'Loading...', size = 'large' }) {
   const { colors, isDarkMode } = useTheme();
-  
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ActivityIndicator size={size} color={colors.primary} />

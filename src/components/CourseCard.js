@@ -12,7 +12,7 @@ import Rating from './Rating';
 export default function CourseCard({ course, onPress, style, isHorizontal = false, index = 0 }) {
   const { colors } = useTheme();
   const { formatPrice } = useCurrency();
-  
+
   const getLevelColor = (level) => {
     switch (level) {
       case 'beginner':
@@ -26,7 +26,6 @@ export default function CourseCard({ course, onPress, style, isHorizontal = fals
     }
   };
 
-  // Try to get thumbnail from mapping, fallback to getCourseImage, or use URL
   let imageSource;
   if (course.thumbnail) {
     if (course.thumbnail.startsWith('http://') || course.thumbnail.startsWith('https://')) {
@@ -40,13 +39,13 @@ export default function CourseCard({ course, onPress, style, isHorizontal = fals
   }
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
         styles.card,
-        { backgroundColor: colors.card }, 
+        { backgroundColor: colors.card },
         isHorizontal && { width: courseCardWidth },
         style
-      ]} 
+      ]}
       onPress={onPress}
       activeOpacity={0.8}
     >
@@ -75,15 +74,15 @@ export default function CourseCard({ course, onPress, style, isHorizontal = fals
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
           {course.title}
         </Text>
-        
+
         <Text style={[styles.description, { color: colors.secondaryText }]} numberOfLines={2}>
           {course.shortDescription || course.description}
         </Text>
 
         <View style={styles.metaRow}>
           <View style={styles.rating}>
-            <Rating 
-              rating={course.rating?.average || 0} 
+            <Rating
+              rating={course.rating?.average || 0}
               size={14}
               showRating={true}
             />
@@ -107,7 +106,7 @@ export default function CourseCard({ course, onPress, style, isHorizontal = fals
             <Text style={[styles.courseInfoText, { color: colors.secondaryText }]}>{course.totalLessons || 0} lessons</Text>
           </View>
           <Text style={[
-            styles.price, 
+            styles.price,
             { color: colors.text },
             course.isFree && styles.freePrice
           ]}>

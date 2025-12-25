@@ -39,7 +39,6 @@ export default function LearnScreen({ navigation }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [continueLearning, setContinueLearning] = useState(null);
 
-  // Animations
   const headerAnim = useRef(new Animated.Value(0)).current;
   const cardsAnim = useRef(new Animated.Value(0)).current;
   const searchAnim = useRef(new Animated.Value(0)).current;
@@ -53,46 +52,14 @@ export default function LearnScreen({ navigation }) {
     { id: 'conversation', name: 'Speaking', icon: 'chatbubbles', color: '#EC4899' },
   ];
 
-  // Learning paths
-  const learningPaths = [
-    {
-      id: 'beginner',
-      title: 'Beginner Path',
-      subtitle: 'Start from zero',
-      icon: 'rocket',
-      gradient: ['#10B981', '#059669'],
-      courses: 12,
-      hours: 24,
-    },
-    {
-      id: 'intermediate',
-      title: 'Intermediate',
-      subtitle: 'Level up skills',
-      icon: 'trending-up',
-      gradient: ['#F59E0B', '#D97706'],
-      courses: 15,
-      hours: 36,
-    },
-    {
-      id: 'advanced',
-      title: 'Advanced',
-      subtitle: 'Master French',
-      icon: 'diamond',
-      gradient: ['#8B5CF6', '#7C3AED'],
-      courses: 10,
-      hours: 48,
-    },
-  ];
-
   useEffect(() => {
     loadData();
-    // Entrance animations
+
     Animated.stagger(100, [
       Animated.spring(headerAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
       Animated.spring(cardsAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
     ]).start();
 
-    // Progress bar animation
     Animated.timing(progressAnim, {
       toValue: 1,
       duration: 1500,
@@ -103,7 +70,7 @@ export default function LearnScreen({ navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       const params = selectedCategory ? { category: selectedCategory } : {};
       const [featuredResponse, coursesResponse, progressResponse] = await Promise.all([
         coursesAPI.getFeatured().catch(() => ({ data: { data: [] } })),
@@ -114,7 +81,6 @@ export default function LearnScreen({ navigation }) {
       setFeaturedCourses(featuredResponse.data.data || []);
       setAllCourses(coursesResponse.data.data || []);
 
-      // Set continue learning course
       if (featuredCourses.length > 0) {
         setContinueLearning({
           ...featuredCourses[0],
@@ -190,7 +156,7 @@ export default function LearnScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Animated Header */}
+
       <Animated.View
         style={[
           styles.headerWrapper,
@@ -201,7 +167,7 @@ export default function LearnScreen({ navigation }) {
         ]}
       >
         <LinearGradient
-          colors={isDarkMode 
+          colors={isDarkMode
             ? ['#0F172A', '#1E3A5F', '#1E40AF']
             : ['#DBEAFE', '#BFDBFE', '#93C5FD']
           }
@@ -209,29 +175,19 @@ export default function LearnScreen({ navigation }) {
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-          {/* Decorative Elements */}
+
           <View style={styles.headerDecor}>
             <View style={[styles.decorCircle, styles.decorCircle1, { backgroundColor: isDarkMode ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.2)' }]} />
             <View style={[styles.decorCircle, styles.decorCircle2, { backgroundColor: isDarkMode ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.15)' }]} />
           </View>
 
           <View style={styles.headerContent}>
-            {/* Top Row */}
+
             <View style={styles.headerTopRow}>
               <View style={styles.headerTitleSection}>
-                <View style={styles.headerBadge}>
-                  <LinearGradient
-                    colors={['#3B82F6', '#2563EB']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.headerBadgeGradient}
-                  >
-                    <Ionicons name="book" size={14} color="#FFFFFF" />
-                  </LinearGradient>
-                  <Text style={[styles.headerBadgeText, { color: isDarkMode ? '#93C5FD' : '#1D4ED8' }]}>
-                    LEARN
-                  </Text>
-                </View>
+                <Text style={[styles.headerBadgeText, { color: isDarkMode ? '#93C5FD' : '#1D4ED8' }]}>
+                  LEARN
+                </Text>
                 <Text style={[styles.headerTitle, { color: isDarkMode ? '#FFFFFF' : '#1E3A8A' }]}>
                   Bonjour, {userName}! 👋
                 </Text>
@@ -240,27 +196,14 @@ export default function LearnScreen({ navigation }) {
                 </Text>
               </View>
 
-              <View style={styles.headerActions}>
-                <TouchableOpacity
-                  style={[styles.headerActionBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(59,130,246,0.1)' }]}
-                  onPress={toggleSearch}
-                >
-                  <Ionicons name="search" size={22} color={isDarkMode ? '#FFFFFF' : '#3B82F6'} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.headerActionBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(59,130,246,0.1)' }]}
-                  onPress={() => navigation.navigate('Profile')}
-                >
-                  {user?.avatar ? (
-                    <Image source={{ uri: user.avatar }} style={styles.headerAvatar} />
-                  ) : (
-                    <Ionicons name="person" size={22} color={isDarkMode ? '#FFFFFF' : '#3B82F6'} />
-                  )}
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={[styles.headerActionBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(59,130,246,0.1)' }]}
+                onPress={toggleSearch}
+              >
+                <Ionicons name="search" size={22} color={isDarkMode ? '#FFFFFF' : '#3B82F6'} />
+              </TouchableOpacity>
             </View>
 
-            {/* Level Progress */}
             {learningStats && (
               <View style={[styles.levelCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)' }]}>
                 <View style={styles.levelInfo}>
@@ -298,7 +241,6 @@ export default function LearnScreen({ navigation }) {
                   <Text style={[styles.levelProgressText, { color: colors.secondaryText }]}>650 XP to Level {learningStats.level + 1}</Text>
                 </View>
                 <View style={styles.streakBadge}>
-                  <Ionicons name="flame" size={16} color="#F97316" />
                   <Text style={[styles.streakText, { color: '#F97316' }]}>{learningStats.streak} day streak</Text>
                 </View>
               </View>
@@ -307,7 +249,6 @@ export default function LearnScreen({ navigation }) {
         </LinearGradient>
       </Animated.View>
 
-      {/* Search Overlay */}
       {showSearch && (
         <Animated.View
           style={[
@@ -344,7 +285,7 @@ export default function LearnScreen({ navigation }) {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Continue Learning Card */}
+
         {continueLearning && (
           <Animated.View
             style={[
@@ -376,7 +317,6 @@ export default function LearnScreen({ navigation }) {
               />
               <View style={styles.continueContent}>
                 <View style={styles.continueBadge}>
-                  <Ionicons name="play-circle" size={14} color="#FFFFFF" />
                   <Text style={styles.continueBadgeText}>IN PROGRESS</Text>
                 </View>
                 <Text style={styles.continueTitle}>{continueLearning.title}</Text>
@@ -399,28 +339,18 @@ export default function LearnScreen({ navigation }) {
           </Animated.View>
         )}
 
-        {/* Quick Stats */}
         {learningStats && (
           <View style={styles.section}>
             <View style={styles.statsGrid}>
               <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-                <View style={[styles.statIcon, { backgroundColor: '#3B82F6' + '15' }]}>
-                  <Ionicons name="book" size={20} color="#3B82F6" />
-                </View>
                 <Text style={[styles.statValue, { color: colors.text }]}>{learningStats.totalLessons}</Text>
                 <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Lessons</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-                <View style={[styles.statIcon, { backgroundColor: '#10B981' + '15' }]}>
-                  <Ionicons name="time" size={20} color="#10B981" />
-                </View>
                 <Text style={[styles.statValue, { color: colors.text }]}>{learningStats.studyTime}</Text>
                 <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Study Time</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-                <View style={[styles.statIcon, { backgroundColor: '#F59E0B' + '15' }]}>
-                  <Ionicons name="library" size={20} color="#F59E0B" />
-                </View>
                 <Text style={[styles.statValue, { color: colors.text }]}>{learningStats.coursesEnrolled}</Text>
                 <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Courses</Text>
               </View>
@@ -428,47 +358,6 @@ export default function LearnScreen({ navigation }) {
           </View>
         )}
 
-        {/* Learning Paths */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Learning Paths</Text>
-            <View style={styles.sectionBadge}>
-              <Ionicons name="map" size={14} color="#3B82F6" />
-            </View>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.pathsScroll}
-          >
-            {learningPaths.map((path) => (
-              <TouchableOpacity
-                key={path.id}
-                style={[styles.pathCard, { backgroundColor: colors.card }, premiumShadows.md]}
-                onPress={() => navigation.navigate('Courses', { level: path.id })}
-                activeOpacity={0.85}
-              >
-                <LinearGradient colors={path.gradient} style={styles.pathGradient}>
-                  <Ionicons name={path.icon} size={28} color="#FFFFFF" />
-                </LinearGradient>
-                <Text style={[styles.pathTitle, { color: colors.text }]}>{path.title}</Text>
-                <Text style={[styles.pathSubtitle, { color: colors.secondaryText }]}>{path.subtitle}</Text>
-                <View style={styles.pathMeta}>
-                  <View style={styles.pathMetaItem}>
-                    <Ionicons name="book-outline" size={12} color={path.gradient[0]} />
-                    <Text style={[styles.pathMetaText, { color: path.gradient[0] }]}>{path.courses} courses</Text>
-                  </View>
-                  <View style={styles.pathMetaItem}>
-                    <Ionicons name="time-outline" size={12} color={colors.secondaryText} />
-                    <Text style={[styles.pathMetaText, { color: colors.secondaryText }]}>{path.hours}h</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Categories */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Browse by Category</Text>
           <ScrollView
@@ -489,11 +378,6 @@ export default function LearnScreen({ navigation }) {
                 onPress={() => setSelectedCategory(category.id)}
                 activeOpacity={0.8}
               >
-                <Ionicons
-                  name={category.icon}
-                  size={16}
-                  color={selectedCategory === category.id ? '#FFFFFF' : category.color}
-                />
                 <Text
                   style={[
                     styles.categoryPillText,
@@ -507,7 +391,6 @@ export default function LearnScreen({ navigation }) {
           </ScrollView>
         </View>
 
-        {/* Featured Courses */}
         {featuredCourses.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -535,7 +418,6 @@ export default function LearnScreen({ navigation }) {
           </View>
         )}
 
-        {/* All Courses */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -559,26 +441,23 @@ export default function LearnScreen({ navigation }) {
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="search-outline" size={64} color={colors.secondaryText} />
               <Text style={[styles.emptyStateTitle, { color: colors.text }]}>No Courses Found</Text>
               <Text style={[styles.emptyStateText, { color: colors.secondaryText }]}>
                 Try adjusting your search or filters
               </Text>
             </View>
           )}
-          
+
           {filteredCourses.length > 6 && (
             <TouchableOpacity
               style={[styles.viewAllBtn, { borderColor: '#3B82F6' }]}
               onPress={() => navigation.navigate('Courses')}
             >
               <Text style={[styles.viewAllBtnText, { color: '#3B82F6' }]}>View All Courses</Text>
-              <Ionicons name="arrow-forward" size={18} color="#3B82F6" />
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Daily Goal Banner */}
         <View style={styles.section}>
           <LinearGradient
             colors={isDarkMode ? ['#1E3A5F', '#1E40AF'] : ['#DBEAFE', '#BFDBFE']}
@@ -587,9 +466,6 @@ export default function LearnScreen({ navigation }) {
             style={[styles.goalBanner, premiumShadows.lg]}
           >
             <View style={styles.goalContent}>
-              <View style={styles.goalIcon}>
-                <Ionicons name="trophy" size={32} color="#3B82F6" />
-              </View>
               <View style={styles.goalText}>
                 <Text style={[styles.goalTitle, { color: isDarkMode ? '#FFFFFF' : '#1E3A8A' }]}>
                   Complete Your Daily Goal
@@ -610,7 +486,6 @@ export default function LearnScreen({ navigation }) {
                 style={styles.goalBtnGradient}
               >
                 <Text style={styles.goalBtnText}>Start Learning</Text>
-                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               </LinearGradient>
             </TouchableOpacity>
           </LinearGradient>
@@ -622,12 +497,11 @@ export default function LearnScreen({ navigation }) {
   );
 }
 
-// Featured Course Card Component
 function FeaturedCourseCard({ course, index, colors, isDarkMode, onPress }) {
   const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
     ? { uri: course.thumbnail }
     : getCourseImage(course._id, index, course.category, course.title);
-  
+
   const getLevelColor = (level) => {
     const l = (level || '').toLowerCase();
     if (l === 'beginner') return '#10B981';
@@ -647,17 +521,13 @@ function FeaturedCourseCard({ course, index, colors, isDarkMode, onPress }) {
       <View style={styles.featuredContent}>
         {course.isPremium && (
           <View style={styles.premiumBadge}>
-            <Ionicons name="diamond" size={10} color="#FFFFFF" />
             <Text style={styles.premiumBadgeText}>PRO</Text>
           </View>
         )}
         <Text style={styles.featuredCategory}>{(course.category || 'FRENCH').toUpperCase()}</Text>
         <Text style={styles.featuredTitle} numberOfLines={2}>{course.title}</Text>
         <View style={styles.featuredMeta}>
-          <View style={styles.featuredRating}>
-            <Ionicons name="star" size={12} color="#FCD34D" />
-            <Text style={styles.featuredRatingText}>{course.rating?.average?.toFixed(1) || '4.5'}</Text>
-          </View>
+          <Text style={styles.featuredRatingText}>★ {course.rating?.average?.toFixed(1) || '4.5'}</Text>
           <View style={[styles.featuredLevel, { backgroundColor: getLevelColor(course.level) }]}>
             <Text style={styles.featuredLevelText}>{course.level || 'All'}</Text>
           </View>
@@ -667,7 +537,6 @@ function FeaturedCourseCard({ course, index, colors, isDarkMode, onPress }) {
   );
 }
 
-// Course Card Component
 function CourseCard({ course, index, colors, onPress }) {
   const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
     ? { uri: course.thumbnail }
@@ -696,12 +565,9 @@ function CourseCard({ course, index, colors, onPress }) {
           {course.title}
         </Text>
         <View style={styles.courseMeta}>
-          <View style={styles.courseRating}>
-            <Ionicons name="star" size={12} color="#FCD34D" />
-            <Text style={[styles.courseRatingText, { color: colors.text }]}>
-              {course.rating?.average?.toFixed(1) || '4.5'}
-            </Text>
-          </View>
+          <Text style={[styles.courseRatingText, { color: colors.text }]}>
+            ★ {course.rating?.average?.toFixed(1) || '4.5'}
+          </Text>
           <View style={[styles.courseLevel, { backgroundColor: getLevelColor(course.level) }]}>
             <Text style={styles.courseLevelText}>{course.level || 'All'}</Text>
           </View>
@@ -921,6 +787,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.3,
   },
+  sectionSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
   sectionBadge: {
     width: 24,
     height: 24,
@@ -1046,10 +916,22 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   pathCard: {
-    width: 140,
+    width: 150,
     padding: spacing.md,
     borderRadius: premiumBorderRadius.lg,
     alignItems: 'center',
+    paddingTop: spacing.xl,
+  },
+  pathTag: {
+    position: 'absolute',
+    top: spacing.sm,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  pathTagText: {
+    fontSize: 9,
+    fontWeight: '800',
   },
   pathGradient: {
     width: 52,
@@ -1082,6 +964,56 @@ const styles = StyleSheet.create({
   pathMetaText: {
     fontSize: 10,
     fontWeight: '500',
+  },
+  spotlightGrid: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  spotlightCard: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  spotlightImage: {
+    width: '100%',
+    height: 100,
+  },
+  spotlightContent: {
+    padding: spacing.sm,
+  },
+  spotlightBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  spotlightBadgeText: {
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  spotlightTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  spotlightDifficulty: {
+    fontSize: 10,
+  },
+  spotlightPlay: {
+    position: 'absolute',
+    top: 80,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    ...premiumShadows.sm,
   },
   categoriesScroll: {
     gap: spacing.sm,

@@ -3,12 +3,6 @@ import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native
 import { useTheme } from '../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
-/**
- * Simple Toast notification system
- * Lightweight alternative to react-native-toast-message
- * Adapted from HEYY app patterns
- */
-
 let toastQueue = [];
 let currentToast = null;
 let toastListeners = [];
@@ -50,7 +44,7 @@ const ToastContainer = () => {
 
   useEffect(() => {
     if (toast) {
-      // Animate in
+
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -65,7 +59,6 @@ const ToastContainer = () => {
         }),
       ]).start();
 
-      // Auto hide after duration
       const timer = setTimeout(() => {
         hideToast();
       }, toast.type === 'error' ? 4000 : 3000);

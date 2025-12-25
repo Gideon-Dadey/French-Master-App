@@ -96,9 +96,9 @@ export default function CreateDiscussionScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
+
       <LinearGradient
-        colors={isDarkMode 
+        colors={isDarkMode
           ? ['#1a0a2e', '#16213e', '#0f3460']
           : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
         }
@@ -124,7 +124,7 @@ export default function CreateDiscussionScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Title */}
+
         <View style={styles.section}>
           <Text style={[styles.label, { color: colors.text }]}>Discussion Title *</Text>
           <TextInput
@@ -140,7 +140,6 @@ export default function CreateDiscussionScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Content */}
         <View style={styles.section}>
           <Text style={[styles.label, { color: colors.text }]}>Content *</Text>
           <TextInput
@@ -154,7 +153,6 @@ export default function CreateDiscussionScreen({ navigation }) {
           />
         </View>
 
-        {/* Category */}
         <View style={styles.section}>
           <Text style={[styles.label, { color: colors.text }]}>Category</Text>
           <View style={styles.categoriesGrid}>
@@ -194,7 +192,6 @@ export default function CreateDiscussionScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Tags */}
         <View style={styles.section}>
           <Text style={[styles.label, { color: colors.text }]}>Tags (Optional)</Text>
           <Text style={[styles.hint, { color: colors.secondaryText }]}>
@@ -232,7 +229,6 @@ export default function CreateDiscussionScreen({ navigation }) {
           )}
         </View>
 
-        {/* Submit Button */}
         <TouchableOpacity
           style={[styles.submitButton, { backgroundColor: premiumColors.primary.main }]}
           onPress={handleSubmit}

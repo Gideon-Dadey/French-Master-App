@@ -2,23 +2,13 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
-/**
- * Chip component for tags, categories, etc.
- * Adapted from HEYY app
- * 
- * @param {string} title - Text to display
- * @param {string} variant - 'default' or 'primary'
- * @param {ReactNode} leading - Icon or element before text
- * @param {ReactNode} trailing - Icon or element after text
- * @param {function} onPress - Press handler
- */
-export default function Chip({ 
-  title, 
-  variant = 'default', 
-  leading, 
-  trailing, 
+export default function Chip({
+  title,
+  variant = 'default',
+  leading,
+  trailing,
   onPress,
-  style 
+  style
 }) {
   const { colors } = useTheme();
 
@@ -29,8 +19,8 @@ export default function Chip({
         backgroundColor: colors.primary,
       };
     }
-    return { 
-      color: colors.text, 
+    return {
+      color: colors.text,
       backgroundColor: colors.tertiaryBackground || colors.border,
     };
   }, [variant, colors]);

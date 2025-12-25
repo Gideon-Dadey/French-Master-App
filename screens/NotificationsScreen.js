@@ -52,7 +52,7 @@ export default function NotificationsScreen({ navigation }) {
   const handleMarkAsRead = async (id) => {
     try {
       await notificationsAPI.markAsRead(id);
-      setNotifications(notifications.map(n => 
+      setNotifications(notifications.map(n =>
         n._id === id ? { ...n, isRead: true } : n
       ));
     } catch (error) {
@@ -154,10 +154,10 @@ export default function NotificationsScreen({ navigation }) {
                 if (!notification.isRead) {
                   handleMarkAsRead(notification._id);
                 }
-                // Navigate based on notification type
+
                 if (notification.type === 'course' && notification.courseId) {
-                  navigation.navigate('CourseDetail', { 
-                    courseId: notification.courseId 
+                  navigation.navigate('CourseDetail', {
+                    courseId: notification.courseId
                   });
                 }
               }}

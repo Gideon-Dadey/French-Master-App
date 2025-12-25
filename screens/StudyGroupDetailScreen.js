@@ -18,6 +18,7 @@ import {
   KeyboardAvoidingView,
   ActivityIndicator,
 } from 'react-native';
+import { GestureHandlerRootView, Swipeable, TapGestureHandler, State } from 'react-native-gesture-handler';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,7 +39,6 @@ import ErrorMessage from '../src/components/ErrorMessage';
 
 const { width, height } = Dimensions.get('window');
 
-// Message type constants
 const MESSAGE_TYPES = {
   TEXT: 'text',
   IMAGE: 'image',
@@ -47,7 +47,6 @@ const MESSAGE_TYPES = {
   LINK: 'link',
 };
 
-// Reaction emojis
 const REACTIONS = [
   { emoji: '👍', name: 'like' },
   { emoji: '❤️', name: 'love' },
@@ -57,7 +56,6 @@ const REACTIONS = [
   { emoji: '🎉', name: 'celebrate' },
 ];
 
-// Emoji categories for picker (500+ emojis)
 const EMOJI_CATEGORIES = [
   {
     name: 'Smileys',
@@ -116,31 +114,28 @@ const EMOJI_CATEGORIES = [
   },
 ];
 
-// Helper function to format time ago
 const formatTimeAgo = (date) => {
   const now = new Date();
   const messageDate = new Date(date);
   const diffInSeconds = Math.floor((now - messageDate) / 1000);
-  
+
   if (diffInSeconds < 60) return 'Just now';
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
   if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  
-  return messageDate.toLocaleDateString('en-US', { 
-    month: 'short', 
+
+  return messageDate.toLocaleDateString('en-US', {
+    month: 'short',
     day: 'numeric',
     year: messageDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
   });
 };
 
-// Helper to detect URLs in text
 const detectURL = (text) => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   return text.match(urlRegex);
 };
 
-// Get file icon based on extension
 const getFileIcon = (filename) => {
   const ext = filename?.split('.').pop()?.toLowerCase();
   switch (ext) {
@@ -175,8 +170,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinInviteCode, setJoinInviteCode] = useState('');
   const [newResource, setNewResource] = useState({ title: '', url: '', type: 'link' });
-  
-  // Advanced discussions state
+
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -190,8 +184,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const messageActionsAnim = useRef(new Animated.Value(0)).current;
   const [messageReactions, setMessageReactions] = useState({});
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  
-  // Voice recording state
+  const [doubleTapHeartIndex, setDoubleTapHeartIndex] = useState(null);
+  const doubleTapHeartAnim = useRef(new Animated.Value(0)).current;
+
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState(null);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -200,10 +195,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const [soundObject, setSoundObject] = useState(null);
   const recordingTimerRef = useRef(null);
   const recordingAnimRef = useRef(new Animated.Value(1)).current;
-  
-  // Call state
+
   const [isInCall, setIsInCall] = useState(false);
-  const [callType, setCallType] = useState(null); // 'voice' or 'video'
+  const [callType, setCallType] = useState(null);
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
@@ -211,11 +205,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const [isFrontCamera, setIsFrontCamera] = useState(true);
   const callTimerRef = useRef(null);
   const callPulseAnim = useRef(new Animated.Value(1)).current;
-  
-  // Camera permission for video calls
+
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  
-  // Group options menu state
+
   const [showGroupOptions, setShowGroupOptions] = useState(false);
   const [showEditGroup, setShowEditGroup] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
@@ -239,8 +231,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     muteDuration: null,
   });
   const groupOptionsAnim = useRef(new Animated.Value(0)).current;
-  
-  // Animation refs
+
   const attachmentMenuAnim = useRef(new Animated.Value(0)).current;
   const reactionPickerAnim = useRef(new Animated.Value(0)).current;
   const discussionsScrollRef = useRef(null);
@@ -248,8 +239,12 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   useEffect(() => {
     loadGroup();
   }, [groupId, user?._id]);
-  
-  // Reload group when screen comes into focus (e.g., after login)
+
+  useEffect(() => {
+    setShowMessageActions(false);
+    setSelectedMessage(null);
+  }, [activeTab]);
+
   useFocusEffect(
     useCallback(() => {
       if (groupId) {
@@ -257,8 +252,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       }
     }, [groupId, user?._id])
   );
-  
-  // Animate attachment menu
+
   useEffect(() => {
     Animated.spring(attachmentMenuAnim, {
       toValue: showAttachmentMenu ? 1 : 0,
@@ -267,8 +261,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       useNativeDriver: true,
     }).start();
   }, [showAttachmentMenu]);
-  
-  // Animate reaction picker
+
   useEffect(() => {
     Animated.spring(reactionPickerAnim, {
       toValue: showReactionPicker ? 1 : 0,
@@ -283,7 +276,21 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       if (!refreshing) setLoading(true);
       setError(null);
       const response = await studyGroupsAPI.getById(groupId);
-      setGroup(response.data.data);
+      const groupData = response.data.data;
+      setGroup(groupData);
+
+      if (groupData.discussions) {
+        const reactionsMap = {};
+        groupData.discussions.forEach((discussion) => {
+          if (discussion.reactions && discussion.reactions.length > 0) {
+            reactionsMap[discussion._id.toString()] = discussion.reactions.map(r => ({
+              emoji: r.emoji,
+              userId: typeof r.user === 'object' ? r.user._id : r.user
+            }));
+          }
+        });
+        setMessageReactions(reactionsMap);
+      }
     } catch (error) {
       console.error('Failed to load study group:', error);
       setError('Failed to load study group. Please try again.');
@@ -299,48 +306,83 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   };
 
   const isMember = () => {
-    if (!user || !user._id || !group) return false;
-    // Normalize user ID - handle both string and object formats
-    const userId = typeof user._id === 'object' ? user._id.toString() : String(user._id);
-    
-    return group.members?.some(member => {
-      // Handle all possible formats of member.user
-      let memberId;
-      if (typeof member.user === 'object' && member.user !== null) {
-        memberId = member.user._id ? String(member.user._id) : null;
-      } else if (member.user) {
-        memberId = String(member.user);
+    if (!user || !group) return false;
+
+    const userId = user._id
+      ? (typeof user._id === 'object' ? String(user._id) : String(user._id))
+      : (user.id ? String(user.id) : null);
+
+    if (!userId) return false;
+
+    let creatorId = null;
+    if (group.creator) {
+      if (typeof group.creator === 'object' && group.creator !== null) {
+        creatorId = group.creator._id
+          ? String(group.creator._id)
+          : (group.creator.id ? String(group.creator.id) : String(group.creator));
       } else {
-        return false;
+        creatorId = String(group.creator);
       }
+    }
+
+    if (creatorId && creatorId === userId) {
+      return true;
+    }
+
+    const inMembers = group.members?.some(member => {
+      if (!member || !member.user) return false;
+
+      let memberId = null;
+      if (typeof member.user === 'object' && member.user !== null) {
+        memberId = member.user._id
+          ? String(member.user._id)
+          : (member.user.id ? String(member.user.id) : String(member.user));
+      } else {
+        memberId = String(member.user);
+      }
+
       return memberId === userId;
-    }) || false;
+    });
+
+    return inMembers || false;
   };
 
   const isModerator = () => {
-    if (!user || !user._id || !group) return false;
-    // Normalize user ID
-    const userId = typeof user._id === 'object' ? user._id.toString() : String(user._id);
-    
-    // Check if user is the creator
-    let creatorId;
-    if (typeof group.creator === 'object' && group.creator !== null) {
-      creatorId = group.creator._id ? String(group.creator._id) : null;
-    } else if (group.creator) {
-      creatorId = String(group.creator);
-    }
-    if (creatorId === userId) return true;
-    
-    // Check if user is a moderator member
-    return group.members?.some(member => {
-      let memberId;
-      if (typeof member.user === 'object' && member.user !== null) {
-        memberId = member.user._id ? String(member.user._id) : null;
-      } else if (member.user) {
-        memberId = String(member.user);
+    if (!user || !group) return false;
+
+    const userId = user._id
+      ? (typeof user._id === 'object' ? String(user._id) : String(user._id))
+      : (user.id ? String(user.id) : null);
+
+    if (!userId) return false;
+
+    let creatorId = null;
+    if (group.creator) {
+      if (typeof group.creator === 'object' && group.creator !== null) {
+        creatorId = group.creator._id
+          ? String(group.creator._id)
+          : (group.creator.id ? String(group.creator.id) : String(group.creator));
       } else {
-        return false;
+        creatorId = String(group.creator);
       }
+    }
+
+    if (creatorId && creatorId === userId) {
+      return true;
+    }
+
+    return group.members?.some(member => {
+      if (!member || !member.user) return false;
+
+      let memberId = null;
+      if (typeof member.user === 'object' && member.user !== null) {
+        memberId = member.user._id
+          ? String(member.user._id)
+          : (member.user.id ? String(member.user.id) : String(member.user));
+      } else {
+        memberId = String(member.user);
+      }
+
       return memberId === userId && member.role === 'moderator';
     }) || false;
   };
@@ -411,14 +453,12 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
     try {
       setSendingMessage(true);
-      
-      // Build message object with type and attachments
+
       let messageData = {
         message: discussionMessage.trim(),
         type: MESSAGE_TYPES.TEXT,
       };
-      
-      // Handle image attachment
+
       if (selectedImage) {
         messageData.type = MESSAGE_TYPES.IMAGE;
         messageData.attachment = {
@@ -427,8 +467,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           name: selectedImage.fileName || 'image.jpg',
         };
       }
-      
-      // Handle document attachment
+
       if (selectedDocument) {
         messageData.type = MESSAGE_TYPES.DOCUMENT;
         messageData.attachment = {
@@ -438,8 +477,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           size: selectedDocument.size,
         };
       }
-      
-      // Handle reply
+
       if (replyingTo) {
         messageData.replyTo = {
           id: replyingTo._id || replyingTo.id,
@@ -447,8 +485,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           message: replyingTo.message?.substring(0, 50) + (replyingTo.message?.length > 50 ? '...' : ''),
         };
       }
-      
-      // Detect links in message
+
       const urls = detectURL(discussionMessage);
       if (urls && urls.length > 0 && !selectedImage && !selectedDocument) {
         messageData.type = MESSAGE_TYPES.LINK;
@@ -456,29 +493,26 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       }
 
       await studyGroupsAPI.addDiscussion(groupId, JSON.stringify(messageData));
-      
-      // Clear all inputs
+
       setDiscussionMessage('');
       setSelectedImage(null);
       setSelectedDocument(null);
       setReplyingTo(null);
       setShowAttachmentMenu(false);
-      
+
       loadGroup();
-      
-      // Scroll to bottom
+
       setTimeout(() => {
         discussionsScrollRef.current?.scrollToEnd({ animated: true });
       }, 300);
-      
+
     } catch (error) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to send message');
     } finally {
       setSendingMessage(false);
     }
   };
-  
-  // Pick image from gallery
+
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -486,14 +520,14 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         Alert.alert('Permission Required', 'Please allow access to your photo library');
         return;
       }
-      
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
         quality: 0.8,
         aspect: [4, 3],
       });
-      
+
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0]);
         setSelectedDocument(null);
@@ -503,8 +537,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       Alert.alert('Error', 'Failed to pick image');
     }
   };
-  
-  // Take photo with camera
+
   const takePhoto = async () => {
     try {
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -512,13 +545,13 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         Alert.alert('Permission Required', 'Please allow access to your camera');
         return;
       }
-      
+
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         quality: 0.8,
         aspect: [4, 3],
       });
-      
+
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0]);
         setSelectedDocument(null);
@@ -528,1772 +561,56 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       Alert.alert('Error', 'Failed to take photo');
     }
   };
-  
-  // Pick document
+
   const pickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
-        copyToCacheDirectory: true,
       });
-      
-      if (!result.canceled && result.assets[0]) {
-        setSelectedDocument(result.assets[0]);
-        setSelectedImage(null);
-        setShowAttachmentMenu(false);
+      if (result.type === 'success') {
+        console.log('Document picked:', result);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to pick document');
     }
   };
-  
-  // Handle reaction
-  const handleReaction = (messageIndex, reaction) => {
-    setMessageReactions(prev => {
-      const key = messageIndex.toString();
-      const currentReactions = prev[key] || [];
-      const existingIndex = currentReactions.findIndex(r => r.emoji === reaction.emoji);
-      
-      if (existingIndex >= 0) {
-        // Remove reaction if already added
-        return {
-          ...prev,
-          [key]: currentReactions.filter((_, i) => i !== existingIndex),
-        };
-      } else {
-        // Add new reaction
-        return {
-          ...prev,
-          [key]: [...currentReactions, { ...reaction, userId: user?._id }],
-        };
-      }
-    });
-    setShowReactionPicker(null);
-  };
 
-  // Message Actions
-  const openMessageActions = (message, index, isOwnMessage) => {
-    setSelectedMessage({ ...message, index, isOwnMessage });
-    setShowMessageActions(true);
-    Animated.spring(messageActionsAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 65,
-      friction: 10,
-    }).start();
-  };
-
-  const closeMessageActions = () => {
-    Animated.timing(messageActionsAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowMessageActions(false);
-      setSelectedMessage(null);
-    });
-  };
-
-  const handleDeleteMessage = async () => {
-    if (!selectedMessage) {
-      console.log('No selected message');
-      closeMessageActions();
-      return;
-    }
-    
-    console.log('Deleting message:', selectedMessage._id);
-    const messageId = selectedMessage._id;
-    
-    closeMessageActions();
-    
-    setTimeout(() => {
-      Alert.alert(
-        'Delete Message',
-        'Are you sure you want to delete this message? This cannot be undone.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await studyGroupsAPI.deleteDiscussion(groupId, messageId);
-                loadGroup();
-                Alert.alert('Success', 'Message deleted');
-              } catch (error) {
-                console.error('Delete message error:', error);
-                Alert.alert('Error', error.response?.data?.message || 'Failed to delete message');
-              }
-            },
-          },
-        ]
-      );
-    }, 300);
-  };
-
-  const handleCopyMessage = async () => {
-    console.log('Copy message pressed', selectedMessage);
-    if (!selectedMessage) {
-      closeMessageActions();
-      return;
-    }
-    
-    // Get the message text - try different properties
-    let textToCopy = '';
-    try {
-      // First try to parse the content/message field
-      const rawContent = selectedMessage.content || selectedMessage.message;
-      if (rawContent) {
-        try {
-          const messageData = JSON.parse(rawContent);
-          textToCopy = messageData?.message || rawContent;
-        } catch {
-          textToCopy = rawContent;
-        }
-      }
-    } catch (error) {
-      console.error('Error parsing message:', error);
-      textToCopy = selectedMessage.content || selectedMessage.message || '';
-    }
-    
-    closeMessageActions();
-    
-    // Copy to clipboard after modal closes
-    setTimeout(async () => {
-      if (textToCopy) {
-        try {
-          await Clipboard.setStringAsync(textToCopy);
-          Alert.alert('Copied', 'Message copied to clipboard');
-        } catch (error) {
-          console.error('Clipboard error:', error);
-          Alert.alert('Error', 'Failed to copy message');
-        }
-      } else {
-        Alert.alert('Notice', 'No text to copy');
-      }
-    }, 300);
-  };
-
-  const handleReplyToMessage = () => {
-    console.log('Reply pressed', selectedMessage);
-    if (!selectedMessage) {
-      closeMessageActions();
-      return;
-    }
-    
-    const messageUser = typeof selectedMessage.user === 'object' 
-      ? selectedMessage.user 
-      : { name: 'User' };
-    
-    const replyData = { ...selectedMessage, user: messageUser };
-    closeMessageActions();
-    
-    setTimeout(() => {
-      setReplyingTo(replyData);
-    }, 300);
-  };
-
-  const handleForwardMessage = () => {
-    console.log('Forward pressed');
-    closeMessageActions();
-    setTimeout(() => {
-      Alert.alert('Forward', 'Message forwarding will be available soon');
-    }, 300);
-  };
-
-  const handleReportMessage = () => {
-    console.log('Report pressed');
-    closeMessageActions();
-    setTimeout(() => {
-      Alert.alert(
-        'Report Message',
-        'Why are you reporting this message?',
-        [
-          { text: 'Spam', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
-          { text: 'Inappropriate', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
-          { text: 'Harassment', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
-          { text: 'Cancel', style: 'cancel' },
-        ]
-      );
-    }, 300);
-  };
-  
-  // Open image in full screen
-  const openImagePreview = (imageUri) => {
-    setPreviewImage(imageUri);
-    setShowImagePreview(true);
-  };
-  
-  // Cancel attachment
-  const cancelAttachment = () => {
-    setSelectedImage(null);
-    setSelectedDocument(null);
-  };
-  
-  // Cancel reply
-  const cancelReply = () => {
-    setReplyingTo(null);
-  };
-  
-  // Insert emoji into message
-  const insertEmoji = (emoji) => {
-    setDiscussionMessage(prev => prev + emoji);
-  };
-  
-  // Download image to device gallery
-  const downloadImage = async (imageUri) => {
-    try {
-      // Request permission
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to save images to your gallery');
-        return;
-      }
-      
-      Alert.alert('Downloading...', 'Saving image to your gallery');
-      
-      const filename = `StudyGroup_${Date.now()}.jpg`;
-      const fileUri = FileSystem.documentDirectory + filename;
-      let finalUri = fileUri;
-      
-      // Check if it's a local file or remote URL
-      if (imageUri.startsWith('file://')) {
-        // Local file - copy instead of download
-        await FileSystem.copyAsync({
-          from: imageUri,
-          to: fileUri
-        });
-        finalUri = fileUri;
-      } else {
-        // Remote URL - download
-        const downloadResult = await FileSystem.downloadAsync(imageUri, fileUri);
-        if (downloadResult.status !== 200) {
-          throw new Error('Download failed');
-        }
-        finalUri = downloadResult.uri;
-      }
-      
-      // Save to media library
-      const asset = await MediaLibrary.createAssetAsync(finalUri);
-      await MediaLibrary.createAlbumAsync('French Master', asset, false);
-      
-      Alert.alert('Success! 🎉', 'Image saved to your gallery in "French Master" album');
-    } catch (error) {
-      console.error('Download error:', error);
-      Alert.alert('Error', 'Failed to download image. Please try again.');
-    }
-  };
-  
-  // Share image
-  const shareImage = async (imageUri) => {
-    try {
-      // Check if sharing is available
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (!isAvailable) {
-        Alert.alert('Sharing not available', 'Sharing is not available on this device');
-        return;
-      }
-      
-      let shareUri = imageUri;
-      
-      // If it's a local file, we can share directly
-      if (imageUri.startsWith('file://')) {
-        shareUri = imageUri;
-      } else {
-        // Remote URL - download to temp file first
-        const filename = `share_${Date.now()}.jpg`;
-        const fileUri = FileSystem.cacheDirectory + filename;
-        const downloadResult = await FileSystem.downloadAsync(imageUri, fileUri);
-        if (downloadResult.status === 200) {
-          shareUri = downloadResult.uri;
-        }
-      }
-      
-      await Sharing.shareAsync(shareUri, {
-        mimeType: 'image/jpeg',
-        dialogTitle: 'Share Image',
-      });
-    } catch (error) {
-      console.error('Share error:', error);
-      Alert.alert('Error', 'Failed to share image. Please try again.');
-    }
-  };
-  
-  // Download document
-  const downloadDocument = async (docUri, docName) => {
-    try {
-      Alert.alert('Downloading...', `Saving ${docName}`);
-      
-      const fileUri = FileSystem.documentDirectory + docName;
-      let finalUri = fileUri;
-      
-      // Check if it's a local file or remote URL
-      if (docUri.startsWith('file://')) {
-        // Local file - copy instead of download
-        await FileSystem.copyAsync({
-          from: docUri,
-          to: fileUri
-        });
-        finalUri = fileUri;
-      } else {
-        // Remote URL - download
-        const downloadResult = await FileSystem.downloadAsync(docUri, fileUri);
-        if (downloadResult.status !== 200) {
-          throw new Error('Download failed');
-        }
-        finalUri = downloadResult.uri;
-      }
-      
-      // Share the document (this allows user to save it)
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (isAvailable) {
-        await Sharing.shareAsync(finalUri, {
-          dialogTitle: `Save ${docName}`,
-        });
-      } else {
-        Alert.alert('Downloaded', `File saved to app storage: ${docName}`);
-      }
-    } catch (error) {
-      console.error('Download error:', error);
-      Alert.alert('Error', 'Failed to download document. Please try again.');
-    }
-  };
-  
-  // Share document
-  const shareDocument = async (docUri, docName) => {
-    try {
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (!isAvailable) {
-        Alert.alert('Sharing not available', 'Sharing is not available on this device');
-        return;
-      }
-      
-      let shareUri = docUri;
-      
-      // If it's a local file, we can share directly
-      if (docUri.startsWith('file://')) {
-        shareUri = docUri;
-      } else {
-        // Remote URL - download to temp file first
-        const fileUri = FileSystem.cacheDirectory + docName;
-        const downloadResult = await FileSystem.downloadAsync(docUri, fileUri);
-        if (downloadResult.status === 200) {
-          shareUri = downloadResult.uri;
-        }
-      }
-      
-      await Sharing.shareAsync(shareUri, {
-        dialogTitle: `Share ${docName}`,
-      });
-    } catch (error) {
-      console.error('Share error:', error);
-      Alert.alert('Error', 'Failed to share document. Please try again.');
-    }
-  };
-
-  // Voice Recording Functions
-  const startRecording = async () => {
-    try {
-      // Prevent starting if already recording
-      if (isRecording || recording) {
-        console.log('Already recording, ignoring start request');
-        return;
-      }
-      
-      console.log('Starting recording...');
-      
-      // Request permissions
-      const permission = await Audio.requestPermissionsAsync();
-      console.log('Permission status:', permission);
-      
-      if (permission.status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow microphone access to send voice messages');
-        return;
-      }
-
-      // Set audio mode for recording
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
-
-      // Create and start recording
-      const { recording: newRecording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      
-      console.log('Recording started');
-      setRecording(newRecording);
-      setIsRecording(true);
-      setRecordingDuration(0);
-
-      // Start duration timer
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-
-      // Start pulse animation
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(recordingAnimRef, {
-            toValue: 1.2,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(recordingAnimRef, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-
-    } catch (error) {
-      console.error('Failed to start recording:', error);
-      Alert.alert('Error', 'Failed to start recording: ' + error.message);
-    }
-  };
-
-  const stopRecording = async () => {
-    try {
-      if (!recording) {
-        console.log('No recording to stop');
-        return null;
-      }
-
-      console.log('Stopping recording...');
-
-      // Stop timer and animation
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-      }
-      recordingAnimRef.stopAnimation();
-      recordingAnimRef.setValue(1);
-
-      setIsRecording(false);
-      
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      const duration = recordingDuration;
-      
-      console.log('Recording stopped, URI:', uri);
-      
-      setRecording(null);
-      setRecordingDuration(0);
-
-      // Reset audio mode
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-      });
-
-      return { uri, duration };
-    } catch (error) {
-      console.error('Failed to stop recording:', error);
-      Alert.alert('Error', 'Failed to stop recording.');
-      return null;
-    }
-  };
-
-  const cancelRecording = async () => {
-    try {
-      if (!recording) return;
-
-      // Stop timer and animation
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-        recordingTimerRef.current = null;
-      }
-      recordingAnimRef.stopAnimation();
-      recordingAnimRef.setValue(1);
-
-      setIsRecording(false);
-      
-      await recording.stopAndUnloadAsync();
-      setRecording(null);
-      setRecordingDuration(0);
-
-      // Reset audio mode
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-      });
-    } catch (error) {
-      console.error('Failed to cancel recording:', error);
-    }
-  };
-
-  const sendVoiceMessage = async () => {
-    const voiceData = await stopRecording();
-    if (!voiceData || !voiceData.uri) {
-      console.log('No voice data to send');
-      return;
-    }
-
-    try {
-      setSendingMessage(true);
-      
-      const messageData = {
-        message: '🎤 Voice message',
-        type: MESSAGE_TYPES.VOICE,
-        attachment: {
-          type: 'voice',
-          uri: voiceData.uri,
-          duration: voiceData.duration,
-        },
-      };
-
-      if (replyingTo) {
-        messageData.replyTo = {
-          id: replyingTo._id || replyingTo.id,
-          userName: replyingTo.user?.name || 'Member',
-          message: replyingTo.message?.substring(0, 50) + (replyingTo.message?.length > 50 ? '...' : ''),
-        };
-      }
-
-      await studyGroupsAPI.addDiscussion(groupId, JSON.stringify(messageData));
-      setReplyingTo(null);
-      loadGroup();
-    } catch (error) {
-      console.error('Send voice message error:', error);
-      Alert.alert('Error', 'Failed to send voice message');
-    } finally {
-      setSendingMessage(false);
-    }
-  };
-
-  const playVoiceMessage = async (voiceUri, messageId) => {
-    try {
-      // Stop any currently playing audio
-      if (soundObject) {
-        await soundObject.unloadAsync();
-        setSoundObject(null);
-        if (playingVoice === messageId) {
-          setPlayingVoice(null);
-          return;
-        }
-      }
-
-      // Check if the file exists for local files
-      if (voiceUri.startsWith('file://')) {
-        const fileInfo = await FileSystem.getInfoAsync(voiceUri);
-        if (!fileInfo.exists) {
-          Alert.alert(
-            'Voice Message Unavailable',
-            'This voice message is no longer available. Local recordings are cleared when the app cache is cleared.',
-            [{ text: 'OK' }]
-          );
-          return;
-        }
-      }
-
-      // Set audio mode for playback
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        playsInSilentModeIOS: true,
-      });
-
-      // Load and play the audio
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: voiceUri },
-        { shouldPlay: true },
-        (status) => {
-          if (status.isLoaded) {
-            const progress = status.positionMillis / status.durationMillis;
-            setVoiceProgress(prev => ({ ...prev, [messageId]: progress }));
-            
-            if (status.didJustFinish) {
-              setPlayingVoice(null);
-              setVoiceProgress(prev => ({ ...prev, [messageId]: 0 }));
-            }
-          }
-        }
-      );
-
-      setSoundObject(sound);
-      setPlayingVoice(messageId);
-    } catch (error) {
-      console.error('Error playing voice message:', error);
-      Alert.alert(
-        'Playback Error', 
-        'Unable to play this voice message. The file may have been deleted or is corrupted.'
-      );
-    }
-  };
-
-  const formatDuration = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Cleanup audio on unmount
-  useEffect(() => {
-    return () => {
-      if (soundObject) {
-        soundObject.unloadAsync();
-      }
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-      }
-      if (callTimerRef.current) {
-        clearInterval(callTimerRef.current);
-      }
-    };
-  }, [soundObject]);
-
-  // Call Functions
-  const startCall = async (type) => {
-    // Request camera permission for video calls
-    if (type === 'video') {
-      if (!cameraPermission?.granted) {
-        const permission = await requestCameraPermission();
-        if (!permission.granted) {
-          Alert.alert('Permission Required', 'Camera access is needed for video calls');
-          return;
-        }
-      }
-    }
-    
-    setCallType(type);
-    setIsInCall(true);
-    setCallDuration(0);
-    setIsMuted(false);
-    setIsSpeakerOn(type === 'video');
-    setIsVideoOn(type === 'video');
-    
-    // Start call timer
-    callTimerRef.current = setInterval(() => {
-      setCallDuration(prev => prev + 1);
-    }, 1000);
-    
-    // Start pulse animation for connecting
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(callPulseAnim, {
-          toValue: 1.1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(callPulseAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  };
-  
-  const endCall = () => {
-    if (callTimerRef.current) {
-      clearInterval(callTimerRef.current);
-      callTimerRef.current = null;
-    }
-    callPulseAnim.stopAnimation();
-    callPulseAnim.setValue(1);
-    
-    setIsInCall(false);
-    setCallType(null);
-    setCallDuration(0);
-    setIsMuted(false);
-    setIsSpeakerOn(false);
-    setIsVideoOn(true);
-  };
-  
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
-  
-  const toggleSpeaker = () => {
-    setIsSpeakerOn(!isSpeakerOn);
-  };
-  
-  const toggleVideo = () => {
-    setIsVideoOn(!isVideoOn);
-  };
-  
-  const toggleCamera = () => {
-    setIsFrontCamera(!isFrontCamera);
-  };
-  
-  const formatCallDuration = (seconds) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    if (hrs > 0) {
-      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Group Options Functions
-  const openGroupOptions = () => {
-    setShowGroupOptions(true);
-    Animated.spring(groupOptionsAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 65,
-      friction: 10,
-    }).start();
-  };
-
-  const closeGroupOptions = () => {
-    Animated.timing(groupOptionsAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => setShowGroupOptions(false));
-  };
-
-  const openGroupInfo = () => {
-    setShowGroupInfo(true);
-    Animated.spring(groupInfoAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      tension: 50,
-      friction: 12,
-    }).start();
-  };
-
-  const closeGroupInfo = () => {
-    Animated.timing(groupInfoAnim, {
-      toValue: 0,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => setShowGroupInfo(false));
-  };
-
-  const openEditGroup = () => {
-    if (group) {
-      setEditGroupData({
-        name: group.name || '',
-        description: group.description || '',
-        level: group.level || 'all',
-        focus: group.focus || 'general',
-        maxMembers: group.maxMembers || 20,
-        isPrivate: group.isPrivate || false,
-        image: group.image || null,
-      });
-    }
-    closeGroupOptions();
-    setTimeout(() => setShowEditGroup(true), 300);
-  };
-
-  const pickGroupImage = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to your photo library to change the group photo.');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setEditGroupData(prev => ({ ...prev, image: result.assets[0].uri }));
-      }
-    } catch (error) {
-      console.error('Error picking group image:', error);
-      Alert.alert('Error', 'Failed to pick image');
-    }
-  };
-
-  const takeGroupPhoto = async () => {
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow camera access to take a photo.');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setEditGroupData(prev => ({ ...prev, image: result.assets[0].uri }));
-      }
-    } catch (error) {
-      console.error('Error taking group photo:', error);
-      Alert.alert('Error', 'Failed to take photo');
-    }
-  };
-
-  const showImageOptions = () => {
-    Alert.alert(
-      'Change Group Photo',
-      'Choose an option',
-      [
-        { text: 'Take Photo', onPress: takeGroupPhoto },
-        { text: 'Choose from Library', onPress: pickGroupImage },
-        { text: 'Remove Photo', onPress: () => setEditGroupData(prev => ({ ...prev, image: null })), style: 'destructive' },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
-  };
-
-  const handleSaveGroupEdit = async () => {
-    try {
-      setEditGroupImageLoading(true);
-      
-      // Prepare update data
-      const updateData = {
-        name: editGroupData.name,
-        description: editGroupData.description,
-        level: editGroupData.level,
-        focus: editGroupData.focus,
-        maxMembers: editGroupData.maxMembers,
-        isPrivate: editGroupData.isPrivate,
-      };
-
-      // If there's a new local image (starts with file://), we need to upload it
-      if (editGroupData.image && editGroupData.image.startsWith('file://')) {
-        // For now, store the image URI directly - in production, you'd upload to cloud storage
-        // and get back a URL. Here we'll convert to base64 for the backend to handle.
-        try {
-          const base64 = await FileSystem.readAsStringAsync(editGroupData.image, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-          const fileExtension = editGroupData.image.split('.').pop()?.toLowerCase() || 'jpg';
-          const mimeType = fileExtension === 'png' ? 'image/png' : 'image/jpeg';
-          updateData.image = `data:${mimeType};base64,${base64}`;
-        } catch (imageError) {
-          console.error('Error encoding image:', imageError);
-          // Continue without the image if encoding fails
-        }
-      } else if (editGroupData.image === null) {
-        // User wants to remove the image
-        updateData.image = null;
-      } else if (editGroupData.image) {
-        // Keep existing remote URL
-        updateData.image = editGroupData.image;
-      }
-
-      await studyGroupsAPI.update(groupId, updateData);
-      setShowEditGroup(false);
-      loadGroup();
-      Alert.alert('Success', 'Group updated successfully');
-    } catch (error) {
-      console.error('Save group error:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update group');
-    } finally {
-      setEditGroupImageLoading(false);
-    }
-  };
-
-  const handleCopyInviteCode = () => {
-    if (group?.inviteCode) {
-      // In a real app, you'd use Clipboard API
-      Alert.alert('Invite Code', `Share this code: ${group.inviteCode}`);
-    }
-    closeGroupOptions();
-  };
-
-  const handleShareGroup = async () => {
-    try {
-      const message = `Join my study group "${group?.name}" on French Master!\n\nInvite Code: ${group?.inviteCode || 'No code required'}`;
-      await Sharing.shareAsync('', { dialogTitle: 'Share Group', message });
-    } catch (error) {
-      console.log('Share error:', error);
-    }
-    closeGroupOptions();
-  };
-
-  const handleMuteGroup = (duration) => {
-    setNotificationSettings(prev => ({
-      ...prev,
-      muted: true,
-      muteDuration: duration,
-    }));
-    closeGroupOptions();
-    Alert.alert('Muted', duration ? `Muted for ${duration}` : 'Notifications muted');
-  };
-
-  const handleReportGroup = () => {
-    closeGroupOptions();
-    Alert.alert(
-      'Report Group',
-      'Why are you reporting this group?',
-      [
-        { text: 'Spam', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
-        { text: 'Inappropriate Content', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
-        { text: 'Harassment', onPress: () => Alert.alert('Reported', 'Thank you for your report.') },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
-  };
-
-  const handleDeleteGroup = () => {
-    closeGroupOptions();
-    Alert.alert(
-      'Delete Group',
-      'Are you sure you want to delete this group? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await studyGroupsAPI.delete(groupId);
-              navigation.goBack();
-              Alert.alert('Deleted', 'Group has been deleted');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete group');
-            }
-          }
-        },
-      ]
-    );
-  };
-
-  const handleAddResource = async () => {
-    if (!newResource.title.trim() || !newResource.url.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    try {
-      await studyGroupsAPI.addResource(groupId, newResource);
-      setShowResourceModal(false);
-      setNewResource({ title: '', url: '', type: 'link' });
-      loadGroup();
-      Alert.alert('Success', 'Resource added successfully');
-    } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add resource');
-    }
-  };
-
-  if (loading && !refreshing) {
-    return <LoadingSpinner />;
-  }
-
-  if (error || !group) {
-    return <ErrorMessage message={error || 'Study group not found'} onRetry={loadGroup} />;
-  }
-
-  const member = isMember();
-  const moderator = isModerator();
-  const memberCount = group.members?.length || 0;
-
-  // Full-screen chat view for discussions
-  if (activeTab === 'discussions') {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* Chat Header */}
-        <LinearGradient
-          colors={isDarkMode 
-            ? [premiumColors.primary.main, '#1a0a2e']
-            : [premiumColors.primary.main, '#7B1FA2']
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.chatHeader}
-        >
-          <View style={styles.chatHeaderContent}>
-            <TouchableOpacity 
-              style={styles.chatBackButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.chatHeaderInfo}
-              onPress={openGroupInfo}
-              activeOpacity={0.7}
-            >
-              {group.image ? (
-                <Image source={{ uri: group.image }} style={styles.chatHeaderGroupImage} />
-              ) : (
-                <View style={styles.chatHeaderGroupIcon}>
-                  <Ionicons name="people" size={20} color="#FFFFFF" />
-                </View>
-              )}
-              <View style={styles.chatHeaderText}>
-                <Text style={styles.chatHeaderTitle} numberOfLines={1}>
-                  {group.name}
-                </Text>
-                <View style={styles.chatHeaderMeta}>
-                  {/* Member avatars */}
-                  <View style={styles.chatMemberAvatars}>
-                    {group.members?.slice(0, 3).map((m, idx) => {
-                      const memberUser = typeof m.user === 'object' ? m.user : null;
-                      return memberUser?.avatar ? (
-                        <Image
-                          key={idx}
-                          source={{ uri: memberUser.avatar }}
-                          style={[styles.chatMemberAvatar, { marginLeft: idx > 0 ? -8 : 0 }]}
-                        />
-                      ) : (
-                        <View 
-                          key={idx}
-                          style={[styles.chatMemberAvatarPlaceholder, { marginLeft: idx > 0 ? -8 : 0 }]}
-                        >
-                          <Ionicons name="person" size={10} color="#FFFFFF" />
-                        </View>
-                      );
-                    })}
-                  </View>
-                  <Text style={styles.chatHeaderSubtitle}>
-                    {memberCount} members • Tap for info
-                  </Text>
-                </View>
+  const renderVoiceCallModal = () => (
+    <Modal visible={showVoiceCall} animationType="fade" statusBarTranslucent>
+      <LinearGradient
+        colors={['#667eea', '#764ba2', '#6B8DD6']}
+        style={styles.callBackground}
+      >
+        <View style={styles.voiceCallContainer}>
+          <Animated.View style={[styles.callAvatarContainer, { transform: [{ scale: callPulseAnim }] }]}>
+            <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']} style={styles.callAvatarRing}>
+              <View style={styles.callAvatar}>
+                <Ionicons name="people" size={50} color="#FFFFFF" />
               </View>
-              <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
-            </TouchableOpacity>
-            
-            <View style={styles.chatHeaderActions}>
-              <TouchableOpacity style={styles.chatHeaderButton} onPress={() => startCall('voice')}>
-                <Ionicons name="call-outline" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.chatHeaderButton} onPress={() => startCall('video')}>
-                <Ionicons name="videocam-outline" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.chatHeaderButton} onPress={openGroupOptions}>
-                <Ionicons name="ellipsis-vertical" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
+            </LinearGradient>
+          </Animated.View>
+          <Text style={styles.callGroupName}>{group?.name}</Text>
+          <Text style={styles.callStatus}>
+            {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
+          </Text>
+          <View style={styles.callParticipants}>
+            <Text style={styles.callParticipantsText}>{memberCount} participants</Text>
           </View>
-        </LinearGradient>
-        
-        {/* Full Screen Chat Content */}
-        <View style={styles.fullScreenChat}>
-          {/* Messages List */}
-          <ScrollView
-            ref={discussionsScrollRef}
-            style={styles.chatMessagesScrollView}
-            contentContainerStyle={styles.chatMessagesContent}
-            showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => discussionsScrollRef.current?.scrollToEnd({ animated: false })}
-          >
-            {group.discussions?.length > 0 ? (
-              group.discussions.map((discussion, index) => {
-                const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
-                const isOwnMessage = discussionUser?._id === user?._id;
-                const reactions = messageReactions[index.toString()] || [];
-                
-                // Parse message data
-                let messageData;
-                try {
-                  messageData = JSON.parse(discussion.message);
-                } catch {
-                  messageData = { message: discussion.message, type: MESSAGE_TYPES.TEXT };
-                }
-                
-                return (
-                  <View key={index} style={styles.messageWrapper}>
-                    {/* Date separator */}
-                    {index === 0 || new Date(discussion.createdAt).toDateString() !== 
-                      new Date(group.discussions[index - 1]?.createdAt).toDateString() ? (
-                      <View style={styles.dateSeparator}>
-                        <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
-                        <Text style={[styles.dateText, { color: colors.secondaryText, backgroundColor: colors.background }]}>
-                          {new Date(discussion.createdAt).toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                        </Text>
-                        <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
-                      </View>
-                    ) : null}
-                    
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onLongPress={() => openMessageActions({ ...discussion, content: discussion.message }, index, isOwnMessage)}
-                      style={[
-                        styles.messageContainer,
-                        isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer,
-                      ]}
-                    >
-                      {!isOwnMessage && (
-                        discussionUser?.avatar ? (
-                          <Image 
-                            source={{ uri: discussionUser.avatar }} 
-                            style={styles.messageAvatar}
-                          />
-                        ) : (
-                          <View style={[styles.messageAvatarPlaceholder, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                            <Ionicons name="person" size={16} color={premiumColors.primary.main} />
-                          </View>
-                        )
-                      )}
-                      
-                      <View style={[
-                        styles.messageBubble,
-                        isOwnMessage ? 
-                          [styles.ownMessageBubble, { backgroundColor: '#007AFF' }] : 
-                          [styles.otherMessageBubble, { backgroundColor: isDarkMode ? '#262629' : '#E9E9EB' }],
-                        messageData.type === MESSAGE_TYPES.IMAGE && styles.imageBubble,
-                        messageData.type === MESSAGE_TYPES.IMAGE && (isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble),
-                      ]}>
-                        {/* iOS-style bubble tail - hide for image-only messages */}
-                        {messageData.type !== MESSAGE_TYPES.IMAGE && (
-                          <View style={[
-                            isOwnMessage ? styles.ownBubbleTail : styles.otherBubbleTail,
-                            { backgroundColor: isOwnMessage ? '#007AFF' : (isDarkMode ? '#262629' : '#E9E9EB') }
-                          ]}>
-                            <View style={[
-                              styles.bubbleTailCover,
-                              { backgroundColor: colors.background },
-                              isOwnMessage ? styles.ownTailCover : styles.otherTailCover
-                            ]} />
-                          </View>
-                        )}
-                        {/* Author name - hide for image-only messages from others */}
-                        {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
-                          <Text style={[styles.messageAuthor, { color: premiumColors.primary.main }]}>
-                            {discussionUser?.name || 'Member'}
-                          </Text>
-                        )}
-                        
-                        {/* Reply preview */}
-                        {messageData.replyTo && (
-                          <View style={[styles.replyPreview, { 
-                            backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background,
-                            borderLeftColor: premiumColors.accent.emerald,
-                          }]}>
-                            <Text style={[styles.replyAuthor, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.emerald }]}>
-                              {messageData.replyTo.userName}
-                            </Text>
-                            <Text style={[styles.replyText, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]} numberOfLines={1}>
-                              {messageData.replyTo.message}
-                            </Text>
-                          </View>
-                        )}
-                        
-                        {/* Image attachment - iOS iMessage style */}
-                        {messageData.type === MESSAGE_TYPES.IMAGE && messageData.attachment?.uri && (
-                          <TouchableOpacity 
-                            onPress={() => openImagePreview(messageData.attachment.uri)}
-                            style={[
-                              styles.imageAttachment,
-                              isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble
-                            ]}
-                            activeOpacity={0.95}
-                          >
-                            <Image 
-                              source={{ uri: messageData.attachment.uri }} 
-                              style={[
-                                styles.attachedImage,
-                                isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble
-                              ]}
-                              resizeMode="cover"
-                            />
-                            <LinearGradient
-                              colors={['transparent', 'rgba(0,0,0,0.35)']}
-                              style={[
-                                styles.imageGradientOverlay,
-                                isOwnMessage ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }
-                              ]}
-                            >
-                              <View style={styles.imageTimeContainer}>
-                                <Text style={styles.imageTimeText}>{formatTimeAgo(discussion.createdAt)}</Text>
-                                {isOwnMessage && (
-                                  <Ionicons 
-                                    name="checkmark-done" 
-                                    size={13} 
-                                    color="#FFFFFF" 
-                                    style={{ marginLeft: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: {width: 0, height: 1}, textShadowRadius: 2 }} 
-                                  />
-                                )}
-                              </View>
-                            </LinearGradient>
-                          </TouchableOpacity>
-                        )}
-                        
-                        {/* Document attachment */}
-                        {messageData.type === MESSAGE_TYPES.DOCUMENT && messageData.attachment && (
-                          <View style={[styles.documentAttachment, { 
-                            backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background 
-                          }]}>
-                            <View style={[styles.documentIcon, { backgroundColor: getFileIcon(messageData.attachment.name).color + '20' }]}>
-                              <Ionicons 
-                                name={getFileIcon(messageData.attachment.name).icon} 
-                                size={24} 
-                                color={getFileIcon(messageData.attachment.name).color} 
-                              />
-                            </View>
-                            <View style={styles.documentInfo}>
-                              <Text style={[styles.documentName, { color: isOwnMessage ? '#FFFFFF' : colors.text }]} numberOfLines={1}>
-                                {messageData.attachment.name}
-                              </Text>
-                              <Text style={[styles.documentSize, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
-                                {messageData.attachment.size ? `${(messageData.attachment.size / 1024).toFixed(1)} KB` : 'Document'}
-                              </Text>
-                            </View>
-                            <View style={styles.documentActions}>
-                              <TouchableOpacity 
-                                style={[styles.documentActionBtn, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.border }]}
-                                onPress={() => downloadDocument(messageData.attachment.uri, messageData.attachment.name)}
-                              >
-                                <Ionicons name="download-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.text} />
-                              </TouchableOpacity>
-                              <TouchableOpacity 
-                                style={[styles.documentActionBtn, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.border }]}
-                                onPress={() => shareDocument(messageData.attachment.uri, messageData.attachment.name)}
-                              >
-                                <Ionicons name="share-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.text} />
-                              </TouchableOpacity>
-                            </View>
-                          </View>
-                        )}
-                        
-                        {/* Voice message - iOS style */}
-                        {messageData.type === MESSAGE_TYPES.VOICE && messageData.attachment && (
-                          <TouchableOpacity 
-                            style={[styles.voiceMessage, { 
-                              backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background 
-                            }]}
-                            onPress={() => playVoiceMessage(messageData.attachment.uri, discussion._id)}
-                            activeOpacity={0.8}
-                          >
-                            <View style={[
-                              styles.voicePlayButton, 
-                              { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.25)' : premiumColors.primary.main + '20' }
-                            ]}>
-                              <Ionicons 
-                                name={playingVoice === discussion._id ? "pause" : "play"} 
-                                size={20} 
-                                color={isOwnMessage ? '#FFFFFF' : premiumColors.primary.main} 
-                              />
-                            </View>
-                            <View style={styles.voiceWaveform}>
-                              {[...Array(20)].map((_, i) => (
-                                <Animated.View 
-                                  key={i}
-                                  style={[
-                                    styles.voiceBar,
-                                    { 
-                                      height: Math.random() * 16 + 6,
-                                      backgroundColor: isOwnMessage ? 
-                                        (i / 20 <= (voiceProgress[discussion._id] || 0) ? '#FFFFFF' : 'rgba(255,255,255,0.4)') :
-                                        (i / 20 <= (voiceProgress[discussion._id] || 0) ? premiumColors.primary.main : colors.border),
-                                    }
-                                  ]}
-                                />
-                              ))}
-                            </View>
-                            <Text style={[styles.voiceDuration, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]}>
-                              {formatDuration(messageData.attachment.duration || 0)}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                        
-                        {/* Link preview */}
-                        {messageData.type === MESSAGE_TYPES.LINK && messageData.links && (
-                          <TouchableOpacity 
-                            style={[styles.linkPreview, { 
-                              backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background 
-                            }]}
-                            onPress={() => Linking.openURL(messageData.links[0])}
-                          >
-                            <View style={[styles.linkIcon, { backgroundColor: premiumColors.accent.sky + '20' }]}>
-                              <Ionicons name="link" size={20} color={premiumColors.accent.sky} />
-                            </View>
-                            <View style={styles.linkInfo}>
-                              <Text style={[styles.linkUrl, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.sky }]} numberOfLines={1}>
-                                {messageData.links[0]}
-                              </Text>
-                              <Text style={[styles.linkHint, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
-                                Tap to open
-                              </Text>
-                            </View>
-                            <Ionicons name="open-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.secondaryText} />
-                          </TouchableOpacity>
-                        )}
-                        
-                        {/* Message text - hide for voice-only messages */}
-                        {messageData.message && messageData.type !== MESSAGE_TYPES.VOICE && (
-                          <Text style={[styles.messageText, { color: isOwnMessage ? '#FFFFFF' : colors.text }]}>
-                            {messageData.message}
-                          </Text>
-                        )}
-                        
-                        {/* Timestamp - hide for image-only messages */}
-                        {(messageData.type !== MESSAGE_TYPES.IMAGE || messageData.message) && (
-                          <View style={styles.messageFooter}>
-                            <Text style={[styles.messageTime, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
-                              {formatTimeAgo(discussion.createdAt)}
-                            </Text>
-                            {isOwnMessage && (
-                              <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.7)" style={{ marginLeft: 4 }} />
-                            )}
-                          </View>
-                        )}
-                      </View>
-                      
-                      {/* Reply action */}
-                      <TouchableOpacity 
-                        style={styles.messageReplyAction}
-                        onPress={() => setReplyingTo({ ...discussion, user: discussionUser })}
-                      >
-                        <Ionicons name="arrow-undo-outline" size={16} color={colors.secondaryText} />
-                      </TouchableOpacity>
-                    </TouchableOpacity>
-                    
-                    {/* Reactions */}
-                    {reactions.length > 0 && (
-                      <View style={[styles.reactionsContainer, isOwnMessage ? styles.ownReactions : styles.otherReactions]}>
-                        {reactions.map((reaction, rIndex) => (
-                          <View key={rIndex} style={[styles.reactionBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                            <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    )}
-                    
-                    {/* Reaction picker */}
-                    {showReactionPicker === index && (
-                      <Animated.View 
-                        style={[
-                          styles.reactionPicker,
-                          { backgroundColor: colors.card, borderColor: colors.border, opacity: reactionPickerAnim, transform: [{ scale: reactionPickerAnim }] },
-                          premiumShadows.lg,
-                          isOwnMessage ? styles.ownReactionPicker : styles.otherReactionPicker,
-                        ]}
-                      >
-                        {REACTIONS.map((reaction) => (
-                          <TouchableOpacity key={reaction.name} style={styles.reactionOption} onPress={() => handleReaction(index, reaction)}>
-                            <Text style={styles.reactionOptionEmoji}>{reaction.emoji}</Text>
-                          </TouchableOpacity>
-                        ))}
-                        <TouchableOpacity style={styles.reactionCloseButton} onPress={() => setShowReactionPicker(null)}>
-                          <Ionicons name="close" size={16} color={colors.secondaryText} />
-                        </TouchableOpacity>
-                      </Animated.View>
-                    )}
-                  </View>
-                );
-              })
-            ) : (
-              <View style={styles.emptyDiscussions}>
-                <LinearGradient
-                  colors={[premiumColors.primary.main + '20', premiumColors.accent.emerald + '20']}
-                  style={styles.emptyDiscussionsIcon}
-                >
-                  <Ionicons name="chatbubbles" size={48} color={premiumColors.primary.main} />
-                </LinearGradient>
-                <Text style={[styles.emptyDiscussionsTitle, { color: colors.text }]}>
-                  Start the Conversation
-                </Text>
-                <Text style={[styles.emptyDiscussionsText, { color: colors.secondaryText }]}>
-                  Be the first to share your thoughts with the group!
-                </Text>
-              </View>
-            )}
-          </ScrollView>
-          
-          {/* Input Area */}
-          {member && (
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
-              {/* Reply preview */}
-              {replyingTo && (
-                <View style={[styles.replyingToContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                  <View style={[styles.replyingToBar, { backgroundColor: premiumColors.accent.emerald }]} />
-                  <View style={styles.replyingToContent}>
-                    <Text style={[styles.replyingToLabel, { color: premiumColors.accent.emerald }]}>
-                      Replying to {replyingTo.user?.name || 'Member'}
-                    </Text>
-                    <Text style={[styles.replyingToText, { color: colors.secondaryText }]} numberOfLines={1}>
-                      {(() => { try { return JSON.parse(replyingTo.message).message || replyingTo.message; } catch { return replyingTo.message; } })()}
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={cancelReply} style={styles.cancelReplyButton}>
-                    <Ionicons name="close-circle" size={24} color={colors.secondaryText} />
-                  </TouchableOpacity>
-                </View>
-              )}
-              
-              {/* Attachment preview */}
-              {(selectedImage || selectedDocument) && (
-                <View style={[styles.attachmentPreview, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                  {selectedImage && (
-                    <View style={styles.imagePreviewContainer}>
-                      <Image source={{ uri: selectedImage.uri }} style={styles.previewThumbnail} />
-                      <View style={styles.previewInfo}>
-                        <Text style={[styles.previewName, { color: colors.text }]}>Photo attached</Text>
-                        <Text style={[styles.previewSize, { color: colors.secondaryText }]}>Ready to send</Text>
-                      </View>
-                    </View>
-                  )}
-                  {selectedDocument && (
-                    <View style={styles.documentPreviewContainer}>
-                      <View style={[styles.documentPreviewIcon, { backgroundColor: getFileIcon(selectedDocument.name).color + '20' }]}>
-                        <Ionicons name={getFileIcon(selectedDocument.name).icon} size={24} color={getFileIcon(selectedDocument.name).color} />
-                      </View>
-                      <View style={styles.previewInfo}>
-                        <Text style={[styles.previewName, { color: colors.text }]} numberOfLines={1}>{selectedDocument.name}</Text>
-                        <Text style={[styles.previewSize, { color: colors.secondaryText }]}>
-                          {selectedDocument.size ? `${(selectedDocument.size / 1024).toFixed(1)} KB` : 'Document'}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-                  <TouchableOpacity onPress={cancelAttachment} style={styles.cancelAttachmentButton}>
-                    <Ionicons name="close-circle" size={24} color={colors.error || '#FF3B30'} />
-                  </TouchableOpacity>
-                </View>
-              )}
-              
-              {/* iOS-style Recording Overlay for fullscreen chat */}
-              {isRecording && (
-                <View style={styles.recordingOverlay}>
-                  <LinearGradient
-                    colors={['rgba(255,59,48,0.95)', 'rgba(255,45,85,0.95)']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.recordingOverlayGradient}
-                  >
-                    <TouchableOpacity 
-                      style={styles.recordingCancelBtn}
-                      onPress={cancelRecording}
-                    >
-                      <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    
-                    <View style={styles.recordingCenter}>
-                      <View style={styles.recordingWaveform}>
-                        {[...Array(12)].map((_, i) => (
-                          <Animated.View 
-                            key={i}
-                            style={[
-                              styles.recordingWaveBar,
-                              { 
-                                height: Math.sin((i + recordingDuration) * 0.5) * 12 + 8,
-                                opacity: 0.6 + Math.sin((i + recordingDuration * 2) * 0.3) * 0.4,
-                              }
-                            ]}
-                          />
-                        ))}
-                      </View>
-                      
-                      <View style={styles.recordingTimerContainer}>
-                        <Animated.View style={[
-                          styles.recordingPulseDot, 
-                          { transform: [{ scale: recordingAnimRef }] }
-                        ]} />
-                        <Text style={styles.recordingTimer}>
-                          {formatDuration(recordingDuration)}
-                        </Text>
-                      </View>
-                      
-                      <Text style={styles.recordingHint}>
-                        Tap send to finish
-                      </Text>
-                    </View>
-                    
-                    <TouchableOpacity 
-                      style={styles.recordingSendBtn}
-                      onPress={sendVoiceMessage}
-                    >
-                      <View style={styles.recordingSendBtnInner}>
-                        <Ionicons name="arrow-up" size={22} color="#FF3B30" />
-                      </View>
-                    </TouchableOpacity>
-                  </LinearGradient>
-                </View>
-              )}
-              
-              {/* Main input */}
-              {!isRecording && (
-              <View style={[styles.chatInputContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                <TouchableOpacity 
-                  style={[styles.chatAttachButton, showAttachmentMenu && { backgroundColor: premiumColors.primary.main }]}
-                  onPress={() => { setShowAttachmentMenu(!showAttachmentMenu); setShowEmojiPicker(false); }}
-                >
-                  <Ionicons name={showAttachmentMenu ? 'close' : 'add'} size={24} color={showAttachmentMenu ? '#FFFFFF' : premiumColors.primary.main} />
-                </TouchableOpacity>
-                
-                <View style={[styles.chatInputWrapper, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                  <TextInput
-                    style={[styles.chatInput, { color: colors.text }]}
-                    placeholder="Message..."
-                    placeholderTextColor={colors.secondaryText}
-                    value={discussionMessage}
-                    onChangeText={setDiscussionMessage}
-                    multiline
-                    maxLength={1000}
-                  />
-                  <TouchableOpacity 
-                    style={styles.chatEmojiButton}
-                    onPress={() => { setShowEmojiPicker(!showEmojiPicker); setShowAttachmentMenu(false); }}
-                  >
-                    <Ionicons name={showEmojiPicker ? "happy" : "happy-outline"} size={24} color={showEmojiPicker ? premiumColors.primary.main : colors.secondaryText} />
-                  </TouchableOpacity>
-                </View>
-                
-                {/* Send or Microphone button */}
-                {discussionMessage.trim() || selectedImage || selectedDocument ? (
-                  <TouchableOpacity
-                    style={[styles.chatSendButton, { backgroundColor: premiumColors.primary.main }]}
-                    onPress={handleSendMessage}
-                    disabled={sendingMessage}
-                  >
-                    {sendingMessage ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Ionicons name="send" size={20} color="#FFFFFF" />
-                    )}
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    style={[styles.chatSendButton, { backgroundColor: premiumColors.primary.main }]}
-                    onPress={startRecording}
-                  >
-                    <Ionicons name="mic" size={22} color="#FFFFFF" />
-                  </TouchableOpacity>
-                )}
-              </View>
-              )}
-              
-              {/* Attachment menu */}
-              {showAttachmentMenu && (
-                <Animated.View style={[styles.chatAttachmentMenu, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                  <TouchableOpacity style={styles.chatAttachmentOption} onPress={pickImage}>
-                    <LinearGradient colors={['#9C27B0', '#7B1FA2']} style={styles.chatAttachmentIconGradient}>
-                      <Ionicons name="images" size={22} color="#FFFFFF" />
-                    </LinearGradient>
-                    <Text style={[styles.chatAttachmentLabel, { color: colors.text }]}>Gallery</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.chatAttachmentOption} onPress={takePhoto}>
-                    <LinearGradient colors={['#E91E63', '#C2185B']} style={styles.chatAttachmentIconGradient}>
-                      <Ionicons name="camera" size={22} color="#FFFFFF" />
-                    </LinearGradient>
-                    <Text style={[styles.chatAttachmentLabel, { color: colors.text }]}>Camera</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.chatAttachmentOption} onPress={pickDocument}>
-                    <LinearGradient colors={['#3F51B5', '#303F9F']} style={styles.chatAttachmentIconGradient}>
-                      <Ionicons name="document" size={22} color="#FFFFFF" />
-                    </LinearGradient>
-                    <Text style={[styles.chatAttachmentLabel, { color: colors.text }]}>Document</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.chatAttachmentOption} onPress={() => { setShowAttachmentMenu(false); startRecording(); }}>
-                    <LinearGradient colors={['#FF5722', '#E64A19']} style={styles.chatAttachmentIconGradient}>
-                      <Ionicons name="mic" size={22} color="#FFFFFF" />
-                    </LinearGradient>
-                    <Text style={[styles.chatAttachmentLabel, { color: colors.text }]}>Voice</Text>
-                  </TouchableOpacity>
-                </Animated.View>
-              )}
-              
-              {/* Emoji Picker */}
-              {showEmojiPicker && (
-                <EmojiPicker colors={colors} onSelectEmoji={insertEmoji} onClose={() => setShowEmojiPicker(false)} />
-              )}
-            </KeyboardAvoidingView>
-          )}
         </View>
-        
-        {/* Modals */}
-        <Modal visible={showImagePreview} transparent animationType="fade" onRequestClose={() => setShowImagePreview(false)}>
-          <View style={styles.imagePreviewModal}>
-            <TouchableOpacity style={styles.imagePreviewClose} onPress={() => setShowImagePreview(false)}>
-              <Ionicons name="close" size={28} color="#FFFFFF" />
-            </TouchableOpacity>
-            {previewImage && <Image source={{ uri: previewImage }} style={styles.fullScreenImage} resizeMode="contain" />}
-            <View style={styles.imagePreviewActions}>
-              <TouchableOpacity 
-                style={styles.imagePreviewAction}
-                onPress={() => shareImage(previewImage)}
-              >
-                <View style={styles.imagePreviewActionIcon}>
-                  <Ionicons name="share-outline" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.imagePreviewActionText}>Share</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.imagePreviewAction}
-                onPress={() => downloadImage(previewImage)}
-              >
-                <View style={styles.imagePreviewActionIcon}>
-                  <Ionicons name="download-outline" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.imagePreviewActionText}>Save</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.imagePreviewAction}
-                onPress={() => setShowImagePreview(false)}
-              >
-                <View style={styles.imagePreviewActionIcon}>
-                  <Ionicons name="close-outline" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.imagePreviewActionText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-        
-        {/* Call Modal - iOS FaceTime Style */}
-        <Modal
-          visible={isInCall}
-          transparent={false}
-          animationType="slide"
-          onRequestClose={endCall}
-          statusBarTranslucent
-        >
-          <View style={styles.callModal}>
-            {/* Video Call - iOS FaceTime Style */}
-            {callType === 'video' ? (
-              <View style={styles.faceTimeContainer}>
-                {/* Main video area - Group participants or placeholder */}
-                <View style={styles.faceTimeMain}>
-                  {isVideoOn ? (
-                    <View style={styles.faceTimeGroupView}>
-                      {/* Group participants grid placeholder */}
-                      <LinearGradient 
-                        colors={['#1c1c1e', '#2c2c2e', '#1c1c1e']} 
-                        style={styles.faceTimeGroupGradient}
-                      >
-                        <View style={styles.faceTimeGroupAvatars}>
-                          {group?.members?.slice(0, 4).map((member, index) => {
-                            const memberUser = typeof member.user === 'object' ? member.user : null;
-                            return (
-                              <View key={index} style={styles.faceTimeParticipant}>
-                                {memberUser?.avatar ? (
-                                  <Image source={{ uri: memberUser.avatar }} style={styles.faceTimeParticipantAvatar} />
-                                ) : (
-                                  <View style={styles.faceTimeParticipantPlaceholder}>
-                                    <Ionicons name="person" size={40} color="rgba(255,255,255,0.6)" />
-                                  </View>
-                                )}
-                                <Text style={styles.faceTimeParticipantName} numberOfLines={1}>
-                                  {memberUser?.name || 'Member'}
-                                </Text>
-                              </View>
-                            );
-                          })}
-                        </View>
-                        {memberCount > 4 && (
-                          <Text style={styles.faceTimeMoreParticipants}>+{memberCount - 4} more</Text>
-                        )}
-                      </LinearGradient>
-                    </View>
-                  ) : (
-                    <View style={styles.faceTimeVideoOff}>
-                      <View style={styles.faceTimeVideoOffIcon}>
-                        <Ionicons name="videocam-off" size={50} color="#FFFFFF" />
-                      </View>
-                      <Text style={styles.faceTimeVideoOffText}>Camera Off</Text>
-                    </View>
-                  )}
-                </View>
-                
-                {/* Self view - Your camera in corner - iOS style */}
-                <View style={styles.faceTimeSelfContainer}>
-                  {isVideoOn && cameraPermission?.granted ? (
-                    <CameraView
-                      style={styles.faceTimeSelfCamera}
-                      facing={isFrontCamera ? 'front' : 'back'}
-                    />
-                  ) : (
-                    <View style={styles.faceTimeSelfPlaceholder}>
-                      <Ionicons name="person" size={30} color="rgba(255,255,255,0.5)" />
-                    </View>
-                  )}
-                </View>
-                
-                {/* Top info bar */}
-                <View style={styles.faceTimeTopBar}>
-                  <View style={styles.faceTimeInfo}>
-                    <Text style={styles.faceTimeGroupName}>{group?.name}</Text>
-                    <View style={styles.faceTimeStatusRow}>
-                      <View style={styles.faceTimeLiveIndicator} />
-                      <Text style={styles.faceTimeDuration}>
-                        {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                
-                {/* Bottom controls - iOS FaceTime style */}
-                <View style={styles.faceTimeControls}>
-                  <View style={styles.faceTimeControlsRow}>
-                    <TouchableOpacity 
-                      style={[styles.faceTimeControlBtn, isMuted && styles.faceTimeControlBtnActive]} 
-                      onPress={toggleMute}
-                    >
-                      <Ionicons name={isMuted ? "mic-off" : "mic"} size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity style={styles.faceTimeEndCall} onPress={endCall}>
-                      <Ionicons name="close" size={28} color="#FFFFFF" />
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[styles.faceTimeControlBtn, !isVideoOn && styles.faceTimeControlBtnActive]} 
-                      onPress={toggleVideo}
-                    >
-                      <Ionicons name={isVideoOn ? "videocam" : "videocam-off"} size={24} color="#FFFFFF" />
-                    </TouchableOpacity>
-                  </View>
-                  
-                  <View style={styles.faceTimeSecondaryRow}>
-                    <TouchableOpacity style={styles.faceTimeSecondaryBtn} onPress={toggleCamera}>
-                      <Ionicons name="camera-reverse-outline" size={22} color="#FFFFFF" />
-                      <Text style={styles.faceTimeSecondaryLabel}>Flip</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity 
-                      style={[styles.faceTimeSecondaryBtn, isSpeakerOn && styles.faceTimeSecondaryBtnActive]} 
-                      onPress={toggleSpeaker}
-                    >
-                      <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium-outline"} size={22} color="#FFFFFF" />
-                      <Text style={styles.faceTimeSecondaryLabel}>Speaker</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity style={styles.faceTimeSecondaryBtn}>
-                      <Ionicons name="apps-outline" size={22} color="#FFFFFF" />
-                      <Text style={styles.faceTimeSecondaryLabel}>Effects</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            ) : (
-              /* Voice Call UI */
-              <LinearGradient
-                colors={['#667eea', '#764ba2', '#6B8DD6']}
-                style={styles.callBackground}
-              >
-                <View style={styles.voiceCallContainer}>
-                  <Animated.View style={[styles.callAvatarContainer, { transform: [{ scale: callPulseAnim }] }]}>
-                    <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']} style={styles.callAvatarRing}>
-                      <View style={styles.callAvatar}>
-                        <Ionicons name="people" size={50} color="#FFFFFF" />
-                      </View>
-                    </LinearGradient>
-                  </Animated.View>
-                  <Text style={styles.callGroupName}>{group?.name}</Text>
-                  <Text style={styles.callStatus}>
-                    {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
-                  </Text>
-                  <View style={styles.callParticipants}>
-                    <Text style={styles.callParticipantsText}>{memberCount} participants</Text>
-                  </View>
-                </View>
-                
+
                 <View style={styles.callControls}>
                   <View style={styles.callControlsRow}>
                     <TouchableOpacity style={[styles.callControlBtn, isMuted && styles.callControlBtnActive]} onPress={toggleMute}>
                       <Ionicons name={isMuted ? "mic-off" : "mic"} size={26} color="#FFFFFF" />
                       <Text style={styles.callControlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity style={[styles.callControlBtn, isSpeakerOn && styles.callControlBtnActive]} onPress={toggleSpeaker}>
                       <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={26} color="#FFFFFF" />
                       <Text style={styles.callControlLabel}>{isSpeakerOn ? 'Speaker' : 'Phone'}</Text>
                     </TouchableOpacity>
                   </View>
-                  
+
                   <TouchableOpacity style={styles.endCallBtn} onPress={endCall}>
                     <LinearGradient colors={['#FF3B30', '#FF453A']} style={styles.endCallBtnGradient}>
                       <Ionicons name="call" size={30} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
@@ -2301,23 +618,22 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </TouchableOpacity>
                 </View>
               </LinearGradient>
-            )}
-          </View>
         </Modal>
-        
-        {/* iOS-Style Group Options Action Sheet */}
+  );
+
+  const renderGroupOptionsModal = () => (
         <Modal
           visible={showGroupOptions}
           transparent={true}
           animationType="none"
           onRequestClose={closeGroupOptions}
         >
-          <TouchableOpacity 
-            style={styles.actionSheetOverlay} 
-            activeOpacity={1} 
+          <TouchableOpacity
+            style={styles.actionSheetOverlay}
+            activeOpacity={1}
             onPress={closeGroupOptions}
           >
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.actionSheetContainer,
                 {
@@ -2330,9 +646,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 }
               ]}
             >
-              {/* Group Info Header */}
-              <View style={styles.actionSheetHeader}>
-                <View style={styles.actionSheetGroupInfo}>
+
+              <View style={[styles.actionSheetHeader, { backgroundColor: colors.card }]}>
+                <View style={[styles.actionSheetGroupInfo, { backgroundColor: colors.card }]}>
                   {group?.image ? (
                     <Image source={{ uri: group.image }} style={styles.actionSheetGroupAvatarImage} />
                   ) : (
@@ -2348,8 +664,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </View>
                 </View>
               </View>
-              
-              {/* Primary Actions */}
+
               <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
                 {moderator && (
                   <TouchableOpacity style={styles.actionSheetItem} onPress={openEditGroup}>
@@ -2360,7 +675,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
                   </TouchableOpacity>
                 )}
-                
+
                 <TouchableOpacity style={styles.actionSheetItem} onPress={handleCopyInviteCode}>
                   <View style={[styles.actionSheetIcon, { backgroundColor: '#34C75920' }]}>
                     <Ionicons name="link" size={20} color="#34C759" />
@@ -2368,7 +683,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Copy Invite Link</Text>
                   <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity style={styles.actionSheetItem} onPress={handleShareGroup}>
                   <View style={[styles.actionSheetIcon, { backgroundColor: '#5856D620' }]}>
                     <Ionicons name="share-outline" size={20} color="#5856D6" />
@@ -2376,20 +691,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Share Group</Text>
                   <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
                 </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.actionSheetItem} onPress={() => { closeGroupOptions(); setActiveTab('members'); }}>
-                  <View style={[styles.actionSheetIcon, { backgroundColor: '#FF950020' }]}>
-                    <Ionicons name="people-outline" size={20} color="#FF9500" />
-                  </View>
-                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>View Members</Text>
-                  <View style={[styles.actionSheetBadge, { backgroundColor: premiumColors.primary.main }]}>
-                    <Text style={styles.actionSheetBadgeText}>{memberCount}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-                </TouchableOpacity>
               </View>
-              
-              {/* Notification Settings */}
+
               <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
                 <TouchableOpacity style={styles.actionSheetItem} onPress={() => setShowNotificationSettings(true)}>
                   <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
@@ -2401,9 +704,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </Text>
                   <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
                 </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.actionSheetItem} 
+
+                <TouchableOpacity
+                  style={styles.actionSheetItem}
                   onPress={() => handleMuteGroup(notificationSettings.muted ? null : '8 hours')}
                 >
                   <View style={[styles.actionSheetIcon, { backgroundColor: '#8E8E9320' }]}>
@@ -2414,8 +717,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </Text>
                 </TouchableOpacity>
               </View>
-              
-              {/* Danger Zone */}
+
               <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
                 <TouchableOpacity style={styles.actionSheetItem} onPress={handleReportGroup}>
                   <View style={[styles.actionSheetIcon, { backgroundColor: '#FF950020' }]}>
@@ -2423,7 +725,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </View>
                   <Text style={[styles.actionSheetItemText, { color: '#FF9500' }]}>Report Group</Text>
                 </TouchableOpacity>
-                
+
                 {member && !moderator && (
                   <TouchableOpacity style={styles.actionSheetItem} onPress={handleLeave}>
                     <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
@@ -2432,7 +734,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     <Text style={[styles.actionSheetItemText, { color: '#FF3B30' }]}>Leave Group</Text>
                   </TouchableOpacity>
                 )}
-                
+
                 {moderator && (
                   <TouchableOpacity style={styles.actionSheetItem} onPress={handleDeleteGroup}>
                     <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
@@ -2442,10 +744,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </TouchableOpacity>
                 )}
               </View>
-              
-              {/* Cancel Button */}
-              <TouchableOpacity 
-                style={[styles.actionSheetCancelBtn, { backgroundColor: colors.card }]} 
+
+              <TouchableOpacity
+                style={[styles.actionSheetCancelBtn, { backgroundColor: colors.card }]}
                 onPress={closeGroupOptions}
               >
                 <Text style={[styles.actionSheetCancelText, { color: '#007AFF' }]}>Cancel</Text>
@@ -2453,8 +754,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
             </Animated.View>
           </TouchableOpacity>
         </Modal>
-        
-        {/* Edit Group Modal - iOS Style */}
+  );
+
+  const renderEditGroupModal = () => (
         <Modal
           visible={showEditGroup}
           animationType="slide"
@@ -2462,7 +764,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           onRequestClose={() => setShowEditGroup(false)}
         >
           <View style={[styles.editGroupModal, { backgroundColor: colors.background }]}>
-            {/* Header */}
+
             <View style={[styles.editGroupHeader, { borderBottomColor: colors.border }]}>
               <TouchableOpacity onPress={() => setShowEditGroup(false)}>
                 <Text style={[styles.editGroupCancelBtn, { color: '#007AFF' }]}>Cancel</Text>
@@ -2476,16 +778,16 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 )}
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView style={styles.editGroupContent} showsVerticalScrollIndicator={false}>
-              {/* Group Photo */}
+
               <View style={styles.editGroupPhotoSection}>
                 <TouchableOpacity onPress={showImageOptions} activeOpacity={0.8}>
                   {editGroupData.image ? (
                     <View style={styles.editGroupPhotoContainer}>
-                      <Image 
-                        source={{ uri: editGroupData.image }} 
-                        style={styles.editGroupPhotoImage} 
+                      <Image
+                        source={{ uri: editGroupData.image }}
+                        style={styles.editGroupPhotoImage}
                       />
                       <View style={styles.editGroupPhotoOverlay}>
                         <Ionicons name="camera" size={24} color="#FFFFFF" />
@@ -2506,11 +808,10 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </Text>
                 </TouchableOpacity>
               </View>
-              
-              {/* Form Fields */}
+
               <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
                 <Text style={[styles.editGroupSectionTitle, { color: colors.secondaryText }]}>GROUP INFO</Text>
-                
+
                 <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
                   <Text style={[styles.editGroupFieldLabel, { color: colors.secondaryText }]}>Name</Text>
                   <TextInput
@@ -2521,7 +822,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     placeholderTextColor={colors.secondaryText}
                   />
                 </View>
-                
+
                 <View style={styles.editGroupField}>
                   <Text style={[styles.editGroupFieldLabel, { color: colors.secondaryText }]}>Description</Text>
                   <TextInput
@@ -2535,11 +836,10 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   />
                 </View>
               </View>
-              
-              {/* Settings */}
+
               <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
                 <Text style={[styles.editGroupSectionTitle, { color: colors.secondaryText }]}>SETTINGS</Text>
-                
+
                 <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
                   <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Level</Text>
                   <View style={styles.editGroupOptionsRow}>
@@ -2564,7 +864,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     ))}
                   </View>
                 </View>
-                
+
                 <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
                   <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Focus</Text>
                   <View style={styles.editGroupOptionsRow}>
@@ -2589,18 +889,18 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     ))}
                   </View>
                 </View>
-                
+
                 <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
                   <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Max Members</Text>
                   <View style={styles.editGroupSliderRow}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.editGroupSliderBtn, { backgroundColor: colors.border }]}
                       onPress={() => setEditGroupData(prev => ({ ...prev, maxMembers: Math.max(5, prev.maxMembers - 5) }))}
                     >
                       <Ionicons name="remove" size={20} color={colors.text} />
                     </TouchableOpacity>
                     <Text style={[styles.editGroupSliderValue, { color: colors.text }]}>{editGroupData.maxMembers}</Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.editGroupSliderBtn, { backgroundColor: colors.border }]}
                       onPress={() => setEditGroupData(prev => ({ ...prev, maxMembers: Math.min(100, prev.maxMembers + 5) }))}
                     >
@@ -2608,7 +908,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     </TouchableOpacity>
                   </View>
                 </View>
-                
+
                 <View style={styles.editGroupToggleField}>
                   <View style={styles.editGroupToggleInfo}>
                     <Ionicons name="lock-closed" size={22} color={colors.text} />
@@ -2633,23 +933,23 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </TouchableOpacity>
                 </View>
               </View>
-              
-              {/* Danger Zone */}
+
               <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
                 <Text style={[styles.editGroupSectionTitle, { color: '#FF3B30' }]}>DANGER ZONE</Text>
-                
+
                 <TouchableOpacity style={styles.editGroupDangerBtn} onPress={handleDeleteGroup}>
                   <Ionicons name="trash-outline" size={22} color="#FF3B30" />
                   <Text style={styles.editGroupDangerBtnText}>Delete Group</Text>
                 </TouchableOpacity>
               </View>
-              
+
               <View style={{ height: 50 }} />
             </ScrollView>
           </View>
         </Modal>
-        
-        {/* Group Info Modal - iOS Style Sheet */}
+  );
+
+  const renderGroupInfoModal = () => (
         <Modal
           visible={showGroupInfo}
           transparent={true}
@@ -2658,7 +958,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         >
           <View style={styles.groupInfoOverlay}>
             <TouchableOpacity style={styles.groupInfoBackdrop} activeOpacity={1} onPress={closeGroupInfo} />
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.groupInfoContainer,
                 { backgroundColor: colors.card },
@@ -2672,12 +972,11 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 }
               ]}
             >
-              {/* Handle Bar */}
+
               <View style={styles.groupInfoHandle}>
                 <View style={[styles.groupInfoHandleBar, { backgroundColor: colors.border }]} />
               </View>
-              
-              {/* Group Header */}
+
               <View style={styles.groupInfoHeader}>
                 {group?.image ? (
                   <Image source={{ uri: group.image }} style={styles.groupInfoAvatarImage} />
@@ -2690,8 +989,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 <Text style={[styles.groupInfoDesc, { color: colors.secondaryText }]} numberOfLines={2}>
                   {group?.description}
                 </Text>
-                
-                {/* Quick Stats */}
+
                 <View style={styles.groupInfoStats}>
                   <View style={styles.groupInfoStat}>
                     <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>{memberCount}</Text>
@@ -2713,12 +1011,12 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </View>
                 </View>
               </View>
-              
+
               <ScrollView style={styles.groupInfoScroll} showsVerticalScrollIndicator={false}>
-                {/* Group Details */}
+
                 <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
                   <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>DETAILS</Text>
-                  
+
                   <View style={styles.groupInfoRow}>
                     <View style={[styles.groupInfoRowIcon, { backgroundColor: '#007AFF20' }]}>
                       <Ionicons name="school" size={18} color="#007AFF" />
@@ -2730,7 +1028,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       </Text>
                     </View>
                   </View>
-                  
+
                   <View style={styles.groupInfoRow}>
                     <View style={[styles.groupInfoRowIcon, { backgroundColor: '#34C75920' }]}>
                       <Ionicons name="bookmark" size={18} color="#34C759" />
@@ -2742,7 +1040,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       </Text>
                     </View>
                   </View>
-                  
+
                   <View style={styles.groupInfoRow}>
                     <View style={[styles.groupInfoRowIcon, { backgroundColor: '#FF950020' }]}>
                       <Ionicons name={group?.isPrivate ? "lock-closed" : "globe"} size={18} color="#FF9500" />
@@ -2754,7 +1052,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       </Text>
                     </View>
                   </View>
-                  
+
                   <View style={styles.groupInfoRow}>
                     <View style={[styles.groupInfoRowIcon, { backgroundColor: '#5856D620' }]}>
                       <Ionicons name="calendar" size={18} color="#5856D6" />
@@ -2762,15 +1060,14 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     <View style={styles.groupInfoRowContent}>
                       <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Created</Text>
                       <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
-                        {group?.createdAt ? new Date(group.createdAt).toLocaleDateString('en-US', { 
-                          year: 'numeric', month: 'long', day: 'numeric' 
+                        {group?.createdAt ? new Date(group.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric', month: 'long', day: 'numeric'
                         }) : 'Unknown'}
                       </Text>
                     </View>
                   </View>
                 </View>
-                
-                {/* Members Preview */}
+
                 <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
                   <View style={styles.groupInfoSectionHeader}>
                     <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>MEMBERS</Text>
@@ -2778,7 +1075,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       <Text style={[styles.groupInfoSeeAll, { color: premiumColors.primary.main }]}>See All</Text>
                     </TouchableOpacity>
                   </View>
-                  
+
                   <View style={styles.groupInfoMembersList}>
                     {group?.members?.slice(0, 5).map((m, idx) => {
                       const memberUser = typeof m.user === 'object' ? m.user : null;
@@ -2808,13 +1105,12 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     })}
                   </View>
                 </View>
-                
-                {/* Quick Actions */}
+
                 <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
                   <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>QUICK ACTIONS</Text>
-                  
+
                   <View style={styles.groupInfoActions}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
                       onPress={() => { closeGroupInfo(); setActiveTab('resources'); }}
                     >
@@ -2823,8 +1119,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       </View>
                       <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Resources</Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
                       onPress={() => { closeGroupInfo(); setActiveTab('members'); }}
                     >
@@ -2833,8 +1129,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       </View>
                       <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Members</Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
                       onPress={() => { closeGroupInfo(); startCall('voice'); }}
                     >
@@ -2843,8 +1139,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       </View>
                       <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Call</Text>
                     </TouchableOpacity>
-                    
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
                       onPress={() => { closeGroupInfo(); openGroupOptions(); }}
                     >
@@ -2855,11 +1151,10 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     </TouchableOpacity>
                   </View>
                 </View>
-                
-                {/* Join/Leave Button */}
+
                 <View style={styles.groupInfoButtonSection}>
                   {member ? (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.groupInfoLeaveBtn, { borderColor: '#FF3B30' }]}
                       onPress={() => { closeGroupInfo(); handleLeave(); }}
                     >
@@ -2867,7 +1162,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       <Text style={styles.groupInfoLeaveBtnText}>Leave Group</Text>
                     </TouchableOpacity>
                   ) : (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.groupInfoJoinBtn, { backgroundColor: premiumColors.primary.main }]}
                       onPress={() => { closeGroupInfo(); handleJoin(); }}
                     >
@@ -2876,20 +1171,18 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     </TouchableOpacity>
                   )}
                 </View>
-                
+
                 <View style={{ height: 40 }} />
               </ScrollView>
             </Animated.View>
           </View>
         </Modal>
-      </View>
-    );
-  }
+  );
 
-  // Normal view for other tabs
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -2897,9 +1190,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+
         <LinearGradient
-          colors={isDarkMode 
+          colors={isDarkMode
             ? ['#1a0a2e', '#16213e', '#0f3460']
             : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
           }
@@ -2943,7 +1236,6 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           </View>
         </LinearGradient>
 
-        {/* Action Buttons */}
         <View style={styles.actionsContainer}>
           {!member ? (
             <TouchableOpacity
@@ -2964,7 +1256,6 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* Tabs */}
         <View style={styles.tabsContainer}>
           {['about', 'members', 'discussions', 'resources'].map((tab) => (
             <TouchableOpacity
@@ -2992,7 +1283,6 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           ))}
         </View>
 
-        {/* Tab Content */}
         {activeTab === 'about' && (
           <View style={styles.tabContent}>
             <InfoSection title="Level" value={group.level || 'All'} colors={colors} />
@@ -3037,13 +1327,13 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           <View style={styles.tabContent}>
             {group.members?.map((member, index) => {
               const memberUser = typeof member.user === 'object' ? member.user : null;
-              const isCreator = group.creator?._id === memberUser?._id || 
+              const isCreator = group.creator?._id === memberUser?._id ||
                                (typeof group.creator === 'string' && group.creator === member.user);
               return (
                 <View key={index} style={[styles.memberCard, { backgroundColor: colors.card }]}>
                   {memberUser?.avatar ? (
-                    <Image 
-                      source={{ uri: memberUser.avatar }} 
+                    <Image
+                      source={{ uri: memberUser.avatar }}
                       style={styles.avatarImage}
                     />
                   ) : (
@@ -3099,7 +1389,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
         {activeTab === 'discussions' && (
           <View style={styles.discussionsContainer}>
-            {/* Messages List */}
+
             <ScrollView
               ref={discussionsScrollRef}
               style={styles.messagesScrollView}
@@ -3111,295 +1401,407 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
                   const isOwnMessage = discussionUser?._id === user?._id;
                   const reactions = messageReactions[index.toString()] || [];
-                  
-                  // Parse message data (handle both old and new format)
+
                   let messageData;
                   try {
                     messageData = JSON.parse(discussion.message);
                   } catch {
                     messageData = { message: discussion.message, type: MESSAGE_TYPES.TEXT };
                   }
-                  
+
                   return (
                     <View key={index} style={styles.messageWrapper}>
-                      {/* Date separator */}
-                      {index === 0 || new Date(discussion.createdAt).toDateString() !== 
+
+                      {index === 0 || new Date(discussion.createdAt).toDateString() !==
                         new Date(group.discussions[index - 1]?.createdAt).toDateString() ? (
                         <View style={styles.dateSeparator}>
                           <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
                           <Text style={[styles.dateText, { color: colors.secondaryText, backgroundColor: colors.background }]}>
-                            {new Date(discussion.createdAt).toLocaleDateString('en-US', { 
-                              weekday: 'long', 
-                              month: 'short', 
-                              day: 'numeric' 
+                            {new Date(discussion.createdAt).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'short',
+                              day: 'numeric'
                             })}
                           </Text>
                           <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
                         </View>
                       ) : null}
-                      
-                      <TouchableOpacity
-                        activeOpacity={0.8}
-                        onLongPress={() => openMessageActions({ ...discussion, content: discussion.message }, index, isOwnMessage)}
-                        style={[
-                          styles.messageContainer,
-                          isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer,
-                        ]}
-                      >
-                        {/* Avatar for other users */}
-                        {!isOwnMessage && (
-                          discussionUser?.avatar ? (
-                            <Image 
-                              source={{ uri: discussionUser.avatar }} 
-                              style={styles.messageAvatar}
-                            />
-                          ) : (
-                            <View style={[styles.messageAvatarPlaceholder, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                              <Ionicons name="person" size={16} color={premiumColors.primary.main} />
-                            </View>
-                          )
-                        )}
-                        
-                        <View style={[
-                          styles.messageBubble,
-                          isOwnMessage ? 
-                            [styles.ownMessageBubble, { backgroundColor: '#007AFF' }] : 
-                            [styles.otherMessageBubble, { backgroundColor: isDarkMode ? '#262629' : '#E9E9EB' }],
-                          messageData.type === MESSAGE_TYPES.IMAGE && styles.imageBubble,
-                          messageData.type === MESSAGE_TYPES.IMAGE && (isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble),
-                        ]}>
-                          {/* iOS-style bubble tail - hide for image-only messages */}
-                          {messageData.type !== MESSAGE_TYPES.IMAGE && (
-                            <View style={[
-                              isOwnMessage ? styles.ownBubbleTail : styles.otherBubbleTail,
-                              { backgroundColor: isOwnMessage ? '#007AFF' : (isDarkMode ? '#262629' : '#E9E9EB') }
-                            ]}>
-                              <View style={[
-                                styles.bubbleTailCover,
-                                { backgroundColor: colors.background },
-                                isOwnMessage ? styles.ownTailCover : styles.otherTailCover
-                              ]} />
-                            </View>
-                          )}
-                          {/* Author name for other users - hide for image-only messages */}
-                          {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
-                            <Text style={[styles.messageAuthor, { color: premiumColors.primary.main }]}>
-                              {discussionUser?.name || 'Member'}
-                            </Text>
-                          )}
-                          
-                          {/* Reply preview */}
-                          {messageData.replyTo && (
-                            <View style={[styles.replyPreview, { 
-                              backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background,
-                              borderLeftColor: premiumColors.accent.emerald,
-                            }]}>
-                              <Text style={[styles.replyAuthor, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.emerald }]}>
-                                {messageData.replyTo.userName}
-                              </Text>
-                              <Text style={[styles.replyText, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]} numberOfLines={1}>
-                                {messageData.replyTo.message}
-                              </Text>
-                            </View>
-                          )}
-                          
-                          {/* Image attachment - iOS iMessage style */}
-                          {messageData.type === MESSAGE_TYPES.IMAGE && messageData.attachment?.uri && (
-                            <TouchableOpacity 
-                              onPress={() => openImagePreview(messageData.attachment.uri)}
+
+                      <Swipeable
+                        renderLeftActions={(progress, dragX) => {
+                          const translateX = dragX.interpolate({
+                            inputRange: [0, 60, 80, 100],
+                            outputRange: [-40, 0, 8, 16],
+                            extrapolate: 'clamp',
+                          });
+                          const scale = dragX.interpolate({
+                            inputRange: [0, 40, 80],
+                            outputRange: [0.3, 0.8, 1],
+                            extrapolate: 'clamp',
+                          });
+                          const opacity = dragX.interpolate({
+                            inputRange: [0, 30, 60],
+                            outputRange: [0, 0.5, 1],
+                            extrapolate: 'clamp',
+                          });
+                          const rotate = dragX.interpolate({
+                            inputRange: [0, 80],
+                            outputRange: ['-45deg', '0deg'],
+                            extrapolate: 'clamp',
+                          });
+                          return (
+                            <Animated.View
                               style={[
-                                styles.imageAttachment,
-                                isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble
+                                styles.swipeReplyContainer,
+                                {
+                                  opacity,
+                                  transform: [{ translateX }, { scale }],
+                                }
                               ]}
-                              activeOpacity={0.95}
                             >
-                              <Image 
-                                source={{ uri: messageData.attachment.uri }} 
-                                style={[
-                                  styles.attachedImage,
-                                  isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble
-                                ]}
-                                resizeMode="cover"
-                              />
-                              <LinearGradient
-                                colors={['transparent', 'rgba(0,0,0,0.35)']}
-                                style={[
-                                  styles.imageGradientOverlay,
-                                  isOwnMessage ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }
-                                ]}
-                              >
-                                <View style={styles.imageTimeContainer}>
-                                  <Text style={styles.imageTimeText}>{formatTimeAgo(discussion.createdAt)}</Text>
-                                  {isOwnMessage && (
-                                    <Ionicons 
-                                      name="checkmark-done" 
-                                      size={13} 
-                                      color="#FFFFFF" 
-                                      style={{ marginLeft: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: {width: 0, height: 1}, textShadowRadius: 2 }} 
-                                    />
-                                  )}
-                                </View>
-                              </LinearGradient>
-                            </TouchableOpacity>
-                          )}
-                          
-                          {/* Document attachment */}
-                          {messageData.type === MESSAGE_TYPES.DOCUMENT && messageData.attachment && (
-                            <View 
-                              style={[styles.documentAttachment, { 
-                                backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background 
-                              }]}
-                            >
-                              <View style={[styles.documentIcon, { backgroundColor: getFileIcon(messageData.attachment.name).color + '20' }]}>
-                                <Ionicons 
-                                  name={getFileIcon(messageData.attachment.name).icon} 
-                                  size={24} 
-                                  color={getFileIcon(messageData.attachment.name).color} 
-                                />
+                              <View style={[
+                                styles.swipeReplyIcon,
+                                { backgroundColor: isDarkMode ? 'rgba(99, 102, 241, 0.15)' : 'rgba(99, 102, 241, 0.1)' }
+                              ]}>
+                                <Animated.View style={{ transform: [{ rotate }] }}>
+                                  <Ionicons name="arrow-undo" size={22} color={premiumColors.primary.main} />
+                                </Animated.View>
                               </View>
-                              <View style={styles.documentInfo}>
-                                <Text style={[styles.documentName, { color: isOwnMessage ? '#FFFFFF' : colors.text }]} numberOfLines={1}>
-                                  {messageData.attachment.name}
-                                </Text>
-                                <Text style={[styles.documentSize, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
-                                  {messageData.attachment.size ? `${(messageData.attachment.size / 1024).toFixed(1)} KB` : 'Document'}
-                                </Text>
-                              </View>
-                              <View style={styles.documentActions}>
-                                <TouchableOpacity 
-                                  style={[styles.documentActionBtn, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.border }]}
-                                  onPress={() => downloadDocument(messageData.attachment.uri, messageData.attachment.name)}
-                                >
-                                  <Ionicons name="download-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.text} />
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                  style={[styles.documentActionBtn, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.border }]}
-                                  onPress={() => shareDocument(messageData.attachment.uri, messageData.attachment.name)}
-                                >
-                                  <Ionicons name="share-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.text} />
-                                </TouchableOpacity>
-                              </View>
-                            </View>
-                          )}
-                          
-                          {/* Voice message - iOS style */}
-                          {messageData.type === MESSAGE_TYPES.VOICE && messageData.attachment && (
-                            <TouchableOpacity 
-                              style={[styles.voiceMessage, { 
-                                backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background 
-                              }]}
-                              onPress={() => playVoiceMessage(messageData.attachment.uri, discussion._id)}
+                            </Animated.View>
+                          );
+                        }}
+                        renderRightActions={(progress, dragX) => {
+
+                          if (!isOwnMessage && !isModerator()) return null;
+
+                          const translateX = dragX.interpolate({
+                            inputRange: [-100, -80, -60, 0],
+                            outputRange: [0, 8, 20, 80],
+                            extrapolate: 'clamp',
+                          });
+                          const scale = dragX.interpolate({
+                            inputRange: [-80, -40, 0],
+                            outputRange: [1, 0.8, 0.3],
+                            extrapolate: 'clamp',
+                          });
+                          const opacity = dragX.interpolate({
+                            inputRange: [-60, -30, 0],
+                            outputRange: [1, 0.5, 0],
+                            extrapolate: 'clamp',
+                          });
+                          return (
+                            <TouchableOpacity
+                              onPress={() => handleSwipeDelete(discussion, isOwnMessage)}
                               activeOpacity={0.8}
                             >
-                              <View style={[
-                                styles.voicePlayButton, 
-                                { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.25)' : premiumColors.primary.main + '20' }
-                              ]}>
-                                <Ionicons 
-                                  name={playingVoice === discussion._id ? "pause" : "play"} 
-                                  size={20} 
-                                  color={isOwnMessage ? '#FFFFFF' : premiumColors.primary.main} 
-                                />
-                              </View>
-                              <View style={styles.voiceWaveform}>
-                                {[...Array(20)].map((_, i) => (
-                                  <Animated.View 
-                                    key={i}
-                                    style={[
-                                      styles.voiceBar,
-                                      { 
-                                        height: Math.random() * 16 + 6,
-                                        backgroundColor: isOwnMessage ? 
-                                          (i / 20 <= (voiceProgress[discussion._id] || 0) ? '#FFFFFF' : 'rgba(255,255,255,0.4)') :
-                                          (i / 20 <= (voiceProgress[discussion._id] || 0) ? premiumColors.primary.main : colors.border),
-                                      }
-                                    ]}
-                                  />
-                                ))}
-                              </View>
-                              <Text style={[styles.voiceDuration, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]}>
-                                {formatDuration(messageData.attachment.duration || 0)}
-                              </Text>
+                              <Animated.View
+                                style={[
+                                  styles.swipeDeleteContainer,
+                                  {
+                                    opacity,
+                                    transform: [{ translateX }, { scale }],
+                                  }
+                                ]}
+                              >
+                                <View style={styles.swipeDeleteIcon}>
+                                  <Ionicons name="trash" size={22} color="#FFFFFF" />
+                                </View>
+                              </Animated.View>
                             </TouchableOpacity>
-                          )}
-                          
-                          {/* Link preview */}
-                          {messageData.type === MESSAGE_TYPES.LINK && messageData.links && (
-                            <TouchableOpacity 
-                              style={[styles.linkPreview, { 
-                                backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background 
-                              }]}
-                              onPress={() => Linking.openURL(messageData.links[0])}
+                          );
+                        }}
+                        onSwipeableLeftOpen={() => setReplyingTo({ ...discussion, user: discussionUser })}
+                        overshootLeft={false}
+                        overshootRight={false}
+                        friction={1.5}
+                        leftThreshold={50}
+                        rightThreshold={50}
+                      >
+                        <TapGestureHandler
+                          numberOfTaps={2}
+                          onHandlerStateChange={({ nativeEvent }) => {
+                            if (nativeEvent.state === State.ACTIVE) {
+                              handleDoubleTapLike(index, { emoji: '❤️', name: 'love' });
+                            }
+                          }}
+                        >
+                          <View style={styles.messageWrapper}>
+
+                            {doubleTapHeartIndex === index && (
+                              <Animated.View
+                                style={[
+                                  styles.doubleTapHeart,
+                                  {
+                                    opacity: doubleTapHeartAnim,
+                                    transform: [
+                                      { scale: doubleTapHeartAnim.interpolate({
+                                        inputRange: [0, 0.5, 1],
+                                        outputRange: [0, 1.3, 1],
+                                      })},
+                                    ],
+                                  },
+                                ]}
+                              >
+                                <Text style={styles.doubleTapHeartEmoji}>❤️</Text>
+                              </Animated.View>
+                            )}
+                            <TouchableOpacity
+                              activeOpacity={0.8}
+                              onLongPress={() => openMessageActions({ ...discussion, content: discussion.message }, index, isOwnMessage)}
+                              style={[
+                                styles.messageContainer,
+                                isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer,
+                              ]}
                             >
-                              <View style={[styles.linkIcon, { backgroundColor: premiumColors.accent.sky + '20' }]}>
-                                <Ionicons name="link" size={20} color={premiumColors.accent.sky} />
-                              </View>
-                              <View style={styles.linkInfo}>
-                                <Text style={[styles.linkUrl, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.sky }]} numberOfLines={1}>
-                                  {messageData.links[0]}
+
+                              {!isOwnMessage && (
+                                discussionUser?.avatar ? (
+                                  <Image
+                                    source={{ uri: discussionUser.avatar }}
+                                    style={styles.messageAvatar}
+                                  />
+                                ) : (
+                                  <View style={[styles.messageAvatarPlaceholder, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                                    <Ionicons name="person" size={16} color={premiumColors.primary.main} />
+                                  </View>
+                                )
+                              )}
+
+                              <View style={[
+                                styles.messageBubble,
+                                isOwnMessage ?
+                                  [styles.ownMessageBubble, { backgroundColor: '#007AFF' }] :
+                                  [styles.otherMessageBubble, { backgroundColor: isDarkMode ? '#262629' : '#E9E9EB' }],
+                                messageData.type === MESSAGE_TYPES.IMAGE && styles.imageBubble,
+                                messageData.type === MESSAGE_TYPES.IMAGE && (isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble),
+                              ]}>
+
+                              {messageData.type !== MESSAGE_TYPES.IMAGE && (
+                                <View style={[
+                                  isOwnMessage ? styles.ownBubbleTail : styles.otherBubbleTail,
+                                  { backgroundColor: isOwnMessage ? '#007AFF' : (isDarkMode ? '#262629' : '#E9E9EB') }
+                                ]}>
+                                  <View style={[
+                                    styles.bubbleTailCover,
+                                    { backgroundColor: colors.background },
+                                    isOwnMessage ? styles.ownTailCover : styles.otherTailCover
+                                  ]} />
+                                </View>
+                              )}
+
+                              {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
+                                <Text style={[styles.messageAuthor, { color: premiumColors.primary.main }]}>
+                                  {discussionUser?.name || 'Member'}
                                 </Text>
-                                <Text style={[styles.linkHint, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
-                                  Tap to open
+                              )}
+
+                              {messageData.replyTo && (
+                                <View style={[styles.replyPreview, {
+                                  backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background,
+                                  borderLeftColor: premiumColors.accent.emerald,
+                                }]}>
+                                  <Text style={[styles.replyAuthor, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.emerald }]}>
+                                    {messageData.replyTo.userName}
+                                  </Text>
+                                  <Text style={[styles.replyText, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]} numberOfLines={1}>
+                                    {messageData.replyTo.message}
+                                  </Text>
+                                </View>
+                              )}
+
+                              {messageData.type === MESSAGE_TYPES.IMAGE && messageData.attachment?.uri && (
+                                <TouchableOpacity
+                                  onPress={() => openImagePreview(messageData.attachment.uri)}
+                                  style={[
+                                    styles.imageAttachment,
+                                    isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble
+                                  ]}
+                                  activeOpacity={0.95}
+                                >
+                                  <Image
+                                    source={{ uri: messageData.attachment.uri }}
+                                    style={[
+                                      styles.attachedImage,
+                                      isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble
+                                    ]}
+                                    resizeMode="cover"
+                                  />
+                                  <LinearGradient
+                                    colors={['transparent', 'rgba(0,0,0,0.35)']}
+                                    style={[
+                                      styles.imageGradientOverlay,
+                                      isOwnMessage ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }
+                                    ]}
+                                  >
+                                    <View style={styles.imageTimeContainer}>
+                                      <Text style={styles.imageTimeText}>{formatTimeAgo(discussion.createdAt)}</Text>
+                                      {isOwnMessage && (
+                                        <Ionicons
+                                          name="checkmark-done"
+                                          size={13}
+                                          color="#FFFFFF"
+                                          style={{ marginLeft: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: {width: 0, height: 1}, textShadowRadius: 2 }}
+                                        />
+                                      )}
+                                    </View>
+                                  </LinearGradient>
+                                </TouchableOpacity>
+                              )}
+
+                              {messageData.type === MESSAGE_TYPES.DOCUMENT && messageData.attachment && (
+                                <View
+                                  style={[styles.documentAttachment, {
+                                    backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background
+                                  }]}
+                                >
+                                  <View style={[styles.documentIcon, { backgroundColor: getFileIcon(messageData.attachment.name).color + '20' }]}>
+                                    <Ionicons
+                                      name={getFileIcon(messageData.attachment.name).icon}
+                                      size={24}
+                                      color={getFileIcon(messageData.attachment.name).color}
+                                    />
+                                  </View>
+                                  <View style={styles.documentInfo}>
+                                    <Text style={[styles.documentName, { color: isOwnMessage ? '#FFFFFF' : colors.text }]} numberOfLines={1}>
+                                      {messageData.attachment.name}
+                                    </Text>
+                                    <Text style={[styles.documentSize, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
+                                      {messageData.attachment.size ? `${(messageData.attachment.size / 1024).toFixed(1)} KB` : 'Document'}
+                                    </Text>
+                                  </View>
+                                  <View style={styles.documentActions}>
+                                    <TouchableOpacity
+                                      style={[styles.documentActionBtn, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.border }]}
+                                      onPress={() => downloadDocument(messageData.attachment.uri, messageData.attachment.name)}
+                                    >
+                                      <Ionicons name="download-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.text} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                      style={[styles.documentActionBtn, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.border }]}
+                                      onPress={() => shareDocument(messageData.attachment.uri, messageData.attachment.name)}
+                                    >
+                                      <Ionicons name="share-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.text} />
+                                    </TouchableOpacity>
+                                  </View>
+                                </View>
+                              )}
+
+                              {messageData.type === MESSAGE_TYPES.VOICE && messageData.attachment && (
+                                <TouchableOpacity
+                                  style={[styles.voiceMessage, {
+                                    backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background
+                                  }]}
+                                  onPress={() => playVoiceMessage(messageData.attachment.uri, discussion._id)}
+                                  activeOpacity={0.8}
+                                >
+                                  <View style={[
+                                    styles.voicePlayButton,
+                                    { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.25)' : premiumColors.primary.main + '20' }
+                                  ]}>
+                                    <Ionicons
+                                      name={playingVoice === discussion._id ? "pause" : "play"}
+                                      size={20}
+                                      color={isOwnMessage ? '#FFFFFF' : premiumColors.primary.main}
+                                    />
+                                  </View>
+                                  <View style={styles.voiceWaveform}>
+                                    {[...Array(20)].map((_, i) => (
+                                      <Animated.View
+                                        key={i}
+                                        style={[
+                                          styles.voiceBar,
+                                          {
+                                            height: Math.random() * 16 + 6,
+                                            backgroundColor: isOwnMessage ?
+                                              (i / 20 <= (voiceProgress[discussion._id] || 0) ? '#FFFFFF' : 'rgba(255,255,255,0.4)') :
+                                              (i / 20 <= (voiceProgress[discussion._id] || 0) ? premiumColors.primary.main : colors.border),
+                                          }
+                                        ]}
+                                      />
+                                    ))}
+                                  </View>
+                                  <Text style={[styles.voiceDuration, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]}>
+                                    {formatDuration(messageData.attachment.duration || 0)}
+                                  </Text>
+                                </TouchableOpacity>
+                              )}
+
+                              {messageData.type === MESSAGE_TYPES.LINK && messageData.links && (
+                                <TouchableOpacity
+                                  style={[styles.linkPreview, {
+                                    backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background
+                                  }]}
+                                  onPress={() => Linking.openURL(messageData.links[0])}
+                                >
+                                  <View style={[styles.linkIcon, { backgroundColor: premiumColors.accent.sky + '20' }]}>
+                                    <Ionicons name="link" size={20} color={premiumColors.accent.sky} />
+                                  </View>
+                                  <View style={styles.linkInfo}>
+                                    <Text style={[styles.linkUrl, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.sky }]} numberOfLines={1}>
+                                      {messageData.links[0]}
+                                    </Text>
+                                    <Text style={[styles.linkHint, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
+                                      Tap to open
+                                    </Text>
+                                  </View>
+                                  <Ionicons name="open-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.secondaryText} />
+                                </TouchableOpacity>
+                              )}
+
+                              {messageData.message && messageData.type !== MESSAGE_TYPES.VOICE && (
+                                <Text style={[
+                                  styles.messageText,
+                                  { color: isOwnMessage ? '#FFFFFF' : colors.text }
+                                ]}>
+                                  {messageData.message}
                                 </Text>
-                              </View>
-                              <Ionicons name="open-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.secondaryText} />
-                            </TouchableOpacity>
-                          )}
-                          
-                          {/* Message text - hide for voice-only messages */}
-                          {messageData.message && messageData.type !== MESSAGE_TYPES.VOICE && (
-                            <Text style={[
-                              styles.messageText,
-                              { color: isOwnMessage ? '#FFFFFF' : colors.text }
-                            ]}>
-                              {messageData.message}
-                            </Text>
-                          )}
-                          
-                          {/* Timestamp - hide for image-only messages */}
-                          {(messageData.type !== MESSAGE_TYPES.IMAGE || messageData.message) && (
-                            <View style={styles.messageFooter}>
-                              <Text style={[styles.messageTime, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
-                                {formatTimeAgo(discussion.createdAt)}
-                              </Text>
-                              {isOwnMessage && (
-                                <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.7)" style={{ marginLeft: 4 }} />
+                              )}
+
+                              {(messageData.type !== MESSAGE_TYPES.IMAGE || messageData.message) && (
+                                <View style={styles.messageFooter}>
+                                  <Text style={[styles.messageTime, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
+                                    {formatTimeAgo(discussion.createdAt)}
+                                  </Text>
+                                  {isOwnMessage && (
+                                    <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.7)" style={{ marginLeft: 4 }} />
+                                  )}
+                                </View>
                               )}
                             </View>
-                          )}
-                        </View>
-                        
-                        {/* Message actions */}
-                        <View style={styles.messageActions}>
-                          <TouchableOpacity 
-                            style={styles.actionButton}
-                            onPress={() => setReplyingTo({ ...discussion, user: discussionUser })}
-                          >
-                            <Ionicons name="arrow-undo-outline" size={16} color={colors.secondaryText} />
+
                           </TouchableOpacity>
-                        </View>
-                      </TouchableOpacity>
-                      
-                      {/* Reactions */}
+                          </View>
+                        </TapGestureHandler>
+                      </Swipeable>
+
                       {reactions.length > 0 && (
                         <View style={[
                           styles.reactionsContainer,
                           isOwnMessage ? styles.ownReactions : styles.otherReactions,
                         ]}>
                           {reactions.map((reaction, rIndex) => (
-                            <View key={rIndex} style={[styles.reactionBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                            <View
+                              key={rIndex}
+                              style={[
+                                styles.reactionBubble,
+                                {
+                                  backgroundColor: isDarkMode ? 'rgba(30, 30, 40, 0.95)' : 'rgba(255, 255, 255, 0.98)',
+                                  borderColor: isDarkMode ? 'rgba(99, 102, 241, 0.3)' : 'rgba(99, 102, 241, 0.15)',
+                                  shadowColor: isDarkMode ? '#6366F1' : '#000',
+                                }
+                              ]}
+                            >
                               <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
                             </View>
                           ))}
                         </View>
                       )}
-                      
-                      {/* Reaction picker */}
+
                       {showReactionPicker === index && (
-                        <Animated.View 
+                        <Animated.View
                           style={[
                             styles.reactionPicker,
-                            { 
+                            {
                               backgroundColor: colors.card,
                               borderColor: colors.border,
                               opacity: reactionPickerAnim,
@@ -3446,19 +1848,27 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 </View>
               )}
             </ScrollView>
-            
-            {/* Input Area */}
-            {member && (
+
+            {member ? (
               <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={100}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
               >
-                {/* Reply preview */}
+
                 {replyingTo && (
-                  <View style={[styles.replyingToContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                    <View style={[styles.replyingToBar, { backgroundColor: premiumColors.accent.emerald }]} />
+                  <View style={[styles.replyingToContainer, {
+                    backgroundColor: isDarkMode ? 'rgba(30, 30, 40, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+                    borderTopColor: isDarkMode ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
+                  }]}>
+                    <View style={[styles.replyingToBar, {
+                      backgroundColor: '#10B981',
+                      shadowColor: '#10B981',
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.5,
+                      shadowRadius: 4,
+                    }]} />
                     <View style={styles.replyingToContent}>
-                      <Text style={[styles.replyingToLabel, { color: premiumColors.accent.emerald }]}>
+                      <Text style={[styles.replyingToLabel, { color: '#10B981' }]}>
                         Replying to {replyingTo.user?.name || 'Member'}
                       </Text>
                       <Text style={[styles.replyingToText, { color: colors.secondaryText }]} numberOfLines={1}>
@@ -3472,13 +1882,17 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                         })()}
                       </Text>
                     </View>
-                    <TouchableOpacity onPress={cancelReply} style={styles.cancelReplyButton}>
-                      <Ionicons name="close-circle" size={24} color={colors.secondaryText} />
+                    <TouchableOpacity
+                      onPress={cancelReply}
+                      style={[styles.cancelReplyButton, {
+                        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
+                      }]}
+                    >
+                      <Ionicons name="close" size={18} color={colors.secondaryText} />
                     </TouchableOpacity>
                   </View>
                 )}
-                
-                {/* Attachment preview */}
+
                 {(selectedImage || selectedDocument) && (
                   <View style={[styles.attachmentPreview, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
                     {selectedImage && (
@@ -3493,10 +1907,10 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     {selectedDocument && (
                       <View style={styles.documentPreviewContainer}>
                         <View style={[styles.documentPreviewIcon, { backgroundColor: getFileIcon(selectedDocument.name).color + '20' }]}>
-                          <Ionicons 
-                            name={getFileIcon(selectedDocument.name).icon} 
-                            size={24} 
-                            color={getFileIcon(selectedDocument.name).color} 
+                          <Ionicons
+                            name={getFileIcon(selectedDocument.name).icon}
+                            size={24}
+                            color={getFileIcon(selectedDocument.name).color}
                           />
                         </View>
                         <View style={styles.previewInfo}>
@@ -3514,22 +1928,20 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     </TouchableOpacity>
                   </View>
                 )}
-                
-                {/* Main input container */}
+
                 <View style={[styles.advancedInputContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                  {/* Attachment button */}
-                  <TouchableOpacity 
+
+                  <TouchableOpacity
                     style={[styles.attachButton, { backgroundColor: showAttachmentMenu ? premiumColors.primary.main : 'transparent' }]}
                     onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
                   >
-                    <Ionicons 
-                      name={showAttachmentMenu ? 'close' : 'add-circle'} 
-                      size={26} 
-                      color={showAttachmentMenu ? '#FFFFFF' : premiumColors.primary.main} 
+                    <Ionicons
+                      name={showAttachmentMenu ? 'close' : 'add-circle'}
+                      size={26}
+                      color={showAttachmentMenu ? '#FFFFFF' : premiumColors.primary.main}
                     />
                   </TouchableOpacity>
-                  
-                  {/* Text input */}
+
                   <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.border }]}>
                     <TextInput
                       style={[styles.advancedInput, { color: colors.text }]}
@@ -3540,21 +1952,19 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       multiline
                       maxLength={1000}
                     />
-                    
-                    {/* Emoji button */}
-                    <TouchableOpacity 
+
+                    <TouchableOpacity
                       style={styles.emojiButton}
                       onPress={() => setShowEmojiPicker(!showEmojiPicker)}
                     >
-                      <Ionicons 
-                        name={showEmojiPicker ? "happy" : "happy-outline"} 
-                        size={22} 
-                        color={showEmojiPicker ? premiumColors.primary.main : colors.secondaryText} 
+                      <Ionicons
+                        name={showEmojiPicker ? "happy" : "happy-outline"}
+                        size={22}
+                        color={showEmojiPicker ? premiumColors.primary.main : colors.secondaryText}
                       />
                     </TouchableOpacity>
                   </View>
-                  
-                  {/* Send or Microphone button */}
+
                   {discussionMessage.trim() || selectedImage || selectedDocument ? (
                     <TouchableOpacity
                       style={[
@@ -3580,17 +1990,16 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       onLongPress={startRecording}
                     >
                       <Animated.View style={{ transform: [{ scale: isRecording ? recordingAnimRef : 1 }] }}>
-                        <Ionicons 
-                          name={isRecording ? "stop" : "mic"} 
-                          size={20} 
-                          color="#FFFFFF" 
+                        <Ionicons
+                          name={isRecording ? "stop" : "mic"}
+                          size={20}
+                          color="#FFFFFF"
                         />
                       </Animated.View>
                     </TouchableOpacity>
                   )}
                 </View>
-                
-                {/* iOS-style Recording Overlay */}
+
                 {isRecording && (
                   <View style={styles.recordingOverlay}>
                     <LinearGradient
@@ -3599,24 +2008,23 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       end={{ x: 1, y: 0 }}
                       style={styles.recordingOverlayGradient}
                     >
-                      {/* Cancel button */}
-                      <TouchableOpacity 
+
+                      <TouchableOpacity
                         style={styles.recordingCancelBtn}
                         onPress={cancelRecording}
                       >
                         <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
                       </TouchableOpacity>
-                      
-                      {/* Waveform and timer */}
+
                       <View style={styles.recordingCenter}>
-                        {/* Animated waveform */}
+
                         <View style={styles.recordingWaveform}>
                           {[...Array(12)].map((_, i) => (
-                            <Animated.View 
+                            <Animated.View
                               key={i}
                               style={[
                                 styles.recordingWaveBar,
-                                { 
+                                {
                                   height: Math.sin((i + recordingDuration) * 0.5) * 12 + 8,
                                   opacity: 0.6 + Math.sin((i + recordingDuration * 2) * 0.3) * 0.4,
                                 }
@@ -3624,25 +2032,23 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                             />
                           ))}
                         </View>
-                        
-                        {/* Recording indicator and timer */}
+
                         <View style={styles.recordingTimerContainer}>
                           <Animated.View style={[
-                            styles.recordingPulseDot, 
+                            styles.recordingPulseDot,
                             { transform: [{ scale: recordingAnimRef }] }
                           ]} />
                           <Text style={styles.recordingTimer}>
                             {formatDuration(recordingDuration)}
                           </Text>
                         </View>
-                        
+
                         <Text style={styles.recordingHint}>
                           Tap send to finish
                         </Text>
                       </View>
-                      
-                      {/* Send button */}
-                      <TouchableOpacity 
+
+                      <TouchableOpacity
                         style={styles.recordingSendBtn}
                         onPress={sendVoiceMessage}
                       >
@@ -3653,13 +2059,12 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     </LinearGradient>
                   </View>
                 )}
-                
-                {/* Attachment menu */}
+
                 {showAttachmentMenu && (
-                  <Animated.View 
+                  <Animated.View
                     style={[
                       styles.attachmentMenu,
-                      { 
+                      {
                         backgroundColor: colors.card,
                         borderTopColor: colors.border,
                         opacity: attachmentMenuAnim,
@@ -3681,7 +2086,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       </LinearGradient>
                       <Text style={[styles.attachmentLabel, { color: colors.text }]}>Gallery</Text>
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity style={styles.attachmentOption} onPress={takePhoto}>
                       <LinearGradient
                         colors={['#E91E63', '#C2185B']}
@@ -3691,7 +2096,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       </LinearGradient>
                       <Text style={[styles.attachmentLabel, { color: colors.text }]}>Camera</Text>
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity style={styles.attachmentOption} onPress={pickDocument}>
                       <LinearGradient
                         colors={['#3F51B5', '#303F9F']}
@@ -3701,7 +2106,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       </LinearGradient>
                       <Text style={[styles.attachmentLabel, { color: colors.text }]}>Document</Text>
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity style={styles.attachmentOption}>
                       <LinearGradient
                         colors={['#00BCD4', '#0097A7']}
@@ -3711,7 +2116,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       </LinearGradient>
                       <Text style={[styles.attachmentLabel, { color: colors.text }]}>Link</Text>
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity style={styles.attachmentOption} onPress={() => { setShowAttachmentMenu(false); startRecording(); }}>
                       <LinearGradient
                         colors={['#FF5722', '#E64A19']}
@@ -3721,7 +2126,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       </LinearGradient>
                       <Text style={[styles.attachmentLabel, { color: colors.text }]}>Voice</Text>
                     </TouchableOpacity>
-                    
+
                     <TouchableOpacity style={styles.attachmentOption}>
                       <LinearGradient
                         colors={['#4CAF50', '#388E3C']}
@@ -3733,67 +2138,122 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     </TouchableOpacity>
                   </Animated.View>
                 )}
-                
-                {/* Emoji Picker */}
+
                 {showEmojiPicker && (
-                  <EmojiPicker 
+                  <EmojiPicker
                     colors={colors}
                     onSelectEmoji={insertEmoji}
                     onClose={() => setShowEmojiPicker(false)}
                   />
                 )}
               </KeyboardAvoidingView>
+            ) : (
+              <View style={[styles.joinToParticipate, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+                <Text style={[styles.joinToParticipateText, { color: colors.secondaryText }]}>
+                  Join this group to participate in the discussion
+                </Text>
+                <TouchableOpacity
+                  style={[styles.joinCompactBtn, { backgroundColor: premiumColors.primary.main }]}
+                  onPress={handleJoin}
+                >
+                  <Text style={styles.joinCompactBtnText}>Join Group</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         )}
 
         {activeTab === 'resources' && (
           <View style={styles.tabContent}>
-            {member && (
-              <TouchableOpacity
-                style={[styles.addResourceButton, { backgroundColor: premiumColors.primary.main }]}
-                onPress={() => setShowResourceModal(true)}
-              >
-                <Ionicons name="add" size={20} color="#FFFFFF" />
-                <Text style={styles.addResourceText}>Add Resource</Text>
-              </TouchableOpacity>
-            )}
-            {group.resources?.length > 0 ? (
-              group.resources.map((resource, index) => {
-                const resourceUser = typeof resource.addedBy === 'object' ? resource.addedBy : null;
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={[styles.resourceCard, { backgroundColor: colors.card }]}
-                    onPress={() => {
-                      if (resource.url) {
-                        // Open URL - you might want to use Linking here
-                        Alert.alert('Resource', `Open ${resource.url}?`);
-                      }
-                    }}
-                  >
-                    <Ionicons
-                      name={resource.type === 'video' ? 'videocam' : resource.type === 'document' ? 'document' : 'link'}
-                      size={24}
-                      color={premiumColors.primary.main}
-                    />
-                    <View style={styles.resourceInfo}>
-                      <Text style={[styles.resourceTitle, { color: colors.text }]}>{resource.title}</Text>
-                      <Text style={[styles.resourceMeta, { color: colors.secondaryText }]}>
-                        Added by {resourceUser?.name || 'Member'}
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-                  </TouchableOpacity>
-                );
-              })
-            ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="folder-outline" size={48} color={colors.secondaryText} />
-                <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
-                  No resources yet. Add your first resource!
+
+            {!isAuthenticated ? (
+              <View style={[styles.resourceSecurityCard, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
+                <View style={[styles.resourceSecurityIcon, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
+                  <Ionicons name="lock-closed" size={32} color="#6366F1" />
+                </View>
+                <Text style={[styles.resourceSecurityTitle, { color: colors.text }]}>Login Required</Text>
+                <Text style={[styles.resourceSecurityText, { color: colors.secondaryText }]}>
+                  Sign in to access study resources shared by group members.
                 </Text>
+                <TouchableOpacity
+                  style={styles.resourceSecurityBtn}
+                  onPress={() => navigation.navigate('Auth')}
+                >
+                  <LinearGradient
+                    colors={['#6366F1', '#8B5CF6']}
+                    style={styles.resourceSecurityBtnGradient}
+                  >
+                    <Text style={styles.resourceSecurityBtnText}>Sign In</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
               </View>
+            ) : !member ? (
+              <View style={[styles.resourceSecurityCard, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
+                <View style={[styles.resourceSecurityIcon, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
+                  <Ionicons name="folder-open" size={32} color="#10B981" />
+                </View>
+                <Text style={[styles.resourceSecurityTitle, { color: colors.text }]}>Members Only</Text>
+                <Text style={[styles.resourceSecurityText, { color: colors.secondaryText }]}>
+                  Join this group to access study materials, documents, and resources.
+                </Text>
+                <TouchableOpacity
+                  style={styles.resourceSecurityBtn}
+                  onPress={handleJoin}
+                >
+                  <LinearGradient
+                    colors={['#10B981', '#059669']}
+                    style={styles.resourceSecurityBtnGradient}
+                  >
+                    <Text style={styles.resourceSecurityBtnText}>Join to Access</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[styles.addResourceButton, { backgroundColor: premiumColors.primary.main }]}
+                  onPress={() => setShowResourceModal(true)}
+                >
+                  <Ionicons name="add" size={20} color="#FFFFFF" />
+                  <Text style={styles.addResourceText}>Add Resource</Text>
+                </TouchableOpacity>
+                {group.resources?.length > 0 ? (
+                  group.resources.map((resource, index) => {
+                    const resourceUser = typeof resource.addedBy === 'object' ? resource.addedBy : null;
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[styles.resourceCard, { backgroundColor: colors.card }]}
+                        onPress={() => {
+                          if (resource.url) {
+                            Alert.alert('Resource', `Open ${resource.url}?`);
+                          }
+                        }}
+                      >
+                        <Ionicons
+                          name={resource.type === 'video' ? 'videocam' : resource.type === 'document' ? 'document' : 'link'}
+                          size={24}
+                          color={premiumColors.primary.main}
+                        />
+                        <View style={styles.resourceInfo}>
+                          <Text style={[styles.resourceTitle, { color: colors.text }]}>{resource.title}</Text>
+                          <Text style={[styles.resourceMeta, { color: colors.secondaryText }]}>
+                            Added by {resourceUser?.name || 'Member'}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+                      </TouchableOpacity>
+                    );
+                  })
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="folder-outline" size={48} color={colors.secondaryText} />
+                    <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
+                      No resources yet. Add your first resource!
+                    </Text>
+                  </View>
+                )}
+              </>
             )}
           </View>
         )}
@@ -3801,7 +2261,6 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Join Modal */}
       <Modal
         visible={showJoinModal}
         transparent
@@ -3838,7 +2297,6 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         </View>
       </Modal>
 
-      {/* Add Resource Modal */}
       <Modal
         visible={showResourceModal}
         transparent
@@ -3876,8 +2334,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           </View>
         </View>
       </Modal>
-      
-      {/* Call Modal - iOS FaceTime Style */}
+
       <Modal
         visible={isInCall}
         transparent={false}
@@ -3925,7 +2382,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </View>
                 )}
               </View>
-              
+
               <View style={styles.faceTimeSelfContainer}>
                 {isVideoOn && cameraPermission?.granted ? (
                   <CameraView style={styles.faceTimeSelfCamera} facing={isFrontCamera ? 'front' : 'back'} />
@@ -3935,7 +2392,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </View>
                 )}
               </View>
-              
+
               <View style={styles.faceTimeTopBar}>
                 <View style={styles.faceTimeInfo}>
                   <Text style={styles.faceTimeGroupName}>{group?.name}</Text>
@@ -3947,7 +2404,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </View>
                 </View>
               </View>
-              
+
               <View style={styles.faceTimeControls}>
                 <View style={styles.faceTimeControlsRow}>
                   <TouchableOpacity style={[styles.faceTimeControlBtn, isMuted && styles.faceTimeControlBtnActive]} onPress={toggleMute}>
@@ -4013,8 +2470,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           )}
         </View>
       </Modal>
-      
-      {/* Image Preview Modal */}
+
       <Modal
         visible={showImagePreview}
         transparent
@@ -4022,21 +2478,21 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         onRequestClose={() => setShowImagePreview(false)}
       >
         <View style={styles.imagePreviewModal}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.imagePreviewClose}
             onPress={() => setShowImagePreview(false)}
           >
             <Ionicons name="close" size={28} color="#FFFFFF" />
           </TouchableOpacity>
           {previewImage && (
-            <Image 
-              source={{ uri: previewImage }} 
+            <Image
+              source={{ uri: previewImage }}
               style={styles.fullScreenImage}
               resizeMode="contain"
             />
           )}
           <View style={styles.imagePreviewActions}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.imagePreviewAction}
               onPress={() => shareImage(previewImage)}
             >
@@ -4045,7 +2501,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               </View>
               <Text style={styles.imagePreviewActionText}>Share</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.imagePreviewAction}
               onPress={() => downloadImage(previewImage)}
             >
@@ -4054,7 +2510,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               </View>
               <Text style={styles.imagePreviewActionText}>Save</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.imagePreviewAction}
               onPress={() => setShowImagePreview(false)}
             >
@@ -4067,23 +2523,22 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         </View>
       </Modal>
 
-      {/* Message Actions Modal - iOS Style */}
       <Modal
         visible={showMessageActions}
         transparent={true}
         animationType="none"
         onRequestClose={closeMessageActions}
       >
-        <TouchableOpacity 
-          style={styles.messageActionsOverlay} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.messageActionsOverlay}
+          activeOpacity={1}
           onPress={closeMessageActions}
         >
-          <TouchableOpacity 
-            activeOpacity={1} 
+          <TouchableOpacity
+            activeOpacity={1}
             onPress={(e) => e.stopPropagation()}
           >
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.messageActionsContainer,
                 {
@@ -4097,10 +2552,10 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 },
               ]}
             >
-              {/* Quick Reactions */}
+
               <View style={[styles.messageActionsReactions, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}>
                 {['❤️', '👍', '👎', '😂', '😮', '😢', '🔥', '🎉'].map((emoji, index) => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     key={index}
                     style={styles.messageActionsReactionBtn}
                     onPress={() => {
@@ -4115,7 +2570,6 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 ))}
               </View>
 
-              {/* Action Buttons */}
               <View style={[styles.messageActionsMenu, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}>
                 <TouchableOpacity style={styles.messageActionItem} onPress={handleReplyToMessage}>
                   <View style={[styles.messageActionIcon, { backgroundColor: '#007AFF15' }]}>
@@ -4145,7 +2599,6 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
                 </TouchableOpacity>
 
-                {/* Delete option - only show for own messages or moderators */}
                 {(selectedMessage?.isOwnMessage || isModerator()) && (
                   <>
                     <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
@@ -4173,8 +2626,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 )}
               </View>
 
-              {/* Cancel Button */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.messageActionsCancelBtn, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}
                 onPress={closeMessageActions}
               >
@@ -4184,7 +2636,13 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+      
+      {renderVoiceCallModal()}
+      {renderGroupOptionsModal()}
+      {renderEditGroupModal()}
+      {renderGroupInfoModal()}
     </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -4197,31 +2655,29 @@ function InfoSection({ title, value, colors }) {
   );
 }
 
-// Emoji Picker Component
 function EmojiPicker({ colors, onSelectEmoji, onClose }) {
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [recentEmojis, setRecentEmojis] = useState(['😀', '😂', '❤️', '👍', '🔥', '🎉', '😊', '🙏']);
-  
+
   const handleEmojiSelect = (emoji) => {
     onSelectEmoji(emoji);
-    // Add to recent (keep last 8)
+
     setRecentEmojis(prev => {
       const filtered = prev.filter(e => e !== emoji);
       return [emoji, ...filtered].slice(0, 8);
     });
   };
-  
+
   return (
     <View style={[styles.emojiPickerContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-      {/* Header with search hint and close */}
+
       <View style={styles.emojiPickerHeader}>
         <Text style={[styles.emojiPickerTitle, { color: colors.text }]}>Emojis</Text>
         <TouchableOpacity onPress={onClose} style={styles.emojiPickerClose}>
           <Ionicons name="chevron-down" size={24} color={colors.secondaryText} />
         </TouchableOpacity>
       </View>
-      
-      {/* Recent emojis */}
+
       <View style={styles.recentEmojisSection}>
         <Text style={[styles.emojiCategoryLabel, { color: colors.secondaryText }]}>Recently Used</Text>
         <View style={styles.emojiGrid}>
@@ -4236,11 +2692,10 @@ function EmojiPicker({ colors, onSelectEmoji, onClose }) {
           ))}
         </View>
       </View>
-      
-      {/* Category tabs */}
+
       <View style={styles.emojiCategoryTabsWrapper}>
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.emojiCategoryTabsContent}
         >
@@ -4253,13 +2708,13 @@ function EmojiPicker({ colors, onSelectEmoji, onClose }) {
               ]}
               onPress={() => setSelectedCategory(index)}
             >
-              <Ionicons 
-                name={category.icon} 
-                size={20} 
-                color={selectedCategory === index ? premiumColors.primary.main : colors.secondaryText} 
+              <Ionicons
+                name={category.icon}
+                size={20}
+                color={selectedCategory === index ? premiumColors.primary.main : colors.secondaryText}
               />
               <Text style={[
-                styles.emojiCategoryTabText, 
+                styles.emojiCategoryTabText,
                 { color: selectedCategory === index ? premiumColors.primary.main : colors.secondaryText }
               ]}>
                 {category.name}
@@ -4268,9 +2723,8 @@ function EmojiPicker({ colors, onSelectEmoji, onClose }) {
           ))}
         </ScrollView>
       </View>
-      
-      {/* Emoji grid */}
-      <ScrollView 
+
+      <ScrollView
         style={styles.emojiScrollView}
         contentContainerStyle={styles.emojiScrollContent}
         showsVerticalScrollIndicator={false}
@@ -4596,8 +3050,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     marginBottom: spacing.md,
   },
-  
-  // Advanced Discussions Styles
+
   discussionsContainer: {
     flex: 1,
   },
@@ -4679,7 +3132,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 4,
     borderBottomRightRadius: 18,
   },
-  // iOS-style bubble tail for own messages
+
   ownBubbleTail: {
     position: 'absolute',
     bottom: 0,
@@ -4687,7 +3140,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 16,
   },
-  // iOS-style bubble tail for other messages
+
   otherBubbleTail: {
     position: 'absolute',
     bottom: 0,
@@ -4733,13 +3186,13 @@ const styles = StyleSheet.create({
   messageActions: {
     display: 'none',
   },
-  
-  // Reply preview in message - iOS style
+
   replyPreview: {
-    padding: 8,
-    borderRadius: 8,
-    borderLeftWidth: 2,
-    marginBottom: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderLeftWidth: 3,
+    marginBottom: 8,
   },
   replyAuthor: {
     fontSize: 13,
@@ -4749,8 +3202,7 @@ const styles = StyleSheet.create({
   replyText: {
     fontSize: 13,
   },
-  
-  // Image attachment - iOS iMessage style
+
   imageAttachment: {
     borderRadius: 18,
     overflow: 'hidden',
@@ -4763,7 +3215,7 @@ const styles = StyleSheet.create({
     height: width * 0.65,
     borderRadius: 18,
   },
-  // iOS-style image message wrapper
+
   imageMessageWrapper: {
     borderRadius: 18,
     overflow: 'hidden',
@@ -4818,8 +3270,7 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  
-  // Document attachment
+
   documentAttachment: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -4857,8 +3308,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
-  // Voice message styles - iOS style
+
   voiceMessage: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -4891,8 +3341,7 @@ const styles = StyleSheet.create({
     minWidth: 35,
     textAlign: 'right',
   },
-  
-  // iOS-style Recording Overlay
+
   recordingOverlay: {
     position: 'absolute',
     bottom: 0,
@@ -4973,8 +3422,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  
-  // Link preview
+
   linkPreview: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -5001,13 +3449,13 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     marginTop: 2,
   },
-  
-  // Reactions
+
   reactionsContainer: {
     flexDirection: 'row',
-    gap: 4,
-    marginTop: -8,
-    paddingHorizontal: 36,
+    gap: 6,
+    marginTop: -6,
+    paddingHorizontal: 50,
+    flexWrap: 'wrap',
   },
   ownReactions: {
     justifyContent: 'flex-end',
@@ -5016,16 +3464,19 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   reactionBubble: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   reactionEmoji: {
-    fontSize: 12,
+    fontSize: 14,
   },
-  
-  // Reaction picker
+
   reactionPicker: {
     position: 'absolute',
     top: -50,
@@ -5052,8 +3503,7 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: 4,
   },
-  
-  // Empty discussions state
+
   emptyDiscussions: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -5078,8 +3528,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     lineHeight: 22,
   },
-  
-  // Advanced input container
+
   advancedInputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -5125,8 +3574,7 @@ const styles = StyleSheet.create({
   sendButtonDisabled: {
     opacity: 0.5,
   },
-  
-  // Attachment menu
+
   attachmentMenu: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -5153,36 +3601,44 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: '600',
   },
-  
-  // Replying to container
+
   replyingToContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-    borderTopWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    minHeight: 52,
   },
   replyingToBar: {
-    width: 4,
-    height: '100%',
-    borderRadius: 2,
+    width: 3,
+    height: 36,
+    borderRadius: 1.5,
     marginRight: spacing.md,
   },
   replyingToContent: {
     flex: 1,
+    justifyContent: 'center',
   },
   replyingToLabel: {
     fontSize: fontSize.xs,
-    fontWeight: '700',
-    marginBottom: 2,
+    fontWeight: '600',
+    marginBottom: 3,
+    letterSpacing: 0.2,
   },
   replyingToText: {
     fontSize: fontSize.sm,
+    lineHeight: fontSize.sm * 1.3,
   },
   cancelReplyButton: {
-    padding: spacing.xs,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: spacing.sm,
   },
-  
-  // Attachment preview
+
   attachmentPreview: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -5227,8 +3683,7 @@ const styles = StyleSheet.create({
   cancelAttachmentButton: {
     padding: spacing.xs,
   },
-  
-  // Call modal styles
+
   callModal: {
     flex: 1,
   },
@@ -5400,8 +3855,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  
-  // iOS FaceTime styles
+
   faceTimeContainer: {
     flex: 1,
     backgroundColor: '#000000',
@@ -5580,8 +4034,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
   },
-  
-  // Image preview modal
+
   imagePreviewModal: {
     flex: 1,
     backgroundColor: '#000000',
@@ -5627,83 +4080,162 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: '500',
   },
-  
-  // Full Screen Chat Styles
+
   chatHeader: {
-    paddingTop: 50,
-    paddingBottom: spacing.md,
+    paddingTop: Platform.OS === 'ios' ? 54 : 44,
+    paddingBottom: spacing.md + 4,
     paddingHorizontal: spacing.md,
+    overflow: 'hidden',
+  },
+  chatHeaderOrb1: {
+    position: 'absolute',
+    top: -40,
+    right: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  chatHeaderOrb2: {
+    position: 'absolute',
+    bottom: -30,
+    left: 20,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  chatHeaderOrb3: {
+    position: 'absolute',
+    top: 60,
+    left: -20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   chatHeaderContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   chatBackButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 4,
   },
   chatHeaderInfo: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: spacing.sm,
+  },
+  chatAvatarContainer: {
+    position: 'relative',
+  },
+  chatAvatarGlow: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   chatHeaderGroupIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  chatHeaderGroupImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.3)',
   },
+  chatHeaderGroupImage: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  chatOnlineIndicator: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#1E1B4B',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chatOnlineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#22C55E',
+  },
   chatHeaderText: {
     flex: 1,
-    marginLeft: spacing.sm,
+    marginLeft: spacing.sm + 4,
   },
   chatHeaderTitle: {
-    fontSize: fontSize.lg,
+    fontSize: fontSize.lg + 1,
     fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: -0.3,
   },
   chatHeaderMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 4,
+    gap: 8,
   },
   chatMemberAvatars: {
     flexDirection: 'row',
-    marginRight: spacing.xs,
+    marginRight: 4,
   },
   chatMemberAvatar: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#7C3AED',
   },
   chatMemberAvatarPlaceholder: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 2,
+    borderColor: '#7C3AED',
+  },
+  chatMemberInitial: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  chatMemberAvatarMore: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#7C3AED',
+  },
+  chatMemberMoreText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   chatHeaderSubtitle: {
-    fontSize: fontSize.xs,
-    color: 'rgba(255,255,255,0.8)',
+    fontSize: fontSize.xs + 1,
+    color: 'rgba(255,255,255,0.85)',
+    fontWeight: '500',
   },
   chatHeaderActions: {
     flexDirection: 'row',
@@ -5796,8 +4328,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: '600',
   },
-  
-  // Emoji Picker Styles
+
   emojiPickerContainer: {
     height: 340,
     borderTopWidth: 1,
@@ -5870,8 +4401,7 @@ const styles = StyleSheet.create({
   emoji: {
     fontSize: 24,
   },
-  
-  // iOS-Style Action Sheet
+
   actionSheetOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -5890,7 +4420,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.lg,
-    backgroundColor: 'rgba(255,255,255,0.95)',
   },
   actionSheetGroupAvatar: {
     width: 56,
@@ -5927,7 +4456,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     paddingVertical: spacing.md + 4,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    borderBottomColor: 'rgba(128,128,128,0.2)',
   },
   actionSheetIcon: {
     width: 36,
@@ -5966,8 +4495,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     fontWeight: '600',
   },
-  
-  // Edit Group Modal Styles
+
   editGroupModal: {
     flex: 1,
   },
@@ -6157,8 +4685,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: '500',
   },
-  
-  // Group Info Modal Styles
+
   groupInfoOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -6376,8 +4903,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: '600',
   },
-  
-  // Message Actions Modal Styles
+
   messageActionsOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -6450,6 +4976,273 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#007AFF',
   },
-});
+  swipeReplyContainer: {
+    width: 70,
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    paddingRight: 8,
+  },
+  swipeReplyContainerRight: {
+    width: 70,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingLeft: 8,
+  },
+  swipeReplyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  swipeDeleteContainer: {
+    width: 70,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingLeft: 8,
+  },
+  swipeDeleteIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  reactionCount: {
+    position: 'absolute',
+    bottom: -12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1.5,
+    gap: 3,
+    zIndex: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  reactionCountEmoji: {
+    fontSize: 14,
+  },
+  reactionCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: 2,
+  },
+  messageWrapper: {
+    position: 'relative',
+  },
+  doubleTapHeart: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginTop: -40,
+    marginLeft: -40,
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  doubleTapHeartEmoji: {
+    fontSize: 60,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
+  },
+  joinToParticipate: {
+    padding: spacing.md,
+    paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.md,
+    borderTopWidth: 1,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  joinToParticipateText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  joinCompactBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    ...premiumShadows.sm,
+  },
+  joinCompactBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
 
+  securityOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  securityCard: {
+    width: '100%',
+    borderRadius: 28,
+    padding: 32,
+    alignItems: 'center',
+    ...premiumShadows.lg,
+  },
+  securityIconContainer: {
+    marginBottom: 24,
+  },
+  securityIconBg: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...premiumShadows.md,
+  },
+  securityTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 12,
+    letterSpacing: -0.5,
+  },
+  securityMessage: {
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  securityFeatures: {
+    width: '100%',
+    gap: 14,
+    marginBottom: 28,
+    paddingHorizontal: 8,
+  },
+  securityFeature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  securityFeatureText: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  securityButton: {
+    width: '100%',
+    marginBottom: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  securityButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 10,
+  },
+  securityButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  securitySecondaryButton: {
+    paddingVertical: 12,
+  },
+  securitySecondaryText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  groupPreviewCard: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 20,
+  },
+  groupPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  groupPreviewImage: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  groupPreviewInfo: {
+    flex: 1,
+  },
+  groupPreviewName: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  groupPreviewMeta: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  groupPreviewDesc: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 12,
+  },
+
+  resourceSecurityCard: {
+    padding: 32,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  resourceSecurityIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  resourceSecurityTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  resourceSecurityText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+    paddingHorizontal: 10,
+  },
+  resourceSecurityBtn: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    minWidth: 160,
+  },
+  resourceSecurityBtnGradient: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  resourceSecurityBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+});
 

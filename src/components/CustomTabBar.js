@@ -7,90 +7,102 @@ import {
   Animated,
   Dimensions,
   Platform,
-  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
-const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 90 : 72;
-const ICON_SIZE = 22;
-
 const tabConfig = {
-  Home: { icon: 'home', label: 'Home', gradient: ['#3B82F6', '#2563EB'] },
-  Learn: { icon: 'book', label: 'Learn', gradient: ['#8B5CF6', '#7C3AED'] },
-  Practice: { icon: 'fitness', label: 'Practice', gradient: ['#F59E0B', '#D97706'] },
-  Community: { icon: 'people', label: 'Community', gradient: ['#10B981', '#059669'] },
-  Profile: { icon: 'person', label: 'Profile', gradient: ['#EC4899', '#DB2777'] },
+  Home: {
+    icon: 'home',
+    iconOutline: 'home-outline',
+    label: 'Home',
+    gradient: ['#6366f1', '#818cf8'],
+  },
+  Learn: {
+    icon: 'school',
+    iconOutline: 'school-outline',
+    label: 'Learn',
+    gradient: ['#8b5cf6', '#a78bfa'],
+  },
+  Practice: {
+    icon: 'create',
+    iconOutline: 'create-outline',
+    label: 'Practice',
+    gradient: ['#f59e0b', '#fbbf24'],
+  },
+  Community: {
+    icon: 'chatbubbles',
+    iconOutline: 'chatbubbles-outline',
+    label: 'Community',
+    gradient: ['#10b981', '#34d399'],
+  },
+  Profile: {
+    icon: 'person',
+    iconOutline: 'person-outline',
+    label: 'Profile',
+    gradient: ['#ec4899', '#f472b6'],
+  },
 };
 
-function TabBarItem({ route, focused, onPress, onLongPress, colors, isDarkMode }) {
-  const { user } = useAuth();
+function TabBarItem({ route, focused, onPress, onLongPress, isDarkMode }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const bounceAnim = useRef(new Animated.Value(0)).current;
+  const translateAnim = useRef(new Animated.Value(0)).current;
 
-  const config = tabConfig[route.name] || { icon: 'ellipse', label: route.name, gradient: ['#6B7280', '#4B5563'] };
+  const config = tabConfig[route.name] || {
+    icon: 'ellipse',
+    iconOutline: 'ellipse-outline',
+    label: route.name,
+    gradient: ['#6366f1', '#818cf8'],
+  };
 
   useEffect(() => {
     if (focused) {
-      // Bounce animation when selected
-      Animated.sequence([
+      Animated.parallel([
         Animated.spring(scaleAnim, {
-          toValue: 1.2,
+          toValue: 1.05,
           useNativeDriver: true,
           tension: 300,
           friction: 10,
         }),
-        Animated.spring(scaleAnim, {
-          toValue: 1.1,
+        Animated.spring(translateAnim, {
+          toValue: -2,
           useNativeDriver: true,
-          tension: 200,
+          tension: 300,
           friction: 10,
         }),
       ]).start();
-      
-      Animated.spring(bounceAnim, {
-        toValue: -8,
-        useNativeDriver: true,
-        tension: 200,
-        friction: 10,
-      }).start();
     } else {
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        useNativeDriver: true,
-        tension: 200,
-        friction: 10,
-      }).start();
-      
-      Animated.spring(bounceAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 200,
-        friction: 10,
-      }).start();
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 300,
+          friction: 10,
+        }),
+        Animated.spring(translateAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 300,
+          friction: 10,
+        }),
+      ]).start();
     }
   }, [focused]);
 
-  const handlePress = () => {
-    onPress();
-  };
-
-  const isProfile = route.name === 'Profile';
-  const showAvatar = isProfile && user?.avatar;
+  const inactiveColor = isDarkMode ? '#6b7280' : '#9ca3af';
 
   return (
     <TouchableOpacity
       accessibilityRole="button"
       accessibilityState={{ selected: focused }}
       accessibilityLabel={config.label}
-      onPress={handlePress}
+      onPress={onPress}
       onLongPress={onLongPress}
       style={styles.tabItem}
-      activeOpacity={0.7}
+      activeOpacity={0.6}
     >
       <Animated.View
         style={[
@@ -98,79 +110,81 @@ function TabBarItem({ route, focused, onPress, onLongPress, colors, isDarkMode }
           {
             transform: [
               { scale: scaleAnim },
-              { translateY: bounceAnim },
-            ],
-          },
+              { translateY: translateAnim },
+            ]
+          }
         ]}
       >
-        {focused ? (
-          <View style={styles.activeTabContainer}>
-            <LinearGradient
-              colors={config.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.activeIconBg}
-            >
-              {showAvatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatarActive} />
-              ) : (
-                <Ionicons name={config.icon} size={ICON_SIZE} color="#FFFFFF" />
-              )}
-            </LinearGradient>
-          </View>
-        ) : (
-          <View style={styles.inactiveTabContainer}>
-            <View style={[styles.inactiveIconBg, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-              {showAvatar ? (
-                <Image source={{ uri: user.avatar }} style={[styles.avatarInactive, { borderColor: isDarkMode ? '#374151' : '#E5E7EB' }]} />
-              ) : (
+
+        <View style={styles.iconWrapper}>
+          {focused ? (
+            <View style={styles.activeIconContainer}>
+              <LinearGradient
+                colors={config.gradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.activeIconBg}
+              >
                 <Ionicons
-                  name={`${config.icon}-outline`}
-                  size={ICON_SIZE}
-                  color={isDarkMode ? '#6B7280' : '#9CA3AF'}
+                  name={config.icon}
+                  size={22}
+                  color="#ffffff"
                 />
-              )}
+              </LinearGradient>
             </View>
-          </View>
+          ) : (
+            <View style={[
+              styles.inactiveIconContainer,
+              { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }
+            ]}>
+              <Ionicons
+                name={config.iconOutline}
+                size={22}
+                color={inactiveColor}
+              />
+            </View>
+          )}
+        </View>
+
+        <Text
+          style={[
+            styles.label,
+            {
+              color: focused ? config.gradient[0] : inactiveColor,
+              fontWeight: focused ? '700' : '500',
+            }
+          ]}
+        >
+          {config.label}
+        </Text>
+
+        {focused && (
+          <View style={[styles.activeDot, { backgroundColor: config.gradient[0] }]} />
         )}
       </Animated.View>
-      
-      {/* Label */}
-      <Text
-        style={[
-          styles.label,
-          focused ? styles.labelActive : styles.labelInactive,
-          { color: focused ? config.gradient[0] : (isDarkMode ? '#6B7280' : '#9CA3AF') }
-        ]}
-      >
-        {config.label}
-      </Text>
     </TouchableOpacity>
   );
 }
 
 export default function CustomTabBar({ state, descriptors, navigation }) {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
 
   return (
     <View style={[
       styles.container,
       {
-        backgroundColor: isDarkMode ? '#111827' : '#FFFFFF',
-        borderTopColor: isDarkMode ? '#1F2937' : '#F3F4F6',
+        backgroundColor: isDarkMode ? '#0c0c0c' : '#ffffff',
+        borderTopColor: isDarkMode ? '#1f1f1f' : '#f0f0f0',
       }
     ]}>
-      {/* Gradient accent line at top */}
-      <LinearGradient
-        colors={['#3B82F6', '#8B5CF6', '#EC4899']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.topAccent}
-      />
-      
+
+      <View style={[
+        styles.topBorder,
+        { backgroundColor: isDarkMode ? '#1f1f1f' : '#e5e5e5' }
+      ]} />
+
       <View style={styles.tabsContainer}>
         {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
           const focused = state.index === index;
 
           const onPress = () => {
@@ -199,15 +213,13 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
               focused={focused}
               onPress={onPress}
               onLongPress={onLongPress}
-              colors={colors}
               isDarkMode={isDarkMode}
             />
           );
         })}
       </View>
-      
-      {/* Home indicator safe area for iOS */}
-      {Platform.OS === 'ios' && <View style={styles.homeIndicatorSpacer} />}
+
+      {Platform.OS === 'ios' && <View style={styles.safeArea} />}
     </View>
   );
 }
@@ -218,85 +230,69 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 24,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 20,
   },
-  topAccent: {
-    height: 2,
+  topBorder: {
+    height: 1,
     width: '100%',
   },
   tabsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'flex-end',
-    paddingTop: 8,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 6 : 12,
     paddingHorizontal: 8,
-    height: Platform.OS === 'ios' ? 60 : 58,
   },
-  homeIndicatorSpacer: {
-    height: 24,
+  safeArea: {
+    height: 22,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 4,
+    justifyContent: 'center',
   },
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 2,
   },
-  activeTabContainer: {
+  iconWrapper: {
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  inactiveTabContainer: {
-    alignItems: 'center',
+  activeIconContainer: {
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   activeIconBg: {
     width: 46,
-    height: 46,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  inactiveIconBg: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarActive: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  avatarInactive: {
-    width: 24,
-    height: 24,
+    height: 34,
     borderRadius: 12,
-    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inactiveIconContainer: {
+    width: 46,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   label: {
-    fontSize: 10,
+    fontSize: 11,
+    marginTop: 6,
+    letterSpacing: 0.1,
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     marginTop: 4,
-    fontWeight: '500',
-  },
-  labelActive: {
-    fontWeight: '700',
-  },
-  labelInactive: {
-    fontWeight: '500',
   },
 });

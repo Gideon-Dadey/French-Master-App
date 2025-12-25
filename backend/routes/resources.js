@@ -3,9 +3,6 @@ const router = express.Router();
 const Resource = require('../models/Resource');
 const { protect } = require('../middleware/auth');
 
-// @route   GET /api/resources
-// @desc    Get all resources with filters
-// @access  Public
 router.get('/', async (req, res) => {
   try {
     const {
@@ -19,14 +16,13 @@ router.get('/', async (req, res) => {
       limit = 20
     } = req.query;
 
-    // Build query
     const query = { status: 'published' };
 
     if (category) query.category = category;
     if (language) query.language = language;
     if (level) query.level = level;
     if (featured === 'true') query.featured = true;
-    
+
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -35,13 +31,11 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    // Sort options
     let sortOption = { createdAt: -1 };
     if (sort === 'rating') sortOption = { 'rating.average': -1 };
     if (sort === 'downloads') sortOption = { downloads: -1 };
     if (sort === 'popular') sortOption = { downloads: -1, 'rating.average': -1 };
 
-    // Pagination
     const skip = (page - 1) * limit;
 
     const resources = await Resource.find(query)
@@ -71,9 +65,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/resources/categories
-// @desc    Get resource categories with counts
-// @access  Public
 router.get('/categories', async (req, res) => {
   try {
     const categories = await Resource.aggregate([
@@ -100,9 +91,6 @@ router.get('/categories', async (req, res) => {
   }
 });
 
-// @route   GET /api/resources/:id
-// @desc    Get single resource
-// @access  Public
 router.get('/:id', async (req, res) => {
   try {
     const resource = await Resource.findById(req.params.id)
@@ -130,9 +118,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// @route   POST /api/resources/:id/download
-// @desc    Track resource download
-// @access  Protected (optional - can be public too)
 router.post('/:id/download', async (req, res) => {
   try {
     const resource = await Resource.findById(req.params.id);
@@ -144,7 +129,6 @@ router.post('/:id/download', async (req, res) => {
       });
     }
 
-    // Increment download count
     resource.downloads += 1;
     await resource.save();
 
@@ -167,9 +151,6 @@ router.post('/:id/download', async (req, res) => {
   }
 });
 
-// @route   GET /api/resources/:id/download-url
-// @desc    Get download URL for resource
-// @access  Public (or Protected if needed)
 router.get('/:id/download-url', async (req, res) => {
   try {
     const resource = await Resource.findById(req.params.id)
@@ -182,7 +163,6 @@ router.get('/:id/download-url', async (req, res) => {
       });
     }
 
-    // Increment download count
     resource.downloads += 1;
     await resource.save();
 

@@ -4,7 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { premiumColors, premiumSpacing, premiumBorderRadius } from '../utils/premiumDesign';
 
 export default function PremiumProgressBar({
-  progress = 0, // 0-100
+  progress = 0,
   height = 8,
   showLabel = true,
   label,

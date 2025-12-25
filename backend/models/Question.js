@@ -138,32 +138,27 @@ const questionSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Virtual for answer count
 questionSchema.virtual('answerCount').get(function() {
   return this.answers.length;
 });
 
-// Virtual for vote score
 questionSchema.virtual('voteScore').get(function() {
   return this.upvotes.length - this.downvotes.length;
 });
 
-// Method to check if user has upvoted
 questionSchema.methods.hasUpvoted = function(userId) {
   return this.upvotes.some(vote => vote.user.toString() === userId.toString());
 };
 
-// Method to check if user has downvoted
 questionSchema.methods.hasDownvoted = function(userId) {
   return this.downvotes.some(vote => vote.user.toString() === userId.toString());
 };
 
-// Method to add upvote
 questionSchema.methods.addUpvote = function(userId) {
   if (this.hasUpvoted(userId)) {
     this.upvotes = this.upvotes.filter(vote => vote.user.toString() !== userId.toString());
   } else {
-    // Remove downvote if exists
+
     this.downvotes = this.downvotes.filter(vote => vote.user.toString() !== userId.toString());
     this.upvotes.push({ user: userId });
   }
@@ -171,12 +166,11 @@ questionSchema.methods.addUpvote = function(userId) {
   return this;
 };
 
-// Method to add downvote
 questionSchema.methods.addDownvote = function(userId) {
   if (this.hasDownvoted(userId)) {
     this.downvotes = this.downvotes.filter(vote => vote.user.toString() !== userId.toString());
   } else {
-    // Remove upvote if exists
+
     this.upvotes = this.upvotes.filter(vote => vote.user.toString() !== userId.toString());
     this.downvotes.push({ user: userId });
   }
@@ -184,18 +178,16 @@ questionSchema.methods.addDownvote = function(userId) {
   return this;
 };
 
-// Method to increment views
 questionSchema.methods.incrementViews = function() {
   this.views += 1;
   return this;
 };
 
-// Method to mark as solved
 questionSchema.methods.markAsSolved = function(answerId) {
   this.isSolved = true;
   this.solvedAt = new Date();
   this.status = 'closed';
-  // Mark the answer as accepted
+
   const answer = this.answers.id(answerId);
   if (answer) {
     answer.isAccepted = true;
@@ -204,7 +196,6 @@ questionSchema.methods.markAsSolved = function(answerId) {
   return this;
 };
 
-// Indexes for better query performance
 questionSchema.index({ author: 1 });
 questionSchema.index({ category: 1 });
 questionSchema.index({ status: 1 });
@@ -214,9 +205,8 @@ questionSchema.index({ createdAt: -1 });
 questionSchema.index({ lastActivityAt: -1 });
 questionSchema.index({ views: -1 });
 questionSchema.index({ tags: 1 });
-questionSchema.index({ title: 'text', content: 'text' }); // Text search index
+questionSchema.index({ title: 'text', content: 'text' });
 
-// Answer methods
 answerSchema.methods.hasUpvoted = function(userId) {
   return this.upvotes.some(vote => vote.user.toString() === userId.toString());
 };

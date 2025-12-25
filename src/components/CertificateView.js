@@ -48,12 +48,11 @@ export default function CertificateView({ course, userName, completionDate, onCl
             colors={['#1E88E5', '#1565C0', '#0D47A1']}
             style={styles.certificateGradient}
           >
-            {/* Decorative Elements */}
+
             <View style={styles.decorativeTop}>
               <Ionicons name="school" size={60} color="rgba(255, 255, 255, 0.2)" />
             </View>
 
-            {/* Certificate Content */}
             <View style={styles.certificateContent}>
               <Text style={styles.certificateTitle}>CERTIFICATE OF COMPLETION</Text>
               <View style={styles.divider} />
@@ -77,12 +76,10 @@ export default function CertificateView({ course, userName, completionDate, onCl
               </Text>
             </View>
 
-            {/* Decorative Bottom */}
             <View style={styles.decorativeBottom}>
               <Ionicons name="trophy" size={40} color="rgba(255, 255, 255, 0.2)" />
             </View>
 
-            {/* Signature Area */}
             <View style={styles.signatureArea}>
               <View style={styles.signature}>
                 <View style={styles.signatureLine} />
@@ -97,7 +94,6 @@ export default function CertificateView({ course, userName, completionDate, onCl
         </View>
       </ScrollView>
 
-      {/* Action Buttons */}
       <View style={[styles.actions, { backgroundColor: colors.card }]}>
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: colors.primary }]}

@@ -91,7 +91,7 @@ export default function PremiumVideoPlayer({
 
   const addBookmark = () => {
     setShowBookmarkModal(true);
-    // In production, save bookmark to backend
+
   };
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -114,7 +114,7 @@ export default function PremiumVideoPlayer({
             colors={['rgba(0,0,0,0.6)', 'transparent', 'transparent', 'rgba(0,0,0,0.6)']}
             style={styles.gradientOverlay}
           >
-            {/* Top Controls */}
+
             <View style={styles.topControls}>
               <TouchableOpacity
                 onPress={() => setIsFullscreen(false)}
@@ -139,7 +139,6 @@ export default function PremiumVideoPlayer({
               </View>
             </View>
 
-            {/* Center Play Button */}
             <TouchableOpacity
               onPress={togglePlayPause}
               style={styles.centerPlayButton}
@@ -154,7 +153,6 @@ export default function PremiumVideoPlayer({
               </View>
             </TouchableOpacity>
 
-            {/* Bottom Controls */}
             <View style={styles.bottomControls}>
               <View style={styles.progressContainer}>
                 <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
@@ -202,7 +200,6 @@ export default function PremiumVideoPlayer({
         </View>
       )}
 
-      {/* Speed Menu */}
       {showSpeedMenu && (
         <View style={styles.speedMenu}>
           {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((rate) => (
@@ -227,7 +224,6 @@ export default function PremiumVideoPlayer({
         </View>
       )}
 
-      {/* Subtitles Overlay */}
       {showSubtitles && subtitles && (
         <View style={styles.subtitlesContainer}>
           <Text style={styles.subtitleText}>
@@ -236,8 +232,6 @@ export default function PremiumVideoPlayer({
         </View>
       )}
 
-      {/* Fullscreen Modal - Note: Fullscreen implementation requires separate handling */}
-      {/* For now, fullscreen is handled via video player's native controls */}
     </View>
   );
 }

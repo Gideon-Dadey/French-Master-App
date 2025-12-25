@@ -23,10 +23,10 @@ const quizAttemptSchema = new mongoose.Schema({
   },
   answers: [{
     questionId: mongoose.Schema.Types.ObjectId,
-    answer: mongoose.Schema.Types.Mixed, // Can be string, number, or array
+    answer: mongoose.Schema.Types.Mixed,
     isCorrect: Boolean,
     points: Number,
-    timeSpent: Number // in seconds
+    timeSpent: Number
   }],
   score: {
     type: Number,
@@ -44,7 +44,7 @@ const quizAttemptSchema = new mongoose.Schema({
     default: false
   },
   timeSpent: {
-    type: Number, // in seconds
+    type: Number,
     default: 0
   },
   startedAt: {

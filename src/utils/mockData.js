@@ -1,4 +1,4 @@
-// Mock data for when backend is not available (for testing/development)
+
 
 export const mockFeaturedCourses = [
   {

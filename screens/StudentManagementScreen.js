@@ -126,7 +126,7 @@ export default function StudentManagementScreen({ navigation }) {
             {students.map((student) => {
               const enrolledCourses = student.enrolledCourses?.filter(ec => ec.course) || [];
               const totalCourses = enrolledCourses.length;
-              
+
               return (
                 <TouchableOpacity
                   key={student._id}

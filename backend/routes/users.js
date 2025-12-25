@@ -4,9 +4,6 @@ const User = require('../models/User');
 const Course = require('../models/Course');
 const { protect, authorize } = require('../middleware/auth');
 
-// @route   GET /api/users/profile
-// @desc    Get user profile
-// @access  Private
 router.get('/profile', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -25,18 +22,15 @@ router.get('/profile', protect, async (req, res) => {
   }
 });
 
-// @route   PUT /api/users/profile
-// @desc    Update user profile
-// @access  Private
 router.put('/profile', protect, async (req, res) => {
   try {
     const { name, phone, avatar, preferences } = req.body;
 
     const user = await User.findById(req.user._id);
-    
+
     if (name) user.name = name;
     if (phone) user.phone = phone;
-    if (avatar !== undefined) user.avatar = avatar; // Allow setting avatar to empty string
+    if (avatar !== undefined) user.avatar = avatar;
     if (preferences) {
       user.preferences = { ...user.preferences, ...preferences };
     }
@@ -56,9 +50,6 @@ router.put('/profile', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/users/my-courses
-// @desc    Get user's enrolled courses
-// @access  Private
 router.get('/my-courses', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -84,15 +75,11 @@ router.get('/my-courses', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/users/instructor/students
-// @desc    Get students enrolled in instructor's courses
-// @access  Private/Instructor
 router.get('/instructor/students', protect, authorize('instructor', 'admin'), async (req, res) => {
   try {
     const { page = 1, limit = 20, search, courseId } = req.query;
     const skip = (page - 1) * limit;
 
-    // Get all courses taught by this instructor
     const courseQuery = { instructor: req.user._id };
     if (courseId) {
       courseQuery._id = courseId;
@@ -113,13 +100,11 @@ router.get('/instructor/students', protect, authorize('instructor', 'admin'), as
       });
     }
 
-    // Build query to find students enrolled in these courses
     const enrollmentQuery = {
       'enrolledCourses.course': { $in: courseIds },
       role: 'student'
     };
 
-    // Add search if provided
     let usersQuery = {};
     if (search) {
       usersQuery.$or = [
@@ -128,7 +113,6 @@ router.get('/instructor/students', protect, authorize('instructor', 'admin'), as
       ];
     }
 
-    // Get all students who have enrolled in instructor's courses
     const students = await User.find({
       ...usersQuery,
       ...enrollmentQuery
@@ -147,12 +131,10 @@ router.get('/instructor/students', protect, authorize('instructor', 'admin'), as
       .limit(limit * 1)
       .skip(skip);
 
-    // Filter out students with no matching enrollments (due to populate match)
-    const filteredStudents = students.filter(student => 
+    const filteredStudents = students.filter(student =>
       student.enrolledCourses.some(enrollment => enrollment.course)
     );
 
-    // Count total students
     const total = await User.countDocuments({
       ...usersQuery,
       ...enrollmentQuery
@@ -177,12 +159,9 @@ router.get('/instructor/students', protect, authorize('instructor', 'admin'), as
   }
 });
 
-// @route   GET /api/users/instructor/students/:id
-// @desc    Get student details enrolled in instructor's courses
-// @access  Private/Instructor
 router.get('/instructor/students/:id', protect, authorize('instructor', 'admin'), async (req, res) => {
   try {
-    // Get all courses taught by this instructor
+
     const courses = await Course.find({ instructor: req.user._id }).select('_id');
     const courseIds = courses.map(c => c._id);
 
@@ -193,7 +172,6 @@ router.get('/instructor/students/:id', protect, authorize('instructor', 'admin')
       });
     }
 
-    // Find student enrolled in instructor's courses
     const student = await User.findOne({
       _id: req.params.id,
       role: 'student',
@@ -211,7 +189,6 @@ router.get('/instructor/students/:id', protect, authorize('instructor', 'admin')
       })
       .populate('enrolledCourses.completedLessons', 'title order');
 
-    // Filter enrollments to only show instructor's courses
     if (student) {
       student.enrolledCourses = student.enrolledCourses.filter(
         enrollment => enrollment.course && courseIds.includes(enrollment.course._id)

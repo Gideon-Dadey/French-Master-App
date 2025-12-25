@@ -10,7 +10,7 @@ import { useCurrency } from '../context/CurrencyContext';
 
 export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
   const { formatPrice } = useCurrency();
-  
+
   const getLevelColor = (level) => {
     switch (level) {
       case 'beginner':
@@ -24,7 +24,6 @@ export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
     }
   };
 
-  // Try to get thumbnail from mapping, fallback to getCourseImage, or use URL
   let imageSource;
   if (course.thumbnail) {
     if (course.thumbnail.startsWith('http://') || course.thumbnail.startsWith('https://')) {
@@ -37,39 +36,35 @@ export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
     imageSource = getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
   }
 
-  // Determine if course is bestseller (high enrollment) or new (recently published)
   const isBestseller = course.studentsEnrolled > 1000;
   const isNew = course.publishedAt && new Date(course.publishedAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const hasDiscount = course.originalPrice && course.originalPrice > course.price;
-  const discountPercent = hasDiscount 
+  const discountPercent = hasDiscount
     ? Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)
     : 0;
 
-  // Format student count
   const formatStudentCount = (count) => {
     if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
     return count.toString();
   };
 
-  // Get instructor name
   const instructorName = course.instructor?.name || 'Expert Instructor';
   const instructorAvatar = course.instructor?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(instructorName)}&background=1E88E5&color=fff&size=100`;
 
   return (
-    <TouchableOpacity 
-      style={styles.card} 
+    <TouchableOpacity
+      style={styles.card}
       onPress={onPress}
       activeOpacity={0.9}
     >
-      {/* Thumbnail with Play Button Overlay */}
+
       <View style={styles.thumbnailContainer}>
         <Image
           source={imageSource}
           style={styles.thumbnail}
           resizeMode="cover"
         />
-        
-        {/* Play Button Overlay (if preview video exists) */}
+
         {course.previewVideo && (
           <View style={styles.playButtonOverlay}>
             <View style={styles.playButton}>
@@ -78,7 +73,6 @@ export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
           </View>
         )}
 
-        {/* Top Badges */}
         <View style={styles.topBadges}>
           {isBestseller && (
             <View style={styles.bestsellerBadge}>
@@ -98,20 +92,17 @@ export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
           )}
         </View>
 
-        {/* Level Badge */}
         <View style={[styles.levelBadge, { backgroundColor: getLevelColor(course.level) }]}>
           <Text style={styles.levelText}>{course.level}</Text>
         </View>
       </View>
 
-      {/* Content */}
       <View style={styles.content}>
-        {/* Title */}
+
         <Text style={styles.title} numberOfLines={2}>
           {course.title}
         </Text>
 
-        {/* Instructor Info */}
         <View style={styles.instructorRow}>
           <Image
             source={{ uri: instructorAvatar }}
@@ -122,7 +113,6 @@ export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
           </Text>
         </View>
 
-        {/* Rating and Students */}
         <View style={styles.metaRow}>
           <View style={styles.ratingContainer}>
             <View style={styles.starsContainer}>
@@ -148,7 +138,6 @@ export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
           </View>
         </View>
 
-        {/* Course Details */}
         <View style={styles.detailsRow}>
           <View style={styles.detailItem}>
             <Ionicons name="time-outline" size={14} color="#757575" />
@@ -166,7 +155,6 @@ export default function FeaturedCourseCard({ course, onPress, index = 0 }) {
           )}
         </View>
 
-        {/* Price Section */}
         <View style={styles.priceSection}>
           {hasDiscount && (
             <Text style={styles.originalPrice}>

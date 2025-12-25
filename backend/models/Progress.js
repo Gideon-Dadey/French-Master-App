@@ -17,11 +17,11 @@ const progressSchema = new mongoose.Schema({
     required: true
   },
   watchedDuration: {
-    type: Number, // in seconds
+    type: Number,
     default: 0
   },
   totalDuration: {
-    type: Number, // in seconds
+    type: Number,
     required: true
   },
   isCompleted: {

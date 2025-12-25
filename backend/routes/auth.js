@@ -5,9 +5,6 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
-// @route   POST /api/auth/register
-// @desc    Register a new user
-// @access  Public
 router.post('/register', [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Please provide a valid email'),
@@ -21,11 +18,9 @@ router.post('/register', [
 
     const { name, email, password, phone, role } = req.body;
 
-    // Validate role if provided
     const validRoles = ['student', 'instructor', 'admin'];
     const userRole = role && validRoles.includes(role) ? role : 'student';
 
-    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
@@ -34,7 +29,6 @@ router.post('/register', [
       });
     }
 
-    // Create user
     const user = await User.create({
       name,
       email,
@@ -43,7 +37,6 @@ router.post('/register', [
       role: userRole
     });
 
-    // Generate token
     const token = user.generateToken();
 
     res.status(201).json({
@@ -65,9 +58,6 @@ router.post('/register', [
   }
 });
 
-// @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
 router.post('/login', [
   body('email').isEmail().withMessage('Please provide a valid email'),
   body('password').notEmpty().withMessage('Password is required')
@@ -80,7 +70,6 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
-    // Find user and include password
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({
@@ -89,7 +78,6 @@ router.post('/login', [
       });
     }
 
-    // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({
@@ -98,11 +86,9 @@ router.post('/login', [
       });
     }
 
-    // Update last login
     user.lastLogin = new Date();
     await user.save();
 
-    // Generate tokens
     const token = user.generateToken();
     const refreshToken = user.generateRefreshToken();
 
@@ -127,9 +113,6 @@ router.post('/login', [
   }
 });
 
-// @route   GET /api/auth/me
-// @desc    Get current user
-// @access  Private
 router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -148,9 +131,6 @@ router.get('/me', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/auth/refresh
-// @desc    Refresh access token
-// @access  Public
 router.post('/refresh', async (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -186,9 +166,6 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-// @route   POST /api/auth/forgot-password
-// @desc    Request password reset
-// @access  Public
 router.post('/forgot-password', [
   body('email').isEmail().withMessage('Please provide a valid email')
 ], async (req, res) => {
@@ -197,24 +174,20 @@ router.post('/forgot-password', [
     const user = await User.findOne({ email });
 
     if (!user) {
-      // Don't reveal if user exists
+
       return res.json({
         success: true,
         message: 'If email exists, password reset link has been sent'
       });
     }
 
-    // Generate reset token
     const resetToken = crypto.randomBytes(20).toString('hex');
     user.passwordResetToken = crypto
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
-    user.passwordResetExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.passwordResetExpire = Date.now() + 10 * 60 * 1000;
     await user.save({ validateBeforeSave: false });
-
-    // TODO: Send email with reset link
-    // await sendPasswordResetEmail(user.email, resetToken);
 
     res.json({
       success: true,

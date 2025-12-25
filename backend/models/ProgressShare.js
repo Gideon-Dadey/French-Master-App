@@ -22,7 +22,7 @@ const progressShareSchema = new mongoose.Schema({
     trim: true,
     maxlength: [1000, 'Description cannot exceed 1000 characters']
   },
-  // Type-specific data
+
   course: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course'
@@ -39,7 +39,7 @@ const progressShareSchema = new mongoose.Schema({
   },
   streak: {
     days: Number,
-    type: String // 'learning', 'practice', etc.
+    type: String
   },
   certificate: {
     courseId: {
@@ -60,7 +60,7 @@ const progressShareSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  // Engagement
+
   likes: [{
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -107,35 +107,30 @@ const progressShareSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Virtual for like count
 progressShareSchema.virtual('likeCount').get(function() {
   return this.likes.length;
 });
 
-// Virtual for comment count
 progressShareSchema.virtual('commentCount').get(function() {
   return this.comments.length;
 });
 
-// Method to check if user has liked
 progressShareSchema.methods.hasLiked = function(userId) {
   return this.likes.some(like => like.user.toString() === userId.toString());
 };
 
-// Method to toggle like
 progressShareSchema.methods.toggleLike = function(userId) {
   const likeIndex = this.likes.findIndex(like => like.user.toString() === userId.toString());
-  
+
   if (likeIndex > -1) {
     this.likes.splice(likeIndex, 1);
   } else {
     this.likes.push({ user: userId });
   }
-  
+
   return this;
 };
 
-// Method to add comment
 progressShareSchema.methods.addComment = function(userId, content) {
   this.comments.push({
     user: userId,
@@ -144,19 +139,16 @@ progressShareSchema.methods.addComment = function(userId, content) {
   return this;
 };
 
-// Method to increment views
 progressShareSchema.methods.incrementViews = function() {
   this.views += 1;
   return this;
 };
 
-// Method to increment shares
 progressShareSchema.methods.incrementShares = function() {
   this.shares += 1;
   return this;
 };
 
-// Indexes for better query performance
 progressShareSchema.index({ user: 1 });
 progressShareSchema.index({ type: 1 });
 progressShareSchema.index({ course: 1 });

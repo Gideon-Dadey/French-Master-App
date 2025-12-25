@@ -106,7 +106,7 @@ export default function ContactScreen() {
 
         <View style={styles.contactInfo}>
           <Text style={styles.contactInfoTitle}>Get in Touch</Text>
-          
+
           <View style={styles.contactItem}>
             <Ionicons name="mail" size={24} color="#1E88E5" />
             <Text style={styles.contactText}>info@thefrenchmastergh.com</Text>

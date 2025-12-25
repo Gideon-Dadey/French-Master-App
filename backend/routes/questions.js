@@ -3,9 +3,6 @@ const router = express.Router();
 const Question = require('../models/Question');
 const { protect } = require('../middleware/auth');
 
-// @route   GET /api/questions
-// @desc    Get all questions with filters
-// @access  Public
 router.get('/', async (req, res) => {
   try {
     const {
@@ -13,12 +10,11 @@ router.get('/', async (req, res) => {
       status,
       isSolved,
       search,
-      sort = 'recent', // recent, popular, unanswered, solved
+      sort = 'recent',
       page = 1,
       limit = 20
     } = req.query;
 
-    // Build query
     const query = {};
 
     if (category) query.category = category;
@@ -28,7 +24,6 @@ router.get('/', async (req, res) => {
       query.$text = { $search: search };
     }
 
-    // Sort options
     let sortOption = {};
     switch (sort) {
       case 'popular':
@@ -43,14 +38,13 @@ router.get('/', async (req, res) => {
         query.isSolved = true;
         break;
       case 'trending':
-        // Questions with recent activity
+
         sortOption = { lastActivityAt: -1, views: -1 };
         break;
-      default: // recent
+      default:
         sortOption = { createdAt: -1 };
     }
 
-    // Pagination
     const skip = (page - 1) * limit;
 
     const questions = await Question.find(query)
@@ -59,7 +53,7 @@ router.get('/', async (req, res) => {
       .sort(sortOption)
       .skip(skip)
       .limit(Number(limit))
-      .select('-answers.comments'); // Don't load comments in list view
+      .select('-answers.comments');
 
     const total = await Question.countDocuments(query);
 
@@ -80,9 +74,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/questions/:id
-// @desc    Get single question with answers
-// @access  Public
 router.get('/:id', async (req, res) => {
   try {
     const question = await Question.findById(req.params.id)
@@ -99,7 +90,6 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // Increment views
     question.incrementViews();
     await question.save();
 
@@ -116,9 +106,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// @route   POST /api/questions
-// @desc    Create a new question
-// @access  Protected
 router.post('/', protect, async (req, res) => {
   try {
     const {
@@ -160,9 +147,6 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// @route   PUT /api/questions/:id
-// @desc    Update a question
-// @access  Protected (author only)
 router.put('/:id', protect, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -174,7 +158,6 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    // Check if user is author
     if (question.author.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -182,7 +165,6 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    // Update allowed fields
     const allowedUpdates = ['title', 'content', 'category', 'tags', 'relatedCourse', 'relatedLesson'];
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
@@ -210,9 +192,6 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/questions/:id
-// @desc    Delete a question
-// @access  Protected (author only)
 router.delete('/:id', protect, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -224,7 +203,6 @@ router.delete('/:id', protect, async (req, res) => {
       });
     }
 
-    // Check if user is author
     if (question.author.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -247,9 +225,6 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/questions/:id/upvote
-// @desc    Upvote a question
-// @access  Protected
 router.post('/:id/upvote', protect, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -281,9 +256,6 @@ router.post('/:id/upvote', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/questions/:id/downvote
-// @desc    Downvote a question
-// @access  Protected
 router.post('/:id/downvote', protect, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -315,9 +287,6 @@ router.post('/:id/downvote', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/questions/:id/answers
-// @desc    Add an answer to a question
-// @access  Protected
 router.post('/:id/answers', protect, async (req, res) => {
   try {
     const { content } = req.body;
@@ -363,9 +332,6 @@ router.post('/:id/answers', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/questions/:id/answers/:answerId/accept
-// @desc    Accept an answer as solution
-// @access  Protected (question author only)
 router.post('/:id/answers/:answerId/accept', protect, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -377,7 +343,6 @@ router.post('/:id/answers/:answerId/accept', protect, async (req, res) => {
       });
     }
 
-    // Check if user is question author
     if (question.author.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -404,9 +369,6 @@ router.post('/:id/answers/:answerId/accept', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/questions/:id/answers/:answerId/upvote
-// @desc    Upvote an answer
-// @access  Protected
 router.post('/:id/answers/:answerId/upvote', protect, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -447,9 +409,6 @@ router.post('/:id/answers/:answerId/upvote', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/questions/:id/answers/:answerId/downvote
-// @desc    Downvote an answer
-// @access  Protected
 router.post('/:id/answers/:answerId/downvote', protect, async (req, res) => {
   try {
     const question = await Question.findById(req.params.id);
@@ -490,9 +449,6 @@ router.post('/:id/answers/:answerId/downvote', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/questions/:id/answers/:answerId/comments
-// @desc    Add a comment to an answer
-// @access  Protected
 router.post('/:id/answers/:answerId/comments', protect, async (req, res) => {
   try {
     const { content } = req.body;

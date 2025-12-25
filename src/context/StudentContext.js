@@ -19,11 +19,11 @@ export const StudentProvider = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
-    // Only load students if user is authenticated and is admin
+
     if (isAuthenticated && user?.role === 'admin') {
       loadStudents();
     } else {
-      // Clear students when user logs out or is not admin
+
       setStudents([]);
       setLoading(false);
       setPagination(null);
@@ -31,7 +31,7 @@ export const StudentProvider = ({ children }) => {
   }, [isAuthenticated, user?.role]);
 
   const loadStudents = async (params = {}) => {
-    // Only allow admins to load students
+
     if (!isAuthenticated || user?.role !== 'admin') {
       setStudents([]);
       setLoading(false);
@@ -44,12 +44,12 @@ export const StudentProvider = ({ children }) => {
       setStudents(response.data.data || []);
       setPagination(response.data.pagination || null);
     } catch (error) {
-      // Silently handle 401 errors (user not authenticated) - this is expected
+
       if (error.response?.status === 401) {
         setStudents([]);
         return;
       }
-      // Only log other errors
+
       console.error('Failed to load students:', error);
       setStudents([]);
     } finally {
@@ -72,7 +72,7 @@ export const StudentProvider = ({ children }) => {
   const updateStudent = async (studentId, data) => {
     try {
       const response = await studentsAPI.update(studentId, data);
-      // Refresh students list after update
+
       await loadStudents();
       return { success: true, data: response.data.data };
     } catch (error) {
@@ -86,7 +86,7 @@ export const StudentProvider = ({ children }) => {
   const deleteStudent = async (studentId) => {
     try {
       await studentsAPI.delete(studentId);
-      // Refresh students list after deletion
+
       await loadStudents();
       return { success: true };
     } catch (error) {

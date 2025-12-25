@@ -38,8 +38,8 @@ const paymentSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'failed', 'refunded'],
     default: 'pending'
   },
-  paymentIntentId: String, // For Stripe
-  subscriptionId: String, // For subscriptions
+  paymentIntentId: String,
+  subscriptionId: String,
   metadata: {
     type: Map,
     of: String

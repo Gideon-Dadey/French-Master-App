@@ -29,11 +29,11 @@ const resourceSchema = new mongoose.Schema({
     default: ''
   },
   size: {
-    type: Number, // in bytes
+    type: Number,
     default: 0
   },
   sizeFormatted: {
-    type: String, // e.g., "2.5 MB"
+    type: String,
     default: '0 MB'
   },
   downloads: {
@@ -92,7 +92,6 @@ const resourceSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes for better query performance
 resourceSchema.index({ category: 1, status: 1 });
 resourceSchema.index({ language: 1, level: 1 });
 resourceSchema.index({ downloads: -1 });

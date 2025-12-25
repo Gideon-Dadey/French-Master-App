@@ -3,36 +3,31 @@ const router = express.Router();
 const ProgressShare = require('../models/ProgressShare');
 const { protect } = require('../middleware/auth');
 
-// @route   GET /api/progress-share
-// @desc    Get all progress shares with filters
-// @access  Public (for public shares) / Protected (for private shares)
 router.get('/', async (req, res) => {
   try {
     const {
       type,
       userId,
       courseId,
-      sort = 'recent', // recent, popular, trending
+      sort = 'recent',
       page = 1,
       limit = 20
     } = req.query;
 
-    // Build query
     const query = { isPublic: true };
 
     if (type) query.type = type;
     if (userId) query.user = userId;
     if (courseId) query.course = courseId;
 
-    // Sort options
     let sortOption = {};
     switch (sort) {
       case 'popular':
         sortOption = { likeCount: -1, commentCount: -1, createdAt: -1 };
         break;
       case 'trending':
-        // Recent posts with high engagement
-        sortOption = { 
+
+        sortOption = {
           $expr: {
             $add: [
               { $multiply: [{ $size: '$likes' }, 2] },
@@ -42,11 +37,10 @@ router.get('/', async (req, res) => {
           }
         };
         break;
-      default: // recent
+      default:
         sortOption = { createdAt: -1 };
     }
 
-    // Pagination
     const skip = (page - 1) * limit;
 
     const shares = await ProgressShare.find(query)
@@ -75,9 +69,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/progress-share/:id
-// @desc    Get single progress share
-// @access  Public (for public shares) / Protected (for private shares)
 router.get('/:id', async (req, res) => {
   try {
     const share = await ProgressShare.findById(req.params.id)
@@ -93,7 +84,6 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // Check if user can access private share
     if (!share.isPublic && (!req.user || share.user._id.toString() !== req.user._id.toString())) {
       return res.status(403).json({
         success: false,
@@ -101,7 +91,6 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // Increment views
     share.incrementViews();
     await share.save();
 
@@ -118,9 +107,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// @route   POST /api/progress-share
-// @desc    Create a new progress share
-// @access  Protected
 router.post('/', protect, async (req, res) => {
   try {
     const {
@@ -173,9 +159,6 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// @route   PUT /api/progress-share/:id
-// @desc    Update a progress share
-// @access  Protected (author only)
 router.put('/:id', protect, async (req, res) => {
   try {
     const share = await ProgressShare.findById(req.params.id);
@@ -187,7 +170,6 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    // Check if user is author
     if (share.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -195,7 +177,6 @@ router.put('/:id', protect, async (req, res) => {
       });
     }
 
-    // Update allowed fields
     const allowedUpdates = ['title', 'description', 'image', 'tags', 'isPublic'];
     allowedUpdates.forEach(field => {
       if (req.body[field] !== undefined) {
@@ -222,9 +203,6 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/progress-share/:id
-// @desc    Delete a progress share
-// @access  Protected (author only)
 router.delete('/:id', protect, async (req, res) => {
   try {
     const share = await ProgressShare.findById(req.params.id);
@@ -236,7 +214,6 @@ router.delete('/:id', protect, async (req, res) => {
       });
     }
 
-    // Check if user is author
     if (share.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -259,9 +236,6 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/progress-share/:id/like
-// @desc    Toggle like on a progress share
-// @access  Protected
 router.post('/:id/like', protect, async (req, res) => {
   try {
     const share = await ProgressShare.findById(req.params.id);
@@ -292,9 +266,6 @@ router.post('/:id/like', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/progress-share/:id/comments
-// @desc    Add a comment to a progress share
-// @access  Protected
 router.post('/:id/comments', protect, async (req, res) => {
   try {
     const { content } = req.body;
@@ -328,9 +299,6 @@ router.post('/:id/comments', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/progress-share/:id/share
-// @desc    Increment share count
-// @access  Protected
 router.post('/:id/share', protect, async (req, res) => {
   try {
     const share = await ProgressShare.findById(req.params.id);
@@ -360,16 +328,13 @@ router.post('/:id/share', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/progress-share/user/:userId
-// @desc    Get all progress shares by a user
-// @access  Public (for public shares)
 router.get('/user/:userId', async (req, res) => {
   try {
     const { sort = 'recent', page = 1, limit = 20 } = req.query;
 
-    const query = { 
+    const query = {
       user: req.params.userId,
-      isPublic: true 
+      isPublic: true
     };
 
     let sortOption = {};

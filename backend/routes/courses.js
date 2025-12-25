@@ -4,9 +4,6 @@ const mongoose = require('mongoose');
 const Course = require('../models/Course');
 const { protect } = require('../middleware/auth');
 
-// @route   GET /api/courses
-// @desc    Get all courses with filters
-// @access  Public
 router.get('/', async (req, res) => {
   try {
     const {
@@ -19,10 +16,9 @@ router.get('/', async (req, res) => {
       search,
       sort,
       page = 1,
-      limit = 10
+      limit = 100
     } = req.query;
 
-    // Build query
     const query = { status: 'published' };
 
     if (category) query.category = category;
@@ -44,14 +40,12 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    // Sort options
     let sortOption = { createdAt: -1 };
     if (sort === 'rating') sortOption = { 'rating.average': -1 };
     if (sort === 'popular') sortOption = { studentsEnrolled: -1 };
     if (sort === 'price-low') sortOption = { price: 1 };
     if (sort === 'price-high') sortOption = { price: -1 };
 
-    // Pagination
     const skip = (page - 1) * limit;
 
     const courses = await Course.find(query)
@@ -79,12 +73,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-// @route   GET /api/courses/:id
-// @desc    Get single course
-// @access  Public
 router.get('/:id', async (req, res) => {
   try {
-    // Validate ObjectId format
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({
         success: false,
@@ -117,9 +108,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// @route   GET /api/courses/featured
-// @desc    Get featured courses
-// @access  Public
 router.get('/featured/list', async (req, res) => {
   try {
     const courses = await Course.find({

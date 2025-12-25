@@ -4,9 +4,6 @@ const Subscription = require('../models/Subscription');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
-// @route   GET /api/subscriptions
-// @desc    Get user's subscriptions
-// @access  Private
 router.get('/', protect, async (req, res) => {
   try {
     const subscriptions = await Subscription.find({ user: req.user.id })
@@ -26,9 +23,6 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/subscriptions/active
-// @desc    Get active subscription
-// @access  Private
 router.get('/active', protect, async (req, res) => {
   try {
     const subscription = await Subscription.findOne({
@@ -57,14 +51,10 @@ router.get('/active', protect, async (req, res) => {
   }
 });
 
-// @route   POST /api/subscriptions
-// @desc    Create new subscription
-// @access  Private
 router.post('/', protect, async (req, res) => {
   try {
     const { plan, payment } = req.body;
 
-    // Calculate end date
     const startDate = new Date();
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + plan.duration);
@@ -79,7 +69,6 @@ router.post('/', protect, async (req, res) => {
       autoRenew: req.body.autoRenew || false
     });
 
-    // Update user subscription
     await User.findByIdAndUpdate(req.user.id, {
       'subscription.type': plan.type,
       'subscription.startDate': startDate,
@@ -100,9 +89,6 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// @route   PUT /api/subscriptions/:id/cancel
-// @desc    Cancel subscription
-// @access  Private
 router.put('/:id/cancel', protect, async (req, res) => {
   try {
     const subscription = await Subscription.findOne({
@@ -137,9 +123,6 @@ router.put('/:id/cancel', protect, async (req, res) => {
   }
 });
 
-// @route   GET /api/subscriptions/plans
-// @desc    Get available subscription plans
-// @access  Public
 router.get('/plans', async (req, res) => {
   try {
     const plans = [
@@ -148,7 +131,7 @@ router.get('/plans', async (req, res) => {
         name: 'Free Plan',
         price: 0,
         currency: 'GHS',
-        duration: 0, // unlimited
+        duration: 0,
         features: [
           'Access to free courses',
           'Basic progress tracking',

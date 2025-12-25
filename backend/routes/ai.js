@@ -2,16 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 
-// @route   POST /api/ai/generate-content
-// @desc    Generate content using AI
-// @access  Private (Instructor/Admin)
 router.post('/generate-content', protect, authorize('instructor', 'admin'), async (req, res) => {
   try {
     const { type, prompt, context } = req.body;
-
-    // This is a placeholder for AI integration
-    // You can integrate with OpenAI, Anthropic, or other AI services
-    // For now, we'll return a mock response
 
     let generatedContent = '';
 
@@ -60,25 +53,21 @@ router.post('/generate-content', protect, authorize('instructor', 'admin'), asyn
   }
 });
 
-// @route   POST /api/ai/improve-content
-// @desc    Improve existing content using AI
-// @access  Private (Instructor/Admin)
 router.post('/improve-content', protect, authorize('instructor', 'admin'), async (req, res) => {
   try {
     const { content, improvementType } = req.body;
 
-    // Placeholder for AI content improvement
     let improvedContent = content;
 
     switch (improvementType) {
       case 'grammar':
-        improvedContent = content; // Would use AI to fix grammar
+        improvedContent = content;
         break;
       case 'clarity':
-        improvedContent = content; // Would use AI to improve clarity
+        improvedContent = content;
         break;
       case 'tone':
-        improvedContent = content; // Would use AI to adjust tone
+        improvedContent = content;
         break;
       default:
         improvedContent = content;
@@ -101,15 +90,11 @@ router.post('/improve-content', protect, authorize('instructor', 'admin'), async
   }
 });
 
-// @route   POST /api/ai/translate
-// @desc    Translate content using AI
-// @access  Private (Instructor/Admin)
 router.post('/translate', protect, authorize('instructor', 'admin'), async (req, res) => {
   try {
     const { content, targetLanguage } = req.body;
 
-    // Placeholder for AI translation
-    const translatedContent = content; // Would use AI to translate
+    const translatedContent = content;
 
     res.json({
       success: true,

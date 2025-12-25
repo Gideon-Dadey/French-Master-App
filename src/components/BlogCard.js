@@ -1,27 +1,22 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { spacing, fontSize } from '../utils/responsive';
+import { premiumShadows, premiumBorderRadius } from '../utils/premiumDesign';
 
-/**
- * Professional Blog Card Component
- * Industry-standard design for blog posts
- * 
- * @param {object} post - Blog post data
- * @param {function} onPress - Press handler
- */
-export default function BlogCard({ post, onPress }) {
-  const { colors } = useTheme();
+const { width } = Dimensions.get('window');
+
+export default function BlogCard({ post, onPress, layout = 'vertical' }) {
+  const { colors, isDarkMode } = useTheme();
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
       });
     } catch (error) {
       return dateString;
@@ -29,93 +24,96 @@ export default function BlogCard({ post, onPress }) {
   };
 
   const getCategoryColor = (category) => {
-    switch (category?.toLowerCase()) {
-      case 'written lessons':
-      case 'written lesson':
-        return '#1E88E5';
-      case 'news':
-        return '#43A047';
-      default:
-        return colors.primary;
-    }
+    const c = (category || '').toLowerCase();
+    if (c.includes('lesson')) return '#3b82f6';
+    if (c.includes('news')) return '#10b981';
+    if (c.includes('tip')) return '#f59e0b';
+    return '#8b5cf6';
   };
 
   const category = post.category || post.type || 'Article';
   const categoryColor = getCategoryColor(category);
 
+  if (layout === 'horizontal') {
+    return (
+      <TouchableOpacity
+        style={[
+          styles.horizontalCard,
+          { backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff' },
+          premiumShadows.sm
+        ]}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <Image
+          source={post.image ? { uri: post.image } : require('../../assets/logo.jpeg')}
+          style={styles.horizontalImage}
+        />
+        <View style={styles.horizontalContent}>
+          <View style={[styles.miniBadge, { backgroundColor: categoryColor + '15' }]}>
+            <Text style={[styles.miniBadgeText, { color: categoryColor }]}>{category.toUpperCase()}</Text>
+          </View>
+          <Text style={[styles.horizontalTitle, { color: colors.text }]} numberOfLines={2}>
+            {post.title}
+          </Text>
+          <View style={styles.horizontalMeta}>
+            <Text style={[styles.metaSmall, { color: colors.secondaryText }]}>{formatDate(post.date || post.createdAt)}</Text>
+            <View style={[styles.dot, { backgroundColor: colors.border }]} />
+            <Text style={[styles.metaSmall, { color: colors.secondaryText }]}>{post.readTime || '3 min'}</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={isDarkMode ? '#3f3f46' : '#d1d1d6'} />
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[
+        styles.card,
+        { backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff' },
+        premiumShadows.md
+      ]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.9}
     >
-      {/* Blog Image */}
-      {post.image && (
+      <View style={styles.imageContainer}>
         <Image
-          source={{ uri: post.image }}
-          style={[styles.image, { backgroundColor: colors.tertiaryBackground || colors.border }]}
-          resizeMode="cover"
+          source={post.image ? { uri: post.image } : require('../../assets/logo.jpeg')}
+          style={styles.image}
         />
-      )}
-      
-      {/* Blog Content */}
-      <View style={styles.content}>
-        {/* Category Badge */}
-        <View style={[styles.categoryBadge, { backgroundColor: categoryColor + '20' }]}>
-          <Text style={[styles.categoryText, { color: categoryColor }]}>
-            {category.toUpperCase()}
-          </Text>
+        <View style={[styles.floatingBadge, { backgroundColor: categoryColor }]}>
+          <Text style={styles.floatingBadgeText}>{category.toUpperCase()}</Text>
         </View>
+      </View>
 
-        {/* Title */}
+      <View style={styles.content}>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
           {post.title}
         </Text>
 
-        {/* Excerpt */}
-        {post.excerpt && (
-          <Text style={[styles.excerpt, { color: colors.secondaryText }]} numberOfLines={3}>
-            {post.excerpt}
-          </Text>
-        )}
+        <Text style={[styles.excerpt, { color: colors.secondaryText }]} numberOfLines={2}>
+          {post.excerpt || 'Discover the latest insights and mastery tips for your French language journey.'}
+        </Text>
 
-        {/* Meta Information */}
-        <View style={styles.metaContainer}>
-          {/* Author */}
-          {post.author && (
-            <View style={styles.metaItem}>
-              <Ionicons name="person-outline" size={14} color={colors.secondaryText} />
-              <Text style={[styles.metaText, { color: colors.secondaryText }]} numberOfLines={1}>
-                {post.author}
+        <View style={styles.footer}>
+          <View style={styles.authorSection}>
+            <View style={[styles.authorAvatar, { backgroundColor: categoryColor + '20' }]}>
+              <Text style={[styles.authorInitial, { color: categoryColor }]}>
+                {post.author?.charAt(0) || 'F'}
               </Text>
             </View>
-          )}
+            <Text style={[styles.authorName, { color: colors.text }]} numberOfLines={1}>
+              {post.author || 'French Master'}
+            </Text>
+          </View>
 
-          {/* Date */}
-          {post.date && (
-            <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={14} color={colors.secondaryText} />
-              <Text style={[styles.metaText, { color: colors.secondaryText }]}>
-                {formatDate(post.date)}
-              </Text>
-            </View>
-          )}
-
-          {/* Read Time */}
-          {post.readTime && (
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={14} color={colors.secondaryText} />
-              <Text style={[styles.metaText, { color: colors.secondaryText }]}>
-                {post.readTime}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Read More */}
-        <View style={styles.readMoreContainer}>
-          <Text style={[styles.readMore, { color: colors.primary }]}>Read More</Text>
-          <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+          <View style={styles.metaInfo}>
+            <Ionicons name="time-outline" size={14} color={colors.secondaryText} />
+            <Text style={[styles.metaText, { color: colors.secondaryText }]}>
+              {post.readTime || '3 min'}
+            </Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -124,74 +122,130 @@ export default function BlogCard({ post, onPress }) {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
-    marginBottom: spacing.lg,
+    borderRadius: 20,
+    marginBottom: 20,
     overflow: 'hidden',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+  },
+  imageContainer: {
+    position: 'relative',
+    height: 180,
   },
   image: {
     width: '100%',
-    height: 200,
+    height: '100%',
   },
-  content: {
-    padding: spacing.md,
+  floatingBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
-  categoryBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: spacing.sm,
-  },
-  categoryText: {
-    fontSize: fontSize.xs,
-    fontWeight: '700',
+  floatingBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
+  content: {
+    padding: 16,
+  },
   title: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    marginBottom: spacing.sm,
+    fontSize: 18,
+    fontWeight: '800',
     lineHeight: 24,
+    marginBottom: 8,
   },
   excerpt: {
-    fontSize: fontSize.sm,
+    fontSize: 14,
     lineHeight: 20,
-    marginBottom: spacing.md,
+    marginBottom: 16,
+    opacity: 0.8,
   },
-  metaContainer: {
+  footer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
   },
-  metaItem: {
+  authorSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  authorAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  authorInitial: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  authorName: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  metaInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    flex: 1,
-    minWidth: 100,
   },
   metaText: {
-    fontSize: fontSize.xs,
-    flex: 1,
+    fontSize: 12,
+    fontWeight: '500',
   },
-  readMoreContainer: {
+
+  horizontalCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 12,
   },
-  readMore: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
+  horizontalImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+  },
+  horizontalContent: {
+    flex: 1,
+    paddingHorizontal: 12,
+    gap: 4,
+  },
+  miniBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  miniBadgeText: {
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  horizontalTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  horizontalMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaSmall: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  dot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
   },
 });
 

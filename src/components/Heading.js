@@ -2,14 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 
-/**
- * Heading component with optional "See all" link
- * Adapted from HEYY app design pattern
- * 
- * @param {string} title - Heading text
- * @param {function} onSeeAll - Optional callback for "See all" button
- * @param {string} seeAllText - Text for the see all link (default: "See all")
- */
 export default function Heading({ title, onSeeAll, seeAllText = 'See all' }) {
   const { colors } = useTheme();
 

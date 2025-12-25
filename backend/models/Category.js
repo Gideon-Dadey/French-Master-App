@@ -59,7 +59,6 @@ const categorySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate slug before saving
 categorySchema.pre('save', function(next) {
   if (this.isModified('name') && !this.slug) {
     this.slug = this.name

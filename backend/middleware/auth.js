@@ -1,12 +1,10 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Protect routes - require authentication
 exports.protect = async (req, res, next) => {
   try {
     let token;
 
-    // Check for token in headers
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
     }
@@ -19,10 +17,10 @@ exports.protect = async (req, res, next) => {
     }
 
     try {
-      // Verify token
+
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = await User.findById(decoded.id);
-      
+
       if (!req.user) {
         return res.status(401).json({
           success: false,
@@ -46,7 +44,6 @@ exports.protect = async (req, res, next) => {
   }
 };
 
-// Grant access to specific roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
@@ -59,23 +56,21 @@ exports.authorize = (...roles) => {
   };
 };
 
-// Optional auth - sets req.user if token exists, but doesn't require it
 exports.optionalAuth = async (req, res, next) => {
   try {
     let token;
 
-    // Check for token in headers
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
     }
 
     if (token) {
       try {
-        // Verify token
+
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = await User.findById(decoded.id);
       } catch (error) {
-        // Token is invalid, but we don't block the request
+
         req.user = null;
       }
     }

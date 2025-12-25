@@ -1,6 +1,14 @@
+/**
+ * StudyGroup Model
+ * 
+ * Enables collaborative learning through group discussions.
+ * Features: membership management, discussions with reactions,
+ * resources sharing, and role-based moderation.
+ */
 const mongoose = require('mongoose');
 
 const studyGroupSchema = new mongoose.Schema({
+  // Group Identity
   name: {
     type: String,
     required: [true, 'Please provide a group name'],
@@ -13,6 +21,8 @@ const studyGroupSchema = new mongoose.Schema({
     trim: true,
     maxlength: [500, 'Description cannot exceed 500 characters']
   },
+
+  // Ownership & Membership
   creator: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -110,7 +120,18 @@ const studyGroupSchema = new mongoose.Schema({
     createdAt: {
       type: Date,
       default: Date.now
-    }
+    },
+    reactions: [{
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      emoji: String,
+      addedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }]
   }],
   status: {
     type: String,
@@ -143,7 +164,6 @@ const studyGroupSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate unique invite code
 studyGroupSchema.methods.generateInviteCode = function() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let code = '';
@@ -154,25 +174,22 @@ studyGroupSchema.methods.generateInviteCode = function() {
   return code;
 };
 
-// Check if user is a member
 studyGroupSchema.methods.isMember = function(userId) {
   return this.members.some(member => member.user.toString() === userId.toString());
 };
 
-// Check if user is creator or moderator
 studyGroupSchema.methods.isModerator = function(userId) {
   return this.creator.toString() === userId.toString() ||
-         this.members.some(member => 
+         this.members.some(member =>
            member.user.toString() === userId.toString() && member.role === 'moderator'
          );
 };
 
-// Add member to group
 studyGroupSchema.methods.addMember = function(userId, role = 'member') {
   if (this.members.length >= this.maxMembers) {
     throw new Error('Group has reached maximum capacity');
   }
-  
+
   if (this.isMember(userId)) {
     throw new Error('User is already a member');
   }
@@ -185,11 +202,10 @@ studyGroupSchema.methods.addMember = function(userId, role = 'member') {
 
   this.stats.activeMembers = this.members.length;
   this.stats.lastActivity = new Date();
-  
+
   return this;
 };
 
-// Remove member from group
 studyGroupSchema.methods.removeMember = function(userId) {
   if (this.creator.toString() === userId.toString()) {
     throw new Error('Creator cannot be removed from group');
@@ -201,11 +217,10 @@ studyGroupSchema.methods.removeMember = function(userId) {
 
   this.stats.activeMembers = this.members.length;
   this.stats.lastActivity = new Date();
-  
+
   return this;
 };
 
-// Indexes for better query performance
 studyGroupSchema.index({ creator: 1 });
 studyGroupSchema.index({ 'members.user': 1 });
 studyGroupSchema.index({ level: 1, focus: 1 });

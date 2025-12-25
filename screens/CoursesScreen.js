@@ -35,8 +35,7 @@ export default function CoursesScreen({ navigation, route }) {
   const [viewMode, setViewMode] = useState('list');
   const [showFilters, setShowFilters] = useState(false);
   const searchTimeoutRef = useRef(null);
-  
-  // Initialize filters from route params
+
   const [filters, setFilters] = useState({
     category: route.params?.category || null,
     level: null,
@@ -44,11 +43,10 @@ export default function CoursesScreen({ navigation, route }) {
     price: null,
   });
 
-  // Update filters when route params change (when navigating from home categories)
   useEffect(() => {
     if (route.params?.category !== undefined) {
       setFilters(prev => {
-        // Only update if it's different to avoid unnecessary re-renders
+
         if (prev.category !== route.params.category) {
           return { ...prev, category: route.params.category };
         }
@@ -65,7 +63,7 @@ export default function CoursesScreen({ navigation, route }) {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
+
     if (searchQuery.length === 0 || searchQuery.length >= 2) {
       searchTimeoutRef.current = setTimeout(() => {
         loadCourses();
@@ -89,11 +87,12 @@ export default function CoursesScreen({ navigation, route }) {
         level: filters.level || undefined,
         language: filters.language || undefined,
         isFree: filters.price === 'free' ? 'true' : filters.price === 'paid' ? 'false' : undefined,
+        limit: 100,
       };
-      Object.keys(params).forEach(key => 
+      Object.keys(params).forEach(key =>
         params[key] === null || params[key] === undefined ? delete params[key] : {}
       );
-      
+
       const response = await coursesAPI.getAll(params);
       setCourses(response.data.data || []);
     } catch (error) {
@@ -142,10 +141,10 @@ export default function CoursesScreen({ navigation, route }) {
         onPress={() => navigation.navigate('CourseDetail', { courseId: course._id || course.id })}
         activeOpacity={0.9}
       >
-        {/* Premium Banner */}
+
         <View style={styles.bannerContainer}>
           <LinearGradient
-            colors={index % 2 === 0 
+            colors={index % 2 === 0
               ? ['#FFD700', '#FFA500']
               : ['#4A90E2', '#357ABD']
             }
@@ -177,7 +176,6 @@ export default function CoursesScreen({ navigation, route }) {
           </View>
         </View>
 
-        {/* Course Details */}
         <View style={styles.courseDetails}>
           <Text style={[styles.courseTitle, { color: colors.text }]} numberOfLines={2}>
             {course.title}
@@ -188,8 +186,8 @@ export default function CoursesScreen({ navigation, route }) {
 
           <View style={styles.metaRow}>
             <View style={styles.ratingRow}>
-              <Rating 
-                rating={course.rating?.average || 0} 
+              <Rating
+                rating={course.rating?.average || 0}
                 size={14}
                 showRating={true}
               />
@@ -240,9 +238,9 @@ export default function CoursesScreen({ navigation, route }) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Premium Header */}
+
       <LinearGradient
-        colors={isDarkMode 
+        colors={isDarkMode
           ? ['#1a0a2e', '#16213e', '#0f3460']
           : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
         }
@@ -268,7 +266,7 @@ export default function CoursesScreen({ navigation, route }) {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Explore Courses Section */}
+
         <View style={styles.exploreSection}>
           <Text style={[styles.exploreTitle, { color: colors.text }]}>Explore Courses</Text>
           <Text style={[styles.exploreSubtitle, { color: colors.secondaryText }]}>
@@ -276,7 +274,6 @@ export default function CoursesScreen({ navigation, route }) {
           </Text>
         </View>
 
-        {/* Premium Search Bar */}
         <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}>
           <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.searchIcon} />
           <TextInput
@@ -294,17 +291,16 @@ export default function CoursesScreen({ navigation, route }) {
           )}
         </View>
 
-        {/* Filters and View Toggle */}
         <View style={styles.controlsRow}>
           <TouchableOpacity
             style={[styles.filterButton, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}
             onPress={() => setShowFilters(!showFilters)}
             activeOpacity={0.7}
           >
-            <Ionicons 
-              name="filter" 
-              size={18} 
-              color={activeFiltersCount > 0 ? premiumColors.primary.main : colors.secondaryText} 
+            <Ionicons
+              name="filter"
+              size={18}
+              color={activeFiltersCount > 0 ? premiumColors.primary.main : colors.secondaryText}
             />
             <Text style={[
               styles.filterButtonText,
@@ -328,10 +324,10 @@ export default function CoursesScreen({ navigation, route }) {
               onPress={() => setViewMode('list')}
               activeOpacity={0.7}
             >
-              <Ionicons 
-                name="list" 
-                size={18} 
-                color={viewMode === 'list' ? '#FFFFFF' : colors.secondaryText} 
+              <Ionicons
+                name="list"
+                size={18}
+                color={viewMode === 'list' ? '#FFFFFF' : colors.secondaryText}
               />
             </TouchableOpacity>
             <TouchableOpacity
@@ -342,25 +338,23 @@ export default function CoursesScreen({ navigation, route }) {
               onPress={() => setViewMode('grid')}
               activeOpacity={0.7}
             >
-              <Ionicons 
-                name="grid" 
-                size={18} 
-                color={viewMode === 'grid' ? '#FFFFFF' : colors.secondaryText} 
+              <Ionicons
+                name="grid"
+                size={18}
+                color={viewMode === 'grid' ? '#FFFFFF' : colors.secondaryText}
               />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Results Count */}
         <Text style={[styles.resultsCount, { color: colors.secondaryText }]}>
           {courses.length} {courses.length === 1 ? 'result' : 'results'}
         </Text>
 
-        {/* Advanced Filters Panel */}
         {showFilters && (
           <View style={[styles.filtersPanel, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersContent}>
-              {/* Category Filters */}
+
               <View style={styles.filterGroup}>
                 <Text style={[styles.filterGroupLabel, { color: colors.secondaryText }]}>Category</Text>
                 <View style={styles.filterChipsRow}>
@@ -369,7 +363,7 @@ export default function CoursesScreen({ navigation, route }) {
                       key={cat}
                       style={[
                         styles.filterChip,
-                        { 
+                        {
                           backgroundColor: filters.category === cat ? premiumColors.primary.main : colors.border,
                         }
                       ]}
@@ -386,7 +380,6 @@ export default function CoursesScreen({ navigation, route }) {
                 </View>
               </View>
 
-              {/* Level Filters */}
               <View style={styles.filterGroup}>
                 <Text style={[styles.filterGroupLabel, { color: colors.secondaryText }]}>Level</Text>
                 <View style={styles.filterChipsRow}>
@@ -395,7 +388,7 @@ export default function CoursesScreen({ navigation, route }) {
                       key={level}
                       style={[
                         styles.filterChip,
-                        { 
+                        {
                           backgroundColor: filters.level === level ? premiumColors.primary.main : colors.border,
                         }
                       ]}
@@ -413,7 +406,7 @@ export default function CoursesScreen({ navigation, route }) {
               </View>
 
               {activeFiltersCount > 0 && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.clearAllButton, { backgroundColor: premiumColors.error + '20' }]}
                   onPress={clearFilters}
                 >
@@ -425,7 +418,6 @@ export default function CoursesScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* Courses List */}
         {courses.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="book-outline" size={80} color={colors.secondaryText} />
@@ -559,7 +551,7 @@ const styles = StyleSheet.create({
     borderRadius: premiumBorderRadius.sm,
   },
   viewModeButtonActive: {
-    // Active state handled by backgroundColor
+
   },
   resultsCount: {
     fontSize: fontSize.sm,
