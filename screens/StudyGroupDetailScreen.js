@@ -995,6 +995,48 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     setDiscussionMessage(prev => prev + emoji);
   };
 
+  const downloadDocument = async (uri, filename) => {
+    try {
+      if (!uri) return;
+      
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+      
+      if (isAvailable) {
+        // Use sharing to open/save the document
+        await Sharing.shareAsync(uri, {
+          mimeType: '*/*',
+          dialogTitle: `Open ${filename}`,
+          UTI: 'public.item', // iOS
+        });
+      } else {
+        // Fallback: Show alert with options
+        Alert.alert(
+          'Document',
+          `${filename}\n\nSharing is not available on this device.`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      Alert.alert('Error', 'Could not open document. Please try again.');
+    }
+  };
+
+  const shareDocument = async (uri, filename) => {
+    try {
+      if (uri) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/octet-stream',
+          dialogTitle: `Share ${filename}`,
+        });
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      Alert.alert('Error', 'Could not share document');
+    }
+  };
+
   const cancelRecording = async () => {
     try {
       if (recording) {
@@ -1164,11 +1206,34 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
+        copyToCacheDirectory: true,
       });
-      if (result.type === 'success') {
-        console.log('Document picked:', result);
+      
+      // Handle new DocumentPicker API (Expo SDK 49+)
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const doc = result.assets[0];
+        setSelectedDocument({
+          uri: doc.uri,
+          name: doc.name,
+          size: doc.size,
+          mimeType: doc.mimeType,
+        });
+        setSelectedImage(null); // Clear any selected image
+        setShowAttachmentMenu(false);
+      } 
+      // Handle old DocumentPicker API
+      else if (result.type === 'success') {
+        setSelectedDocument({
+          uri: result.uri,
+          name: result.name,
+          size: result.size,
+          mimeType: result.mimeType,
+        });
+        setSelectedImage(null); // Clear any selected image
+        setShowAttachmentMenu(false);
       }
     } catch (error) {
+      console.error('Document picker error:', error);
       Alert.alert('Error', 'Failed to pick document');
     }
   };
@@ -2122,41 +2187,71 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                               )}
 
                               {messageData.type === MESSAGE_TYPES.DOCUMENT && messageData.attachment && (
-                                <View
-                                  style={[styles.documentAttachment, {
-                                    backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background
-                                  }]}
+                                <TouchableOpacity
+                                  activeOpacity={0.8}
+                                  onPress={() => downloadDocument(messageData.attachment.uri, messageData.attachment.name)}
+                                  style={styles.whatsappDocContainer}
                                 >
-                                  <View style={[styles.documentIcon, { backgroundColor: getFileIcon(messageData.attachment.name).color + '20' }]}>
-                                    <Ionicons
-                                      name={getFileIcon(messageData.attachment.name).icon}
-                                      size={24}
-                                      color={getFileIcon(messageData.attachment.name).color}
-                                    />
+                                  {/* Document Card */}
+                                  <View style={[
+                                    styles.whatsappDocCard,
+                                    { backgroundColor: isOwnMessage ? 'rgba(0,0,0,0.15)' : '#1D2A32' }
+                                  ]}>
+                                    {/* File Icon with colored background */}
+                                    <View style={[
+                                      styles.whatsappDocIconWrapper,
+                                      { backgroundColor: getFileIcon(messageData.attachment.name).color }
+                                    ]}>
+                                      <Ionicons
+                                        name={getFileIcon(messageData.attachment.name).icon}
+                                        size={28}
+                                        color="#FFFFFF"
+                                      />
+                                      {/* File extension badge */}
+                                      <View style={styles.whatsappDocExtBadge}>
+                                        <Text style={styles.whatsappDocExtText}>
+                                          {messageData.attachment.name?.split('.').pop()?.toUpperCase() || 'FILE'}
+                                        </Text>
+                                      </View>
+                                    </View>
+                                    
+                                    {/* File Info */}
+                                    <View style={styles.whatsappDocInfo}>
+                                      <Text 
+                                        style={[styles.whatsappDocName, { color: '#E9EDEF' }]} 
+                                        numberOfLines={2}
+                                      >
+                                        {messageData.attachment.name}
+                                      </Text>
+                                      <View style={styles.whatsappDocMeta}>
+                                        <Text style={styles.whatsappDocSize}>
+                                          {messageData.attachment.size 
+                                            ? messageData.attachment.size > 1024 * 1024
+                                              ? `${(messageData.attachment.size / (1024 * 1024)).toFixed(1)} MB`
+                                              : `${(messageData.attachment.size / 1024).toFixed(1)} KB`
+                                            : 'Document'
+                                          }
+                                        </Text>
+                                        <Text style={styles.whatsappDocDot}>•</Text>
+                                        <Text style={styles.whatsappDocType}>
+                                          {messageData.attachment.name?.split('.').pop()?.toUpperCase() || 'FILE'}
+                                        </Text>
+                                      </View>
+                                    </View>
+
+                                    {/* Download Icon */}
+                                    <View style={styles.whatsappDocDownload}>
+                                      <Ionicons name="download-outline" size={22} color="#8696A0" />
+                                    </View>
                                   </View>
-                                  <View style={styles.documentInfo}>
-                                    <Text style={[styles.documentName, { color: isOwnMessage ? '#FFFFFF' : colors.text }]} numberOfLines={1}>
-                                      {messageData.attachment.name}
+
+                                  {/* Caption if any */}
+                                  {messageData.message && (
+                                    <Text style={[styles.whatsappDocCaption, { color: isOwnMessage ? '#FFFFFF' : '#E9EDEF' }]}>
+                                      {messageData.message}
                                     </Text>
-                                    <Text style={[styles.documentSize, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
-                                      {messageData.attachment.size ? `${(messageData.attachment.size / 1024).toFixed(1)} KB` : 'Document'}
-                                    </Text>
-                                  </View>
-                                  <View style={styles.documentActions}>
-                                    <TouchableOpacity
-                                      style={[styles.documentActionBtn, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.border }]}
-                                      onPress={() => downloadDocument(messageData.attachment.uri, messageData.attachment.name)}
-                                    >
-                                      <Ionicons name="download-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.text} />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                      style={[styles.documentActionBtn, { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.2)' : colors.border }]}
-                                      onPress={() => shareDocument(messageData.attachment.uri, messageData.attachment.name)}
-                                    >
-                                      <Ionicons name="share-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.text} />
-                                    </TouchableOpacity>
-                                  </View>
-                                </View>
+                                  )}
+                                </TouchableOpacity>
                               )}
 
                               {messageData.type === MESSAGE_TYPES.VOICE && messageData.attachment && (
@@ -5789,6 +5884,82 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+
+  // WhatsApp Document Styles
+  whatsappDocContainer: {
+    width: '100%',
+    marginBottom: 4,
+  },
+  whatsappDocCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 12,
+    minWidth: 250,
+  },
+  whatsappDocIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  whatsappDocExtBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#0B141A',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+  },
+  whatsappDocExtText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '700',
+  },
+  whatsappDocInfo: {
+    flex: 1,
+    marginLeft: 12,
+    marginRight: 8,
+  },
+  whatsappDocName: {
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 18,
+    marginBottom: 4,
+  },
+  whatsappDocMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  whatsappDocSize: {
+    color: '#8696A0',
+    fontSize: 12,
+  },
+  whatsappDocDot: {
+    color: '#8696A0',
+    fontSize: 12,
+    marginHorizontal: 6,
+  },
+  whatsappDocType: {
+    color: '#8696A0',
+    fontSize: 12,
+  },
+  whatsappDocDownload: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(134, 150, 160, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  whatsappDocCaption: {
+    fontSize: 14,
+    lineHeight: 19,
+    marginTop: 6,
   },
 });
 
