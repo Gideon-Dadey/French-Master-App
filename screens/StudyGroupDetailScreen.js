@@ -1,3 +1,4 @@
+// StudyGroupDetailScreen - WhatsApp-style chat with keyboard handling
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -17,6 +18,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { GestureHandlerRootView, Swipeable, TapGestureHandler, State } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -214,6 +216,34 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   // Chat background customization
   const [showBackgroundPicker, setShowBackgroundPicker] = useState(false);
   const [chatBackground, setChatBackground] = useState(null); // { type: 'color' | 'image', value: string }
+
+  // Keyboard state for Android proper handling
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  // Keyboard event listeners for proper input visibility
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setKeyboardVisible(true);
+        // Scroll to bottom when keyboard appears
+        setTimeout(() => {
+          discussionsScrollRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   // Load saved background on mount
   useEffect(() => {
@@ -2186,21 +2216,26 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Chat Messages Area with Custom Background */}
-        <View style={[
-          styles.whatsappChatArea,
-          { backgroundColor: isDarkMode ? '#0B141A' : '#E4DDD6' },
-          chatBackground?.type === 'color' && { backgroundColor: chatBackground.value },
-        ]}>
-          {/* Background Image */}
-          {chatBackground?.type === 'image' && (
-            <Image 
-              source={{ uri: chatBackground.value }} 
-              style={styles.chatBackgroundImage}
-              resizeMode="cover"
-            />
-          )}
-          <ScrollView
+        {/* Chat Messages Area with Custom Background - Wrapped in KeyboardAvoidingView for proper keyboard handling */}
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+          style={{ flex: 1 }}
+        >
+          <View style={[
+            styles.whatsappChatArea,
+            { backgroundColor: isDarkMode ? '#0B141A' : '#E4DDD6' },
+            chatBackground?.type === 'color' && { backgroundColor: chatBackground.value },
+          ]}>
+            {/* Background Image */}
+            {chatBackground?.type === 'image' && (
+              <Image 
+                source={{ uri: chatBackground.value }} 
+                style={styles.chatBackgroundImage}
+                resizeMode="cover"
+              />
+            )}
+            <ScrollView
             ref={discussionsScrollRef}
             style={styles.chatScrollView}
             contentContainerStyle={styles.whatsappChatContent}
@@ -2208,6 +2243,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25D366" />
             }
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
           >
           {group.discussions?.length > 0 ? (
             group.discussions.map((discussion, index) => {
@@ -2697,16 +2734,12 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               </Text>
             </View>
           )}
-          </ScrollView>
-        </View>
+            </ScrollView>
+          </View>
 
-            {isMember() ? (
-              <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
-              >
-
-                {replyingTo && (
+          {isMember() ? (
+            <>
+              {replyingTo && (
                   <View style={[styles.replyingToContainer, {
                     backgroundColor: isDarkMode ? 'rgba(30, 30, 40, 0.98)' : 'rgba(255, 255, 255, 0.98)',
                     borderTopColor: isDarkMode ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
@@ -2783,8 +2816,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 <View style={[
                   styles.whatsappInputContainer,
                   { 
-                    backgroundColor: isDarkMode ? '#0B141A' : '#F0F2F5',
-                    paddingBottom: Math.max(insets.bottom, 8) + 8,
+                    backgroundColor: 'transparent',
+                    paddingBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 8),
                   }
                 ]}>
                   {/* Plus/Add Button */}
@@ -2800,7 +2833,14 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </TouchableOpacity>
 
                   {/* Message Input with Emoji */}
-                  <View style={[styles.whatsappInputWrapper, { backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF' }]}>
+                  <View style={[
+                    styles.whatsappInputWrapper, 
+                    { 
+                      backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF',
+                      borderWidth: isDarkMode ? 0 : 1,
+                      borderColor: isDarkMode ? 'transparent' : '#E4E6EB',
+                    }
+                  ]}>
                     <TextInput
                       style={[styles.whatsappInput, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}
                       placeholder="Message..."
@@ -2809,6 +2849,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       onChangeText={setDiscussionMessage}
                       multiline
                       maxLength={1000}
+                      selectionColor={isDarkMode ? '#00A884' : '#075E54'}
                     />
                     <TouchableOpacity
                       style={styles.whatsappEmojiBtn}
@@ -2991,33 +3032,34 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </Animated.View>
                 )}
 
-                {showEmojiPicker && (
-                  <EmojiPicker
-                    colors={colors}
-                    onSelectEmoji={insertEmoji}
-                    onClose={() => setShowEmojiPicker(false)}
-                  />
-                )}
-              </KeyboardAvoidingView>
-            ) : (
-              <View style={[
-                styles.whatsappJoinPrompt,
-                { 
-                  backgroundColor: isDarkMode ? '#182229' : '#FFFFFF',
-                  paddingBottom: Math.max(insets.bottom, 8) + 16,
-                }
-              ]}>
-                <Text style={[styles.whatsappJoinText, { color: isDarkMode ? '#8696A0' : '#667781' }]}>
-                  Join this group to participate in the discussion
-                </Text>
-                <TouchableOpacity
-                  style={styles.whatsappJoinBtn}
-                  onPress={handleJoin}
-                >
-                  <Text style={styles.whatsappJoinBtnText}>Join Group</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+              {showEmojiPicker && (
+                <EmojiPicker
+                  colors={colors}
+                  onSelectEmoji={insertEmoji}
+                  onClose={() => setShowEmojiPicker(false)}
+                />
+              )}
+            </>
+          ) : (
+            <View style={[
+              styles.whatsappJoinPrompt,
+              { 
+                backgroundColor: isDarkMode ? '#182229' : '#FFFFFF',
+                paddingBottom: Math.max(insets.bottom, 8) + 16,
+              }
+            ]}>
+              <Text style={[styles.whatsappJoinText, { color: isDarkMode ? '#8696A0' : '#667781' }]}>
+                Join this group to participate in the discussion
+              </Text>
+              <TouchableOpacity
+                style={styles.whatsappJoinBtn}
+                onPress={handleJoin}
+              >
+                <Text style={styles.whatsappJoinBtnText}>Join Group</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </KeyboardAvoidingView>
 
       <Modal
         visible={showJoinModal}
@@ -6147,9 +6189,10 @@ const styles = StyleSheet.create({
   whatsappInputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: 8,
-    paddingTop: 8,
-    gap: 8,
+    paddingHorizontal: 6,
+    paddingTop: 6,
+    paddingBottom: 6,
+    gap: 6,
   },
   whatsappAddBtn: {
     width: 44,
@@ -6163,19 +6206,20 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    backgroundColor: '#1F2C34',
     borderRadius: 24,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     minHeight: 48,
     maxHeight: 120,
   },
   whatsappInput: {
     flex: 1,
-    color: '#E9EDEF',
     fontSize: 16,
+    lineHeight: 22,
     paddingVertical: 0,
+    paddingTop: 2,
     maxHeight: 100,
+    textAlignVertical: 'center',
   },
   whatsappEmojiBtn: {
     padding: 4,

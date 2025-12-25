@@ -19,77 +19,52 @@ const tabConfig = {
     icon: 'home',
     iconOutline: 'home-outline',
     label: 'Home',
-    gradient: ['#6366f1', '#818cf8'],
+    color: '#6366f1',
   },
   Learn: {
     icon: 'school',
     iconOutline: 'school-outline',
     label: 'Learn',
-    gradient: ['#8b5cf6', '#a78bfa'],
+    color: '#8b5cf6',
   },
   Practice: {
     icon: 'create',
     iconOutline: 'create-outline',
     label: 'Practice',
-    gradient: ['#f59e0b', '#fbbf24'],
+    color: '#f59e0b',
   },
   Community: {
     icon: 'chatbubbles',
     iconOutline: 'chatbubbles-outline',
-    label: 'Community',
-    gradient: ['#10b981', '#34d399'],
+    label: 'Social',
+    color: '#10b981',
   },
   Profile: {
     icon: 'person',
     iconOutline: 'person-outline',
     label: 'Profile',
-    gradient: ['#ec4899', '#f472b6'],
+    color: '#ec4899',
   },
 };
 
+// Tab item component - same for all navigation types
 function TabBarItem({ route, focused, onPress, onLongPress, isDarkMode }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const translateAnim = useRef(new Animated.Value(0)).current;
 
   const config = tabConfig[route.name] || {
     icon: 'ellipse',
     iconOutline: 'ellipse-outline',
     label: route.name,
-    gradient: ['#6366f1', '#818cf8'],
+    color: '#6366f1',
   };
 
   useEffect(() => {
-    if (focused) {
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1.05,
-          useNativeDriver: true,
-          tension: 300,
-          friction: 10,
-        }),
-        Animated.spring(translateAnim, {
-          toValue: -2,
-          useNativeDriver: true,
-          tension: 300,
-          friction: 10,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          useNativeDriver: true,
-          tension: 300,
-          friction: 10,
-        }),
-        Animated.spring(translateAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 300,
-          friction: 10,
-        }),
-      ]).start();
-    }
+    Animated.spring(scaleAnim, {
+      toValue: focused ? 1.05 : 1,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 15,
+    }).start();
   }, [focused]);
 
   const inactiveColor = isDarkMode ? '#6b7280' : '#9ca3af';
@@ -102,45 +77,33 @@ function TabBarItem({ route, focused, onPress, onLongPress, isDarkMode }) {
       onPress={onPress}
       onLongPress={onLongPress}
       style={styles.tabItem}
-      activeOpacity={0.6}
+      activeOpacity={0.7}
     >
       <Animated.View
         style={[
           styles.tabContent,
-          {
-            transform: [
-              { scale: scaleAnim },
-              { translateY: translateAnim },
-            ]
-          }
+          { transform: [{ scale: scaleAnim }] }
         ]}
       >
+        {/* Icon - no background, transparent */}
+        <Ionicons
+          name={focused ? config.icon : config.iconOutline}
+          size={24}
+          color={focused ? config.color : inactiveColor}
+        />
 
-        <View style={styles.iconWrapper}>
-          <View style={styles.iconContainer}>
-            <Ionicons
-              name={focused ? config.icon : config.iconOutline}
-              size={24}
-              color={focused ? config.gradient[0] : inactiveColor}
-            />
-          </View>
-        </View>
-
+        {/* Label */}
         <Text
           style={[
             styles.label,
             {
-              color: focused ? config.gradient[0] : inactiveColor,
-              fontWeight: focused ? '700' : '500',
+              color: focused ? config.color : inactiveColor,
+              fontWeight: focused ? '600' : '500',
             }
           ]}
         >
           {config.label}
         </Text>
-
-        {focused && (
-          <View style={[styles.activeDot, { backgroundColor: config.gradient[0] }]} />
-        )}
       </Animated.View>
     </TouchableOpacity>
   );
@@ -149,31 +112,41 @@ function TabBarItem({ route, focused, onPress, onLongPress, isDarkMode }) {
 export default function CustomTabBar({ state, descriptors, navigation }) {
   const { isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
-  
-  // Calculate bottom padding based on device type
-  // - iOS with home indicator: uses insets.bottom
-  // - Android gesture nav: typically has small inset
-  // - Android 3-button nav: no inset, but needs padding
-  const bottomPadding = Platform.select({
-    ios: Math.max(insets.bottom, 8),
-    android: insets.bottom > 0 ? insets.bottom : 8,
-  });
+
+  // Smart bottom padding for all device types
+  const getBottomPadding = () => {
+    if (Platform.OS === 'ios') {
+      // iOS with home indicator: insets.bottom ~34
+      // iOS with home button: insets.bottom ~0
+      return insets.bottom > 20 ? insets.bottom - 16 : 8;
+    } else {
+      // Android gesture nav: insets.bottom ~24-48
+      // Android 3-button nav: insets.bottom ~0
+      if (insets.bottom > 40) {
+        return 4; // Gesture nav - minimal padding
+      } else if (insets.bottom > 0) {
+        return insets.bottom; // Some inset present
+      } else {
+        return 10; // 3-button nav - comfortable padding
+      }
+    }
+  };
 
   return (
     <View style={[
       styles.container,
       {
-        backgroundColor: isDarkMode ? '#0c0c0c' : '#ffffff',
-        borderTopColor: isDarkMode ? '#1f1f1f' : '#f0f0f0',
-        paddingBottom: bottomPadding,
+        backgroundColor: isDarkMode ? '#0f0f0f' : '#ffffff',
+        paddingBottom: getBottomPadding(),
       }
     ]}>
-
+      {/* Subtle top border */}
       <View style={[
         styles.topBorder,
-        { backgroundColor: isDarkMode ? '#1f1f1f' : '#e5e5e5' }
+        { backgroundColor: isDarkMode ? '#1f1f1f' : '#e8e8e8' }
       ]} />
 
+      {/* Tab items */}
       <View style={styles.tabsContainer}>
         {state.routes.map((route, index) => {
           const focused = state.index === index;
@@ -220,20 +193,20 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 20,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 16,
   },
   topBorder: {
-    height: 1,
+    height: 0.5,
     width: '100%',
   },
   tabsContainer: {
     flexDirection: 'row',
     paddingTop: 10,
-    paddingBottom: 6,
-    paddingHorizontal: 8,
+    paddingBottom: 4,
+    paddingHorizontal: 4,
   },
   tabItem: {
     flex: 1,
@@ -243,27 +216,11 @@ const styles = StyleSheet.create({
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 2,
-  },
-  iconWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconContainer: {
-    width: 46,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 4,
   },
   label: {
     fontSize: 11,
-    marginTop: 6,
-    letterSpacing: 0.1,
-  },
-  activeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
     marginTop: 4,
+    letterSpacing: 0.2,
   },
 });
