@@ -2113,52 +2113,82 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={[styles.container, { backgroundColor: '#0B141A' }]}>
-        {/* WhatsApp Style Header */}
-        <View style={styles.whatsappHeader}>
-          <View style={styles.whatsappHeaderLeft}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.whatsappBackBtn}>
-              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+      <View style={[styles.container, { backgroundColor: isDarkMode ? '#0B141A' : '#F0F2F5' }]}>
+        {/* Theme-Aware Chat Header */}
+        <View style={[
+          styles.chatHeader,
+          { backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF' },
+          !isDarkMode && styles.chatHeaderLightShadow,
+        ]}>
+          <View style={styles.chatHeaderLeft}>
+            <TouchableOpacity 
+              onPress={() => navigation.goBack()} 
+              style={styles.chatHeaderBackBtn}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#E9EDEF' : '#111B21'} />
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.whatsappGroupInfo}
+              style={styles.chatHeaderGroupInfo}
               onPress={openGroupInfo}
+              activeOpacity={0.7}
             >
               {group.image ? (
-                <Image source={{ uri: group.image }} style={styles.whatsappGroupAvatar} />
+                <Image source={{ uri: group.image }} style={styles.chatHeaderAvatar} />
               ) : (
-                <View style={styles.whatsappGroupAvatarPlaceholder}>
-                  <Ionicons name="people" size={22} color="#FFFFFF" />
+                <View style={[
+                  styles.chatHeaderAvatarPlaceholder,
+                  { backgroundColor: isDarkMode ? '#374955' : '#DFE5E7' }
+                ]}>
+                  <Ionicons name="people" size={20} color={isDarkMode ? '#8696A0' : '#667781'} />
                 </View>
               )}
-              <View style={styles.whatsappGroupTextContainer}>
-                <Text style={styles.whatsappGroupName} numberOfLines={1}>
+              <View style={styles.chatHeaderTextBox}>
+                <Text 
+                  style={[styles.chatHeaderGroupName, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]} 
+                  numberOfLines={1}
+                >
                   {group.name}
                 </Text>
-                <Text style={styles.whatsappGroupMembers}>
-                  {memberCount} members · Tap for info
+                <Text 
+                  style={[styles.chatHeaderSubtext, { color: isDarkMode ? '#8696A0' : '#667781' }]}
+                  numberOfLines={1}
+                >
+                  {memberCount} {memberCount === 1 ? 'member' : 'members'} · Tap for info
                 </Text>
               </View>
             </TouchableOpacity>
           </View>
-          <View style={styles.whatsappHeaderRight}>
+          <View style={styles.chatHeaderRight}>
             <TouchableOpacity 
-              style={styles.whatsappHeaderIcon}
-              onPress={() => startCall('voice')}
-            >
-              <Ionicons name="call" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.whatsappHeaderIcon}
+              style={[
+                styles.chatHeaderIconBtn,
+                { backgroundColor: isDarkMode ? 'rgba(134, 150, 160, 0.15)' : 'rgba(0, 0, 0, 0.05)' }
+              ]}
               onPress={() => startCall('video')}
+              activeOpacity={0.7}
             >
-              <Ionicons name="videocam" size={22} color="#FFFFFF" />
+              <Ionicons name="videocam" size={20} color={isDarkMode ? '#8696A0' : '#54656F'} />
             </TouchableOpacity>
             <TouchableOpacity 
-              style={styles.whatsappHeaderIcon}
-              onPress={openGroupOptions}
+              style={[
+                styles.chatHeaderIconBtn,
+                { backgroundColor: isDarkMode ? 'rgba(134, 150, 160, 0.15)' : 'rgba(0, 0, 0, 0.05)' }
+              ]}
+              onPress={() => startCall('voice')}
+              activeOpacity={0.7}
             >
-              <Ionicons name="ellipsis-vertical" size={22} color="#FFFFFF" />
+              <Ionicons name="call" size={19} color={isDarkMode ? '#8696A0' : '#54656F'} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.chatHeaderIconBtn,
+                { backgroundColor: isDarkMode ? 'rgba(134, 150, 160, 0.15)' : 'rgba(0, 0, 0, 0.05)' }
+              ]}
+              onPress={openGroupOptions}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="ellipsis-vertical" size={19} color={isDarkMode ? '#8696A0' : '#54656F'} />
             </TouchableOpacity>
           </View>
         </View>
@@ -5959,62 +5989,80 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // WhatsApp Style Header
-  whatsappHeader: {
+  // Theme-Aware Chat Header
+  chatHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#7B2D96',
-    paddingTop: Platform.OS === 'ios' ? 50 : 10,
+    paddingTop: Platform.OS === 'ios' ? 54 : 38,
     paddingBottom: 12,
     paddingHorizontal: 8,
   },
-  whatsappHeaderLeft: {
+  chatHeaderLightShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  chatHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    minWidth: 0,
   },
-  whatsappBackBtn: {
-    padding: 8,
+  chatHeaderBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  whatsappGroupInfo: {
+  chatHeaderGroupInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    minWidth: 0,
+    marginLeft: 4,
   },
-  whatsappGroupAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
+  chatHeaderAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
   },
-  whatsappGroupAvatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  chatHeaderAvatarPlaceholder: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10,
   },
-  whatsappGroupTextContainer: {
+  chatHeaderTextBox: {
     flex: 1,
+    marginLeft: 12,
+    minWidth: 0,
   },
-  whatsappGroupName: {
-    color: '#FFFFFF',
-    fontSize: 18,
+  chatHeaderGroupName: {
+    fontSize: 17,
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
-  whatsappGroupMembers: {
-    color: 'rgba(255,255,255,0.8)',
+  chatHeaderSubtext: {
     fontSize: 13,
+    marginTop: 2,
+    letterSpacing: 0.1,
   },
-  whatsappHeaderRight: {
+  chatHeaderRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
-  whatsappHeaderIcon: {
-    padding: 10,
+  chatHeaderIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // WhatsApp Chat Area
