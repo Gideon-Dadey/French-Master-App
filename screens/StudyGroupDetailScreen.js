@@ -1873,7 +1873,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
             group.discussions.map((discussion, index) => {
               const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
               const isOwnMessage = discussionUser?._id === user?._id;
-              const reactions = messageReactions[index.toString()] || [];
+              const reactions = messageReactions[discussion._id?.toString()] || [];
 
               let messageData;
               try {
