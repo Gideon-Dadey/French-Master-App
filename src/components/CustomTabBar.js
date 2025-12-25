@@ -8,7 +8,6 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
@@ -117,33 +116,13 @@ function TabBarItem({ route, focused, onPress, onLongPress, isDarkMode }) {
       >
 
         <View style={styles.iconWrapper}>
-          {focused ? (
-            <View style={styles.activeIconContainer}>
-              <LinearGradient
-                colors={config.gradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.activeIconBg}
-              >
-                <Ionicons
-                  name={config.icon}
-                  size={22}
-                  color="#ffffff"
-                />
-              </LinearGradient>
-            </View>
-          ) : (
-            <View style={[
-              styles.inactiveIconContainer,
-              { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }
-            ]}>
-              <Ionicons
-                name={config.iconOutline}
-                size={22}
-                color={inactiveColor}
-              />
-            </View>
-          )}
+          <View style={styles.iconContainer}>
+            <Ionicons
+              name={focused ? config.icon : config.iconOutline}
+              size={24}
+              color={focused ? config.gradient[0] : inactiveColor}
+            />
+          </View>
         </View>
 
         <Text
@@ -263,24 +242,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activeIconContainer: {
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  activeIconBg: {
+  iconContainer: {
     width: 46,
     height: 34,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inactiveIconContainer: {
-    width: 46,
-    height: 34,
-    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
