@@ -1,767 +1,1615 @@
-# French Master GH - Complete Documentation
+# French Master GH - Complete Technical Documentation
+
+**Version:** 1.0.0  
+**Last Updated:** December 2025  
+**Platform:** React Native (Expo SDK 54)
+
+---
 
 ## Table of Contents
 
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Setup Guide](#setup-guide)
-4. [API Documentation](#api-documentation)
-5. [Components](#components)
-6. [Screens](#screens)
-7. [Styling & Theming](#styling--theming)
-8. [Deployment](#deployment)
-9. [Contributing](#contributing)
+3. [Technology Stack](#technology-stack)
+4. [Setup Guide](#setup-guide)
+5. [API Documentation](#api-documentation)
+6. [Screens Reference](#screens-reference)
+7. [Components Library](#components-library)
+8. [Context Providers](#context-providers)
+9. [Services](#services)
+10. [Utilities](#utilities)
+11. [Database Models](#database-models)
+12. [Styling & Theming](#styling--theming)
+13. [Security](#security)
+14. [Deployment](#deployment)
 
 ---
 
 ## Overview
 
-**French Master GH** is a premium, full-stack mobile application for learning French. It features a modern React Native frontend with a Node.js/Express backend, providing a comprehensive language learning experience.
+**French Master GH** is a comprehensive, production-ready mobile application for learning French and English. Built with React Native and Expo, it features a premium iOS-style interface, advanced gamification, secure community features, and real-time communication.
 
-### Key Features
+### Key Statistics
+- **49 Screens** - Complete app navigation
+- **40 Components** - Reusable UI library
+- **24 API Routes** - RESTful backend
+- **20 Database Models** - MongoDB schemas
+- **7 Context Providers** - State management
 
-- 🎓 **Premium Course Catalog** - Extensive French courses with detailed descriptions
-- 📱 **Modern UI/UX** - Premium design with dark/light mode support
-- 🎯 **Gamification** - Achievements, streaks, and progress tracking
-- 💳 **Payment Integration** - Stripe, PayPal, and Mobile Money support
-- 📊 **Analytics Dashboard** - Track learning progress and insights
-- 👥 **Community Features** - Discussions, reviews, and social learning
-- 🔔 **Push Notifications** - Stay updated with course updates
-- 🌐 **Multi-language** - Support for English and French interfaces
-- 📚 **Blog & Resources** - Learning articles and educational content
+### Core Features
+- 🎓 Premium course catalog with video lessons
+- 🎯 Gamification (XP, streaks, achievements, leaderboards)
+- 👥 Secure study groups with real-time chat
+- 💳 Payment integration (Stripe, Mobile Money)
+- 📊 Analytics dashboard
+- 🌙 Dark/Light mode support
+- 📱 Offline capabilities
 
 ---
 
 ## Architecture
 
-### Frontend Architecture
+### System Architecture
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     FRENCH MASTER APP                        │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │              PRESENTATION LAYER                      │    │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌────────┐ │    │
+│  │  │ Screens │  │Components│  │  Utils  │  │ Assets │ │    │
+│  │  │  (49)   │  │   (40)   │  │   (9)   │  │        │ │    │
+│  │  └─────────┘  └─────────┘  └─────────┘  └────────┘ │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                            │                                 │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │               STATE MANAGEMENT                       │    │
+│  │  ┌────────┐  ┌────────┐  ┌────────┐  ┌──────────┐  │    │
+│  │  │  Auth  │  │ Theme  │  │Gamific.│  │ Wishlist │  │    │
+│  │  │Context │  │Context │  │Context │  │ Context  │  │    │
+│  │  └────────┘  └────────┘  └────────┘  └──────────┘  │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                            │                                 │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │                  SERVICES LAYER                      │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌───────────────────┐ │    │
+│  │  │ API.js   │  │ Offline  │  │    Prefetch      │ │    │
+│  │  │ (Axios)  │  │ Service  │  │    Service       │ │    │
+│  │  └──────────┘  └──────────┘  └───────────────────┘ │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                     HTTPS / WSS
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│                    BACKEND (Node.js)                         │
+├─────────────────────────────────────────────────────────────┤
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │                  EXPRESS SERVER                      │    │
+│  │  ┌──────────┐  ┌──────────┐  ┌─────────────────┐   │    │
+│  │  │  Routes  │  │Middleware│  │   Socket.io     │   │    │
+│  │  │   (24)   │  │  (Auth)  │  │  (Real-time)    │   │    │
+│  │  └──────────┘  └──────────┘  └─────────────────┘   │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                            │                                 │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │                   MONGODB                            │    │
+│  │  ┌──────────────────────────────────────────────┐   │    │
+│  │  │  Models: User, Course, Lesson, StudyGroup,   │   │    │
+│  │  │  Quiz, Progress, Payment, Blog, Discussion... │   │    │
+│  │  └──────────────────────────────────────────────┘   │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
 
+### Directory Structure
 ```
 FRENCH MASTER/
-├── App.js                    # Main navigation setup
-├── screens/                  # Screen components
-│   ├── Auth/                # Authentication screens
-│   ├── LandingScreen.js        # Welcome/landing page
-│   ├── LearnerHomeScreen.js   # Main home screen
-│   ├── LearnScreen.js         # Course discovery
-│   ├── PracticeScreen.js      # Practice exercises
-│   ├── CommunityScreen.js     # Community features
-│   ├── ProfileScreen.js       # User profile
-│   └── ...
+├── App.js                    # Main entry point
+├── app.json                  # Expo configuration
+├── package.json              # Dependencies
+├── babel.config.js           # Babel config
+│
+├── assets/                   # Static assets
+│   ├── logo.jpeg
+│   ├── icon.png
+│   ├── splash.png
+│   ├── french/              # French course images (9)
+│   ├── english/             # English course images (12)
+│   └── posts/               # Blog post images
+│
+├── screens/                  # Screen components (49)
+│   ├── Auth/
+│   │   ├── LoginScreen.js
+│   │   └── RegisterScreen.js
+│   ├── LearnerHomeScreen.js
+│   ├── LearnScreen.js
+│   ├── PracticeScreen.js
+│   ├── CommunityScreen.js
+│   ├── ProfileScreen.js
+│   └── ... (43 more)
+│
 ├── src/
-│   ├── components/           # Reusable UI components
-│   ├── context/              # React Context providers
-│   │   ├── AuthContext.js
-│   │   ├── ThemeContext.js
-│   │   ├── GamificationContext.js
-│   │   └── WishlistContext.js
-│   ├── services/            # API services
-│   │   └── api.js
-│   ├── hooks/               # Custom React hooks
-│   └── utils/               # Utility functions
-└── backend/                 # Backend API
-    ├── server.js
-    ├── models/              # Mongoose models
-    ├── routes/              # API routes
-    └── middleware/         # Auth & validation
+│   ├── components/          # UI components (40)
+│   ├── context/             # Context providers (7)
+│   ├── services/            # API services (3)
+│   ├── hooks/               # Custom hooks (2)
+│   └── utils/               # Utilities (9)
+│
+├── components/              # Legacy components
+│   └── VideoPlayer.js
+│
+└── backend/
+    ├── server.js            # Express entry point
+    ├── package.json
+    ├── .env
+    ├── config/
+    │   └── database.js      # MongoDB connection
+    ├── models/              # Mongoose models (20)
+    ├── routes/              # API routes (24)
+    ├── middleware/
+    │   └── auth.js          # JWT middleware
+    ├── utils/
+    │   └── logger.js
+    └── scripts/
+        ├── seed.js
+        └── seedBlog.js
 ```
 
-### Technology Stack
+---
 
-**Frontend:**
-- React Native 0.81.5
-- Expo SDK 54
-- React Navigation 6
-- React Context API
-- Axios for API calls
-- Expo Linear Gradient
-- React Native Reanimated
+## Technology Stack
 
-**Backend:**
-- Node.js 18+
-- Express.js
-- MongoDB with Mongoose
-- JWT Authentication
-- Stripe Payment Integration
-- Socket.io for real-time features
-- AWS S3 for file storage
+### Frontend Dependencies (package.json)
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| react | 19.1.0 | UI library |
+| react-native | 0.81.5 | Mobile framework |
+| expo | ~54.0.0 | Development platform |
+| @react-navigation/native | ^6.1.9 | Navigation |
+| @react-navigation/stack | ^6.3.20 | Stack navigator |
+| @react-navigation/bottom-tabs | ^6.5.11 | Tab navigator |
+| @react-navigation/drawer | ^6.6.6 | Drawer navigator |
+| axios | ^1.6.0 | HTTP client |
+| socket.io-client | ^4.5.4 | WebSocket client |
+| @react-native-async-storage/async-storage | 2.2.0 | Local storage |
+| @react-native-community/netinfo | 11.4.1 | Network detection |
+| expo-av | ~16.0.8 | Audio/Video |
+| expo-camera | ~17.0.10 | Camera |
+| expo-clipboard | ~8.0.8 | Clipboard |
+| expo-document-picker | ~14.0.8 | File picker |
+| expo-file-system | ~19.0.21 | File system |
+| expo-haptics | ~15.0.8 | Haptic feedback |
+| expo-image-picker | ^17.0.10 | Image picker |
+| expo-linear-gradient | ~15.0.8 | Gradients |
+| expo-media-library | ~18.2.1 | Media library |
+| expo-notifications | ~0.32.15 | Push notifications |
+| expo-secure-store | ~15.0.8 | Secure storage |
+| expo-sharing | ~14.0.8 | Sharing |
+| expo-speech | ~14.0.8 | Text-to-speech |
+| react-native-gesture-handler | ~2.28.0 | Gestures |
+| react-native-reanimated | ~4.1.1 | Animations |
+| react-native-svg | 15.12.1 | SVG support |
+| react-native-webview | 13.15.0 | WebView |
+| react-hook-form | ^7.48.2 | Form handling |
+| yup | ^1.3.3 | Validation |
+
+### Backend Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| express | ^4.x | Web framework |
+| mongoose | ^8.x | MongoDB ODM |
+| bcryptjs | - | Password hashing |
+| jsonwebtoken | - | JWT auth |
+| cors | - | CORS handling |
+| dotenv | - | Environment vars |
+| multer | - | File uploads |
+| cloudinary | - | Cloud storage |
+| stripe | - | Payments |
+| socket.io | - | Real-time |
+| nodemon | - | Dev server |
 
 ---
 
 ## Setup Guide
 
 ### Prerequisites
-
 - Node.js 18+ and npm
 - MongoDB (local or Atlas)
-- Expo CLI (`npm install -g expo-cli`)
-- iOS Simulator / Android Emulator / Physical device
+- Expo Go app on device
 - Git
 
-### Frontend Setup
+### 1. Clone & Install
 
-1. **Clone the repository**
 ```bash
-git clone <repository-url>
+# Clone repository
+git clone https://github.com/yourusername/french-master-gh.git
 cd "FRENCH MASTER"
-```
 
-2. **Install dependencies**
-```bash
+# Install frontend dependencies
 npm install
+
+# Install backend dependencies
+cd backend && npm install && cd ..
 ```
 
-3. **Configure API endpoint**
-Edit `src/services/api.js`:
-```javascript
-const API_URL = __DEV__ 
-  ? 'http://localhost:5000/api' 
-  : 'https://your-api-url.com/api';
-```
+### 2. Configure Environment
 
-4. **Start development server**
-```bash
-npm start
-# Or
-expo start
-```
-
-5. **Run on device**
-```bash
-# iOS
-npm run ios
-
-# Android
-npm run android
-```
-
-### Backend Setup
-
-1. **Navigate to backend directory**
-```bash
-cd backend
-```
-
-2. **Install dependencies**
-```bash
-npm install
-```
-
-3. **Create environment file**
-```bash
-cp .env.example .env
-```
-
-4. **Configure environment variables**
-Edit `.env`:
+Create `backend/.env`:
 ```env
 NODE_ENV=development
-PORT=5000
+PORT=5001
 MONGODB_URI=mongodb://localhost:27017/frenchmaster
-# Or MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/frenchmaster
+JWT_SECRET=your-super-secret-jwt-key
+JWT_EXPIRE=30d
 
-JWT_SECRET=your-super-secret-jwt-key-change-this
-JWT_EXPIRE=7d
-JWT_REFRESH_SECRET=your-refresh-token-secret
-JWT_REFRESH_EXPIRE=30d
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 
-# Stripe (optional)
+# Stripe
 STRIPE_SECRET_KEY=sk_test_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
-
-# AWS S3 (optional)
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-AWS_REGION=us-east-1
-AWS_BUCKET_NAME=french-master-uploads
-
-# Email (optional)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-password
 ```
 
-5. **Start MongoDB**
+### 3. Configure API URL
+
+Get your local IP address:
 ```bash
-# If using local MongoDB
+# Windows
+ipconfig | findstr IPv4
+
+# Mac/Linux
+ifconfig | grep inet
+```
+
+Update `src/services/api.js`:
+```javascript
+const API_URL = 'http://YOUR_IP:5001/api';
+```
+
+### 4. Start Application
+
+```bash
+# Terminal 1: Start MongoDB (if local)
 mongod
 
-# Or use MongoDB Atlas (cloud)
+# Terminal 2: Start Backend
+cd backend && npm run dev
+
+# Terminal 3: Start Frontend
+npx expo start --clear
 ```
 
-6. **Seed database (optional)**
+### 5. Seed Data (Optional)
+
 ```bash
-npm run seed        # Seed courses
-npm run seed:blog    # Seed blog posts
+cd backend
+node scripts/seed.js      # Seed courses
+node scripts/seedBlog.js  # Seed blog posts
 ```
-
-7. **Start backend server**
-```bash
-# Development mode (with auto-reload)
-npm run dev
-
-# Production mode
-npm start
-```
-
-### Verify Setup
-
-1. **Backend is running**: Visit `http://localhost:5000/api/health` (if implemented)
-2. **Frontend connects**: Check Expo DevTools for API connection
-3. **Database connected**: Check backend console for MongoDB connection message
 
 ---
 
 ## API Documentation
 
 ### Base URL
-```
-Development: http://localhost:5000/api
-Production: https://api.frenchmastergh.com/api
-```
+- **Development:** `http://localhost:5001/api`
+- **Production:** `https://api.frenchmastergh.com/api`
 
-### Authentication
-
-All protected routes require a JWT token in the Authorization header:
+### Authentication Header
 ```
 Authorization: Bearer <token>
 ```
 
-### Endpoints
+---
 
-#### Authentication
+### Authentication Routes (`/api/auth`)
 
-**POST** `/api/auth/register`
-- Register a new user
-- Body: `{ name, email, password, phone? }`
-- Returns: `{ success, token, refreshToken, user }`
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/register` | Register user | No |
+| POST | `/login` | Login user | No |
+| GET | `/me` | Get current user | Yes |
+| POST | `/refresh` | Refresh token | No |
+| POST | `/forgot-password` | Password reset | No |
 
-**POST** `/api/auth/login`
-- Login user
-- Body: `{ email, password }`
-- Returns: `{ success, token, refreshToken, user }`
+**Register Request:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "phone": "+233201234567"
+}
+```
 
-**GET** `/api/auth/me`
-- Get current user (Protected)
-- Returns: `{ success, user }`
-
-**POST** `/api/auth/refresh`
-- Refresh access token
-- Body: `{ refreshToken }`
-- Returns: `{ success, token }`
-
-#### Courses
-
-**GET** `/api/courses`
-- Get all courses with filters
-- Query params: `?category=`, `?level=`, `?search=`, `?page=`, `?limit=`
-- Returns: `{ success, data: [courses], pagination }`
-
-**GET** `/api/courses/:id`
-- Get course details
-- Returns: `{ success, data: course }`
-
-**GET** `/api/courses/featured/list`
-- Get featured courses
-- Returns: `{ success, data: [courses] }`
-
-#### Lessons
-
-**GET** `/api/lessons/course/:courseId`
-- Get all lessons for a course
-- Returns: `{ success, data: [lessons] }`
-
-**GET** `/api/lessons/:id`
-- Get lesson details
-- Returns: `{ success, data: lesson }`
-
-**POST** `/api/lessons/:id/progress`
-- Update lesson progress (Protected)
-- Body: `{ completed: boolean, progress: number }`
-- Returns: `{ success, data: progress }`
-
-#### Payments
-
-**POST** `/api/payments/create-intent`
-- Create payment intent (Protected)
-- Body: `{ courseId, paymentMethod }`
-- Returns: `{ success, clientSecret, paymentIntentId }`
-
-**POST** `/api/payments/confirm`
-- Confirm payment and enroll (Protected)
-- Body: `{ paymentId, transactionId }`
-- Returns: `{ success, message, payment }`
-
-**GET** `/api/payments/history`
-- Get payment history (Protected)
-- Returns: `{ success, data: [payments] }`
-
-#### Progress
-
-**GET** `/api/progress/course/:courseId`
-- Get course progress (Protected)
-- Returns: `{ success, data: progress }`
-
-**GET** `/api/progress/dashboard`
-- Get dashboard stats (Protected)
-- Returns: `{ success, data: { stats, courses, achievements } }`
-
-#### Reviews
-
-**GET** `/api/reviews/course/:courseId`
-- Get course reviews
-- Returns: `{ success, data: [reviews] }`
-
-**POST** `/api/reviews`
-- Create review (Protected)
-- Body: `{ courseId, rating, comment }`
-- Returns: `{ success, data: review }`
-
-#### Blog
-
-**GET** `/api/blog`
-- Get all blog posts
-- Query params: `?category=`, `?page=`, `?limit=`
-- Returns: `{ success, data: [posts], pagination }`
-
-**GET** `/api/blog/:id`
-- Get blog post details
-- Returns: `{ success, data: post }`
-
-#### Wishlist
-
-**GET** `/api/wishlist`
-- Get user wishlist (Protected)
-- Returns: `{ success, data: [courses] }`
-
-**POST** `/api/wishlist/:courseId`
-- Add to wishlist (Protected)
-- Returns: `{ success, message }`
-
-**DELETE** `/api/wishlist/:courseId`
-- Remove from wishlist (Protected)
-- Returns: `{ success, message }`
-
-#### Admin Student Management
-
-**GET** `/api/admin/students`
-- Get all students (Protected - Admin Only)
-- Query params: `?page=`, `?limit=`, `?search=`
-- Returns: `{ success, data: [students], pagination }`
-
-**GET** `/api/admin/students/:id`
-- Get student by ID (Protected - Admin Only)
-- Returns: `{ success, data: student }`
-
-**PUT** `/api/admin/students/:id`
-- Update student (Protected - Admin Only)
-- Body: `{ name?, email?, phone?, role? }`
-- Returns: `{ success, data: student, message }`
-
-**DELETE** `/api/admin/students/:id`
-- Delete student (Protected - Admin Only)
-- Returns: `{ success, message }`
-
-#### Instructor Students
-
-**GET** `/api/users/instructor/students`
-- Get students enrolled in instructor's courses (Protected - Instructor/Admin)
-- Query params: `?page=`, `?limit=`, `?search=`, `?courseId=`
-- Returns: `{ success, data: [students], pagination }`
-
-**GET** `/api/users/instructor/students/:id`
-- Get student details (Protected - Instructor/Admin)
-- Returns: `{ success, data: student }`
-- Note: Only returns if student is enrolled in instructor's courses
+**Login Response:**
+```json
+{
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
+  "user": {
+    "_id": "...",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "student"
+  }
+}
+```
 
 ---
 
-## Components
+### Courses Routes (`/api/courses`)
 
-### Core Components
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | Get all courses | No |
+| GET | `/:id` | Get course details | No |
+| GET | `/featured/list` | Get featured courses | No |
+| POST | `/` | Create course | Yes (Instructor) |
+| PUT | `/:id` | Update course | Yes (Instructor) |
+| DELETE | `/:id` | Delete course | Yes (Instructor) |
 
-#### `TabBarIcon`
-Custom tab bar icon component with avatar support for Profile tab.
-
-**Props:**
-- `focused`: boolean
-- `route`: string (route name)
-- `color`: string
-- `inactiveColor`: string
-
-#### `CourseCard`
-Premium course card component with ratings, badges, and pricing.
-
-**Props:**
-- `course`: object (course data)
-- `onPress`: function
-- `style`: object
-- `isHorizontal`: boolean
-
-#### `FeaturedCourseCard`
-Enhanced course card for featured courses with gradient overlays.
-
-**Props:**
-- `course`: object
-- `onPress`: function
-- `index`: number
-
-#### `Rating`
-Star rating component.
-
-**Props:**
-- `rating`: number (0-5)
-- `size`: number
-- `showRating`: boolean
-
-#### `PremiumButton`
-Premium styled button with gradient support.
-
-**Props:**
-- `title`: string
-- `onPress`: function
-- `variant`: 'primary' | 'secondary' | 'outline'
-- `loading`: boolean
-
-#### `LoadingSpinner`
-Loading indicator component.
-
-**Props:**
-- `message`: string
-
-#### `ErrorMessage`
-Error display component with retry option.
-
-**Props:**
-- `message`: string
-- `onRetry`: function
-
-### Context Providers
-
-#### `AuthContext`
-Manages user authentication state.
-
-**Methods:**
-- `login(email, password)`
-- `register(name, email, password, phone)`
-- `logout()`
-- `updateUser(data)`
-- `refreshToken()`
-
-**State:**
-- `user`: object | null
-- `isAuthenticated`: boolean
-- `loading`: boolean
-
-#### `ThemeContext`
-Manages theme (light/dark mode).
-
-**Methods:**
-- `toggleTheme()`
-
-**State:**
-- `isDarkMode`: boolean
-- `colors`: object (theme colors)
-- `theme`: object
-
-#### `GamificationContext`
-Manages gamification features (achievements, streaks, points).
-
-**State:**
-- `points`: number
-- `streak`: number
-- `achievements`: array
-- `level`: number
-
-#### `WishlistContext`
-Manages user wishlist.
-
-**Methods:**
-- `addToWishlist(courseId)`
-- `removeFromWishlist(courseId)`
-- `isInWishlist(courseId)`: boolean
-
-**State:**
-- `wishlist`: array
-
-#### `StudentContext`
-Manages admin student management (admin only).
-
-**Methods:**
-- `loadStudents(params)`: Load students with pagination
-- `getStudentById(studentId)`: Get student details
-- `updateStudent(studentId, data)`: Update student information
-- `deleteStudent(studentId)`: Delete student account
-
-**State:**
-- `students`: array
-- `loading`: boolean
-- `pagination`: object
-
-**Notes:**
-- Only available to users with `admin` role
-- Auto-refreshes after updates/deletions
-- Silently handles authentication errors
-
-#### `InstructorStudentContext`
-Manages instructor student viewing (instructor/admin only).
-
-**Methods:**
-- `loadStudents(params)`: Load students enrolled in instructor's courses
-- `getStudentById(studentId)`: Get student details
-
-**State:**
-- `students`: array
-- `loading`: boolean
-- `pagination`: object
-
-**Notes:**
-- Available to users with `instructor` or `admin` role
-- Only shows students enrolled in instructor's courses
-- Read-only access for instructors
+**Query Parameters:**
+- `?category=french` - Filter by category
+- `?level=beginner` - Filter by level
+- `?search=basics` - Search courses
+- `?page=1&limit=10` - Pagination
+- `?sort=rating` - Sort by field
 
 ---
 
-## Screens
+### Lessons Routes (`/api/lessons`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/course/:courseId` | Get course lessons | No |
+| GET | `/:id` | Get lesson details | Yes |
+| POST | `/:id/progress` | Update progress | Yes |
+| POST | `/` | Create lesson | Yes (Instructor) |
+
+---
+
+### Study Groups Routes (`/api/study-groups`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | Get all groups | No |
+| GET | `/:id` | Get group details | No |
+| POST | `/` | Create group | Yes |
+| POST | `/:id/join` | Join group | Yes |
+| POST | `/:id/leave` | Leave group | Yes |
+| GET | `/:id/messages` | Get messages | Yes (Member) |
+| POST | `/:id/messages` | Send message | Yes (Member) |
+| POST | `/:id/messages/:msgId/react` | React to message | Yes (Member) |
+
+---
+
+### Payments Routes (`/api/payments`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/create-intent` | Create payment intent | Yes |
+| POST | `/confirm` | Confirm payment | Yes |
+| GET | `/history` | Get payment history | Yes |
+
+---
+
+### Progress Routes (`/api/progress`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/course/:courseId` | Get course progress | Yes |
+| GET | `/dashboard` | Get dashboard stats | Yes |
+| POST | `/update` | Update progress | Yes |
+
+---
+
+### Reviews Routes (`/api/reviews`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/course/:courseId` | Get course reviews | No |
+| POST | `/` | Create review | Yes |
+| PUT | `/:id` | Update review | Yes |
+| DELETE | `/:id` | Delete review | Yes |
+
+---
+
+### Blog Routes (`/api/blog`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | Get all posts | No |
+| GET | `/:id` | Get post details | No |
+| POST | `/` | Create post | Yes (Admin) |
+
+---
+
+### Wishlist Routes (`/api/wishlist`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | Get wishlist | Yes |
+| POST | `/:courseId` | Add to wishlist | Yes |
+| DELETE | `/:courseId` | Remove from wishlist | Yes |
+
+---
+
+### Quizzes Routes (`/api/quizzes`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/lesson/:lessonId` | Get lesson quizzes | Yes |
+| POST | `/submit` | Submit quiz answers | Yes |
+| GET | `/attempts` | Get user attempts | Yes |
+
+---
+
+### Leaderboard Routes (`/api/leaderboard`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | Get leaderboard | No |
+| GET | `/weekly` | Get weekly rankings | No |
+| GET | `/monthly` | Get monthly rankings | No |
+
+---
+
+### Discussions Routes (`/api/discussions`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | Get discussions | No |
+| GET | `/:id` | Get discussion | No |
+| POST | `/` | Create discussion | Yes |
+| POST | `/:id/reply` | Reply to discussion | Yes |
+
+---
+
+### Questions Routes (`/api/questions`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | Get Q&A questions | No |
+| GET | `/:id` | Get question | No |
+| POST | `/` | Ask question | Yes |
+| POST | `/:id/answer` | Answer question | Yes |
+| POST | `/:id/vote` | Vote on question | Yes |
+
+---
+
+### Notifications Routes (`/api/notifications`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | Get notifications | Yes |
+| PUT | `/:id/read` | Mark as read | Yes |
+| PUT | `/read-all` | Mark all as read | Yes |
+| DELETE | `/:id` | Delete notification | Yes |
+
+---
+
+### Users Routes (`/api/users`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/profile` | Get profile | Yes |
+| PUT | `/profile` | Update profile | Yes |
+| GET | `/my-courses` | Get enrolled courses | Yes |
+| PUT | `/avatar` | Update avatar | Yes |
+
+---
+
+### Subscriptions Routes (`/api/subscriptions`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/plans` | Get subscription plans | No |
+| POST | `/subscribe` | Subscribe to plan | Yes |
+| GET | `/my-subscription` | Get subscription | Yes |
+| POST | `/cancel` | Cancel subscription | Yes |
+
+---
+
+### Admin Routes (`/api/admin`)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/students` | Get all students | Yes (Admin) |
+| GET | `/students/:id` | Get student | Yes (Admin) |
+| PUT | `/students/:id` | Update student | Yes (Admin) |
+| DELETE | `/students/:id` | Delete student | Yes (Admin) |
+| GET | `/analytics` | Get analytics | Yes (Admin) |
+
+---
+
+## Screens Reference
 
 ### Authentication Screens
 
-#### `LandingScreen`
-Welcome screen with app introduction, stats, features, and call-to-action buttons.
+#### LoginScreen (`screens/Auth/LoginScreen.js`)
+Premium login screen with social authentication options.
 
 **Features:**
-- Premium gradient background
-- App statistics
-- Feature cards
-- Login/Register buttons
-
-#### `LoginScreen`
-User login screen with email/password and social login options.
-
-**Features:**
-- Premium form design
-- Focus states
-- Password visibility toggle
+- Email/password login
 - Social login (Google, Facebook)
+- Password visibility toggle
+- Remember me option
 - Forgot password link
+- Register redirect
 
-#### `RegisterScreen`
-User registration screen.
+#### RegisterScreen (`screens/Auth/RegisterScreen.js`)
+User registration with validation.
 
 **Features:**
-- Multi-field form
+- Name, email, phone fields
 - Password confirmation
-- Validation
+- Terms acceptance
+- Validation feedback
 - Premium styling
 
-### Main Screens
+---
 
-#### `LearnerHomeScreen`
-Main home screen with categories, courses, and blog posts.
+### Main Navigation Screens
+
+#### LandingScreen
+Welcome/onboarding screen shown on first app launch.
 
 **Features:**
-- Premium header with gradient
-- Search bar
-- Category filters
-- Top courses section
+- App branding
+- Feature highlights
+- Statistics display
+- Get Started / Login buttons
+- Premium gradient background
+
+#### LearnerHomeScreen
+Main dashboard after login.
+
+**Features:**
+- User greeting with avatar
+- Learning stats (XP, streak, level)
+- Daily goal progress
+- Featured courses carousel
+- Quick actions
 - Recent blog posts
 - Theme toggle
-- Notifications
 
-#### `LearnScreen`
-Course discovery and learning hub.
+#### LearnScreen
+Course discovery and catalog.
 
 **Features:**
-- Learning statistics dashboard
-- Quick actions
+- Search bar with autocomplete
 - Category filters
-- Featured courses
-- All courses with search
-- Premium card designs
+- Featured courses section
+- All courses grid
+- Filter modal (level, price, rating)
+- Pull to refresh
 
-#### `PracticeScreen`
-Practice and exercise hub.
+#### PracticeScreen
+Training center hub.
 
 **Features:**
 - Practice statistics
-- Interactive flashcards (3D flip)
-- Practice modes grid
-- Daily challenges
-- Quick practice sessions
+- Daily challenge card
+- Practice modes grid:
+  - Quick Quiz
+  - Grammar Drills
+  - Speaking Practice
+  - Listening Practice
+  - Writing Practice
+  - Flashcards
 - Recent achievements
+- Word of the Day preview
 
-#### `CommunityScreen`
-Community and social features.
+#### CommunityScreen
+Community hub for social features.
 
 **Features:**
 - Community statistics
-- Category filters
-- Trending topics
-- Recent discussions
-- Community features grid
+- Study Groups section
+- Discussions section
+- Q&A Forum section
+- Blog/Articles section
+- Progress sharing
+- Quick actions
 
-#### `ProfileScreen`
+#### ProfileScreen
 User profile and settings.
 
 **Features:**
-- Premium avatar with edit
+- Avatar with edit option
+- XP and level display
 - Statistics dashboard
-- Progress visualization
-- Quick actions
+- Progress charts
 - Account settings
-- Dark mode toggle
-- More options
+- Preferences (dark mode, notifications)
+- Logout option
+
+---
 
 ### Course Screens
 
-#### `CoursesScreen`
-Course catalog with filters and search.
+#### CoursesScreen
+Full course catalog with advanced filtering.
 
 **Features:**
-- Premium header
-- Search bar
-- Filter button with badge
-- View mode toggle (list/grid)
+- Search with real-time results
+- Category filter chips
+- View toggle (grid/list)
 - Advanced filters panel
-- Premium course cards
+- Sort options
+- Course cards with ratings
 
-#### `CourseDetailScreen`
+#### CourseDetailScreen
 Detailed course information page.
 
 **Features:**
-- Premium video/image header
-- Enhanced description
+- Course preview image/video
+- Title, instructor, rating
+- Price display (GHS)
+- Description (expandable)
 - What you'll learn section
-- Course highlights
-- Requirements
-- Course curriculum (expandable)
-- Instructor section
+- Curriculum outline
+- Instructor bio
 - Reviews section
-- Premium enrollment button
+- Enroll/Buy button
+- Add to wishlist
 
-#### `MyCoursesScreen`
+#### CoursePaymentScreen
+Payment flow for course purchase.
+
+**Features:**
+- Order summary
+- Payment method selection
+- Mobile Money integration
+- Card payment (Stripe)
+- Promo code input
+- Payment confirmation
+
+#### MyCoursesScreen
 User's enrolled courses.
 
 **Features:**
-- Course list
-- Progress tracking
+- Course list with progress
 - Continue learning buttons
+- Completion status
+- Certificate download
+- Empty state for new users
 
-#### `LessonScreen`
+#### LessonScreen
 Individual lesson player.
 
 **Features:**
-- Video player
-- Lesson content
+- Video player with controls
+- Lesson content (text, images)
+- Resources download
 - Progress tracking
-- Navigation between lessons
+- Next/Previous navigation
+- Mark as complete
 
-### Other Screens
-
-#### `BlogListScreen`
-Blog posts listing.
+#### ResourcesScreen
+Learning resources and downloads.
 
 **Features:**
-- Blog post cards
+- PDF documents
+- Audio files
+- Downloadable materials
+- Category organization
+
+---
+
+### Practice Screens
+
+#### FreeQuizScreen
+Interactive quiz with multiple categories.
+
+**Features:**
+- 8 quiz categories
+- 48+ questions
+- Multiple choice format
+- Instant feedback
+- Explanations for answers
+- Score tracking
+- XP rewards
+
+#### FlashcardsScreen
+Vocabulary flashcard system.
+
+**Features:**
+- 8 vocabulary decks
+- 3D flip animation
+- Spaced repetition
+- Know/Don't know tracking
+- Progress per deck
+- Pronunciation (TTS)
+
+#### GrammarDrillsScreen
+Grammar exercises.
+
+**Features:**
+- 8 grammar topics
+- Fill-in-blank exercises
+- Multiple choice
+- Hint system
+- Detailed explanations
+- Progress tracking
+
+#### SpeakingPracticeScreen
+Speaking and pronunciation practice.
+
+**Features:**
+- 8 real-life scenarios
+- Phonetic guides
+- Audio playback
+- Recording (simulated)
+- Pronunciation tips
+
+#### ListeningPracticeScreen
+Listening comprehension exercises.
+
+**Features:**
+- 8 audio categories
+- Audio playback controls
+- Comprehension questions
+- Speed adjustment
+- Transcript toggle
+
+#### WritingPracticeScreen
+Writing exercises.
+
+**Features:**
+- Writing prompts
+- Text input area
+- Word count
+- Grammar suggestions
+- Submit for review
+
+#### WordOfTheDayScreen
+Daily vocabulary feature.
+
+**Features:**
+- Featured word
+- Pronunciation (audio)
+- Phonetic spelling
+- Definition
+- Example sentences
+- Related words
+- Daily streak tracking
+
+---
+
+### Community Screens
+
+#### StudyGroupsScreen
+Study groups listing.
+
+**Features:**
+- Group cards with member count
 - Category filters
-- Search functionality
+- Search groups
+- Create group button
+- Join group action
 
-#### `BlogDetailScreen`
-Individual blog post view.
-
-**Features:**
-- Full article content
-- Related posts
-- Share functionality
-
-#### `WishlistScreen`
-User's wishlist.
+#### StudyGroupDetailScreen
+Group chat and details (6500+ lines).
 
 **Features:**
-- Wishlist courses
-- Remove functionality
+- Group header with info
+- Member list
+- Real-time chat (iMessage-style)
+- Message reactions (double-tap)
+- Voice messages
+- Image/document sharing
+- Voice/Video calls (FaceTime-style)
+- Group settings (for admin)
+- Member management
+- Leave group option
 
-#### `NotificationsScreen`
+#### CreateStudyGroupScreen
+Create new study group.
+
+**Features:**
+- Group name input
+- Description
+- Category selection
+- Privacy settings
+- Cover image upload
+- Create button
+
+#### DiscussionsScreen
+Community discussions.
+
+**Features:**
+- Discussion list
+- Category filters
+- Sort options
+- Create discussion button
+- Search discussions
+
+#### DiscussionDetailScreen
+Discussion thread.
+
+**Features:**
+- Original post
+- Replies thread
+- Like/reaction
+- Reply input
+- Share option
+
+#### CreateDiscussionScreen
+Create new discussion.
+
+**Features:**
+- Title input
+- Content editor
+- Category selection
+- Tag selection
+- Post button
+
+#### QandAForumScreen
+Question and answer forum.
+
+**Features:**
+- Questions list
+- Category filters
+- Sort by votes/recent
+- Ask question button
+- Search questions
+
+#### QuestionDetailScreen
+Question and answers thread.
+
+**Features:**
+- Question display
+- Answers list
+- Vote up/down
+- Accept answer (author)
+- Add answer input
+
+#### CreateQuestionScreen
+Ask a new question.
+
+**Features:**
+- Title input
+- Question body
+- Category selection
+- Tags
+- Submit button
+
+#### ShareProgressScreen
+Share learning progress.
+
+**Features:**
+- Progress visualization
+- Achievement cards
+- Share to social
+- Custom message
+
+---
+
+### Profile & Settings Screens
+
+#### AchievementsScreen
+User achievements and badges.
+
+**Features:**
+- Badge grid
+- Achievement progress
+- Unlock conditions
+- Statistics
+
+#### LeaderboardScreen
+Global rankings with premium design.
+
+**Features:**
+- Podium display (top 3)
+- Rankings list
+- Weekly/Monthly tabs
+- User's rank highlight
+- XP points display
+
+#### NotificationsScreen
 User notifications.
 
 **Features:**
 - Notification list
 - Mark as read
-- Filter options
+- Filter by type
+- Delete option
 
-#### `AchievementsScreen`
-User achievements and badges.
+#### WishlistScreen
+Saved courses.
 
 **Features:**
-- Achievement badges
-- Progress tracking
-- Statistics
+- Wishlist courses
+- Remove button
+- Enroll action
+- Empty state
+
+---
+
+### Content Screens
+
+#### BlogListScreen
+Learning articles.
+
+**Features:**
+- Article cards
+- Category filters
+- Featured articles
+- Search
+
+#### BlogDetailScreen
+Article reader.
+
+**Features:**
+- Article content
+- Author info
+- Read time
+- Text-to-speech option
+- Related articles
+- Share button
+
+#### BrowseTopicsScreen
+Topic browser.
+
+**Features:**
+- Topic categories
+- Topic cards
+- Subtopics
+- Course suggestions
+
+#### ContactScreen
+Contact form.
+
+**Features:**
+- Name input
+- Email input
+- Subject
+- Message
+- Submit button
+
+---
+
+### Instructor Screens
+
+#### TeachersScreen
+Teacher profiles.
+
+**Features:**
+- Teacher list
+- Specializations
+- Course count
+- Rating
+
+#### StudentManagementScreen
+Manage enrolled students.
+
+**Features:**
+- Student list
+- Search students
+- Progress view
+- Send message
+
+#### AnalyticsDashboardScreen
+Analytics and insights.
+
+**Features:**
+- Revenue charts
+- Enrollment stats
+- Course performance
+- Student engagement
+
+#### ManageSampleVideosScreen
+Sample video management.
+
+**Features:**
+- Video list
+- Upload new
+- Edit/Delete
+- Preview
+
+#### AdvancedVideoHostingScreen
+Video hosting features.
+
+**Features:**
+- Video library
+- Upload management
+- Quality settings
+- Analytics
+
+#### TeacherSubscriptionPaymentScreen
+Instructor subscription.
+
+**Features:**
+- Plan options
+- Payment flow
+- Billing history
+
+---
+
+## Components Library
+
+### Core UI Components
+
+#### `CustomTabBar`
+iOS-style bottom tab navigation.
+
+```javascript
+<CustomTabBar
+  state={state}
+  descriptors={descriptors}
+  navigation={navigation}
+/>
+```
+
+#### `PremiumButton`
+Gradient-styled button.
+
+```javascript
+<PremiumButton
+  title="Get Started"
+  onPress={handlePress}
+  variant="primary" // primary, secondary, outline
+  loading={false}
+  disabled={false}
+  icon="arrow-right"
+/>
+```
+
+#### `PremiumCard`
+Premium card container.
+
+```javascript
+<PremiumCard
+  style={customStyle}
+  onPress={handlePress}
+  shadow="md" // sm, md, lg
+>
+  {children}
+</PremiumCard>
+```
+
+#### `LoadingSpinner`
+Loading indicator.
+
+```javascript
+<LoadingSpinner
+  message="Loading courses..."
+  size="large" // small, large
+/>
+```
+
+#### `ErrorMessage`
+Error display with retry.
+
+```javascript
+<ErrorMessage
+  message="Failed to load data"
+  onRetry={handleRetry}
+/>
+```
+
+#### `Rating`
+Star rating display.
+
+```javascript
+<Rating
+  rating={4.5}
+  size={16}
+  showRating={true}
+  count={120}
+/>
+```
+
+---
+
+### Course Components
+
+#### `CourseCard`
+Standard course card.
+
+```javascript
+<CourseCard
+  course={courseData}
+  onPress={() => navigate('CourseDetail', { id })}
+  isHorizontal={false}
+/>
+```
+
+#### `FeaturedCourseCard`
+Featured course with gradient.
+
+```javascript
+<FeaturedCourseCard
+  course={courseData}
+  onPress={handlePress}
+  index={0}
+/>
+```
+
+#### `HorizontalCourseCard`
+Horizontal layout card.
+
+```javascript
+<HorizontalCourseCard
+  course={courseData}
+  onPress={handlePress}
+/>
+```
+
+---
+
+### Gamification Components
+
+#### `GamificationSystem`
+XP and level display.
+
+```javascript
+<GamificationSystem
+  xp={1250}
+  level={5}
+  streak={7}
+  showDetails={true}
+/>
+```
+
+#### `AchievementBadge`
+Achievement display.
+
+```javascript
+<AchievementBadge
+  achievement={{
+    title: "First Course",
+    icon: "trophy",
+    unlocked: true
+  }}
+  size="large"
+/>
+```
+
+#### `LearningStreak`
+Streak tracker.
+
+```javascript
+<LearningStreak
+  currentStreak={7}
+  longestStreak={14}
+/>
+```
+
+---
+
+### Premium Components
+
+#### `PremiumBadge`
+Premium indicator badge.
+
+```javascript
+<PremiumBadge
+  type="pro" // pro, featured, new
+/>
+```
+
+#### `PremiumProgressBar`
+Animated progress bar.
+
+```javascript
+<PremiumProgressBar
+  progress={0.75}
+  color="#6366F1"
+  height={8}
+/>
+```
+
+#### `PremiumStatsCard`
+Statistics card.
+
+```javascript
+<PremiumStatsCard
+  title="Courses Completed"
+  value={12}
+  icon="book"
+  trend="+3 this week"
+/>
+```
+
+---
+
+### Utility Components
+
+#### `SearchBar`
+Search input.
+
+```javascript
+<SearchBar
+  value={searchText}
+  onChangeText={setSearchText}
+  placeholder="Search courses..."
+  onSubmit={handleSearch}
+/>
+```
+
+#### `NetworkStatus`
+Connection status banner.
+
+```javascript
+<NetworkStatus />
+```
+
+#### `ToastNotification`
+Toast messages.
+
+```javascript
+<ToastNotification
+  message="Course enrolled successfully!"
+  type="success" // success, error, info
+  visible={showToast}
+  onHide={() => setShowToast(false)}
+/>
+```
+
+---
+
+## Context Providers
+
+### AuthContext
+Manages authentication state.
+
+```javascript
+const { user, isAuthenticated, login, logout, register } = useAuth();
+```
+
+**State:**
+- `user` - Current user object
+- `isAuthenticated` - Boolean
+- `loading` - Loading state
+
+**Methods:**
+- `login(email, password)` - Login user
+- `register(data)` - Register user
+- `logout()` - Logout user
+- `updateUser(data)` - Update profile
+
+---
+
+### ThemeContext
+Manages app theme.
+
+```javascript
+const { isDarkMode, toggleTheme, colors } = useTheme();
+```
+
+**State:**
+- `isDarkMode` - Boolean
+- `colors` - Theme colors object
+
+**Methods:**
+- `toggleTheme()` - Toggle dark/light mode
+
+---
+
+### GamificationContext
+Manages XP, streaks, achievements.
+
+```javascript
+const { xp, level, streak, achievements } = useGamification();
+```
+
+**State:**
+- `xp` - Experience points
+- `level` - Current level
+- `streak` - Day streak
+- `achievements` - Unlocked achievements
+
+---
+
+### WishlistContext
+Manages course wishlist.
+
+```javascript
+const { wishlist, addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+```
+
+---
+
+## Services
+
+### API Service (`src/services/api.js`)
+
+```javascript
+import api from '../services/api';
+
+// GET request
+const courses = await api.get('/courses');
+
+// POST request
+const response = await api.post('/auth/login', { email, password });
+
+// With auth token
+api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+```
+
+### Offline Service (`src/services/offlineService.js`)
+
+```javascript
+import offlineService from '../services/offlineService';
+
+// Initialize cache
+await offlineService.initializeCache();
+
+// Get from cache
+const data = await offlineService.getFromCache('courses', 3600000);
+
+// Save to cache
+await offlineService.saveToCache('courses', coursesData);
+
+// Clear cache
+await offlineService.clearCache();
+```
+
+### Prefetch Service (`src/services/prefetchService.js`)
+
+```javascript
+import prefetchService from '../services/prefetchService';
+
+// Prefetch critical data during splash
+await prefetchService.prefetchCriticalData();
+
+// Warm up cache
+prefetchService.warmUpCache();
+```
+
+---
+
+## Utilities
+
+### helpers.js
+```javascript
+formatCurrency(100) // "GH₵ 100.00"
+formatDuration(3600) // "1h 0m"
+formatDate(date) // "Jan 1, 2025"
+getInitials("John Doe") // "JD"
+truncateText(text, 50) // "Text..."
+validateEmail(email) // true/false
+validatePhone(phone) // true/false
+```
+
+### responsive.js
+```javascript
+import { scale, verticalScale, moderateScale, fontSizes } from './responsive';
+
+const styles = StyleSheet.create({
+  container: {
+    padding: scale(16),
+    marginTop: verticalScale(20),
+  },
+  text: {
+    fontSize: fontSizes.md,
+  }
+});
+```
+
+### premiumDesign.js
+```javascript
+import { premiumColors, premiumShadows, borderRadius, spacing } from './premiumDesign';
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: premiumColors.neutral[50],
+    borderRadius: borderRadius.lg,
+    ...premiumShadows.md,
+    padding: spacing.lg,
+  }
+});
+```
+
+---
+
+## Database Models
+
+### User
+```javascript
+{
+  name: String,
+  email: String (unique),
+  password: String (hashed),
+  phone: String,
+  avatar: String,
+  role: 'student' | 'instructor' | 'admin',
+  xp: Number,
+  level: Number,
+  streak: Number,
+  enrolledCourses: [ObjectId],
+  achievements: [String],
+  createdAt: Date
+}
+```
+
+### Course
+```javascript
+{
+  title: String,
+  description: String,
+  instructor: ObjectId (ref: User),
+  category: String,
+  level: 'beginner' | 'intermediate' | 'advanced',
+  language: String,
+  price: Number,
+  currency: 'GHS',
+  thumbnail: String,
+  previewVideo: String,
+  rating: Number,
+  reviewCount: Number,
+  enrollmentCount: Number,
+  lessons: [ObjectId],
+  isFeatured: Boolean,
+  isPublished: Boolean,
+  createdAt: Date
+}
+```
+
+### Lesson
+```javascript
+{
+  title: String,
+  description: String,
+  course: ObjectId (ref: Course),
+  videoUrl: String,
+  duration: Number,
+  order: Number,
+  resources: [{ name, url, type }],
+  quiz: ObjectId (ref: Quiz),
+  isPreview: Boolean
+}
+```
+
+### StudyGroup
+```javascript
+{
+  name: String,
+  description: String,
+  creator: ObjectId (ref: User),
+  category: String,
+  coverImage: String,
+  members: [ObjectId],
+  isPrivate: Boolean,
+  messages: [{
+    user: ObjectId,
+    text: String,
+    type: 'text' | 'image' | 'voice',
+    mediaUrl: String,
+    reactions: [{ user, emoji }],
+    createdAt: Date
+  }],
+  createdAt: Date
+}
+```
+
+### Quiz
+```javascript
+{
+  title: String,
+  lesson: ObjectId (ref: Lesson),
+  questions: [{
+    question: String,
+    options: [String],
+    correctAnswer: Number,
+    explanation: String
+  }],
+  passingScore: Number,
+  xpReward: Number
+}
+```
+
+### Progress
+```javascript
+{
+  user: ObjectId (ref: User),
+  course: ObjectId (ref: Course),
+  completedLessons: [ObjectId],
+  currentLesson: ObjectId,
+  progressPercentage: Number,
+  totalTimeSpent: Number,
+  lastAccessedAt: Date,
+  isCompleted: Boolean,
+  certificateUrl: String
+}
+```
+
+### Payment
+```javascript
+{
+  user: ObjectId (ref: User),
+  course: ObjectId (ref: Course),
+  amount: Number,
+  currency: 'GHS',
+  paymentMethod: 'stripe' | 'momo' | 'paypal',
+  transactionId: String,
+  status: 'pending' | 'completed' | 'failed',
+  createdAt: Date
+}
+```
 
 ---
 
 ## Styling & Theming
 
-### Theme System
+### Color Palette
 
-The app uses a comprehensive theme system with light and dark mode support.
-
-**Primary Colors:**
-- Light Mode: `#9C27B0` (Premium Purple)
-- Dark Mode: `#BB86FC` (Light Purple)
-
-**Theme Structure:**
+**Light Mode:**
 ```javascript
 {
-  background: string,
-  secondaryBackground: string,
-  tertiaryBackground: string,
-  text: string,
-  secondaryText: string,
-  border: string,
-  primary: string,
-  primaryHover: string,
-  success: string,
-  error: string,
-  warning: string,
-  card: string,
-  shadow: string
+  primary: '#6366F1',      // Indigo
+  background: '#FFFFFF',
+  card: '#F9FAFB',
+  text: '#111827',
+  secondaryText: '#6B7280',
+  border: '#E5E7EB',
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B'
 }
 ```
 
-### Premium Design System
+**Dark Mode:**
+```javascript
+{
+  primary: '#818CF8',
+  background: '#0F172A',
+  card: '#1E293B',
+  text: '#F9FAFB',
+  secondaryText: '#94A3B8',
+  border: '#334155',
+  success: '#34D399',
+  error: '#F87171',
+  warning: '#FBBF24'
+}
+```
 
-Located in `src/utils/premiumDesign.js`:
+### Typography
+```javascript
+{
+  heading: 28,
+  xxxl: 24,
+  xxl: 22,
+  xl: 20,
+  lg: 18,
+  md: 16,
+  sm: 14,
+  xs: 12
+}
+```
 
-**Colors:**
-- Primary: Indigo/Purple gradient
-- Accent: Gold, Emerald, Rose, Sky
-- Neutral: 50-900 scale
+---
 
-**Shadows:**
-- `sm`, `md`, `lg`, `xl`, `premium`
+## Security
 
-**Border Radius:**
-- `sm`, `base`, `md`, `lg`, `xl`, `2xl`, `3xl`, `full`
+### Authentication Flow
+1. User registers/logs in
+2. Server validates credentials
+3. JWT token generated
+4. Token stored in SecureStore
+5. Token attached to API requests
+6. Token refreshed before expiry
 
-**Spacing:**
-- `xs`, `sm`, `md`, `base`, `lg`, `xl`, `2xl`, `3xl`, `4xl`, `5xl`
+### Data Protection
+- Passwords hashed with bcrypt
+- JWT tokens with expiration
+- HTTPS in production
+- Input validation
+- XSS protection
+- Rate limiting
 
-### Responsive Design
-
-Located in `src/utils/responsive.js`:
-
-**Breakpoints:**
-- Small: < 375px
-- Medium: 375px - 768px
-- Large: > 768px
-
-**Font Sizes:**
-- `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, `xxxl`, `heading`
-
-**Spacing:**
-- Responsive spacing based on screen size
+### Study Group Security
+- Members-only chat access
+- Login required to view messages
+- Creator admin privileges
 
 ---
 
@@ -769,189 +1617,39 @@ Located in `src/utils/responsive.js`:
 
 ### Backend Deployment
 
-#### Option 1: Heroku
-
-1. **Install Heroku CLI**
-```bash
-npm install -g heroku
-```
-
-2. **Login to Heroku**
-```bash
-heroku login
-```
-
-3. **Create app**
+**Heroku:**
 ```bash
 cd backend
 heroku create french-master-api
-```
-
-4. **Set environment variables**
-```bash
-heroku config:set MONGODB_URI=...
-heroku config:set JWT_SECRET=...
-# ... other variables
-```
-
-5. **Deploy**
-```bash
+heroku config:set MONGODB_URI=... JWT_SECRET=...
 git push heroku main
 ```
 
-#### Option 2: AWS EC2
-
-1. **Launch EC2 instance**
-2. **Install Node.js and MongoDB**
-3. **Clone repository**
-4. **Set up PM2**
+**Docker:**
 ```bash
-npm install -g pm2
-pm2 start server.js
-pm2 save
-pm2 startup
-```
-
-#### Option 3: Docker
-
-1. **Build image**
-```bash
-cd backend
 docker build -t french-master-api .
-```
-
-2. **Run container**
-```bash
-docker run -p 5000:5000 --env-file .env french-master-api
-```
-
-3. **Docker Compose**
-```bash
-docker-compose up -d
+docker run -p 5001:5001 --env-file .env french-master-api
 ```
 
 ### Frontend Deployment
 
-#### Expo Application Services (EAS)
-
-1. **Install EAS CLI**
+**EAS Build:**
 ```bash
 npm install -g eas-cli
-```
-
-2. **Login**
-```bash
 eas login
-```
-
-3. **Configure**
-```bash
-eas build:configure
-```
-
-4. **Build**
-```bash
-# iOS
+eas build --platform android --profile preview
 eas build --platform ios
-
-# Android
-eas build --platform android
-
-# Both
-eas build --platform all
-```
-
-5. **Submit to stores**
-```bash
-eas submit --platform ios
 eas submit --platform android
-```
-
-#### Environment Variables
-
-Update `app.json` or use EAS secrets:
-```bash
-eas secret:create --scope project --name API_URL --value https://api.frenchmastergh.com/api
-```
-
-### MongoDB Atlas Setup
-
-1. **Create cluster** on MongoDB Atlas
-2. **Get connection string**
-3. **Update `.env`** with connection string
-4. **Whitelist IP addresses** in Atlas dashboard
-
----
-
-## Contributing
-
-### Development Workflow
-
-1. **Fork the repository**
-2. **Create feature branch**
-```bash
-git checkout -b feature/amazing-feature
-```
-
-3. **Make changes**
-4. **Commit changes**
-```bash
-git commit -m "Add amazing feature"
-```
-
-5. **Push to branch**
-```bash
-git push origin feature/amazing-feature
-```
-
-6. **Open Pull Request**
-
-### Code Style
-
-- Use ES6+ JavaScript
-- Follow React Native best practices
-- Use functional components with hooks
-- Keep components small and focused
-- Add comments for complex logic
-- Use meaningful variable names
-
-### Testing
-
-Before submitting PR:
-- Test on iOS and Android
-- Test in light and dark mode
-- Verify API integration
-- Check for console errors
-- Test edge cases
-
-### Commit Messages
-
-Use clear, descriptive commit messages:
-```
-feat: Add premium course card component
-fix: Resolve navigation issue in dark mode
-docs: Update API documentation
-style: Improve button styling
-refactor: Simplify authentication flow
+eas submit --platform ios
 ```
 
 ---
 
 ## Support
 
-For support:
-- Email: info@frenchmastergh.com
-- Website: https://frenchmastergh.com
-- GitHub Issues: [Repository Issues]
+- **Email:** info@frenchmastergh.com
+- **Website:** https://frenchmastergh.com
 
 ---
 
-## License
-
-© 2025 THE FRENCH MASTER GH. All rights reserved.
-
----
-
-**Last Updated:** January 2025
-**Version:** 1.0.0
-
+© 2024-2025 THE FRENCH MASTER GH. All rights reserved.

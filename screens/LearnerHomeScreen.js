@@ -56,20 +56,12 @@ export default function LearnerHomeScreen({ navigation }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
   const orb1Anim = useRef(new Animated.Value(0)).current;
   const orb2Anim = useRef(new Animated.Value(0)).current;
-  const progressAnim = useRef(new Animated.Value(0)).current;
   const cardAnims = useRef([...Array(6)].map(() => new Animated.Value(0))).current;
 
   const userName = user?.name?.split(' ')[0] || 'Learner';
   const userLevel = gamificationStats.level || user?.level || 1;
-  const userXP = gamificationStats.xp || user?.xp || 0;
-  const userStreak = gamificationStats.streak || user?.streak?.current || 0;
-
-  const xpForCurrentLevel = Math.pow(userLevel - 1, 2) * 100;
-  const xpForNextLevel = Math.pow(userLevel, 2) * 100;
-  const xpProgress = (userXP - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -97,12 +89,6 @@ export default function LearnerHomeScreen({ navigation }) {
       Animated.spring(anim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true })
     )).start();
 
-    Animated.timing(progressAnim, {
-      toValue: xpProgress,
-      duration: 1500,
-      useNativeDriver: false,
-    }).start();
-
     const orbLoop = Animated.loop(
       Animated.parallel([
         Animated.sequence([
@@ -116,14 +102,6 @@ export default function LearnerHomeScreen({ navigation }) {
       ])
     );
     orbLoop.start();
-
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.1, duration: 1000, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-      ])
-    );
-    if (userStreak > 0) pulseLoop.start();
   };
 
   const initScreen = async () => {
@@ -361,52 +339,6 @@ export default function LearnerHomeScreen({ navigation }) {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.statsRow}>
-                <TouchableOpacity
-                  style={styles.statCard}
-                  onPress={() => navigation.navigate('Practice')}
-                >
-                  <Text style={styles.statValue}>{userStreak}</Text>
-                  <Text style={styles.statLabel}>Day Streak</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.statCard}
-                  onPress={() => navigation.navigate('Leaderboard')}
-                >
-                  <Text style={styles.statValue}>
-                    {userXP >= 1000 ? `${(userXP / 1000).toFixed(1)}K` : userXP}
-                  </Text>
-                  <Text style={styles.statLabel}>Total XP</Text>
-                </TouchableOpacity>
-
-                <View style={styles.statCard}>
-                  <Text style={styles.statValue}>Lv.{userLevel}</Text>
-                  <Text style={styles.statLabel}>Level</Text>
-                </View>
-              </View>
-
-              <View style={styles.xpProgressContainer}>
-                <View style={styles.xpProgressHeader}>
-                  <Text style={styles.xpProgressLabel}>Level {userLevel} Progress</Text>
-                  <Text style={styles.xpProgressValue}>
-                    {userXP - xpForCurrentLevel}/{xpForNextLevel - xpForCurrentLevel} XP
-                  </Text>
-                </View>
-                <View style={styles.xpProgressTrack}>
-                  <Animated.View
-                    style={[
-                      styles.xpProgressFill,
-                      {
-                        width: progressAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0%', '100%'],
-                        }),
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
             </Animated.View>
           </LinearGradient>
         </Animated.View>

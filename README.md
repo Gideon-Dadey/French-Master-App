@@ -2,8 +2,8 @@
 
 > Premium French & English Language Learning Platform with iOS-Style Experience
 
-[![React Native](https://img.shields.io/badge/React%20Native-0.76.5-blue.svg)](https://reactnative.dev/)
-[![Expo](https://img.shields.io/badge/Expo-SDK%2052-black.svg)](https://expo.dev/)
+[![React Native](https://img.shields.io/badge/React%20Native-0.81.5-blue.svg)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-SDK%2054-black.svg)](https://expo.dev/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Latest-green.svg)](https://www.mongodb.com/)
 [![Performance](https://img.shields.io/badge/Performance-Optimized-brightgreen.svg)]()
@@ -17,20 +17,15 @@ A comprehensive, production-ready mobile application for learning French and Eng
 - [Features](#-features)
 - [Screenshots](#-screenshots)
 - [Quick Start](#-quick-start)
-- [Complete Setup Commands](#-complete-setup-commands)
 - [Project Structure](#-project-structure)
 - [Technology Stack](#️-technology-stack)
 - [API Endpoints](#-api-endpoints)
 - [Screens Overview](#-screens-overview)
 - [Components](#-components)
-- [Services](#-services)
 - [Context Providers](#-context-providers)
 - [Security Features](#-security-features)
-- [Theming](#-theming)
-- [Testing](#-testing)
 - [Deployment](#-deployment)
 - [Troubleshooting](#-troubleshooting)
-- [Contributing](#-contributing)
 - [License](#-license)
 
 ---
@@ -46,6 +41,7 @@ A comprehensive, production-ready mobile application for learning French and Eng
   - 📖 **Grammar Drills** - 8 grammar topics, hint system, detailed feedback
   - 🎤 **Speaking Practice** - 8 real-life scenarios, phonetic guides, audio playback
   - 👂 **Listening Practice** - 8 audio categories, comprehension questions
+  - ✍️ **Writing Practice** - Writing exercises with feedback
   - 🃏 **Flashcards** - 8 vocabulary decks, 3D flip animation, spaced repetition
 - **Progress Analytics** - Track learning progress with detailed insights
 - **Certificates** - Earn certificates upon course completion
@@ -65,7 +61,7 @@ A comprehensive, production-ready mobile application for learning French and Eng
 - **Daily Goals** - Complete daily learning goals
 - **Leaderboards** - Premium golden-themed ranking with podium display
 
-### 👥 Secure Community Features
+### 👥 Community Features
 - **Study Groups** - Create and join community study groups
 - **iOS-Style Security** - Login/membership required to view group chats
 - **Group Discussions** - Real-time chat with iOS iMessage-style bubbles
@@ -76,17 +72,20 @@ A comprehensive, production-ready mobile application for learning French and Eng
 - **Q&A Forum** - Premium forum with categories and trending topics
 - **Discussions** - Community discussions with tagging and filtering
 - **Blog & Articles** - Read learning articles with text-to-speech
+- **Progress Sharing** - Share your learning milestones
 
 ### 💳 Payment Integration
 - **Multiple Payment Methods** - Stripe, PayPal, Mobile Money
 - **Secure Transactions** - Industry-standard security
 - **Free Courses** - Access free courses
 - **Course Pricing** - Flexible pricing in GHS (Ghana Cedis)
+- **Teacher Subscriptions** - Subscription plans for instructors
 
 ### 👨‍🏫 Instructor Features
 - **Student Management** - View and manage enrolled students
 - **Course Creation** - Create and publish courses
-- **Analytics Dashboard** - Track student progress
+- **Analytics Dashboard** - Track student progress and course performance
+- **Video Hosting** - Advanced video management
 - **Subscription Plans** - Offer subscription-based access
 
 ---
@@ -101,9 +100,9 @@ A comprehensive, production-ready mobile application for learning French and Eng
 |---------------|--------------|------------|
 | Premium community hub | Study group cards | iOS iMessage-style chat |
 
-| Profile | Login | Word of the Day |
-|---------|-------|-----------------|
-| Premium profile with XP | Modern login screen | Daily vocabulary |
+| Profile | Leaderboard | Word of the Day |
+|---------|-------------|-----------------|
+| Premium profile with XP | Golden rankings | Daily vocabulary |
 
 ---
 
@@ -137,83 +136,7 @@ npx expo start --clear
 # 5. Scan QR code with Expo Go app
 ```
 
----
-
-## 🛠 Complete Setup Commands
-
-### Step 1: Create Project from Scratch
-
-```bash
-# Create new Expo project
-npx create-expo-app@latest "FRENCH MASTER" --template blank
-cd "FRENCH MASTER"
-
-# Initialize git
-git init
-git add .
-git commit -m "Initial commit"
-```
-
-### Step 2: Install Frontend Dependencies
-
-```bash
-# Core dependencies
-npm install @react-navigation/native @react-navigation/stack @react-navigation/bottom-tabs
-npm install react-native-screens react-native-safe-area-context
-npm install react-native-gesture-handler react-native-reanimated
-
-# UI Components
-npm install expo-linear-gradient
-npm install @expo/vector-icons
-npm install react-native-svg
-
-# API & State
-npm install axios
-npm install @react-native-async-storage/async-storage
-
-# Media & Files
-npm install expo-image-picker
-npm install expo-document-picker
-npm install expo-file-system
-npm install expo-media-library
-npm install expo-sharing
-npm install expo-clipboard
-npm install expo-speech
-
-# Audio & Video
-npm install expo-av
-npm install expo-camera
-
-# Utilities
-npm install expo-haptics
-npm install expo-status-bar
-
-# All in one command:
-npm install @react-navigation/native @react-navigation/stack @react-navigation/bottom-tabs react-native-screens react-native-safe-area-context react-native-gesture-handler react-native-reanimated expo-linear-gradient @expo/vector-icons react-native-svg axios @react-native-async-storage/async-storage expo-image-picker expo-document-picker expo-file-system expo-media-library expo-sharing expo-clipboard expo-av expo-camera expo-haptics expo-status-bar expo-speech
-```
-
-### Step 3: Create Backend
-
-```bash
-# Create backend folder
-mkdir backend
-cd backend
-
-# Initialize Node.js project
-npm init -y
-
-# Install backend dependencies
-npm install express mongoose dotenv cors bcryptjs jsonwebtoken
-npm install multer cloudinary
-npm install stripe
-npm install socket.io
-npm install nodemon --save-dev
-
-# All in one command:
-npm install express mongoose dotenv cors bcryptjs jsonwebtoken multer cloudinary stripe socket.io && npm install nodemon --save-dev
-```
-
-### Step 4: Configure Environment Variables
+### Environment Setup
 
 Create `backend/.env`:
 ```env
@@ -230,34 +153,12 @@ CLOUDINARY_API_SECRET=your-api-secret
 
 # Stripe (for payments)
 STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
-
-# Frontend URL
-FRONTEND_URL=http://localhost:19006
 ```
-
-### Step 5: Configure API URL
 
 Update `src/services/api.js` with your IP:
 ```javascript
-// Get your IP address
-// Windows: ipconfig | findstr IPv4
-// Mac/Linux: ifconfig | grep inet
-
+// Get your IP: ipconfig (Windows) or ifconfig (Mac/Linux)
 const API_URL = 'http://YOUR_IP_ADDRESS:5001/api';
-```
-
-### Step 6: Running the Application
-
-```bash
-# Terminal 1: Start MongoDB (if local)
-mongod
-
-# Terminal 2: Start Backend
-cd backend
-npm run dev
-
-# Terminal 3: Start Frontend
-npx expo start --clear
 ```
 
 ---
@@ -266,7 +167,7 @@ npx expo start --clear
 
 ```
 FRENCH MASTER/
-├── App.js                          # Main app entry with navigation & splash
+├── App.js                          # Main app entry with navigation
 ├── app.json                        # Expo configuration
 ├── package.json                    # Frontend dependencies
 ├── babel.config.js                 # Babel configuration
@@ -274,83 +175,98 @@ FRENCH MASTER/
 ├── assets/                         # Static assets
 │   ├── logo.jpeg                   # App logo
 │   ├── french/                     # French course images
-│   └── images/                     # Other images
+│   └── english/                    # English course images
 │
-├── screens/                        # Screen components
+├── screens/                        # 49 Screen components
 │   ├── Auth/
-│   │   ├── LoginScreen.js          # Premium login screen
-│   │   └── RegisterScreen.js       # Premium registration screen
-│   ├── LearnerHomeScreen.js        # Optimized home with caching
-│   ├── LearnScreen.js              # Course discovery
-│   ├── PracticeScreen.js           # Training center hub
-│   ├── CommunityScreen.js          # Community hub
-│   ├── ProfileScreen.js            # User profile with XP
-│   ├── WordOfTheDayScreen.js       # Daily vocabulary
-│   ├── FreeQuizScreen.js           # Premium quiz (48 questions)
-│   ├── GrammarDrillsScreen.js      # Grammar exercises (48)
-│   ├── SpeakingPracticeScreen.js   # Speaking practice (48 phrases)
-│   ├── ListeningPracticeScreen.js  # Listening exercises (48)
-│   ├── FlashcardsScreen.js         # Vocabulary flashcards (48)
-│   ├── StudyGroupsScreen.js        # Study groups list
-│   ├── StudyGroupDetailScreen.js   # Secure group chat
-│   ├── QandAForumScreen.js         # Q&A forum
-│   ├── DiscussionsScreen.js        # Discussions
-│   ├── LeaderboardScreen.js        # Premium leaderboard
-│   ├── BlogListScreen.js           # Articles list
-│   ├── BlogDetailScreen.js         # Article reader with TTS
-│   └── ...
+│   │   ├── LoginScreen.js
+│   │   └── RegisterScreen.js
+│   ├── LearnerHomeScreen.js
+│   ├── LearnScreen.js
+│   ├── PracticeScreen.js
+│   ├── CommunityScreen.js
+│   ├── ProfileScreen.js
+│   ├── StudyGroupsScreen.js
+│   ├── StudyGroupDetailScreen.js
+│   ├── CourseDetailScreen.js
+│   ├── CoursePaymentScreen.js
+│   ├── LeaderboardScreen.js
+│   ├── AchievementsScreen.js
+│   ├── FlashcardsScreen.js
+│   ├── GrammarDrillsScreen.js
+│   ├── SpeakingPracticeScreen.js
+│   ├── ListeningPracticeScreen.js
+│   ├── WritingPracticeScreen.js
+│   ├── WordOfTheDayScreen.js
+│   ├── QandAForumScreen.js
+│   ├── DiscussionsScreen.js
+│   ├── BlogListScreen.js
+│   ├── BlogDetailScreen.js
+│   └── ... (27 more screens)
 │
 ├── src/
-│   ├── components/                 # Reusable UI components
-│   │   ├── PremiumSplashScreen.js  # Animated splash screen
-│   │   ├── SkeletonHome.js         # Home skeleton loader
-│   │   ├── FastImage.js            # Cached image component
-│   │   ├── CustomTabBar.js         # iOS-style tab bar
-│   │   ├── LoadingSpinner.js       # Loading indicator
-│   │   ├── PremiumErrorState.js    # Error display
-│   │   └── ...
+│   ├── components/                 # 40 Reusable UI components
+│   │   ├── CustomTabBar.js
+│   │   ├── CourseCard.js
+│   │   ├── FeaturedCourseCard.js
+│   │   ├── GamificationSystem.js
+│   │   ├── LoadingSpinner.js
+│   │   ├── PremiumButton.js
+│   │   ├── PremiumCard.js
+│   │   ├── Rating.js
+│   │   └── ... (32 more components)
 │   │
 │   ├── context/                    # React Context providers
-│   │   ├── AuthContext.js          # Authentication state
-│   │   ├── ThemeContext.js         # Theme (dark/light)
-│   │   ├── GamificationContext.js  # XP, streaks, levels
-│   │   └── ...
+│   │   ├── AuthContext.js
+│   │   ├── ThemeContext.js
+│   │   ├── GamificationContext.js
+│   │   ├── WishlistContext.js
+│   │   └── ... (3 more contexts)
 │   │
 │   ├── services/
-│   │   ├── api.js                  # Axios API client
-│   │   ├── offlineService.js       # Dual-layer caching
-│   │   ├── prefetchService.js      # Data prefetching
-│   │   └── gamificationService.js  # XP & streak logic
+│   │   ├── api.js
+│   │   ├── offlineService.js
+│   │   └── prefetchService.js
+│   │
+│   ├── hooks/
+│   │   └── useNetwork.js
 │   │
 │   └── utils/
-│       ├── helpers.js              # Utility functions
-│       ├── responsive.js           # Responsive sizing
-│       ├── premiumDesign.js        # Design tokens
-│       └── courseImages.js         # Course image mapping
+│       ├── helpers.js
+│       ├── responsive.js
+│       ├── premiumDesign.js
+│       └── ... (6 more utils)
 │
 └── backend/                        # Backend API
-    ├── server.js                   # Express server entry
-    ├── package.json                # Backend dependencies
-    ├── .env                        # Environment variables
+    ├── server.js
+    ├── package.json
+    ├── .env
     │
     ├── config/
-    │   └── db.js                   # MongoDB connection
+    │   └── database.js
     │
-    ├── models/                     # Mongoose schemas
+    ├── models/                     # 20 Mongoose schemas
     │   ├── User.js
     │   ├── Course.js
-    │   ├── StudyGroup.js           # With reactions support
-    │   └── ...
+    │   ├── Lesson.js
+    │   ├── StudyGroup.js
+    │   ├── Quiz.js
+    │   ├── Progress.js
+    │   └── ... (14 more models)
     │
-    ├── routes/                     # API routes
+    ├── routes/                     # 24 API route files
     │   ├── auth.js
     │   ├── courses.js
-    │   ├── studyGroups.js          # With reaction endpoints
-    │   └── ...
+    │   ├── studyGroups.js
+    │   ├── payments.js
+    │   └── ... (20 more routes)
     │
-    └── middleware/
-        ├── auth.js                 # JWT authentication
-        └── ...
+    ├── middleware/
+    │   └── auth.js
+    │
+    └── scripts/
+        ├── seed.js
+        └── seedBlog.js
 ```
 
 ---
@@ -360,17 +276,19 @@ FRENCH MASTER/
 ### Frontend
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| React Native | 0.76.5 | Mobile framework |
-| Expo | SDK 52 | Development platform |
+| React Native | 0.81.5 | Mobile framework |
+| Expo | SDK 54 | Development platform |
+| React | 19.1.0 | UI library |
 | React Navigation | 6.x | Navigation library |
 | React Context API | - | State management |
-| Axios | 1.x | HTTP client |
-| Expo Linear Gradient | - | Gradient effects |
-| Expo AV | - | Audio/Video playback |
-| Expo Speech | - | Text-to-speech |
-| Expo Camera | - | Camera access |
-| Expo File System | - | File operations & caching |
-| react-native-gesture-handler | - | Swipe & tap gestures |
+| Axios | 1.6.0 | HTTP client |
+| Expo Linear Gradient | 15.0.8 | Gradient effects |
+| Expo AV | 16.0.8 | Audio/Video playback |
+| Expo Speech | 14.0.8 | Text-to-speech |
+| Expo Camera | 17.0.10 | Camera access |
+| Expo File System | 19.0.21 | File operations |
+| React Native Reanimated | 4.1.1 | Animations |
+| Socket.io Client | 4.5.4 | Real-time communication |
 
 ### Backend
 | Technology | Version | Purpose |
@@ -384,171 +302,204 @@ FRENCH MASTER/
 | Multer | - | File uploads |
 | Cloudinary | - | Cloud storage |
 | Stripe | - | Payment processing |
+| Socket.io | - | Real-time features |
 
 ---
 
-## 🧩 Services
+## 🔌 API Endpoints
 
-### Offline Service (`src/services/offlineService.js`)
-```javascript
-// Initialize cache on app start
-await offlineService.initializeCache();
+### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/login` | User login |
+| GET | `/api/auth/me` | Get current user |
+| POST | `/api/auth/refresh` | Refresh token |
 
-// Memory cache (instant)
-const data = offlineService.getFromMemoryCache('key');
+### Courses
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/courses` | Get all courses |
+| GET | `/api/courses/:id` | Get course details |
+| GET | `/api/courses/featured/list` | Get featured courses |
+| POST | `/api/courses` | Create course (instructor) |
 
-// Persistent cache with expiry
-const cached = await offlineService.getFromCache('key', maxAge);
+### Study Groups
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/study-groups` | Get all groups |
+| POST | `/api/study-groups` | Create group |
+| GET | `/api/study-groups/:id` | Get group details |
+| POST | `/api/study-groups/:id/join` | Join group |
+| POST | `/api/study-groups/:id/messages` | Send message |
 
-// Save to both caches
-await offlineService.saveToCache('key', data);
+### Payments
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/payments/create-intent` | Create payment |
+| POST | `/api/payments/confirm` | Confirm payment |
+| GET | `/api/payments/history` | Payment history |
 
-// Prefetch multiple resources
-await offlineService.prefetchResources([...]);
-```
-
-### Prefetch Service (`src/services/prefetchService.js`)
-```javascript
-// Prefetch critical data during splash
-await prefetchService.prefetchCriticalData();
-
-// Warm up cache in background
-prefetchService.warmUpCache();
-
-// Prefetch user-specific data after login
-await prefetchService.prefetchUserData(userId);
-```
-
-### Gamification Service (`src/services/gamificationService.js`)
-```javascript
-// Award XP for activities
-await gamificationService.awardXP(user, amount, activity);
-
-// Check and update streak
-await gamificationService.checkAndUpdateStreak(user);
-
-// Calculate level from XP
-const level = gamificationService.calculateLevel(xp);
-```
+### More endpoints: `/api/lessons`, `/api/progress`, `/api/reviews`, `/api/blog`, `/api/notifications`, `/api/wishlist`, `/api/quizzes`, `/api/discussions`, `/api/questions`, `/api/leaderboard`, `/api/subscriptions`, `/api/resources`, `/api/categories`, `/api/tags`
 
 ---
 
-## 🔒 Security Features
+## 📱 Screens Overview (49 Screens)
 
-### Study Group Security
-Groups are protected with iOS-style security:
+### Authentication (2)
+- `LoginScreen` - Premium login with social options
+- `RegisterScreen` - User registration
 
-1. **Non-Authenticated Users**
-   - See "Login Required" screen
-   - Beautiful gradient overlay with lock icon
-   - Security features explained
-   - Sign in / Create account buttons
+### Main Navigation (5)
+- `LandingScreen` - Welcome/onboarding
+- `LearnerHomeScreen` - Main dashboard
+- `LearnScreen` - Course discovery
+- `PracticeScreen` - Training center
+- `CommunityScreen` - Community hub
 
-2. **Authenticated Non-Members**
-   - See "Members Only" screen
-   - Group preview with details
-   - Features they'll unlock
-   - Join button
+### Courses (6)
+- `CoursesScreen` - Course catalog
+- `CourseDetailScreen` - Course information
+- `CoursePaymentScreen` - Payment flow
+- `MyCoursesScreen` - Enrolled courses
+- `LessonScreen` - Lesson player
+- `ResourcesScreen` - Learning resources
 
-3. **Members**
-   - Full access to discussions
-   - Send messages, reactions
-   - Share media
-   - Voice/video calls
+### Practice (7)
+- `FreeQuizScreen` - Quick quizzes
+- `FlashcardsScreen` - Vocabulary cards
+- `GrammarDrillsScreen` - Grammar exercises
+- `SpeakingPracticeScreen` - Speaking practice
+- `ListeningPracticeScreen` - Listening exercises
+- `WritingPracticeScreen` - Writing practice
+- `WordOfTheDayScreen` - Daily vocabulary
 
-### Membership Detection
-Robust ID comparison handling all formats:
-- ObjectId objects
-- String IDs
-- Nested user objects
-- Creator vs member distinction
+### Community (10)
+- `StudyGroupsScreen` - Group listing
+- `StudyGroupDetailScreen` - Group chat & details
+- `CreateStudyGroupScreen` - Create new group
+- `DiscussionsScreen` - Discussions list
+- `DiscussionDetailScreen` - Discussion thread
+- `CreateDiscussionScreen` - New discussion
+- `QandAForumScreen` - Q&A forum
+- `QuestionDetailScreen` - Question thread
+- `CreateQuestionScreen` - New question
+- `ShareProgressScreen` - Share progress
+
+### Profile & Settings (5)
+- `ProfileScreen` - User profile
+- `AchievementsScreen` - Badges & achievements
+- `LeaderboardScreen` - Rankings
+- `NotificationsScreen` - Notifications
+- `WishlistScreen` - Saved courses
+
+### Content (4)
+- `BlogListScreen` - Articles list
+- `BlogDetailScreen` - Article reader
+- `BrowseTopicsScreen` - Topic browser
+- `ContactScreen` - Contact form
+
+### Instructor (6)
+- `TeachersScreen` - Teacher profiles
+- `StudentManagementScreen` - Manage students
+- `AnalyticsDashboardScreen` - Analytics
+- `ManageSampleVideosScreen` - Video management
+- `AdvancedVideoHostingScreen` - Video hosting
+- `TeacherSubscriptionPaymentScreen` - Subscription
+
+### Other (4)
+- `HomeScreen` - Alternative home
+- `CreatePostScreen` - Create post
+- `CreateProgressShareScreen` - Share milestone
 
 ---
 
-## 🎨 Theming
+## 🧩 Components (40 Components)
 
-### Colors
-```javascript
-// Light Mode
-primary: '#6366F1'      // Indigo
-background: '#FFFFFF'   // White
-card: '#F9FAFB'        // Light gray
-text: '#111827'        // Dark gray
+### Core UI
+- `CustomTabBar` - iOS-style tab navigation
+- `PremiumButton` - Gradient buttons
+- `PremiumCard` - Card containers
+- `LoadingSpinner` - Loading states
+- `ErrorMessage` - Error displays
+- `Rating` - Star ratings
 
-// Dark Mode
-primary: '#818CF8'      // Light indigo
-background: '#0F172A'   // Dark blue
-card: '#1E293B'        // Slate
-text: '#F9FAFB'        // White
-```
+### Course Components
+- `CourseCard` - Course display
+- `FeaturedCourseCard` - Featured courses
+- `HorizontalCourseCard` - Horizontal layout
+- `CourseRecommendations` - Recommendations
+- `CourseDiscussion` - Course discussions
 
-### Premium Design Tokens
-```javascript
-premiumColors: {
-  primary: { main: '#6366F1', light: '#818CF8' },
-  accent: { orange: '#F59E0B', green: '#10B981' },
-}
+### Gamification
+- `GamificationSystem` - XP & levels
+- `AchievementBadge` - Achievement display
+- `LearningStreak` - Streak tracking
+- `DailyChallengeCard` - Daily challenges
 
-premiumShadows: {
-  sm: { shadowColor, shadowOffset, shadowOpacity, shadowRadius },
-  md: { ... },
-  lg: { ... },
-}
-```
+### Analytics
+- `AnalyticsChart` - Charts
+- `LearningInsightCard` - Insights
+- `QuickStatsGrid` - Statistics
+
+### Media
+- `PremiumVideoPlayer` - Video player
+- `VideoUploader` - Video uploads
+
+### Premium
+- `PremiumBadge` - Premium indicators
+- `PremiumEmptyState` - Empty states
+- `PremiumErrorState` - Error states
+- `PremiumProgressBar` - Progress bars
+- `PremiumStatsCard` - Statistics cards
+
+### Utility
+- `SearchBar` - Search input
+- `SearchAutocomplete` - Autocomplete
+- `NetworkStatus` - Connection status
+- `ToastNotification` - Toast messages
+- `SkeletonLoader` - Loading skeletons
+- `WishlistButton` - Wishlist toggle
+- `BlogCard` - Blog posts
+- `Chip` - Tag chips
+- `Divider` - Dividers
+- `Heading` - Section headings
+- `Spacer` - Spacing
+- `TabBarIcon` - Tab icons
+- `CategoryDetailModal` - Category modal
+- `CertificateView` - Certificates
+- `RecommendedCourses` - Recommendations
 
 ---
 
-## 🧪 Testing
+## 🔐 Security Features
 
-```bash
-# Frontend tests
-npm test
-
-# Backend tests
-cd backend
-npm test
-
-# Run with coverage
-npm test -- --coverage
-```
+- **JWT Authentication** - Secure token-based auth
+- **Password Hashing** - Bcrypt encryption
+- **Study Group Security** - Members-only access
+- **Input Validation** - Server-side validation
+- **CORS Protection** - Cross-origin security
+- **Rate Limiting** - Request throttling
+- **Secure Storage** - Expo SecureStore
 
 ---
 
 ## 🚢 Deployment
 
-### Backend Deployment (Heroku)
-
+### Backend (Heroku/Railway/Render)
 ```bash
-# Login to Heroku
-heroku login
-
-# Create app
+cd backend
 heroku create french-master-api
-
-# Set environment variables
-heroku config:set JWT_SECRET=your-secret
-heroku config:set NODE_ENV=production
-
-# Deploy
-git subtree push --prefix backend heroku main
+heroku config:set MONGODB_URI=... JWT_SECRET=...
+git push heroku main
 ```
 
-### Frontend Deployment (EAS)
-
+### Frontend (EAS Build)
 ```bash
-# Install EAS CLI
 npm install -g eas-cli
-
-# Login
 eas login
-
-# Build Android APK
 eas build --platform android --profile preview
-
-# Build iOS
 eas build --platform ios
-
-# Submit to stores
 eas submit --platform android
 eas submit --platform ios
 ```
@@ -557,44 +508,25 @@ eas submit --platform ios
 
 ## 🔧 Troubleshooting
 
-### Common Issues
-
-**1. Metro Bundler Cache**
-```bash
-npx expo start --clear
-```
-
-**2. Port Already in Use**
-```bash
-taskkill /F /IM node.exe  # Windows
-pkill node                 # Mac/Linux
-npx expo start --port 8090
-```
-
-**3. Network Error (Backend Connection)**
-- Check backend is running: `cd backend && npm run dev`
-- Verify IP address in `api.js`
-- Check firewall allows port 5001
-
-**4. Study Group Member Not Recognized**
-- Logout and login again
-- The enhanced `isMember` function handles all ID formats
-
-**5. Slow Loading**
-- Check if cache is working: Data should be instant after first load
-- Clear cache if corrupted: `offlineService.clearCache()`
+| Issue | Solution |
+|-------|----------|
+| Metro cache error | `npx expo start --clear` |
+| Port in use | `taskkill /F /IM node.exe` (Windows) |
+| Network error | Check IP in `api.js`, ensure backend running |
+| Study group access | Logout and login again |
+| Slow loading | Clear app cache |
 
 ---
 
-## 🤝 Contributing
+## 📊 App Statistics
 
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+| Metric | Count |
+|--------|-------|
+| Screens | 49 |
+| Components | 40 |
+| API Routes | 24 |
+| Database Models | 20 |
+| Context Providers | 7 |
 
 ---
 
@@ -608,28 +540,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 - **Email**: info@frenchmastergh.com
 - **Website**: https://frenchmastergh.com
-- **GitHub Issues**: [Open an issue](https://github.com/yourusername/french-master-gh/issues)
-
----
-
-## 🙏 Acknowledgments
-
-- React Native community
-- Expo team
-- All contributors and testers
-- French learners in Ghana and beyond
-
----
-
-## 📊 App Statistics
-
-| Metric | Value |
-|--------|-------|
-| Screens | 40+ |
-| Components | 30+ |
-| API Endpoints | 50+ |
-| Practice Questions | 240+ |
-| Vocabulary Words | 100+ |
 
 ---
 
