@@ -1709,14 +1709,23 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         </Modal>
   );
 
-  // Wallpaper/Background picker modal
-  const backgroundColors = [
+  // Wallpaper/Background picker modal - theme-aware colors
+  const backgroundColors = isDarkMode ? [
+    // Dark theme colors
     '#0B141A', '#075E54', '#128C7E', '#25D366',
     '#34B7F1', '#1F2C34', '#2A3942', '#111B21',
     '#1E3A5F', '#3D0066', '#4A0E4E', '#1A1A2E',
     '#16213E', '#0F3460', '#533483', '#E94560',
     '#FF6B6B', '#4ECDC4', '#2C3E50', '#34495E',
     '#7F8C8D', '#95A5A6', '#1ABC9C', '#3498DB',
+  ] : [
+    // Light theme colors
+    '#E4DDD6', '#DCF8C6', '#E8F5E9', '#FFF8E1',
+    '#E3F2FD', '#FCE4EC', '#F3E5F5', '#EDE7F6',
+    '#E0F7FA', '#E0F2F1', '#FFF3E0', '#FFEBEE',
+    '#F5F5F5', '#ECEFF1', '#B2DFDB', '#BBDEFB',
+    '#C8E6C9', '#DCEDC8', '#F0F4C3', '#FFECB3',
+    '#FFE0B2', '#FFCCBC', '#D7CCC8', '#CFD8DC',
   ];
 
   const renderBackgroundPickerModal = () => (
@@ -1726,17 +1735,22 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       animationType="slide"
       onRequestClose={closeBackgroundPicker}
     >
-      <View style={styles.wallpaperModalContainer}>
+      <View style={[styles.wallpaperModalContainer, { backgroundColor: isDarkMode ? '#0B141A' : '#F0F2F5' }]}>
         {/* Header */}
         <LinearGradient
-          colors={['#075E54', '#128C7E']}
+          colors={isDarkMode ? ['#075E54', '#128C7E'] : ['#128C7E', '#25D366']}
           style={styles.wallpaperHeader}
         >
           <TouchableOpacity onPress={closeBackgroundPicker} style={styles.wallpaperBackBtn}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.wallpaperHeaderTitle}>Chat Wallpaper</Text>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity 
+            onPress={resetBackground} 
+            style={styles.wallpaperHeaderResetBtn}
+          >
+            <Text style={styles.wallpaperHeaderResetText}>Reset</Text>
+          </TouchableOpacity>
         </LinearGradient>
 
         <ScrollView 
@@ -1745,12 +1759,15 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           contentContainerStyle={styles.wallpaperScrollContent}
         >
           {/* Preview Card */}
-          <View style={styles.wallpaperPreviewCard}>
-            <Text style={styles.wallpaperSectionLabel}>PREVIEW</Text>
+          <View style={[styles.wallpaperPreviewCard, { backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF' }]}>
+            <View style={styles.wallpaperPreviewHeader}>
+              <Ionicons name="eye-outline" size={18} color={isDarkMode ? '#8696A0' : '#667781'} />
+              <Text style={[styles.wallpaperSectionLabel, { color: isDarkMode ? '#8696A0' : '#667781' }]}>Preview</Text>
+            </View>
             <View style={[
               styles.wallpaperPreviewBox,
               chatBackground?.type === 'color' && { backgroundColor: chatBackground.value },
-              !chatBackground && { backgroundColor: '#0B141A' },
+              !chatBackground && { backgroundColor: isDarkMode ? '#0B141A' : '#E4DDD6' },
             ]}>
               {chatBackground?.type === 'image' && (
                 <Image 
@@ -1761,14 +1778,14 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               )}
               {/* Sample chat bubbles */}
               <View style={styles.wallpaperPreviewChat}>
-                <View style={styles.wallpaperPreviewBubbleLeft}>
-                  <Text style={styles.wallpaperPreviewTextLeft}>Hey! How are you? 👋</Text>
-                  <Text style={styles.wallpaperPreviewTime}>10:30 AM</Text>
+                <View style={[styles.wallpaperPreviewBubbleLeft, { backgroundColor: isDarkMode ? '#202C33' : '#FFFFFF' }]}>
+                  <Text style={[styles.wallpaperPreviewTextLeft, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>Hey! How are you? 👋</Text>
+                  <Text style={[styles.wallpaperPreviewTime, { color: isDarkMode ? '#8696A0' : '#667781' }]}>10:30 AM</Text>
                 </View>
-                <View style={styles.wallpaperPreviewBubbleRight}>
-                  <Text style={styles.wallpaperPreviewTextRight}>I'm great! Learning French 🇫🇷</Text>
+                <View style={[styles.wallpaperPreviewBubbleRight, { backgroundColor: isDarkMode ? '#005C4B' : '#D9FDD3' }]}>
+                  <Text style={[styles.wallpaperPreviewTextRight, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>I'm great! Learning French 🇫🇷</Text>
                   <View style={styles.wallpaperPreviewTimeRow}>
-                    <Text style={styles.wallpaperPreviewTimeRight}>10:31 AM</Text>
+                    <Text style={[styles.wallpaperPreviewTimeRight, { color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : '#667781' }]}>10:31 AM</Text>
                     <Ionicons name="checkmark-done" size={14} color="#53BDEB" />
                   </View>
                 </View>
@@ -1777,22 +1794,27 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           </View>
 
           {/* Custom Image Option */}
-          <View style={styles.wallpaperOptionCard}>
+          <View style={[styles.wallpaperOptionCard, { backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF' }]}>
             <TouchableOpacity style={styles.wallpaperImageOption} onPress={pickBackgroundImage}>
-              <View style={styles.wallpaperImageIconBox}>
-                <Ionicons name="images" size={28} color="#25D366" />
+              <View style={[styles.wallpaperImageIconBox, { backgroundColor: isDarkMode ? 'rgba(37, 211, 102, 0.15)' : 'rgba(37, 211, 102, 0.1)' }]}>
+                <Ionicons name="images" size={26} color="#25D366" />
               </View>
               <View style={styles.wallpaperImageTextBox}>
-                <Text style={styles.wallpaperImageTitle}>Choose from Gallery</Text>
-                <Text style={styles.wallpaperImageSubtitle}>Select a photo from your device</Text>
+                <Text style={[styles.wallpaperImageTitle, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>Choose from Gallery</Text>
+                <Text style={[styles.wallpaperImageSubtitle, { color: isDarkMode ? '#8696A0' : '#667781' }]}>Select a photo from your device</Text>
               </View>
-              <Ionicons name="chevron-forward" size={22} color="#8696A0" />
+              <View style={[styles.wallpaperChevronBox, { backgroundColor: isDarkMode ? 'rgba(134, 150, 160, 0.15)' : 'rgba(0, 0, 0, 0.05)' }]}>
+                <Ionicons name="chevron-forward" size={18} color={isDarkMode ? '#8696A0' : '#667781'} />
+              </View>
             </TouchableOpacity>
           </View>
 
           {/* Solid Colors */}
-          <View style={styles.wallpaperColorsCard}>
-            <Text style={styles.wallpaperSectionLabel}>SOLID COLORS</Text>
+          <View style={[styles.wallpaperColorsCard, { backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF' }]}>
+            <View style={styles.wallpaperColorsHeader}>
+              <Ionicons name="color-palette-outline" size={18} color={isDarkMode ? '#8696A0' : '#667781'} />
+              <Text style={[styles.wallpaperSectionLabel, { color: isDarkMode ? '#8696A0' : '#667781' }]}>Solid Colors</Text>
+            </View>
             <View style={styles.wallpaperColorsGrid}>
               {backgroundColors.map((color, index) => (
                 <TouchableOpacity
@@ -1800,13 +1822,14 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   style={[
                     styles.wallpaperColorCircle,
                     { backgroundColor: color },
+                    chatBackground?.type === 'color' && chatBackground.value === color && styles.wallpaperColorCircleActive,
                   ]}
                   onPress={() => setBackgroundColor(color)}
                   activeOpacity={0.7}
                 >
                   {chatBackground?.type === 'color' && chatBackground.value === color && (
                     <View style={styles.wallpaperColorSelected}>
-                      <Ionicons name="checkmark" size={22} color="#fff" />
+                      <Ionicons name="checkmark" size={20} color="#fff" />
                     </View>
                   )}
                 </TouchableOpacity>
@@ -1814,11 +1837,13 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
             </View>
           </View>
 
-          {/* Reset Button */}
-          <TouchableOpacity style={styles.wallpaperResetBtn} onPress={resetBackground}>
-            <Ionicons name="refresh" size={22} color="#E94560" />
-            <Text style={styles.wallpaperResetText}>Reset to Default</Text>
-          </TouchableOpacity>
+          {/* Info Text */}
+          <View style={styles.wallpaperInfoBox}>
+            <Ionicons name="information-circle-outline" size={16} color={isDarkMode ? '#8696A0' : '#667781'} />
+            <Text style={[styles.wallpaperInfoText, { color: isDarkMode ? '#8696A0' : '#667781' }]}>
+              Your wallpaper choice is saved for this group only
+            </Text>
+          </View>
 
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -2141,6 +2166,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         {/* Chat Messages Area with Custom Background */}
         <View style={[
           styles.whatsappChatArea,
+          { backgroundColor: isDarkMode ? '#0B141A' : '#E4DDD6' },
           chatBackground?.type === 'color' && { backgroundColor: chatBackground.value },
         ]}>
           {/* Background Image */}
@@ -6206,14 +6232,13 @@ const styles = StyleSheet.create({
   // Wallpaper Modal Styles - Premium Design
   wallpaperModalContainer: {
     flex: 1,
-    backgroundColor: '#0B141A',
   },
   wallpaperHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: Platform.OS === 'ios' ? 50 : 16,
     paddingBottom: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   wallpaperBackBtn: {
     width: 40,
@@ -6224,10 +6249,22 @@ const styles = StyleSheet.create({
   },
   wallpaperHeaderTitle: {
     flex: 1,
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginLeft: 8,
+    marginLeft: 4,
+    letterSpacing: 0.3,
+  },
+  wallpaperHeaderResetBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  wallpaperHeaderResetText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   wallpaperScrollView: {
     flex: 1,
@@ -6236,23 +6273,27 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   wallpaperPreviewCard: {
-    marginBottom: 20,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 16,
+    overflow: 'hidden',
+  },
+  wallpaperPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
   },
   wallpaperSectionLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#8696A0',
-    marginBottom: 12,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   wallpaperPreviewBox: {
-    height: 200,
-    borderRadius: 16,
-    backgroundColor: '#0B141A',
+    height: 180,
+    borderRadius: 12,
     overflow: 'hidden',
     position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   wallpaperPreviewImage: {
     width: '100%',
@@ -6266,36 +6307,43 @@ const styles = StyleSheet.create({
   },
   wallpaperPreviewBubbleLeft: {
     alignSelf: 'flex-start',
-    backgroundColor: '#202C33',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
     borderTopLeftRadius: 4,
     marginBottom: 8,
     maxWidth: '75%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   wallpaperPreviewTextLeft: {
-    color: '#E9EDEF',
     fontSize: 14,
+    lineHeight: 18,
   },
   wallpaperPreviewTime: {
-    color: '#8696A0',
     fontSize: 11,
     marginTop: 4,
     alignSelf: 'flex-end',
   },
   wallpaperPreviewBubbleRight: {
     alignSelf: 'flex-end',
-    backgroundColor: '#005C4B',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
     borderTopRightRadius: 4,
     maxWidth: '75%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   wallpaperPreviewTextRight: {
-    color: '#E9EDEF',
     fontSize: 14,
+    lineHeight: 18,
   },
   wallpaperPreviewTimeRow: {
     flexDirection: 'row',
@@ -6305,14 +6353,17 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   wallpaperPreviewTimeRight: {
-    color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 11,
   },
   wallpaperOptionCard: {
-    backgroundColor: '#1F2C34',
     borderRadius: 16,
-    marginBottom: 20,
+    marginBottom: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   wallpaperImageOption: {
     flexDirection: 'row',
@@ -6320,10 +6371,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   wallpaperImageIconBox: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(37, 211, 102, 0.15)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -6332,57 +6382,78 @@ const styles = StyleSheet.create({
     marginLeft: 14,
   },
   wallpaperImageTitle: {
-    color: '#E9EDEF',
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: 3,
+    letterSpacing: 0.2,
   },
   wallpaperImageSubtitle: {
-    color: '#8696A0',
     fontSize: 13,
+    letterSpacing: 0.1,
+  },
+  wallpaperChevronBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   wallpaperColorsCard: {
-    backgroundColor: '#1F2C34',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  wallpaperColorsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
   },
   wallpaperColorsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 4,
+    gap: 10,
   },
   wallpaperColorCircle: {
-    width: (width - 32 - 16 - 60) / 6,
+    width: (width - 32 - 32 - 50) / 6,
     aspectRatio: 1,
     borderRadius: 100,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  wallpaperColorCircleActive: {
+    transform: [{ scale: 1.1 }],
   },
   wallpaperColorSelected: {
     width: '100%',
     height: '100%',
     borderRadius: 100,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: '#FFFFFF',
   },
-  wallpaperResetBtn: {
+  wallpaperInfoBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1F2C34',
-    paddingVertical: 16,
-    borderRadius: 16,
-    gap: 10,
+    paddingVertical: 12,
+    gap: 8,
   },
-  wallpaperResetText: {
-    color: '#E94560',
-    fontSize: 16,
-    fontWeight: '600',
+  wallpaperInfoText: {
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
 });
 
