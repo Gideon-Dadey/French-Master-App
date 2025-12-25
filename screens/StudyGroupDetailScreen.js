@@ -29,6 +29,7 @@ import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import { Audio } from 'expo-av';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { spacing, fontSize } from '../src/utils/responsive';
@@ -207,6 +208,41 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const callPulseAnim = useRef(new Animated.Value(1)).current;
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+
+  // Chat background customization
+  const [showBackgroundPicker, setShowBackgroundPicker] = useState(false);
+  const [chatBackground, setChatBackground] = useState(null); // { type: 'color' | 'image', value: string }
+
+  // Load saved background on mount
+  useEffect(() => {
+    const loadSavedBackground = async () => {
+      try {
+        const savedBackground = await AsyncStorage.getItem(`chat_background_${groupId}`);
+        if (savedBackground) {
+          setChatBackground(JSON.parse(savedBackground));
+        }
+      } catch (error) {
+        console.log('Failed to load saved background:', error);
+      }
+    };
+    loadSavedBackground();
+  }, [groupId]);
+
+  // Save background when it changes
+  useEffect(() => {
+    const saveBackground = async () => {
+      try {
+        if (chatBackground) {
+          await AsyncStorage.setItem(`chat_background_${groupId}`, JSON.stringify(chatBackground));
+        } else {
+          await AsyncStorage.removeItem(`chat_background_${groupId}`);
+        }
+      } catch (error) {
+        console.log('Failed to save background:', error);
+      }
+    };
+    saveBackground();
+  }, [chatBackground, groupId]);
 
   const [showGroupOptions, setShowGroupOptions] = useState(false);
   const [showEditGroup, setShowEditGroup] = useState(false);
@@ -995,6 +1031,53 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     setDiscussionMessage(prev => prev + emoji);
   };
 
+  // Chat background functions
+  const openBackgroundPicker = () => {
+    setShowBackgroundPicker(true);
+  };
+
+  const closeBackgroundPicker = () => {
+    setShowBackgroundPicker(false);
+  };
+
+  const pickBackgroundImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your photo library');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setChatBackground({ type: 'image', value: result.assets[0].uri });
+        closeBackgroundPicker();
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const setBackgroundColor = (color) => {
+    setChatBackground({ type: 'color', value: color });
+    closeBackgroundPicker();
+  };
+
+  const setBackgroundPattern = (pattern) => {
+    setChatBackground({ type: 'pattern', value: pattern });
+    closeBackgroundPicker();
+  };
+
+  const resetBackground = () => {
+    setChatBackground(null);
+    closeBackgroundPicker();
+  };
+
   const downloadDocument = async (uri, filename) => {
     try {
       if (!uri) return;
@@ -1379,6 +1462,20 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     {notificationSettings.muted ? 'Unmute' : 'Mute'}
                   </Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.actionSheetItem}
+                  onPress={() => {
+                    setShowGroupOptions(false);
+                    setTimeout(() => openBackgroundPicker(), 300);
+                  }}
+                >
+                  <View style={[styles.actionSheetIcon, { backgroundColor: '#25D36620' }]}>
+                    <Ionicons name="image-outline" size={20} color="#25D366" />
+                  </View>
+                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Wallpaper</Text>
+                  <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+                </TouchableOpacity>
               </View>
 
               <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
@@ -1610,6 +1707,123 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
             </ScrollView>
           </View>
         </Modal>
+  );
+
+  // Wallpaper/Background picker modal
+  const backgroundColors = [
+    '#0B141A', '#075E54', '#128C7E', '#25D366',
+    '#34B7F1', '#1F2C34', '#2A3942', '#111B21',
+    '#1E3A5F', '#3D0066', '#4A0E4E', '#1A1A2E',
+    '#16213E', '#0F3460', '#533483', '#E94560',
+    '#FF6B6B', '#4ECDC4', '#2C3E50', '#34495E',
+    '#7F8C8D', '#95A5A6', '#1ABC9C', '#3498DB',
+  ];
+
+  const renderBackgroundPickerModal = () => (
+    <Modal
+      visible={showBackgroundPicker}
+      transparent={false}
+      animationType="slide"
+      onRequestClose={closeBackgroundPicker}
+    >
+      <View style={styles.wallpaperModalContainer}>
+        {/* Header */}
+        <LinearGradient
+          colors={['#075E54', '#128C7E']}
+          style={styles.wallpaperHeader}
+        >
+          <TouchableOpacity onPress={closeBackgroundPicker} style={styles.wallpaperBackBtn}>
+            <Ionicons name="arrow-back" size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.wallpaperHeaderTitle}>Chat Wallpaper</Text>
+          <View style={{ width: 40 }} />
+        </LinearGradient>
+
+        <ScrollView 
+          style={styles.wallpaperScrollView} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.wallpaperScrollContent}
+        >
+          {/* Preview Card */}
+          <View style={styles.wallpaperPreviewCard}>
+            <Text style={styles.wallpaperSectionLabel}>PREVIEW</Text>
+            <View style={[
+              styles.wallpaperPreviewBox,
+              chatBackground?.type === 'color' && { backgroundColor: chatBackground.value },
+              !chatBackground && { backgroundColor: '#0B141A' },
+            ]}>
+              {chatBackground?.type === 'image' && (
+                <Image 
+                  source={{ uri: chatBackground.value }} 
+                  style={styles.wallpaperPreviewImage}
+                  resizeMode="cover"
+                />
+              )}
+              {/* Sample chat bubbles */}
+              <View style={styles.wallpaperPreviewChat}>
+                <View style={styles.wallpaperPreviewBubbleLeft}>
+                  <Text style={styles.wallpaperPreviewTextLeft}>Hey! How are you? 👋</Text>
+                  <Text style={styles.wallpaperPreviewTime}>10:30 AM</Text>
+                </View>
+                <View style={styles.wallpaperPreviewBubbleRight}>
+                  <Text style={styles.wallpaperPreviewTextRight}>I'm great! Learning French 🇫🇷</Text>
+                  <View style={styles.wallpaperPreviewTimeRow}>
+                    <Text style={styles.wallpaperPreviewTimeRight}>10:31 AM</Text>
+                    <Ionicons name="checkmark-done" size={14} color="#53BDEB" />
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Custom Image Option */}
+          <View style={styles.wallpaperOptionCard}>
+            <TouchableOpacity style={styles.wallpaperImageOption} onPress={pickBackgroundImage}>
+              <View style={styles.wallpaperImageIconBox}>
+                <Ionicons name="images" size={28} color="#25D366" />
+              </View>
+              <View style={styles.wallpaperImageTextBox}>
+                <Text style={styles.wallpaperImageTitle}>Choose from Gallery</Text>
+                <Text style={styles.wallpaperImageSubtitle}>Select a photo from your device</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={22} color="#8696A0" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Solid Colors */}
+          <View style={styles.wallpaperColorsCard}>
+            <Text style={styles.wallpaperSectionLabel}>SOLID COLORS</Text>
+            <View style={styles.wallpaperColorsGrid}>
+              {backgroundColors.map((color, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.wallpaperColorCircle,
+                    { backgroundColor: color },
+                  ]}
+                  onPress={() => setBackgroundColor(color)}
+                  activeOpacity={0.7}
+                >
+                  {chatBackground?.type === 'color' && chatBackground.value === color && (
+                    <View style={styles.wallpaperColorSelected}>
+                      <Ionicons name="checkmark" size={22} color="#fff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Reset Button */}
+          <TouchableOpacity style={styles.wallpaperResetBtn} onPress={resetBackground}>
+            <Ionicons name="refresh" size={22} color="#E94560" />
+            <Text style={styles.wallpaperResetText}>Reset to Default</Text>
+          </TouchableOpacity>
+
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </View>
+    </Modal>
   );
 
   const renderGroupInfoModal = () => (
@@ -1924,16 +2138,28 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* Chat Messages Area */}
-        <ScrollView
-          ref={discussionsScrollRef}
-          style={styles.whatsappChatArea}
-          contentContainerStyle={styles.whatsappChatContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25D366" />
-          }
-          showsVerticalScrollIndicator={false}
-        >
+        {/* Chat Messages Area with Custom Background */}
+        <View style={[
+          styles.whatsappChatArea,
+          chatBackground?.type === 'color' && { backgroundColor: chatBackground.value },
+        ]}>
+          {/* Background Image */}
+          {chatBackground?.type === 'image' && (
+            <Image 
+              source={{ uri: chatBackground.value }} 
+              style={styles.chatBackgroundImage}
+              resizeMode="cover"
+            />
+          )}
+          <ScrollView
+            ref={discussionsScrollRef}
+            style={styles.chatScrollView}
+            contentContainerStyle={styles.whatsappChatContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25D366" />
+            }
+            showsVerticalScrollIndicator={false}
+          >
           {group.discussions?.length > 0 ? (
             group.discussions.map((discussion, index) => {
               const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
@@ -2412,7 +2638,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               </Text>
             </View>
           )}
-        </ScrollView>
+          </ScrollView>
+        </View>
 
             {isMember() ? (
               <KeyboardAvoidingView
@@ -3101,6 +3328,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       {renderGroupOptionsModal()}
       {renderEditGroupModal()}
       {renderGroupInfoModal()}
+      {renderBackgroundPickerModal()}
     </View>
     </GestureHandlerRootView>
   );
@@ -5767,6 +5995,19 @@ const styles = StyleSheet.create({
   whatsappChatArea: {
     flex: 1,
     backgroundColor: '#0B141A',
+    position: 'relative',
+  },
+  chatBackgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
+  chatScrollView: {
+    flex: 1,
   },
   whatsappChatContent: {
     paddingHorizontal: 12,
@@ -5960,6 +6201,188 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 19,
     marginTop: 6,
+  },
+
+  // Wallpaper Modal Styles - Premium Design
+  wallpaperModalContainer: {
+    flex: 1,
+    backgroundColor: '#0B141A',
+  },
+  wallpaperHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 50 : 16,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  wallpaperBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wallpaperHeaderTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  wallpaperScrollView: {
+    flex: 1,
+  },
+  wallpaperScrollContent: {
+    padding: 16,
+  },
+  wallpaperPreviewCard: {
+    marginBottom: 20,
+  },
+  wallpaperSectionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8696A0',
+    marginBottom: 12,
+    letterSpacing: 0.5,
+  },
+  wallpaperPreviewBox: {
+    height: 200,
+    borderRadius: 16,
+    backgroundColor: '#0B141A',
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  wallpaperPreviewImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  wallpaperPreviewChat: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: 12,
+  },
+  wallpaperPreviewBubbleLeft: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#202C33',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderTopLeftRadius: 4,
+    marginBottom: 8,
+    maxWidth: '75%',
+  },
+  wallpaperPreviewTextLeft: {
+    color: '#E9EDEF',
+    fontSize: 14,
+  },
+  wallpaperPreviewTime: {
+    color: '#8696A0',
+    fontSize: 11,
+    marginTop: 4,
+    alignSelf: 'flex-end',
+  },
+  wallpaperPreviewBubbleRight: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#005C4B',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderTopRightRadius: 4,
+    maxWidth: '75%',
+  },
+  wallpaperPreviewTextRight: {
+    color: '#E9EDEF',
+    fontSize: 14,
+  },
+  wallpaperPreviewTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    gap: 4,
+  },
+  wallpaperPreviewTimeRight: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 11,
+  },
+  wallpaperOptionCard: {
+    backgroundColor: '#1F2C34',
+    borderRadius: 16,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  wallpaperImageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  wallpaperImageIconBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(37, 211, 102, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wallpaperImageTextBox: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  wallpaperImageTitle: {
+    color: '#E9EDEF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  wallpaperImageSubtitle: {
+    color: '#8696A0',
+    fontSize: 13,
+  },
+  wallpaperColorsCard: {
+    backgroundColor: '#1F2C34',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  wallpaperColorsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 4,
+  },
+  wallpaperColorCircle: {
+    width: (width - 32 - 16 - 60) / 6,
+    aspectRatio: 1,
+    borderRadius: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wallpaperColorSelected: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 100,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  wallpaperResetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1F2C34',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 10,
+  },
+  wallpaperResetText: {
+    color: '#E94560',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
