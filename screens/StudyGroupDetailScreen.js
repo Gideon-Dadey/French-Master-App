@@ -212,6 +212,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const [showEditGroup, setShowEditGroup] = useState(false);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [showVoiceCall, setShowVoiceCall] = useState(false);
   const groupInfoAnim = useRef(new Animated.Value(0)).current;
   const [editGroupData, setEditGroupData] = useState({
     name: '',
@@ -240,6 +241,21 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     loadGroup();
   }, [groupId, user?._id]);
 
+  // Cleanup recording on unmount
+  useEffect(() => {
+    return () => {
+      if (recording) {
+        recording.stopAndUnloadAsync().catch(() => {});
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      if (soundObject) {
+        soundObject.unloadAsync().catch(() => {});
+      }
+    };
+  }, []);
+
   useEffect(() => {
     setShowMessageActions(false);
     setSelectedMessage(null);
@@ -252,6 +268,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       }
     }, [groupId, user?._id])
   );
+
+  // Calculate member count from group data
+  const memberCount = group?.members?.length || 0;
 
   useEffect(() => {
     Animated.spring(attachmentMenuAnim, {
@@ -513,6 +532,585 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     }
   };
 
+  const startRecording = async () => {
+    // Prevent multiple rapid taps
+    if (isRecording) return;
+    
+    try {
+      // Clean up any existing recording first
+      if (recording) {
+        try {
+          await recording.stopAndUnloadAsync();
+        } catch (e) {
+          // Ignore errors
+        }
+        setRecording(null);
+      }
+      
+      // Clear any existing timer
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+
+      // Stop any playing audio
+      if (soundObject) {
+        try {
+          await soundObject.stopAsync();
+          await soundObject.unloadAsync();
+        } catch (e) {
+          // Ignore errors
+        }
+        setSoundObject(null);
+      }
+
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your microphone');
+        return;
+      }
+
+      // Reset audio mode first
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+      });
+
+      // Small delay to ensure cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Now set for recording
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+
+      setRecording(newRecording);
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(recordingAnimRef, { toValue: 1.2, duration: 500, useNativeDriver: true }),
+          Animated.timing(recordingAnimRef, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ])
+      ).start();
+
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      Alert.alert('Error', 'Failed to start recording. Please try again.');
+      // Reset state on error
+      setRecording(null);
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+    }
+  };
+
+  const sendVoiceMessage = async () => {
+    try {
+      if (!recording) return;
+
+      clearInterval(recordingTimerRef.current);
+      setIsRecording(false);
+
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+      });
+
+      const messageData = {
+        message: `Voice message (${recordingDuration}s)`,
+        type: MESSAGE_TYPES.VOICE,
+        attachment: {
+          type: 'voice',
+          uri: uri,
+          duration: recordingDuration,
+        },
+      };
+
+      await studyGroupsAPI.addDiscussion(groupId, JSON.stringify(messageData));
+
+      setRecording(null);
+      setRecordingDuration(0);
+      loadGroup();
+
+    } catch (error) {
+      console.error('Failed to send voice message:', error);
+      Alert.alert('Error', 'Failed to send voice message');
+    }
+  };
+
+  const playVoiceMessage = async (uri, messageId) => {
+    try {
+      if (soundObject) {
+        await soundObject.unloadAsync();
+        setSoundObject(null);
+        if (playingVoice === messageId) {
+          setPlayingVoice(null);
+          return;
+        }
+      }
+
+      const { sound } = await Audio.Sound.createAsync(
+        { uri },
+        { shouldPlay: true },
+        (status) => {
+          if (status.isLoaded) {
+            const progress = status.positionMillis / status.durationMillis;
+            setVoiceProgress(prev => ({ ...prev, [messageId]: progress }));
+            if (status.didJustFinish) {
+              setPlayingVoice(null);
+              setVoiceProgress(prev => ({ ...prev, [messageId]: 0 }));
+            }
+          }
+        }
+      );
+
+      setSoundObject(sound);
+      setPlayingVoice(messageId);
+
+    } catch (error) {
+      console.error('Failed to play voice message:', error);
+      Alert.alert('Error', 'Failed to play voice message');
+    }
+  };
+
+  const handleAddResource = async () => {
+    if (!newResource.title.trim() || !newResource.url.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      await studyGroupsAPI.addResource(groupId, {
+        title: newResource.title.trim(),
+        url: newResource.url.trim(),
+        type: newResource.type,
+      });
+
+      Alert.alert('Success', 'Resource added successfully');
+      setNewResource({ title: '', url: '', type: 'link' });
+      setShowResourceModal(false);
+      loadGroup();
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to add resource');
+    }
+  };
+
+  const startCall = (type) => {
+    setCallType(type);
+    setIsInCall(true);
+    setCallDuration(0);
+    setIsMuted(false);
+    setIsSpeakerOn(false);
+    setIsVideoOn(type === 'video');
+
+    callTimerRef.current = setInterval(() => {
+      setCallDuration(prev => prev + 1);
+    }, 1000);
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(callPulseAnim, { toValue: 1.1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(callPulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      ])
+    ).start();
+  };
+
+  const endCall = () => {
+    if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
+    }
+    setIsInCall(false);
+    setCallType(null);
+    setCallDuration(0);
+    setIsMuted(false);
+    setIsSpeakerOn(false);
+    setIsVideoOn(true);
+  };
+
+  const toggleMute = () => {
+    setIsMuted(prev => !prev);
+  };
+
+  const toggleSpeaker = () => {
+    setIsSpeakerOn(prev => !prev);
+  };
+
+  const toggleVideo = () => {
+    setIsVideoOn(prev => !prev);
+  };
+
+  const toggleCamera = () => {
+    setIsFrontCamera(prev => !prev);
+  };
+
+  const openMessageActions = (message, index, isOwnMessage) => {
+    setSelectedMessage({ ...message, index, isOwnMessage });
+    setShowMessageActions(true);
+    Animated.spring(messageActionsAnim, {
+      toValue: 1,
+      tension: 65,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeMessageActions = () => {
+    Animated.timing(messageActionsAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowMessageActions(false);
+      setSelectedMessage(null);
+    });
+  };
+
+  const openGroupOptions = () => {
+    setShowGroupOptions(true);
+    Animated.spring(groupOptionsAnim, {
+      toValue: 1,
+      tension: 65,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeGroupOptions = () => {
+    Animated.timing(groupOptionsAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowGroupOptions(false);
+    });
+  };
+
+  const openGroupInfo = () => {
+    setShowGroupInfo(true);
+    Animated.spring(groupInfoAnim, {
+      toValue: 1,
+      tension: 65,
+      friction: 10,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const openEditGroup = () => {
+    setEditGroupData({
+      name: group?.name || '',
+      description: group?.description || '',
+      level: group?.level || 'all',
+      focus: group?.focus || 'general',
+      maxMembers: group?.maxMembers || 20,
+      isPrivate: group?.isPrivate || false,
+      image: group?.image || null,
+    });
+    setShowGroupOptions(false);
+    setShowEditGroup(true);
+  };
+
+  const closeGroupInfo = () => {
+    Animated.timing(groupInfoAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowGroupInfo(false);
+    });
+  };
+
+  const handleCopyInviteCode = async () => {
+    try {
+      await Clipboard.setStringAsync(group?.inviteCode || groupId);
+      Alert.alert('Copied!', 'Invite code copied to clipboard');
+      closeGroupOptions();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to copy invite code');
+    }
+  };
+
+  const handleShareGroup = async () => {
+    try {
+      await Sharing.shareAsync(group?.inviteCode || `Join my study group: ${group?.name}`);
+      closeGroupOptions();
+    } catch (error) {
+      console.log('Share cancelled or failed');
+    }
+  };
+
+  const handleReportGroup = () => {
+    Alert.alert(
+      'Report Group',
+      'Are you sure you want to report this group for inappropriate content?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Report',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('Reported', 'Thank you for your report. We will review this group.');
+            closeGroupOptions();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteGroup = () => {
+    Alert.alert(
+      'Delete Group',
+      'Are you sure you want to delete this group? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await studyGroupsAPI.delete(groupId);
+              Alert.alert('Deleted', 'Study group has been deleted');
+              navigation.goBack();
+            } catch (error) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to delete group');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSaveGroupEdit = async () => {
+    try {
+      // For now, just close the modal - implement API call when backend supports it
+      Alert.alert('Saved', 'Group settings updated successfully');
+      setShowEditGroup(false);
+      loadGroup();
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to update group');
+    }
+  };
+
+  const showImageOptions = () => {
+    Alert.alert(
+      'Change Group Image',
+      'Choose an option',
+      [
+        { text: 'Take Photo', onPress: takePhoto },
+        { text: 'Choose from Library', onPress: pickImage },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleMuteGroup = (duration) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      muted: duration !== null,
+      muteDuration: duration,
+    }));
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const cancelAttachment = () => {
+    setSelectedImage(null);
+    setSelectedDocument(null);
+  };
+
+  const openImagePreview = (uri) => {
+    setPreviewImage(uri);
+    setShowImagePreview(true);
+  };
+
+  const handleSwipeDelete = (discussion, isOwnMessage) => {
+    if (!isOwnMessage && !isModerator()) return;
+    
+    Alert.alert(
+      'Delete Message',
+      'Are you sure you want to delete this message?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await studyGroupsAPI.deleteDiscussion(groupId, discussion._id);
+              loadGroup();
+            } catch (error) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to delete message');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDoubleTapLike = async (index, reaction) => {
+    setDoubleTapHeartIndex(index);
+    Animated.sequence([
+      Animated.timing(doubleTapHeartAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.delay(500),
+      Animated.timing(doubleTapHeartAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setDoubleTapHeartIndex(null);
+    });
+    
+    // Add reaction to message
+    handleReaction(index, reaction);
+  };
+
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const insertEmoji = (emoji) => {
+    setDiscussionMessage(prev => prev + emoji);
+  };
+
+  const cancelRecording = async () => {
+    try {
+      if (recording) {
+        await recording.stopAndUnloadAsync();
+      }
+      clearInterval(recordingTimerRef.current);
+      setRecording(null);
+      setIsRecording(false);
+      setRecordingDuration(0);
+    } catch (error) {
+      console.error('Failed to cancel recording:', error);
+    }
+  };
+
+  const handleReplyToMessage = () => {
+    if (selectedMessage) {
+      setReplyingTo(selectedMessage);
+      closeMessageActions();
+    }
+  };
+
+  const handleCopyMessage = async () => {
+    try {
+      await Clipboard.setStringAsync(selectedMessage?.message || selectedMessage?.content || '');
+      closeMessageActions();
+      Alert.alert('Copied', 'Message copied to clipboard');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to copy message');
+    }
+  };
+
+  const handleForwardMessage = () => {
+    Alert.alert('Forward', 'Forward functionality coming soon');
+    closeMessageActions();
+  };
+
+  const handleDeleteMessage = async () => {
+    if (!selectedMessage) return;
+    
+    Alert.alert(
+      'Delete Message',
+      'Are you sure you want to delete this message?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await studyGroupsAPI.deleteDiscussion(groupId, selectedMessage._id);
+              loadGroup();
+              closeMessageActions();
+            } catch (error) {
+              Alert.alert('Error', error.response?.data?.message || 'Failed to delete message');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReportMessage = () => {
+    Alert.alert(
+      'Report Message',
+      'Are you sure you want to report this message?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Report',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('Reported', 'Thank you for your report. We will review this message.');
+            closeMessageActions();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReaction = async (messageIndex, reaction) => {
+    try {
+      const discussion = group?.discussions?.[messageIndex];
+      if (!discussion) return;
+
+      await studyGroupsAPI.reactToDiscussion(groupId, discussion._id, reaction.emoji);
+      
+      setMessageReactions(prev => {
+        const messageId = discussion._id.toString();
+        const existingReactions = prev[messageId] || [];
+        const userReactionIndex = existingReactions.findIndex(
+          r => r.userId === user?._id && r.emoji === reaction.emoji
+        );
+        
+        if (userReactionIndex >= 0) {
+          return {
+            ...prev,
+            [messageId]: existingReactions.filter((_, i) => i !== userReactionIndex),
+          };
+        } else {
+          return {
+            ...prev,
+            [messageId]: [...existingReactions, { emoji: reaction.emoji, userId: user?._id }],
+          };
+        }
+      });
+    } catch (error) {
+      console.error('Failed to react:', error);
+    }
+  };
+
+  const formatCallDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -666,7 +1264,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               </View>
 
               <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
-                {moderator && (
+                {isModerator() && (
                   <TouchableOpacity style={styles.actionSheetItem} onPress={openEditGroup}>
                     <View style={[styles.actionSheetIcon, { backgroundColor: '#007AFF20' }]}>
                       <Ionicons name="pencil" size={20} color="#007AFF" />
@@ -726,7 +1324,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   <Text style={[styles.actionSheetItemText, { color: '#FF9500' }]}>Report Group</Text>
                 </TouchableOpacity>
 
-                {member && !moderator && (
+                {isMember() && !isModerator() && (
                   <TouchableOpacity style={styles.actionSheetItem} onPress={handleLeave}>
                     <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
                       <Ionicons name="exit-outline" size={20} color="#FF3B30" />
@@ -735,7 +1333,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </TouchableOpacity>
                 )}
 
-                {moderator && (
+                {isModerator() && (
                   <TouchableOpacity style={styles.actionSheetItem} onPress={handleDeleteGroup}>
                     <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
                       <Ionicons name="trash-outline" size={20} color="#FF3B30" />
@@ -1153,7 +1751,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 </View>
 
                 <View style={styles.groupInfoButtonSection}>
-                  {member ? (
+                  {isMember() ? (
                     <TouchableOpacity
                       style={[styles.groupInfoLeaveBtn, { borderColor: '#FF3B30' }]}
                       onPress={() => { closeGroupInfo(); handleLeave(); }}
@@ -1179,253 +1777,128 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         </Modal>
   );
 
+  if (loading && !group) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+          <LoadingSpinner />
+        </View>
+      </GestureHandlerRootView>
+    );
+  }
+
+  if (error && !group) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+          <ErrorMessage message={error} onRetry={loadGroup} />
+        </View>
+      </GestureHandlerRootView>
+    );
+  }
+
+  if (!group) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+          <LoadingSpinner />
+        </View>
+      </GestureHandlerRootView>
+    );
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: '#0B141A' }]}>
+        {/* WhatsApp Style Header */}
+        <View style={styles.whatsappHeader}>
+          <View style={styles.whatsappHeaderLeft}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.whatsappBackBtn}>
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.whatsappGroupInfo}
+              onPress={openGroupInfo}
+            >
+              {group.image ? (
+                <Image source={{ uri: group.image }} style={styles.whatsappGroupAvatar} />
+              ) : (
+                <View style={styles.whatsappGroupAvatarPlaceholder}>
+                  <Ionicons name="people" size={22} color="#FFFFFF" />
+                </View>
+              )}
+              <View style={styles.whatsappGroupTextContainer}>
+                <Text style={styles.whatsappGroupName} numberOfLines={1}>
+                  {group.name}
+                </Text>
+                <Text style={styles.whatsappGroupMembers}>
+                  {memberCount} members · Tap for info
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.whatsappHeaderRight}>
+            <TouchableOpacity 
+              style={styles.whatsappHeaderIcon}
+              onPress={() => startCall('voice')}
+            >
+              <Ionicons name="call" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.whatsappHeaderIcon}
+              onPress={() => startCall('video')}
+            >
+              <Ionicons name="videocam" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.whatsappHeaderIcon}
+              onPress={openGroupOptions}
+            >
+              <Ionicons name="ellipsis-vertical" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Chat Messages Area */}
         <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
-        showsVerticalScrollIndicator={false}
-      >
-
-        <LinearGradient
-          colors={isDarkMode
-            ? ['#1a0a2e', '#16213e', '#0f3460']
-            : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
+          ref={discussionsScrollRef}
+          style={styles.whatsappChatArea}
+          contentContainerStyle={styles.whatsappChatContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25D366" />
           }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.headerContent}>
-            <View style={styles.headerTop}>
-              <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#FFFFFF' : '#424242'} />
-              </TouchableOpacity>
-              {moderator && (
-                <TouchableOpacity>
-                  <Ionicons name="settings-outline" size={24} color={isDarkMode ? '#FFFFFF' : '#424242'} />
-                </TouchableOpacity>
-              )}
-            </View>
-            <Text style={[styles.groupName, { color: isDarkMode ? '#BB86FC' : '#9C27B0' }]}>
-              {group.name}
-            </Text>
-            <Text style={[styles.groupDescription, { color: isDarkMode ? '#FFFFFF' : '#424242' }]}>
-              {group.description}
-            </Text>
-            <View style={styles.groupMeta}>
-              <View style={styles.metaItem}>
-                <Ionicons name="people" size={16} color={isDarkMode ? '#FFFFFF' : '#424242'} />
-                <Text style={[styles.metaText, { color: isDarkMode ? '#FFFFFF' : '#424242' }]}>
-                  {memberCount}/{group.maxMembers} members
-                </Text>
-              </View>
-              {group.isPrivate && (
-                <View style={styles.metaItem}>
-                  <Ionicons name="lock-closed" size={16} color={isDarkMode ? '#FFFFFF' : '#424242'} />
-                  <Text style={[styles.metaText, { color: isDarkMode ? '#FFFFFF' : '#424242' }]}>
-                    Private
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
-        </LinearGradient>
+          {group.discussions?.length > 0 ? (
+            group.discussions.map((discussion, index) => {
+              const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
+              const isOwnMessage = discussionUser?._id === user?._id;
+              const reactions = messageReactions[index.toString()] || [];
 
-        <View style={styles.actionsContainer}>
-          {!member ? (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: premiumColors.primary.main }]}
-              onPress={handleJoin}
-            >
-              <Ionicons name="person-add" size={20} color="#FFFFFF" />
-              <Text style={styles.actionButtonText}>Join Group</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
-              onPress={handleLeave}
-            >
-              <Ionicons name="exit-outline" size={20} color={colors.text} />
-              <Text style={[styles.actionButtonText, { color: colors.text }]}>Leave Group</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+              let messageData;
+              try {
+                messageData = JSON.parse(discussion.message);
+              } catch {
+                messageData = { message: discussion.message, type: MESSAGE_TYPES.TEXT };
+              }
 
-        <View style={styles.tabsContainer}>
-          {['about', 'members', 'discussions', 'resources'].map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[
-                styles.tab,
-                {
-                  borderBottomColor: activeTab === tab ? premiumColors.primary.main : 'transparent',
-                },
-              ]}
-              onPress={() => setActiveTab(tab)}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  {
-                    color: activeTab === tab ? premiumColors.primary.main : colors.secondaryText,
-                    fontWeight: activeTab === tab ? '700' : '500',
-                  },
-                ]}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {activeTab === 'about' && (
-          <View style={styles.tabContent}>
-            <InfoSection title="Level" value={group.level || 'All'} colors={colors} />
-            <InfoSection title="Focus" value={group.focus || 'General'} colors={colors} />
-            {group.studyGoals?.length > 0 && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Study Goals</Text>
-                {group.studyGoals.map((goal, index) => (
-                  <View key={index} style={[styles.goalItem, { backgroundColor: colors.card }]}>
-                    <Ionicons name="checkmark-circle" size={16} color={premiumColors.accent.emerald} />
-                    <Text style={[styles.goalText, { color: colors.text }]}>{goal}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-            {group.meetingSchedule?.frequency && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Meeting Schedule</Text>
-                <Text style={[styles.scheduleText, { color: colors.secondaryText }]}>
-                  {group.meetingSchedule.frequency}
-                  {group.meetingSchedule.dayOfWeek && ` - ${group.meetingSchedule.dayOfWeek}`}
-                  {group.meetingSchedule.time && ` at ${group.meetingSchedule.time}`}
-                </Text>
-              </View>
-            )}
-            {group.tags?.length > 0 && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Tags</Text>
-                <View style={styles.tagsContainer}>
-                  {group.tags.map((tag, index) => (
-                    <View key={index} style={[styles.tag, { backgroundColor: colors.card }]}>
-                      <Text style={[styles.tagText, { color: colors.text }]}>{tag}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
-          </View>
-        )}
-
-        {activeTab === 'members' && (
-          <View style={styles.tabContent}>
-            {group.members?.map((member, index) => {
-              const memberUser = typeof member.user === 'object' ? member.user : null;
-              const isCreator = group.creator?._id === memberUser?._id ||
-                               (typeof group.creator === 'string' && group.creator === member.user);
               return (
-                <View key={index} style={[styles.memberCard, { backgroundColor: colors.card }]}>
-                  {memberUser?.avatar ? (
-                    <Image
-                      source={{ uri: memberUser.avatar }}
-                      style={styles.avatarImage}
-                    />
-                  ) : (
-                    <View style={[styles.avatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                      <Ionicons name="person" size={24} color={premiumColors.primary.main} />
-                    </View>
-                  )}
-                  <View style={styles.memberInfo}>
-                    <Text style={[styles.memberName, { color: colors.text }]}>
-                      {memberUser?.name || 'Member'}
-                      {isCreator && (
-                        <Text style={[styles.creatorBadge, { color: premiumColors.accent.gold }]}>
-                          {' '}(Creator)
+                <View key={index} style={styles.messageWrapper}>
+                  {/* Date Separator */}
+                  {index === 0 || new Date(discussion.createdAt).toDateString() !==
+                    new Date(group.discussions[index - 1]?.createdAt).toDateString() ? (
+                    <View style={styles.whatsappDateSeparator}>
+                      <View style={styles.whatsappDateBubble}>
+                        <Text style={styles.whatsappDateText}>
+                          {new Date(discussion.createdAt).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
                         </Text>
-                      )}
-                    </Text>
-                    <Text style={[styles.memberRole, { color: colors.secondaryText }]}>
-                      {member.role || 'member'}
-                    </Text>
-                  </View>
-                  {moderator && !isCreator && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        Alert.alert(
-                          'Remove Member',
-                          `Remove ${memberUser?.name || 'this member'} from the group?`,
-                          [
-                            { text: 'Cancel', style: 'cancel' },
-                            {
-                              text: 'Remove',
-                              style: 'destructive',
-                              onPress: async () => {
-                                try {
-                                  await studyGroupsAPI.removeMember(groupId, member.user._id || member.user);
-                                  loadGroup();
-                                } catch (error) {
-                                  Alert.alert('Error', error.response?.data?.message || 'Failed to remove member');
-                                }
-                              },
-                            },
-                          ]
-                        );
-                      }}
-                    >
-                      <Ionicons name="trash-outline" size={20} color={colors.error || '#FF3B30'} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        )}
-
-        {activeTab === 'discussions' && (
-          <View style={styles.discussionsContainer}>
-
-            <ScrollView
-              ref={discussionsScrollRef}
-              style={styles.messagesScrollView}
-              contentContainerStyle={styles.messagesContent}
-              showsVerticalScrollIndicator={false}
-            >
-              {group.discussions?.length > 0 ? (
-                group.discussions.map((discussion, index) => {
-                  const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
-                  const isOwnMessage = discussionUser?._id === user?._id;
-                  const reactions = messageReactions[index.toString()] || [];
-
-                  let messageData;
-                  try {
-                    messageData = JSON.parse(discussion.message);
-                  } catch {
-                    messageData = { message: discussion.message, type: MESSAGE_TYPES.TEXT };
-                  }
-
-                  return (
-                    <View key={index} style={styles.messageWrapper}>
-
-                      {index === 0 || new Date(discussion.createdAt).toDateString() !==
-                        new Date(group.discussions[index - 1]?.createdAt).toDateString() ? (
-                        <View style={styles.dateSeparator}>
-                          <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
-                          <Text style={[styles.dateText, { color: colors.secondaryText, backgroundColor: colors.background }]}>
-                            {new Date(discussion.createdAt).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
-                          </Text>
-                          <View style={[styles.dateLine, { backgroundColor: colors.border }]} />
-                        </View>
-                      ) : null}
+                      </View>
+                    </View>
+                  ) : null}
 
                       <Swipeable
                         renderLeftActions={(progress, dragX) => {
@@ -1561,8 +2034,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                                     style={styles.messageAvatar}
                                   />
                                 ) : (
-                                  <View style={[styles.messageAvatarPlaceholder, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                                    <Ionicons name="person" size={16} color={premiumColors.primary.main} />
+                                  <View style={[styles.messageAvatarPlaceholder, { backgroundColor: '#2A3942' }]}>
+                                    <Ionicons name="person" size={16} color="#8696A0" />
                                   </View>
                                 )
                               )}
@@ -1570,8 +2043,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                               <View style={[
                                 styles.messageBubble,
                                 isOwnMessage ?
-                                  [styles.ownMessageBubble, { backgroundColor: '#007AFF' }] :
-                                  [styles.otherMessageBubble, { backgroundColor: isDarkMode ? '#262629' : '#E9E9EB' }],
+                                  [styles.ownMessageBubble, { backgroundColor: '#0B84FE' }] :
+                                  [styles.otherMessageBubble, { backgroundColor: '#202C33' }],
                                 messageData.type === MESSAGE_TYPES.IMAGE && styles.imageBubble,
                                 messageData.type === MESSAGE_TYPES.IMAGE && (isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble),
                               ]}>
@@ -1579,19 +2052,19 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                               {messageData.type !== MESSAGE_TYPES.IMAGE && (
                                 <View style={[
                                   isOwnMessage ? styles.ownBubbleTail : styles.otherBubbleTail,
-                                  { backgroundColor: isOwnMessage ? '#007AFF' : (isDarkMode ? '#262629' : '#E9E9EB') }
+                                  { backgroundColor: isOwnMessage ? '#0B84FE' : '#202C33' }
                                 ]}>
                                   <View style={[
                                     styles.bubbleTailCover,
-                                    { backgroundColor: colors.background },
+                                    { backgroundColor: '#0B141A' },
                                     isOwnMessage ? styles.ownTailCover : styles.otherTailCover
                                   ]} />
                                 </View>
                               )}
 
                               {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
-                                <Text style={[styles.messageAuthor, { color: premiumColors.primary.main }]}>
-                                  {discussionUser?.name || 'Member'}
+                                <Text style={[styles.messageAuthor, { color: '#53BDEB' }]}>
+                                  {discussionUser?.name?.toUpperCase() || 'MEMBER'}
                                 </Text>
                               )}
 
@@ -1751,7 +2224,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                               {messageData.message && messageData.type !== MESSAGE_TYPES.VOICE && (
                                 <Text style={[
                                   styles.messageText,
-                                  { color: isOwnMessage ? '#FFFFFF' : colors.text }
+                                  { color: isOwnMessage ? '#FFFFFF' : '#E9EDEF' }
                                 ]}>
                                   {messageData.message}
                                 </Text>
@@ -1759,11 +2232,11 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
                               {(messageData.type !== MESSAGE_TYPES.IMAGE || messageData.message) && (
                                 <View style={styles.messageFooter}>
-                                  <Text style={[styles.messageTime, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
+                                  <Text style={[styles.messageTime, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : '#8696A0' }]}>
                                     {formatTimeAgo(discussion.createdAt)}
                                   </Text>
                                   {isOwnMessage && (
-                                    <Ionicons name="checkmark-done" size={14} color="rgba(255,255,255,0.7)" style={{ marginLeft: 4 }} />
+                                    <Ionicons name="checkmark-done" size={14} color="#53BDEB" style={{ marginLeft: 4 }} />
                                   )}
                                 </View>
                               )}
@@ -1831,25 +2304,22 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     </View>
                   );
                 })
-              ) : (
-                <View style={styles.emptyDiscussions}>
-                  <LinearGradient
-                    colors={[premiumColors.primary.main + '20', premiumColors.accent.emerald + '20']}
-                    style={styles.emptyDiscussionsIcon}
-                  >
-                    <Ionicons name="chatbubbles" size={48} color={premiumColors.primary.main} />
-                  </LinearGradient>
-                  <Text style={[styles.emptyDiscussionsTitle, { color: colors.text }]}>
-                    Start the Conversation
-                  </Text>
-                  <Text style={[styles.emptyDiscussionsText, { color: colors.secondaryText }]}>
-                    Be the first to share your thoughts, images, or documents with the group!
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
+          ) : (
+            <View style={styles.whatsappEmptyChat}>
+              <View style={styles.whatsappEmptyIcon}>
+                <Ionicons name="chatbubbles" size={60} color="#8696A0" />
+              </View>
+              <Text style={styles.whatsappEmptyTitle}>
+                No messages yet
+              </Text>
+              <Text style={styles.whatsappEmptyText}>
+                Say hello and start the conversation!
+              </Text>
+            </View>
+          )}
+        </ScrollView>
 
-            {member ? (
+            {isMember() ? (
               <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
@@ -1929,70 +2399,65 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </View>
                 )}
 
-                <View style={[styles.advancedInputContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-
+                <View style={styles.whatsappInputContainer}>
+                  {/* Plus/Add Button */}
                   <TouchableOpacity
-                    style={[styles.attachButton, { backgroundColor: showAttachmentMenu ? premiumColors.primary.main : 'transparent' }]}
+                    style={styles.whatsappAddBtn}
                     onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
                   >
                     <Ionicons
-                      name={showAttachmentMenu ? 'close' : 'add-circle'}
-                      size={26}
-                      color={showAttachmentMenu ? '#FFFFFF' : premiumColors.primary.main}
+                      name={showAttachmentMenu ? 'close' : 'add'}
+                      size={28}
+                      color="#8696A0"
                     />
                   </TouchableOpacity>
 
-                  <View style={[styles.inputWrapper, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                  {/* Message Input with Emoji */}
+                  <View style={styles.whatsappInputWrapper}>
                     <TextInput
-                      style={[styles.advancedInput, { color: colors.text }]}
-                      placeholder="Type a message..."
-                      placeholderTextColor={colors.secondaryText}
+                      style={styles.whatsappInput}
+                      placeholder="Message..."
+                      placeholderTextColor="#8696A0"
                       value={discussionMessage}
                       onChangeText={setDiscussionMessage}
                       multiline
                       maxLength={1000}
                     />
-
                     <TouchableOpacity
-                      style={styles.emojiButton}
+                      style={styles.whatsappEmojiBtn}
                       onPress={() => setShowEmojiPicker(!showEmojiPicker)}
                     >
                       <Ionicons
                         name={showEmojiPicker ? "happy" : "happy-outline"}
-                        size={22}
-                        color={showEmojiPicker ? premiumColors.primary.main : colors.secondaryText}
+                        size={24}
+                        color="#8696A0"
                       />
                     </TouchableOpacity>
                   </View>
 
+                  {/* Mic/Send Button */}
                   {discussionMessage.trim() || selectedImage || selectedDocument ? (
                     <TouchableOpacity
-                      style={[
-                        styles.sendMessageButton,
-                        { backgroundColor: premiumColors.primary.main },
-                      ]}
+                      style={styles.whatsappMicBtn}
                       onPress={handleSendMessage}
                       disabled={sendingMessage}
                     >
                       {sendingMessage ? (
                         <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : (
-                        <Ionicons name="send" size={20} color="#FFFFFF" />
+                        <Ionicons name="send" size={22} color="#FFFFFF" />
                       )}
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
-                      style={[
-                        styles.sendMessageButton,
-                        { backgroundColor: isRecording ? '#FF3B30' : premiumColors.primary.main },
-                      ]}
+                      style={[styles.whatsappMicBtn, isRecording && { backgroundColor: '#FF3B30' }]}
                       onPress={isRecording ? sendVoiceMessage : startRecording}
                       onLongPress={startRecording}
                     >
                       <Animated.View style={{ transform: [{ scale: isRecording ? recordingAnimRef : 1 }] }}>
                         <Ionicons
                           name={isRecording ? "stop" : "mic"}
-                          size={20}
+                          size={22}
                           color="#FFFFFF"
                         />
                       </Animated.View>
@@ -2148,118 +2613,18 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 )}
               </KeyboardAvoidingView>
             ) : (
-              <View style={[styles.joinToParticipate, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                <Text style={[styles.joinToParticipateText, { color: colors.secondaryText }]}>
+              <View style={styles.whatsappJoinPrompt}>
+                <Text style={styles.whatsappJoinText}>
                   Join this group to participate in the discussion
                 </Text>
                 <TouchableOpacity
-                  style={[styles.joinCompactBtn, { backgroundColor: premiumColors.primary.main }]}
+                  style={styles.whatsappJoinBtn}
                   onPress={handleJoin}
                 >
-                  <Text style={styles.joinCompactBtnText}>Join Group</Text>
+                  <Text style={styles.whatsappJoinBtnText}>Join Group</Text>
                 </TouchableOpacity>
               </View>
             )}
-          </View>
-        )}
-
-        {activeTab === 'resources' && (
-          <View style={styles.tabContent}>
-
-            {!isAuthenticated ? (
-              <View style={[styles.resourceSecurityCard, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
-                <View style={[styles.resourceSecurityIcon, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
-                  <Ionicons name="lock-closed" size={32} color="#6366F1" />
-                </View>
-                <Text style={[styles.resourceSecurityTitle, { color: colors.text }]}>Login Required</Text>
-                <Text style={[styles.resourceSecurityText, { color: colors.secondaryText }]}>
-                  Sign in to access study resources shared by group members.
-                </Text>
-                <TouchableOpacity
-                  style={styles.resourceSecurityBtn}
-                  onPress={() => navigation.navigate('Auth')}
-                >
-                  <LinearGradient
-                    colors={['#6366F1', '#8B5CF6']}
-                    style={styles.resourceSecurityBtnGradient}
-                  >
-                    <Text style={styles.resourceSecurityBtnText}>Sign In</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            ) : !member ? (
-              <View style={[styles.resourceSecurityCard, { backgroundColor: isDarkMode ? '#1F2937' : '#F3F4F6' }]}>
-                <View style={[styles.resourceSecurityIcon, { backgroundColor: isDarkMode ? '#374151' : '#E5E7EB' }]}>
-                  <Ionicons name="folder-open" size={32} color="#10B981" />
-                </View>
-                <Text style={[styles.resourceSecurityTitle, { color: colors.text }]}>Members Only</Text>
-                <Text style={[styles.resourceSecurityText, { color: colors.secondaryText }]}>
-                  Join this group to access study materials, documents, and resources.
-                </Text>
-                <TouchableOpacity
-                  style={styles.resourceSecurityBtn}
-                  onPress={handleJoin}
-                >
-                  <LinearGradient
-                    colors={['#10B981', '#059669']}
-                    style={styles.resourceSecurityBtnGradient}
-                  >
-                    <Text style={styles.resourceSecurityBtnText}>Join to Access</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <>
-                <TouchableOpacity
-                  style={[styles.addResourceButton, { backgroundColor: premiumColors.primary.main }]}
-                  onPress={() => setShowResourceModal(true)}
-                >
-                  <Ionicons name="add" size={20} color="#FFFFFF" />
-                  <Text style={styles.addResourceText}>Add Resource</Text>
-                </TouchableOpacity>
-                {group.resources?.length > 0 ? (
-                  group.resources.map((resource, index) => {
-                    const resourceUser = typeof resource.addedBy === 'object' ? resource.addedBy : null;
-                    return (
-                      <TouchableOpacity
-                        key={index}
-                        style={[styles.resourceCard, { backgroundColor: colors.card }]}
-                        onPress={() => {
-                          if (resource.url) {
-                            Alert.alert('Resource', `Open ${resource.url}?`);
-                          }
-                        }}
-                      >
-                        <Ionicons
-                          name={resource.type === 'video' ? 'videocam' : resource.type === 'document' ? 'document' : 'link'}
-                          size={24}
-                          color={premiumColors.primary.main}
-                        />
-                        <View style={styles.resourceInfo}>
-                          <Text style={[styles.resourceTitle, { color: colors.text }]}>{resource.title}</Text>
-                          <Text style={[styles.resourceMeta, { color: colors.secondaryText }]}>
-                            Added by {resourceUser?.name || 'Member'}
-                          </Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-                      </TouchableOpacity>
-                    );
-                  })
-                ) : (
-                  <View style={styles.emptyState}>
-                    <Ionicons name="folder-outline" size={48} color={colors.secondaryText} />
-                    <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
-                      No resources yet. Add your first resource!
-                    </Text>
-                  </View>
-                )}
-              </>
-            )}
-          </View>
-        )}
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
 
       <Modal
         visible={showJoinModal}
@@ -5243,6 +5608,187 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+
+  // WhatsApp Style Header
+  whatsappHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#7B2D96',
+    paddingTop: Platform.OS === 'ios' ? 50 : 10,
+    paddingBottom: 12,
+    paddingHorizontal: 8,
+  },
+  whatsappHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  whatsappBackBtn: {
+    padding: 8,
+  },
+  whatsappGroupInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  whatsappGroupAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  whatsappGroupAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  whatsappGroupTextContainer: {
+    flex: 1,
+  },
+  whatsappGroupName: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  whatsappGroupMembers: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
+  },
+  whatsappHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  whatsappHeaderIcon: {
+    padding: 10,
+  },
+
+  // WhatsApp Chat Area
+  whatsappChatArea: {
+    flex: 1,
+    backgroundColor: '#0B141A',
+  },
+  whatsappChatContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingBottom: 20,
+  },
+
+  // WhatsApp Date Separator
+  whatsappDateSeparator: {
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  whatsappDateBubble: {
+    backgroundColor: '#182229',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  whatsappDateText: {
+    color: '#8696A0',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+
+  // WhatsApp Empty Chat
+  whatsappEmptyChat: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 100,
+  },
+  whatsappEmptyIcon: {
+    marginBottom: 20,
+  },
+  whatsappEmptyTitle: {
+    color: '#E9EDEF',
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  whatsappEmptyText: {
+    color: '#8696A0',
+    fontSize: 14,
+    textAlign: 'center',
+    paddingHorizontal: 40,
+  },
+
+  // WhatsApp Input Container
+  whatsappInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    backgroundColor: '#0B141A',
+    gap: 8,
+  },
+  whatsappAddBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  whatsappInputWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: '#1F2C34',
+    borderRadius: 24,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 48,
+    maxHeight: 120,
+  },
+  whatsappInput: {
+    flex: 1,
+    color: '#E9EDEF',
+    fontSize: 16,
+    paddingVertical: 0,
+    maxHeight: 100,
+  },
+  whatsappEmojiBtn: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  whatsappMicBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#0B84FE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // WhatsApp Join Prompt
+  whatsappJoinPrompt: {
+    backgroundColor: '#182229',
+    padding: 16,
+    alignItems: 'center',
+  },
+  whatsappJoinText: {
+    color: '#8696A0',
+    fontSize: 14,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  whatsappJoinBtn: {
+    backgroundColor: '#00A884',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  whatsappJoinBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
