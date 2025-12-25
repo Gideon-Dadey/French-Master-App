@@ -19,6 +19,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { GestureHandlerRootView, Swipeable, TapGestureHandler, State } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -161,6 +162,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const { groupId, initialTab = 'discussions' } = route.params;
   const { user, isAuthenticated } = useAuth();
   const { colors, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -2226,8 +2228,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   {index === 0 || new Date(discussion.createdAt).toDateString() !==
                     new Date(group.discussions[index - 1]?.createdAt).toDateString() ? (
                     <View style={styles.whatsappDateSeparator}>
-                      <View style={styles.whatsappDateBubble}>
-                        <Text style={styles.whatsappDateText}>
+                      <View style={[styles.whatsappDateBubble, { backgroundColor: isDarkMode ? '#182229' : '#FFFFFF' }]}>
+                        <Text style={[styles.whatsappDateText, { color: isDarkMode ? '#8696A0' : '#54656F' }]}>
                           {new Date(discussion.createdAt).toLocaleDateString('en-US', {
                             weekday: 'long',
                             month: 'short',
@@ -2372,8 +2374,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                                     style={styles.messageAvatar}
                                   />
                                 ) : (
-                                  <View style={[styles.messageAvatarPlaceholder, { backgroundColor: '#2A3942' }]}>
-                                    <Ionicons name="person" size={16} color="#8696A0" />
+                                  <View style={[styles.messageAvatarPlaceholder, { backgroundColor: isDarkMode ? '#2A3942' : '#DFE5E7' }]}>
+                                    <Ionicons name="person" size={16} color={isDarkMode ? '#8696A0' : '#667781'} />
                                   </View>
                                 )
                               )}
@@ -2381,8 +2383,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                               <View style={[
                                 styles.messageBubble,
                                 isOwnMessage ?
-                                  [styles.ownMessageBubble, { backgroundColor: '#0B84FE' }] :
-                                  [styles.otherMessageBubble, { backgroundColor: '#202C33' }],
+                                  [styles.ownMessageBubble, { backgroundColor: isDarkMode ? '#005C4B' : '#D9FDD3' }] :
+                                  [styles.otherMessageBubble, { backgroundColor: isDarkMode ? '#202C33' : '#FFFFFF' }],
                                 messageData.type === MESSAGE_TYPES.IMAGE && styles.imageBubble,
                                 messageData.type === MESSAGE_TYPES.IMAGE && (isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble),
                               ]}>
@@ -2390,18 +2392,18 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                               {messageData.type !== MESSAGE_TYPES.IMAGE && (
                                 <View style={[
                                   isOwnMessage ? styles.ownBubbleTail : styles.otherBubbleTail,
-                                  { backgroundColor: isOwnMessage ? '#0B84FE' : '#202C33' }
+                                  { backgroundColor: isOwnMessage ? (isDarkMode ? '#005C4B' : '#D9FDD3') : (isDarkMode ? '#202C33' : '#FFFFFF') }
                                 ]}>
                                   <View style={[
                                     styles.bubbleTailCover,
-                                    { backgroundColor: '#0B141A' },
+                                    { backgroundColor: chatBackground?.type === 'color' ? chatBackground.value : (isDarkMode ? '#0B141A' : '#E4DDD6') },
                                     isOwnMessage ? styles.ownTailCover : styles.otherTailCover
                                   ]} />
                                 </View>
                               )}
 
                               {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
-                                <Text style={[styles.messageAuthor, { color: '#53BDEB' }]}>
+                                <Text style={[styles.messageAuthor, { color: isDarkMode ? '#53BDEB' : '#075E54' }]}>
                                   {discussionUser?.name?.toUpperCase() || 'MEMBER'}
                                 </Text>
                               )}
@@ -2468,7 +2470,10 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                                   {/* Document Card */}
                                   <View style={[
                                     styles.whatsappDocCard,
-                                    { backgroundColor: isOwnMessage ? 'rgba(0,0,0,0.15)' : '#1D2A32' }
+                                    { backgroundColor: isDarkMode 
+                                      ? (isOwnMessage ? 'rgba(0,0,0,0.15)' : '#1D2A32') 
+                                      : (isOwnMessage ? 'rgba(0,0,0,0.08)' : '#F0F2F5') 
+                                    }
                                   ]}>
                                     {/* File Icon with colored background */}
                                     <View style={[
@@ -2592,7 +2597,10 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                               {messageData.message && messageData.type !== MESSAGE_TYPES.VOICE && (
                                 <Text style={[
                                   styles.messageText,
-                                  { color: isOwnMessage ? '#FFFFFF' : '#E9EDEF' }
+                                  { color: isDarkMode 
+                                    ? (isOwnMessage ? '#E9EDEF' : '#E9EDEF') 
+                                    : (isOwnMessage ? '#111B21' : '#111B21') 
+                                  }
                                 ]}>
                                   {messageData.message}
                                 </Text>
@@ -2600,7 +2608,11 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
                               {(messageData.type !== MESSAGE_TYPES.IMAGE || messageData.message) && (
                                 <View style={styles.messageFooter}>
-                                  <Text style={[styles.messageTime, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : '#8696A0' }]}>
+                                  <Text style={[styles.messageTime, { 
+                                    color: isDarkMode 
+                                      ? (isOwnMessage ? 'rgba(255,255,255,0.6)' : '#8696A0') 
+                                      : (isOwnMessage ? '#667781' : '#667781') 
+                                  }]}>
                                     {formatTimeAgo(discussion.createdAt)}
                                   </Text>
                                   {isOwnMessage && (
@@ -2675,12 +2687,12 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           ) : (
             <View style={styles.whatsappEmptyChat}>
               <View style={styles.whatsappEmptyIcon}>
-                <Ionicons name="chatbubbles" size={60} color="#8696A0" />
+                <Ionicons name="chatbubbles" size={60} color={isDarkMode ? '#8696A0' : '#A0AEB7'} />
               </View>
-              <Text style={styles.whatsappEmptyTitle}>
+              <Text style={[styles.whatsappEmptyTitle, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>
                 No messages yet
               </Text>
-              <Text style={styles.whatsappEmptyText}>
+              <Text style={[styles.whatsappEmptyText, { color: isDarkMode ? '#8696A0' : '#667781' }]}>
                 Say hello and start the conversation!
               </Text>
             </View>
@@ -2768,7 +2780,13 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </View>
                 )}
 
-                <View style={styles.whatsappInputContainer}>
+                <View style={[
+                  styles.whatsappInputContainer,
+                  { 
+                    backgroundColor: isDarkMode ? '#0B141A' : '#F0F2F5',
+                    paddingBottom: Math.max(insets.bottom, 8) + 8,
+                  }
+                ]}>
                   {/* Plus/Add Button */}
                   <TouchableOpacity
                     style={styles.whatsappAddBtn}
@@ -2777,16 +2795,16 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     <Ionicons
                       name={showAttachmentMenu ? 'close' : 'add'}
                       size={28}
-                      color="#8696A0"
+                      color={isDarkMode ? '#8696A0' : '#54656F'}
                     />
                   </TouchableOpacity>
 
                   {/* Message Input with Emoji */}
-                  <View style={styles.whatsappInputWrapper}>
+                  <View style={[styles.whatsappInputWrapper, { backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF' }]}>
                     <TextInput
-                      style={styles.whatsappInput}
+                      style={[styles.whatsappInput, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}
                       placeholder="Message..."
-                      placeholderTextColor="#8696A0"
+                      placeholderTextColor={isDarkMode ? '#8696A0' : '#667781'}
                       value={discussionMessage}
                       onChangeText={setDiscussionMessage}
                       multiline
@@ -2799,7 +2817,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       <Ionicons
                         name={showEmojiPicker ? "happy" : "happy-outline"}
                         size={24}
-                        color="#8696A0"
+                        color={isDarkMode ? '#8696A0' : '#54656F'}
                       />
                     </TouchableOpacity>
                   </View>
@@ -2807,7 +2825,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   {/* Mic/Send Button */}
                   {discussionMessage.trim() || selectedImage || selectedDocument ? (
                     <TouchableOpacity
-                      style={styles.whatsappMicBtn}
+                      style={[styles.whatsappMicBtn, { backgroundColor: '#00A884' }]}
                       onPress={handleSendMessage}
                       disabled={sendingMessage}
                     >
@@ -2819,7 +2837,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
-                      style={[styles.whatsappMicBtn, isRecording && { backgroundColor: '#FF3B30' }]}
+                      style={[styles.whatsappMicBtn, { backgroundColor: isRecording ? '#FF3B30' : '#00A884' }]}
                       onPress={isRecording ? sendVoiceMessage : startRecording}
                       onLongPress={startRecording}
                     >
@@ -2982,8 +3000,14 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 )}
               </KeyboardAvoidingView>
             ) : (
-              <View style={styles.whatsappJoinPrompt}>
-                <Text style={styles.whatsappJoinText}>
+              <View style={[
+                styles.whatsappJoinPrompt,
+                { 
+                  backgroundColor: isDarkMode ? '#182229' : '#FFFFFF',
+                  paddingBottom: Math.max(insets.bottom, 8) + 16,
+                }
+              ]}>
+                <Text style={[styles.whatsappJoinText, { color: isDarkMode ? '#8696A0' : '#667781' }]}>
                   Join this group to participate in the discussion
                 </Text>
                 <TouchableOpacity
@@ -6124,8 +6148,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 8,
-    paddingVertical: 8,
-    backgroundColor: '#0B141A',
+    paddingTop: 8,
     gap: 8,
   },
   whatsappAddBtn: {
@@ -6169,12 +6192,11 @@ const styles = StyleSheet.create({
 
   // WhatsApp Join Prompt
   whatsappJoinPrompt: {
-    backgroundColor: '#182229',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     alignItems: 'center',
   },
   whatsappJoinText: {
-    color: '#8696A0',
     fontSize: 14,
     marginBottom: 12,
     textAlign: 'center',

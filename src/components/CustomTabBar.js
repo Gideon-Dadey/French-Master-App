@@ -8,6 +8,7 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
@@ -147,6 +148,16 @@ function TabBarItem({ route, focused, onPress, onLongPress, isDarkMode }) {
 
 export default function CustomTabBar({ state, descriptors, navigation }) {
   const { isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
+  
+  // Calculate bottom padding based on device type
+  // - iOS with home indicator: uses insets.bottom
+  // - Android gesture nav: typically has small inset
+  // - Android 3-button nav: no inset, but needs padding
+  const bottomPadding = Platform.select({
+    ios: Math.max(insets.bottom, 8),
+    android: insets.bottom > 0 ? insets.bottom : 8,
+  });
 
   return (
     <View style={[
@@ -154,6 +165,7 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
       {
         backgroundColor: isDarkMode ? '#0c0c0c' : '#ffffff',
         borderTopColor: isDarkMode ? '#1f1f1f' : '#f0f0f0',
+        paddingBottom: bottomPadding,
       }
     ]}>
 
@@ -197,8 +209,6 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
           );
         })}
       </View>
-
-      {Platform.OS === 'ios' && <View style={styles.safeArea} />}
     </View>
   );
 }
@@ -222,11 +232,8 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
     paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 6 : 12,
+    paddingBottom: 6,
     paddingHorizontal: 8,
-  },
-  safeArea: {
-    height: 22,
   },
   tabItem: {
     flex: 1,
