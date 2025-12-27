@@ -46,14 +46,10 @@ export default function CourseDetailScreen({ route, navigation }) {
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const headerOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadCourse();
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.timing(headerOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-    ]).start();
+    Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
   }, [courseId]);
 
   useEffect(() => {
@@ -167,12 +163,6 @@ export default function CourseDetailScreen({ route, navigation }) {
     ? { uri: course.thumbnail } 
     : getCourseImage(course._id, 0, course.category, course.title);
 
-  const headerTranslateY = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, -50],
-    extrapolate: 'clamp',
-  });
-
   const imageScale = scrollY.interpolate({
     inputRange: [-100, 0],
     outputRange: [1.2, 1],
@@ -181,32 +171,6 @@ export default function CourseDetailScreen({ route, navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Header with Back Button */}
-      <Animated.View
-        style={[
-          styles.header,
-          {
-            opacity: headerOpacity,
-            transform: [{ translateY: headerTranslateY }],
-          },
-        ]}
-      >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.6)', 'transparent']}
-          style={styles.headerGradient}
-        >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.backButtonCircle, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
-            </View>
-          </TouchableOpacity>
-        </LinearGradient>
-      </Animated.View>
-
       <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -862,33 +826,6 @@ export default function CourseDetailScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingHorizontal: 20,
-    paddingBottom: 10,
-  },
-  headerGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  backButton: {
-    zIndex: 1,
-  },
-  backButtonCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   scrollView: {
     flex: 1,
