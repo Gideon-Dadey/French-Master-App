@@ -48,11 +48,14 @@ A comprehensive, production-ready mobile application for learning French and Eng
 
 ### 🎨 Premium iOS-Style Design
 - **Beautiful UI/UX** - Professional native interface inspired by iOS
+- **Unified Primary Color Theme** - Consistent primary color throughout all screens
+- **Time-Based Greetings** - Dynamic French greetings in LearnScreen (Bonjour, Bon après-midi, Bonsoir)
 - **Dark/Light Mode** - Full theme support with smooth transitions
 - **Premium Animations** - Smooth entrance animations, staggered reveals, parallax effects
 - **Responsive Design** - Optimized for all screen sizes
 - **Gradient Backgrounds** - Premium visual effects with floating orbs
 - **Custom Tab Bar** - iOS-style navigation with haptic feedback
+- **Redesigned Screens** - Modern, clean CourseDetailScreen and BlogDetailScreen
 
 ### 🎯 Advanced Gamification
 - **Achievements System** - Unlock badges and achievements
@@ -77,8 +80,7 @@ A comprehensive, production-ready mobile application for learning French and Eng
 ### 💳 Payment Integration
 - **Multiple Payment Methods** - Stripe, PayPal, Mobile Money
 - **Secure Transactions** - Industry-standard security
-- **Free Courses** - Access free courses
-- **Course Pricing** - Flexible pricing in GHS (Ghana Cedis)
+- **All Courses Free** - All courses are now completely free to access
 - **Teacher Subscriptions** - Subscription plans for instructors
 
 ### 👨‍🏫 Instructor Features

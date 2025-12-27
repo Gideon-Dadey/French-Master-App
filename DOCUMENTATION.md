@@ -345,6 +345,8 @@ Authorization: Bearer <token>
 
 ### Courses Routes (`/api/courses`)
 
+**Note:** All courses are now free. The `isFree` field defaults to `true` and `price` defaults to `0`.
+
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | GET | `/` | Get all courses | No |
@@ -360,6 +362,10 @@ Authorization: Bearer <token>
 - `?search=basics` - Search courses
 - `?page=1&limit=10` - Pagination
 - `?sort=rating` - Sort by field
+
+**Course Model:**
+- `isFree: Boolean` - Defaults to `true`
+- `price: Number` - Defaults to `0`
 
 ---
 
@@ -580,15 +586,21 @@ Main dashboard after login.
 - Theme toggle
 
 #### LearnScreen
-Course discovery and catalog.
+Course discovery and catalog with time-based greetings.
 
 **Features:**
+- **Time-Based French Greetings**
+  - Dynamic greeting based on time of day
+  - "Bonjour" (Morning: 5:00 - 11:59)
+  - "Bon après-midi" (Afternoon: 12:00 - 17:59)
+  - "Bonsoir" (Evening: 18:00 - 4:59)
 - Search bar with autocomplete
 - Category filters
 - Featured courses section
-- All courses grid
-- Filter modal (level, price, rating)
+- All courses grid (all courses are now free)
+- Filter modal (level, rating)
 - Pull to refresh
+- **Unified Primary Color Theme** - Consistent primary color throughout
 
 #### PracticeScreen
 Training center hub.
@@ -646,22 +658,38 @@ Full course catalog with advanced filtering.
 - Course cards with ratings
 
 #### CourseDetailScreen
-Detailed course information page.
+Premium course detail page with modern design.
 
 **Features:**
-- Course preview image/video
-- Title, instructor, rating
-- Price display (GHS)
-- Description (expandable)
-- What you'll learn section
-- Curriculum outline
-- Instructor bio
-- Reviews section
-- Enroll/Buy button
-- Add to wishlist
+- **Hero Section**
+  - Parallax image with gradient overlay
+  - Smooth scroll animations
+  - Category badge with icon
+- **Quick Stats Card**
+  - Duration, lessons, level, rating
+  - Visual metrics display
+- **Enrollment Card**
+  - Prominent pricing display (all courses free)
+  - "Enroll Free" CTA button
+  - Sticky card on scroll
+- **Tab Navigation**
+  - Overview tab with course description
+  - Curriculum tab with lesson cards
+  - Reviews tab with rating overview
+- **Enhanced Curriculum**
+  - Lesson cards with lock/unlock states
+  - Free preview badges
+  - Progress indicators
+- **Reviews Section**
+  - Rating overview with distribution
+  - Review cards with user avatars
+  - Filter and sort options
+- **Primary Color Theme** - Consistent branding throughout
 
 #### CoursePaymentScreen
 Payment flow for course purchase.
+
+**Note:** Since all courses are now free, this screen is primarily used for teacher subscriptions and other premium features.
 
 **Features:**
 - Order summary
@@ -945,15 +973,38 @@ Learning articles.
 - Search
 
 #### BlogDetailScreen
-Article reader.
+Premium article reader with enhanced reading experience.
 
 **Features:**
-- Article content
-- Author info
-- Read time
-- Text-to-speech option
-- Related articles
-- Share button
+- **Hero Section**
+  - Parallax image with gradient overlay
+  - Smooth scroll animations
+  - Category badge with icon
+- **Author Card**
+  - Avatar with gradient placeholder
+  - Author name and role
+  - Follow button with primary color
+- **Action Buttons**
+  - Like, Save, and Download actions
+  - Visual feedback for active states
+  - Primary color theme
+- **Content Formatting**
+  - Typography with adjustable font size
+  - Styled headings, paragraphs, quotes, and lists
+  - French phrase highlighting
+  - Text-to-speech for French phrases
+- **Reading Features**
+  - Progress bar at top
+  - Reading progress card
+  - Completion celebration
+  - Font size adjustment panel
+  - Text-to-speech controls
+- **Additional Features**
+  - Tags section with primary color
+  - Share buttons with social icons
+  - Offline download support
+  - Completion tracking with XP rewards
+- **Primary Color Theme** - Consistent branding throughout
 
 #### BrowseTopicsScreen
 Topic browser.

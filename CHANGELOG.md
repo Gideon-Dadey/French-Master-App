@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.0] - 2025-12-26 🎨
+
+### 🎨 Major UI/UX Redesign & Free Courses Update
+
+#### Added
+
+- **Time-Based Greetings in LearnScreen**
+  - Dynamic French greetings based on time of day
+  - "Bonjour" (Morning), "Bon après-midi" (Afternoon), "Bonsoir" (Evening)
+  - Smooth transitions between greeting states
+
+- **Unified Primary Color Theme**
+  - All screens now use consistent primary color throughout
+  - Clean, professional, and cohesive design language
+  - Removed secondary/accent color inconsistencies
+
+- **Redesigned CourseDetailScreen**
+  - Hero section with parallax image and gradient overlay
+  - Quick stats card with key course metrics
+  - Redesigned enrollment card with prominent pricing
+  - Tab navigation for Overview, Curriculum, and Reviews
+  - Enhanced curriculum display with lesson cards
+  - Lock/unlock states for lessons
+  - Free preview badges
+  - Sticky enrollment card on scroll
+  - Professional typography and spacing
+
+- **Redesigned BlogDetailScreen**
+  - Complete redesign with modern, clean layout
+  - Hero section with parallax image and gradient
+  - Author card with avatar and follow button
+  - Action buttons (Like, Save, Download) with visual feedback
+  - Enhanced content formatting with typography controls
+  - French phrase highlighting with text-to-speech
+  - Reading progress bar and completion tracking
+  - Font size adjustment panel
+  - Tags section with primary color theme
+  - Share buttons with social icons
+  - Offline download support
+  - Completion celebration with XP rewards
+
+#### Changed
+
+- **All Courses Now Free**
+  - Updated Course model to set `isFree: true` by default
+  - Modified seed script to create all courses with `price: 0`
+  - All courses accessible without payment
+  - Removed premium badges from course listings
+
+- **LearnScreen Design**
+  - Unified color scheme to primary color
+  - Removed premium badges
+  - Clean, professional appearance
+  - Consistent with overall app theme
+
+- **CourseDetailScreen Navigation**
+  - Removed custom back button
+  - Cleaner header design
+  - Improved scroll animations
+
+#### Fixed
+
+- Price display consistency across all screens
+- Color theme inconsistencies
+- Navigation header duplication
+
+---
+
 ## [1.9.0] - 2025-12-25 🎄
 
 ### 🔒 Security & Community Update
