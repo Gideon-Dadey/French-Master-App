@@ -1,10 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
-import { useTheme } from '../context/ThemeContext';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Animated,
+  TouchableOpacity,
+  Platform,
+  Vibration,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../context/ThemeContext';
+import { getThemeColors, themeShadows } from '../utils/organicTheme';
 
 let toastQueue = [];
-let currentToast = null;
 let toastListeners = [];
 
 const notifyListeners = () => {
@@ -24,13 +33,32 @@ export const showToast = {
     toastQueue.push({ type: 'info', message, description });
     notifyListeners();
   },
+  warning: (message, description) => {
+    toastQueue.push({ type: 'warning', message, description });
+    notifyListeners();
+  },
+  achievement: (message, description) => {
+    toastQueue.push({ type: 'achievement', message, description });
+    notifyListeners();
+  },
+  xp: (amount, description) => {
+    toastQueue.push({ type: 'xp', message: `+${amount} XP`, description });
+    notifyListeners();
+  },
+  streak: (count, description) => {
+    toastQueue.push({ type: 'streak', message: `${count} Day Streak!`, description });
+    notifyListeners();
+  },
 };
 
 const ToastContainer = () => {
-  const { colors } = useTheme();
+  const { isDarkMode } = useTheme();
+  const theme = getThemeColors(isDarkMode);
   const [toast, setToast] = useState(null);
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const slideAnim = React.useRef(new Animated.Value(-100)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(-100)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const progressAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const listener = (newToast) => {
@@ -44,7 +72,15 @@ const ToastContainer = () => {
 
   useEffect(() => {
     if (toast) {
+      // Haptic feedback for certain toast types
+      if (Platform.OS !== 'web' && ['achievement', 'xp', 'streak'].includes(toast.type)) {
+        Vibration.vibrate(50);
+      }
 
+      // Reset progress
+      progressAnim.setValue(1);
+
+      // Entrance animation
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -57,11 +93,35 @@ const ToastContainer = () => {
           friction: 8,
           useNativeDriver: true,
         }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 80,
+          friction: 8,
+          useNativeDriver: true,
+        }),
       ]).start();
+
+      // Duration based on type
+      const duration = {
+        error: 5000,
+        success: 3000,
+        info: 3000,
+        warning: 4000,
+        achievement: 4000,
+        xp: 2500,
+        streak: 4000,
+      }[toast.type] || 3000;
+
+      // Progress bar animation
+      Animated.timing(progressAnim, {
+        toValue: 0,
+        duration: duration,
+        useNativeDriver: false,
+      }).start();
 
       const timer = setTimeout(() => {
         hideToast();
-      }, toast.type === 'error' ? 4000 : 3000);
+      }, duration);
 
       return () => clearTimeout(timer);
     }
@@ -79,6 +139,11 @@ const ToastContainer = () => {
         duration: 200,
         useNativeDriver: true,
       }),
+      Animated.timing(scaleAnim, {
+        toValue: 0.9,
+        duration: 200,
+        useNativeDriver: true,
+      }),
     ]).start(() => {
       toastQueue.shift();
       setToast(null);
@@ -90,32 +155,67 @@ const ToastContainer = () => {
 
   if (!toast) return null;
 
-  const getToastStyles = () => {
+  const getToastConfig = () => {
     switch (toast.type) {
       case 'success':
         return {
-          backgroundColor: colors.success || '#4CAF50',
+          colors: [theme.success, '#4CAF50'],
           icon: 'checkmark-circle',
+          accentColor: theme.success,
         };
       case 'error':
         return {
-          backgroundColor: colors.error || '#E53935',
+          colors: [theme.error, '#E53935'],
           icon: 'close-circle',
+          accentColor: theme.error,
+        };
+      case 'warning':
+        return {
+          colors: [theme.warning || '#FFA726', '#FF9800'],
+          icon: 'warning',
+          accentColor: theme.warning || '#FFA726',
         };
       case 'info':
         return {
-          backgroundColor: colors.text,
+          colors: [theme.info, '#2196F3'],
           icon: 'information-circle',
+          accentColor: theme.info,
+        };
+      case 'achievement':
+        return {
+          colors: [theme.secondary, '#FFD700'],
+          icon: 'trophy',
+          accentColor: theme.secondary,
+        };
+      case 'xp':
+        return {
+          colors: [theme.secondary, '#FFD700'],
+          icon: 'star',
+          accentColor: theme.secondary,
+        };
+      case 'streak':
+        return {
+          colors: ['#FF6B35', '#FF8C42'],
+          icon: 'flame',
+          accentColor: '#FF6B35',
         };
       default:
         return {
-          backgroundColor: colors.primary,
+          colors: [theme.primary, theme.primaryLight || theme.primary],
           icon: 'notifications',
+          accentColor: theme.primary,
         };
     }
   };
 
-  const toastStyles = getToastStyles();
+  const config = getToastConfig();
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
+  });
+
+  const isSpecial = ['achievement', 'xp', 'streak'].includes(toast.type);
 
   return (
     <Animated.View
@@ -123,7 +223,10 @@ const ToastContainer = () => {
         styles.container,
         {
           opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
+          transform: [
+            { translateY: slideAnim },
+            { scale: scaleAnim },
+          ],
         },
       ]}
       pointerEvents="box-none"
@@ -134,48 +237,76 @@ const ToastContainer = () => {
         style={[
           styles.toast,
           {
-            backgroundColor: toastStyles.backgroundColor,
-            shadowColor: colors.shadow || '#000',
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
           },
         ]}
       >
-        <Ionicons
-          name={toastStyles.icon}
-          size={24}
-          color={toast.type === 'info' ? colors.background : '#fff'}
+        {/* Left accent gradient */}
+        <LinearGradient
+          colors={config.colors}
+          style={styles.leftAccent}
         />
+
+        {/* Icon */}
+        <View style={[styles.iconContainer, { backgroundColor: config.accentColor + '15' }]}>
+          {isSpecial ? (
+            <LinearGradient
+              colors={config.colors}
+              style={styles.iconGradient}
+            >
+              <Ionicons name={config.icon} size={20} color="#FFFFFF" />
+            </LinearGradient>
+          ) : (
+            <Ionicons name={config.icon} size={22} color={config.accentColor} />
+          )}
+        </View>
+
+        {/* Content */}
         <View style={styles.content}>
           {toast.message && (
             <Text
               style={[
                 styles.message,
-                { color: toast.type === 'info' ? colors.background : '#fff' },
+                { color: theme.text },
+                isSpecial && styles.specialMessage,
               ]}
+              numberOfLines={1}
             >
               {toast.message}
             </Text>
           )}
           {toast.description && (
             <Text
-              style={[
-                styles.description,
-                {
-                  color: toast.type === 'info' ? colors.background : '#fff',
-                  opacity: 0.9,
-                },
-              ]}
+              style={[styles.description, { color: theme.textSecondary }]}
+              numberOfLines={2}
             >
               {toast.description}
             </Text>
           )}
         </View>
-        <TouchableOpacity onPress={hideToast} style={styles.closeButton}>
-          <Ionicons
-            name="close"
-            size={20}
-            color={toast.type === 'info' ? colors.background : '#fff'}
-          />
+
+        {/* Close button */}
+        <TouchableOpacity
+          onPress={hideToast}
+          style={styles.closeButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="close" size={18} color={theme.textMuted} />
         </TouchableOpacity>
+
+        {/* Progress bar */}
+        <View style={[styles.progressContainer, { backgroundColor: theme.border }]}>
+          <Animated.View
+            style={[
+              styles.progressBar,
+              {
+                width: progressWidth,
+                backgroundColor: config.accentColor,
+              },
+            ]}
+          />
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -184,7 +315,7 @@ const ToastContainer = () => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 50,
+    top: Platform.OS === 'ios' ? 60 : 45,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -194,35 +325,72 @@ const styles = StyleSheet.create({
   toast: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingLeft: 0,
+    borderRadius: 16,
     marginHorizontal: 16,
-    minHeight: 50,
-    maxWidth: '90%',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    minHeight: 56,
+    maxWidth: '92%',
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...themeShadows.lg,
+  },
+  leftAccent: {
+    width: 5,
+    height: '120%',
+    marginRight: 14,
+    borderTopRightRadius: 4,
+    borderBottomRightRadius: 4,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconGradient: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
     marginLeft: 12,
+    marginRight: 8,
   },
   message: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: 1,
+  },
+  specialMessage: {
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   description: {
-    fontSize: 14,
+    fontSize: 13,
+    lineHeight: 18,
   },
   closeButton: {
-    marginLeft: 8,
     padding: 4,
+  },
+  progressContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 2,
   },
 });
 

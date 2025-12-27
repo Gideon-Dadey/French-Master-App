@@ -20,16 +20,16 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path, Defs, RadialGradient, Stop } from 'react-native-svg';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
 import { usersAPI, progressAPI } from '../src/services/api';
-import { spacing, fontSize } from '../src/utils/responsive';
-import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import ErrorMessage from '../src/components/ErrorMessage';
 import { showToast } from '../src/components/ToastNotification';
+import { getThemeColors, themeShadows } from '../src/utils/organicTheme';
 
 const { width } = Dimensions.get('window');
 
@@ -38,6 +38,8 @@ export default function ProfileScreen({ navigation }) {
   const { isDarkMode, toggleTheme, colors } = useTheme();
   const gamificationContext = useGamification();
   const gamificationStats = gamificationContext?.stats || {};
+  const theme = getThemeColors(isDarkMode);
+  
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState({
     enrolledCourses: 0,
@@ -287,17 +289,69 @@ export default function ProfileScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
+      <View style={[styles.center, { backgroundColor: theme.background }]}>
         <LoadingSpinner />
       </View>
     );
   }
 
+  // Decorative blob component
+  const DecorativeBlob = ({ style, blobColors }) => (
+    <View style={style}>
+      <Svg width="100%" height="100%" viewBox="0 0 200 200">
+        <Defs>
+          <RadialGradient id="guestBlobGrad" cx="50%" cy="50%" r="50%">
+            <Stop offset="0%" stopColor={blobColors[0]} stopOpacity="0.6" />
+            <Stop offset="100%" stopColor={blobColors[1]} stopOpacity="0.15" />
+          </RadialGradient>
+        </Defs>
+        <Path
+          d="M45.3,-51.2C58.4,-42.3,68.3,-27.4,71.7,-10.7C75.1,6,72,24.4,62.1,37.5C52.2,50.6,35.5,58.4,18.2,63.2C0.9,68,-16.9,69.8,-32.8,64C-48.7,58.2,-62.6,44.8,-70.2,28.1C-77.8,11.4,-79.1,-8.7,-72.3,-25.4C-65.5,-42.1,-50.6,-55.5,-34.6,-63.5C-18.6,-71.5,-1.5,-74.2,13.2,-69.5C27.9,-64.8,32.2,-60.1,45.3,-51.2Z"
+          fill="url(#guestBlobGrad)"
+          transform="translate(100 100)"
+        />
+      </Svg>
+    </View>
+  );
+
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
-        <StatusBar barStyle="light-content" />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
         <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+          {/* Background */}
+          <View style={styles.bgContainer}>
+            <LinearGradient
+              colors={isDarkMode 
+                ? [theme.background, '#0A1219', theme.background] 
+                : [theme.background, '#F0EDE8', theme.background]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            
+            {/* Decorative blobs */}
+            <DecorativeBlob 
+              style={styles.blob1} 
+              blobColors={[theme.secondary, theme.accent]} 
+            />
+            <DecorativeBlob 
+              style={styles.blob2} 
+              blobColors={[theme.primary, theme.accent]} 
+            />
+            
+            {/* Wave pattern */}
+            <View style={styles.waveContainer}>
+              <Svg width={width} height="120" viewBox={`0 0 ${width} 120`}>
+                <Path
+                  d={`M0,60 C${width * 0.25},20 ${width * 0.5},100 ${width * 0.75},40 C${width},0 ${width},60 ${width},60 L${width},120 L0,120 Z`}
+                  fill={theme.primary + '10'}
+                />
+              </Svg>
+            </View>
+          </View>
+
           <Animated.View
             style={[
               styles.guestHeader,
@@ -307,27 +361,26 @@ export default function ProfileScreen({ navigation }) {
               }
             ]}
           >
-            <LinearGradient
-              colors={isDarkMode ? ['#1E293B', '#0F172A'] : ['#3B82F6', '#1D4ED8']}
-              style={StyleSheet.absoluteFill}
-            />
-
-            <View style={[styles.guestDecor1, { backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255, 255, 255, 0.15)' }]} />
-            <View style={[styles.guestDecor2, { backgroundColor: isDarkMode ? 'rgba(139, 92, 246, 0.1)' : 'rgba(255, 255, 255, 0.1)' }]} />
-
             <View style={styles.guestContent}>
+              {/* Logo */}
               <Animated.View style={[styles.guestIconContainer, { transform: [{ scale: guestAnim }] }]}>
-                <View style={styles.guestIconOuter}>
-                  <LinearGradient
-                    colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
-                    style={styles.guestIconGlow}
-                  />
-                  <Ionicons name="person" size={50} color="#FFFFFF" />
+                <View style={[styles.logoRing, { borderColor: theme.secondary + '40' }]}>
+                  <View style={[styles.logoInner, { borderColor: theme.primary + '60' }]}>
+                    <Image
+                      source={require('../assets/logo.jpeg')}
+                      style={styles.guestLogo}
+                    />
+                  </View>
                 </View>
+                {/* Decorative dots */}
+                <View style={[styles.logoDot, styles.logoDot1, { backgroundColor: theme.secondary }]} />
+                <View style={[styles.logoDot, styles.logoDot2, { backgroundColor: theme.accent }]} />
+                <View style={[styles.logoDot, styles.logoDot3, { backgroundColor: theme.primary }]} />
               </Animated.View>
 
-              <Text style={styles.guestTitle}>Join French Master</Text>
-              <Text style={styles.guestSubtitle}>
+              <Text style={[styles.guestGreeting, { color: theme.secondary }]}>Bienvenue</Text>
+              <Text style={[styles.guestTitle, { color: theme.text }]}>Join French Master</Text>
+              <Text style={[styles.guestSubtitle, { color: theme.textSecondary }]}>
                 Unlock the full potential of your language journey. Track progress, earn rewards, and join our global community.
               </Text>
             </View>
@@ -348,23 +401,29 @@ export default function ProfileScreen({ navigation }) {
               activeOpacity={0.9}
             >
               <LinearGradient
-                colors={['#3B82F6', '#2563EB']}
+                colors={[theme.primary, theme.primaryLight || theme.primary]}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={styles.signInGradient}
               >
-                <Ionicons name="log-in" size={22} color="#FFFFFF" />
+                <Ionicons name="log-in-outline" size={20} color="#FFFFFF" />
                 <Text style={styles.signInText}>Sign In</Text>
+                <View style={styles.btnIconContainer}>
+                  <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                </View>
               </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.createAccountBtn, { borderColor: isDarkMode ? '#334155' : '#E2E8F0' }]}
+              style={[styles.createAccountBtn, { 
+                borderColor: theme.border,
+                backgroundColor: theme.surface
+              }]}
               onPress={() => navigation.navigate('Auth', { screen: 'Register' })}
               activeOpacity={0.7}
             >
-              <Ionicons name="person-add-outline" size={20} color={isDarkMode ? '#94A3B8' : '#64748B'} />
-              <Text style={[styles.createAccountText, { color: isDarkMode ? '#F8FAFC' : '#1E293B' }]}>Create Account</Text>
+              <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
+              <Text style={[styles.createAccountText, { color: theme.text }]}>Create Account</Text>
             </TouchableOpacity>
           </Animated.View>
 
@@ -378,42 +437,46 @@ export default function ProfileScreen({ navigation }) {
             ]}
           >
             <View style={styles.featureHeaderRow}>
-              <Text style={[styles.featuresTitle, { color: colors.text }]}>Why Join?</Text>
-              <View style={styles.featureBadge}>
-                <Text style={styles.featureBadgeText}>ELITE ACCESS</Text>
+              <Text style={[styles.featuresTitle, { color: theme.text }]}>Why Join?</Text>
+              <View style={[styles.featureBadge, { backgroundColor: theme.secondary + '20', borderColor: theme.secondary + '40' }]}>
+                <Ionicons name="star" size={12} color={theme.secondary} style={{ marginRight: 4 }} />
+                <Text style={[styles.featureBadgeText, { color: theme.secondary }]}>PREMIUM</Text>
               </View>
             </View>
 
             <View style={styles.featuresGrid}>
               {[
-                { icon: 'analytics-outline', title: 'Track Progress', color: '#3B82F6', desc: 'See your daily growth' },
-                { icon: 'trophy-outline', title: 'Earn Badges', color: '#F59E0B', desc: 'Unlock achievements' },
-                { icon: 'people-outline', title: 'Community', color: '#10B981', desc: 'Learn with others' },
-                { icon: 'cloud-download-outline', title: 'Offline Mode', color: '#8B5CF6', desc: 'Study anywhere' },
+                { icon: 'analytics-outline', title: 'Track Progress', color: theme.primary, desc: 'See your daily growth' },
+                { icon: 'trophy-outline', title: 'Earn Badges', color: theme.secondary, desc: 'Unlock achievements' },
+                { icon: 'people-outline', title: 'Community', color: theme.accent, desc: 'Learn with others' },
+                { icon: 'cloud-download-outline', title: 'Offline Mode', color: theme.primary, desc: 'Study anywhere' },
               ].map((feature, index) => (
                 <View
                   key={index}
                   style={[
                     styles.featureCard,
-                    {
-                      backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
-                      borderColor: isDarkMode ? '#334155' : '#F1F5F9',
-                      borderWidth: 1
-                    },
-                    premiumShadows.sm
+                    { backgroundColor: theme.surface, borderColor: theme.border },
+                    themeShadows.sm
                   ]}
                 >
                   <View style={[styles.featureIcon, { backgroundColor: feature.color + '15' }]}>
                     <Ionicons name={feature.icon} size={24} color={feature.color} />
                   </View>
                   <View style={styles.featureContent}>
-                    <Text style={[styles.featureText, { color: colors.text }]}>{feature.title}</Text>
-                    <Text style={[styles.featureDesc, { color: colors.secondaryText }]}>{feature.desc}</Text>
+                    <Text style={[styles.featureText, { color: theme.text }]}>{feature.title}</Text>
+                    <Text style={[styles.featureDesc, { color: theme.textSecondary }]}>{feature.desc}</Text>
                   </View>
                 </View>
               ))}
             </View>
           </Animated.View>
+
+          {/* Footer decoration */}
+          <View style={styles.footerDecor}>
+            <View style={[styles.decorLine, { backgroundColor: theme.border }]} />
+            <Ionicons name="school-outline" size={18} color={theme.textMuted} />
+            <View style={[styles.decorLine, { backgroundColor: theme.border }]} />
+          </View>
 
           <View style={{ height: 100 }} />
         </ScrollView>
@@ -423,7 +486,7 @@ export default function ProfileScreen({ navigation }) {
 
   if (error && !profile) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <ErrorMessage message={error} onRetry={loadProfile} />
       </View>
     );
@@ -431,37 +494,37 @@ export default function ProfileScreen({ navigation }) {
 
   const displayName = profile?.name || user?.name || 'User';
   const displayEmail = profile?.email || user?.email || '';
-  const avatarUrl = profile?.avatar || user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=3B82F6&color=fff&size=200`;
+  const avatarUrl = profile?.avatar || user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1E3A5F&color=fff&size=200`;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle="light-content" />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
 
         <Animated.View style={{ opacity: headerAnim, transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }) }] }}>
           <LinearGradient
-            colors={isDarkMode ? ['#0F172A', '#1E3A5F', '#1E40AF'] : ['#3B82F6', '#2563EB', '#1D4ED8']}
+            colors={theme.heroGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.header}
           >
-
-            <View style={styles.headerDecor1} />
-            <View style={styles.headerDecor2} />
-            <View style={styles.headerDecor3} />
+            <View style={[styles.headerDecor1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+            <View style={[styles.headerDecor2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+            <View style={[styles.headerDecor3, { backgroundColor: 'rgba(255,255,255,0.1)' }]} />
 
             <TouchableOpacity style={styles.settingsBtn} onPress={() => {}}>
-              <Ionicons name="settings-outline" size={24} color="rgba(255,255,255,0.8)" />
+              <Ionicons name="settings-outline" size={24} color="rgba(255,255,255,0.85)" />
             </TouchableOpacity>
 
             <Animated.View style={[styles.avatarSection, { transform: [{ scale: avatarScale }] }]}>
               <View style={styles.avatarContainer}>
                 <Image source={{ uri: avatarUrl }} style={styles.avatar} />
                 <TouchableOpacity
-                  style={styles.editAvatarBtn}
+                  style={[styles.editAvatarBtn, { backgroundColor: theme.secondary }]}
                   onPress={handleAvatarPicker}
                   disabled={uploadingAvatar}
                 >
@@ -472,7 +535,7 @@ export default function ProfileScreen({ navigation }) {
                   )}
                 </TouchableOpacity>
 
-                <View style={styles.levelBadge}>
+                <View style={[styles.levelBadge, { backgroundColor: theme.secondary }]}>
                   <Text style={styles.levelText}>Lvl {stats.level}</Text>
                 </View>
               </View>
@@ -480,8 +543,8 @@ export default function ProfileScreen({ navigation }) {
               <Text style={styles.userEmail}>{displayEmail}</Text>
 
               {stats.streak > 0 && (
-                <View style={styles.streakBadge}>
-                  <Ionicons name="flame" size={16} color="#F97316" />
+                <View style={[styles.streakBadge, { backgroundColor: theme.secondary + '30' }]}>
+                  <Ionicons name="flame" size={16} color={theme.secondary} />
                   <Text style={styles.streakText}>{stats.streak} day streak!</Text>
                 </View>
               )}
@@ -498,7 +561,7 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.xpValue}>{stats.xp.toLocaleString()} XP</Text>
               </View>
               <View style={styles.xpTrack}>
-                <View style={[styles.xpFill, { width: `${(stats.xp % 1000) / 10}%` }]} />
+                <View style={[styles.xpFill, { width: `${(stats.xp % 1000) / 10}%`, backgroundColor: theme.secondary }]} />
               </View>
               <Text style={styles.xpNext}>{1000 - (stats.xp % 1000)} XP to next level</Text>
             </View>
@@ -507,35 +570,34 @@ export default function ProfileScreen({ navigation }) {
 
         <Animated.View style={[styles.statsSection, { opacity: contentAnim, transform: [{ translateY: contentAnim.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) }] }]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.statsScroll}>
-            <StatCard icon="book" value={stats.enrolledCourses} label="Courses" color="#3B82F6" colors={colors} />
-            <StatCard icon="checkmark-circle" value={stats.completedLessons} label="Lessons" color="#10B981" colors={colors} />
-            <StatCard icon="time" value={stats.studyTime} label="Study Time" color="#F59E0B" colors={colors} />
-            <StatCard icon="trending-up" value={`${stats.totalProgress}%`} label="Progress" color="#8B5CF6" colors={colors} />
+            <StatCard icon="book" value={stats.enrolledCourses} label="Courses" color={theme.primary} theme={theme} />
+            <StatCard icon="checkmark-circle" value={stats.completedLessons} label="Lessons" color={theme.accent} theme={theme} />
+            <StatCard icon="time" value={stats.studyTime} label="Study Time" color={theme.secondary} theme={theme} />
+            <StatCard icon="trending-up" value={`${stats.totalProgress}%`} label="Progress" color={theme.primary} theme={theme} />
           </ScrollView>
         </Animated.View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
-            <ActionCard icon="library" title="My Courses" subtitle="View enrolled" color="#3B82F6" colors={colors} onPress={() => navigation.navigate('MyCourses')} />
-            <ActionCard icon="trophy" title="Achievements" subtitle="View badges" color="#F59E0B" colors={colors} onPress={() => navigation.navigate('Achievements')} />
-            <ActionCard icon="heart" title="Wishlist" subtitle="Saved courses" color="#EC4899" colors={colors} onPress={() => navigation.navigate('Wishlist')} />
-            <ActionCard icon="notifications" title="Notifications" subtitle="View alerts" color="#6366F1" colors={colors} onPress={() => navigation.navigate('Notifications')} />
+            <ActionCard icon="library" title="My Courses" subtitle="View enrolled" color={theme.primary} theme={theme} onPress={() => navigation.navigate('MyCourses')} />
+            <ActionCard icon="trophy" title="Achievements" subtitle="View badges" color={theme.secondary} theme={theme} onPress={() => navigation.navigate('Achievements')} />
+            <ActionCard icon="heart" title="Wishlist" subtitle="Saved courses" color={theme.error} theme={theme} onPress={() => navigation.navigate('Wishlist')} />
+            <ActionCard icon="notifications" title="Notifications" subtitle="View alerts" color={theme.accent} theme={theme} onPress={() => navigation.navigate('Notifications')} />
             {(user?.role === 'instructor' || user?.role === 'admin') && (
-              <ActionCard icon="school" title="For Teachers" subtitle="Teach & earn" color="#10B981" colors={colors} onPress={() => navigation.navigate('Teachers')} />
+              <ActionCard icon="school" title="For Teachers" subtitle="Teach & earn" color={theme.primary} theme={theme} onPress={() => navigation.navigate('Teachers')} />
             )}
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
-          <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Settings</Text>
+          <View style={[styles.settingsCard, { backgroundColor: theme.surface }, themeShadows.sm]}>
             <SettingRow
               icon="moon"
               title="Dark Mode"
               subtitle="Switch theme"
-              colors={colors}
-              isDarkMode={isDarkMode}
+              theme={theme}
               isSwitch
               value={isDarkMode}
               onValueChange={() => {
@@ -547,8 +609,7 @@ export default function ProfileScreen({ navigation }) {
               icon="notifications"
               title="Notifications"
               subtitle="Push alerts"
-              colors={colors}
-              isDarkMode={isDarkMode}
+              theme={theme}
               isSwitch
               value={notifications}
               onValueChange={(value) => {
@@ -561,22 +622,20 @@ export default function ProfileScreen({ navigation }) {
 
         {(user?.role === 'instructor' || user?.role === 'admin' || true) && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Content Management</Text>
-            <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Content Management</Text>
+            <View style={[styles.settingsCard, { backgroundColor: theme.surface }, themeShadows.sm]}>
               <SettingRow
                 icon="videocam"
                 title="Sample Videos"
                 subtitle="Upload & manage previews"
-                colors={colors}
-                isDarkMode={isDarkMode}
+                theme={theme}
                 onPress={() => navigation.navigate('ManageSampleVideos')}
               />
               <SettingRow
                 icon="analytics"
                 title="Analytics"
                 subtitle="View insights"
-                colors={colors}
-                isDarkMode={isDarkMode}
+                theme={theme}
                 onPress={() => navigation.navigate('AnalyticsDashboard')}
                 isLast
               />
@@ -585,61 +644,61 @@ export default function ProfileScreen({ navigation }) {
         )}
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>More</Text>
-          <View style={[styles.settingsCard, { backgroundColor: colors.card }]}>
-            <SettingRow icon="card" title="Payment Methods" subtitle="Manage payments" colors={colors} isDarkMode={isDarkMode} onPress={() => Alert.alert('Coming Soon', 'Payment methods will be available soon')} />
-            <SettingRow icon="receipt" title="Purchase History" subtitle="View transactions" colors={colors} isDarkMode={isDarkMode} onPress={() => Alert.alert('Coming Soon', 'Purchase history will be available soon')} />
-            <SettingRow icon="help-circle" title="Help & Support" subtitle="Get assistance" colors={colors} isDarkMode={isDarkMode} onPress={() => navigation.navigate('Resources')} />
-            <SettingRow icon="document-text" title="Terms & Privacy" subtitle="Legal info" colors={colors} isDarkMode={isDarkMode} onPress={() => Alert.alert('Terms & Privacy', 'Legal information will be displayed here.')} isLast />
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>More</Text>
+          <View style={[styles.settingsCard, { backgroundColor: theme.surface }, themeShadows.sm]}>
+            <SettingRow icon="card" title="Payment Methods" subtitle="Manage payments" theme={theme} onPress={() => Alert.alert('Coming Soon', 'Payment methods will be available soon')} />
+            <SettingRow icon="receipt" title="Purchase History" subtitle="View transactions" theme={theme} onPress={() => Alert.alert('Coming Soon', 'Purchase history will be available soon')} />
+            <SettingRow icon="help-circle" title="Help & Support" subtitle="Get assistance" theme={theme} onPress={() => navigation.navigate('Resources')} />
+            <SettingRow icon="document-text" title="Terms & Privacy" subtitle="Legal info" theme={theme} onPress={() => Alert.alert('Terms & Privacy', 'Legal information will be displayed here.')} isLast />
           </View>
         </View>
 
-        <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: colors.card }]} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={22} color="#EF4444" />
-          <Text style={styles.logoutText}>Logout</Text>
+        <TouchableOpacity style={[styles.logoutBtn, { backgroundColor: theme.surface }, themeShadows.sm]} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={22} color={theme.error} />
+          <Text style={[styles.logoutText, { color: theme.error }]}>Logout</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.version, { color: colors.secondaryText }]}>Version 1.0.0</Text>
+        <Text style={[styles.version, { color: theme.textMuted }]}>Version 1.0.0</Text>
       </ScrollView>
 
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={handleCloseEditModal}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Edit Profile</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Profile</Text>
               <TouchableOpacity onPress={handleCloseEditModal}>
-                <Ionicons name="close" size={28} color={colors.text} />
+                <Ionicons name="close" size={28} color={theme.text} />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalBody}>
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Name *</Text>
+                <Text style={[styles.formLabel, { color: theme.text }]}>Name *</Text>
                 <TextInput
-                  style={[styles.formInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                  style={[styles.formInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={editFormData.name}
                   onChangeText={(text) => setEditFormData({ ...editFormData, name: text })}
                   placeholder="Enter your name"
-                  placeholderTextColor={colors.secondaryText}
+                  placeholderTextColor={theme.textMuted}
                 />
               </View>
               <View style={styles.formGroup}>
-                <Text style={[styles.formLabel, { color: colors.text }]}>Phone</Text>
+                <Text style={[styles.formLabel, { color: theme.text }]}>Phone</Text>
                 <TextInput
-                  style={[styles.formInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                  style={[styles.formInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
                   value={editFormData.phone}
                   onChangeText={(text) => setEditFormData({ ...editFormData, phone: text })}
                   placeholder="Enter your phone"
-                  placeholderTextColor={colors.secondaryText}
+                  placeholderTextColor={theme.textMuted}
                   keyboardType="phone-pad"
                 />
               </View>
             </ScrollView>
-            <View style={[styles.modalFooter, { borderTopColor: colors.border }]}>
-              <TouchableOpacity style={[styles.cancelBtn, { borderColor: colors.border }]} onPress={handleCloseEditModal}>
-                <Text style={[styles.cancelBtnText, { color: colors.secondaryText }]}>Cancel</Text>
+            <View style={[styles.modalFooter, { borderTopColor: theme.border }]}>
+              <TouchableOpacity style={[styles.cancelBtn, { borderColor: theme.border }]} onPress={handleCloseEditModal}>
+                <Text style={[styles.cancelBtnText, { color: theme.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} disabled={editingProfile}>
-                <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.saveBtnGradient}>
+                <LinearGradient colors={[theme.primary, theme.primaryLight || theme.primary]} style={styles.saveBtnGradient}>
                   {editingProfile ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
@@ -655,51 +714,49 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-function StatCard({ icon, value, label, color, colors }) {
+function StatCard({ icon, value, label, color, theme }) {
   return (
-    <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+    <View style={[styles.statCard, { backgroundColor: theme.surface }, themeShadows.sm]}>
       <View style={[styles.statIcon, { backgroundColor: color + '15' }]}>
         <Ionicons name={icon} size={22} color={color} />
       </View>
-      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.secondaryText }]}>{label}</Text>
+      <Text style={[styles.statValue, { color: theme.text }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{label}</Text>
     </View>
   );
 }
 
-function ActionCard({ icon, title, subtitle, color, colors, onPress }) {
+function ActionCard({ icon, title, subtitle, color, theme, onPress }) {
   return (
-    <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.card }]} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={[styles.actionCard, { backgroundColor: theme.surface }, themeShadows.sm]} onPress={onPress} activeOpacity={0.8}>
       <LinearGradient colors={[color, color + 'CC']} style={styles.actionIcon}>
         <Ionicons name={icon} size={24} color="#FFFFFF" />
       </LinearGradient>
-      <Text style={[styles.actionTitle, { color: colors.text }]}>{title}</Text>
-      <Text style={[styles.actionSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
+      <Text style={[styles.actionTitle, { color: theme.text }]}>{title}</Text>
+      <Text style={[styles.actionSubtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
     </TouchableOpacity>
   );
 }
 
-function SettingRow({ icon, title, subtitle, colors, isDarkMode, isSwitch, value, onValueChange, onPress, isLast }) {
-  const iconColor = isDarkMode ? '#60A5FA' : '#3B82F6';
-
+function SettingRow({ icon, title, subtitle, theme, isSwitch, value, onValueChange, onPress, isLast }) {
   const Content = (
-    <View style={[styles.settingRow, !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
-      <View style={[styles.settingIcon, { backgroundColor: iconColor + '15' }]}>
-        <Ionicons name={icon} size={20} color={iconColor} />
+    <View style={[styles.settingRow, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+      <View style={[styles.settingIcon, { backgroundColor: theme.primary + '15' }]}>
+        <Ionicons name={icon} size={20} color={theme.primary} />
       </View>
       <View style={styles.settingContent}>
-        <Text style={[styles.settingTitle, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.settingSubtitle, { color: colors.secondaryText }]}>{subtitle}</Text>
+        <Text style={[styles.settingTitle, { color: theme.text }]}>{title}</Text>
+        <Text style={[styles.settingSubtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
       </View>
       {isSwitch ? (
         <Switch
           value={value}
           onValueChange={onValueChange}
-          trackColor={{ false: colors.border, true: '#3B82F6' }}
+          trackColor={{ false: theme.border, true: theme.primary }}
           thumbColor="#FFFFFF"
         />
       ) : (
-        <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+        <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
       )}
     </View>
   );
@@ -720,32 +777,103 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  guestHeader: {
-    paddingTop: Platform.OS === 'ios' ? 100 : 80,
-    paddingBottom: 60,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+  // Background styles
+  bgContainer: {
+    ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
-    position: 'relative',
-    minHeight: 380,
-    justifyContent: 'center',
   },
-  guestDecor1: {
+  blob1: {
     position: 'absolute',
+    top: -80,
+    right: -60,
     width: 280,
     height: 280,
-    borderRadius: 140,
-    top: -100,
-    right: -80,
+    opacity: 0.6,
   },
-  guestDecor2: {
+  blob2: {
     position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    bottom: -60,
-    left: -50,
+    bottom: 200,
+    left: -100,
+    width: 250,
+    height: 250,
+    opacity: 0.4,
+  },
+  waveContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+
+  // Guest logo styles
+  logoRing: {
+    padding: 6,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+  },
+  logoInner: {
+    padding: 4,
+    borderRadius: 44,
+    borderWidth: 2,
+  },
+  guestLogo: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+  },
+  logoDot: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  logoDot1: {
+    top: -2,
+    right: 10,
+  },
+  logoDot2: {
+    bottom: 5,
+    left: -5,
+  },
+  logoDot3: {
+    top: 40,
+    right: -8,
+  },
+  guestGreeting: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  btnIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  footerDecor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+    gap: 12,
+  },
+  decorLine: {
+    width: 40,
+    height: 1,
+  },
+  guestHeader: {
+    paddingTop: Platform.OS === 'ios' ? 100 : 80,
+    paddingBottom: 40,
+    paddingHorizontal: 24,
+    position: 'relative',
+    minHeight: 340,
+    justifyContent: 'center',
   },
   guestContent: {
     alignItems: 'center',
@@ -753,34 +881,18 @@ const styles = StyleSheet.create({
   },
   guestIconContainer: {
     marginBottom: 24,
-  },
-  guestIconOuter: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
     position: 'relative',
-  },
-  guestIconGlow: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 50,
-    opacity: 0.5,
   },
   guestTitle: {
     fontSize: 32,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontWeight: '700',
     marginBottom: 16,
     textAlign: 'center',
     letterSpacing: -0.5,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   guestSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.85)',
+    fontSize: 15,
     textAlign: 'center',
     lineHeight: 24,
     paddingHorizontal: 15,
@@ -794,7 +906,7 @@ const styles = StyleSheet.create({
   signInBtn: {
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#3B82F6',
+    shadowColor: '#1E3A5F',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 15,
@@ -809,7 +921,7 @@ const styles = StyleSheet.create({
   },
   signInText: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
@@ -819,13 +931,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 18,
     borderRadius: 20,
-    borderWidth: 2,
+    borderWidth: 1.5,
     gap: 12,
-    backgroundColor: 'transparent',
   },
   createAccountText: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   featuresSection: {
     paddingHorizontal: 24,
@@ -839,21 +950,21 @@ const styles = StyleSheet.create({
   },
   featuresTitle: {
     fontSize: 20,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: -0.5,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   featureBadge: {
-    backgroundColor: '#F59E0B20',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#F59E0B40',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   featureBadgeText: {
     fontSize: 10,
-    fontWeight: '800',
-    color: '#D97706',
+    fontWeight: '700',
   },
   featuresGrid: {
     gap: 14,
@@ -862,8 +973,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 24,
+    borderRadius: 20,
     gap: 16,
+    borderWidth: 1,
   },
   featureIcon: {
     width: 56,
@@ -877,12 +989,11 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 2,
   },
   featureDesc: {
     fontSize: 13,
-    opacity: 0.7,
   },
 
   header: {
@@ -899,7 +1010,6 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     top: -60,
     right: -40,
   },
@@ -908,7 +1018,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     bottom: -40,
     left: -30,
   },
@@ -917,7 +1026,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     top: 100,
     right: 80,
   },
@@ -953,7 +1061,6 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
@@ -963,7 +1070,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#F59E0B',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -975,9 +1081,10 @@ const styles = StyleSheet.create({
   },
   userName: {
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   userEmail: {
     fontSize: 14,
@@ -987,7 +1094,6 @@ const styles = StyleSheet.create({
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(249,115,22,0.2)',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
@@ -996,7 +1102,7 @@ const styles = StyleSheet.create({
   },
   streakText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#FFFFFF',
   },
   editProfileBtn: {
@@ -1044,7 +1150,6 @@ const styles = StyleSheet.create({
   },
   xpFill: {
     height: '100%',
-    backgroundColor: '#FCD34D',
     borderRadius: 4,
   },
   xpNext: {
@@ -1066,11 +1171,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
   },
   statIcon: {
     width: 44,
@@ -1082,7 +1182,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '700',
     marginBottom: 2,
   },
   statLabel: {
@@ -1099,6 +1199,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 14,
     letterSpacing: -0.3,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
 
   actionsGrid: {
@@ -1111,11 +1212,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
   },
   actionIcon: {
     width: 52,
@@ -1127,7 +1223,7 @@ const styles = StyleSheet.create({
   },
   actionTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     marginBottom: 2,
     textAlign: 'center',
   },
@@ -1139,11 +1235,6 @@ const styles = StyleSheet.create({
   settingsCard: {
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
   },
   settingRow: {
     flexDirection: 'row',
@@ -1178,16 +1269,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 14,
     gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
   },
   logoutText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#EF4444',
+    fontWeight: '600',
   },
   version: {
     textAlign: 'center',
@@ -1217,6 +1302,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   modalBody: {
     padding: 20,

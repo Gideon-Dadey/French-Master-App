@@ -18,14 +18,59 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { CommonActions } from '@react-navigation/native';
+import Svg, { Path, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
-import { premiumShadows, premiumColors } from '../../src/utils/premiumDesign';
+import { getThemeColors, themeShadows } from '../../src/utils/organicTheme';
 
 const { width, height } = Dimensions.get('window');
 
+// Elegant decorative blob
+const DecorativeBlob = ({ style, colors }) => {
+  return (
+    <View style={style}>
+      <Svg width="100%" height="100%" viewBox="0 0 200 200">
+        <Defs>
+          <RadialGradient id="blobGradRegister" cx="50%" cy="50%" r="50%">
+            <Stop offset="0%" stopColor={colors[0]} stopOpacity="0.6" />
+            <Stop offset="100%" stopColor={colors[1]} stopOpacity="0.15" />
+          </RadialGradient>
+        </Defs>
+        <Path
+          d="M39.5,-48.1C52.9,-39.2,66.5,-28.4,72.2,-13.9C77.9,0.7,75.8,19,67.4,33.4C59,47.8,44.4,58.3,28.4,64.2C12.5,70.1,-4.9,71.4,-21.3,67.1C-37.7,62.8,-53.2,52.9,-62.7,38.7C-72.3,24.5,-75.9,6,-72.4,-10.5C-68.9,-27,-58.3,-41.4,-44.9,-50.3C-31.5,-59.2,-15.7,-62.6,-1,-61.4C13.8,-60.2,27.6,-58.4,39.5,-48.1Z"
+          fill="url(#blobGradRegister)"
+          transform="translate(100 100)"
+        />
+      </Svg>
+    </View>
+  );
+};
+
+// Floating accent element
+const FloatingAccent = ({ style, delay = 0, color }) => {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: 1, duration: 4000, delay, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 4000, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  const translateY = floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
+
+  return (
+    <Animated.View style={[style, { transform: [{ translateY }] }]}>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color, opacity: 0.5 }} />
+    </Animated.View>
+  );
+};
+
 export default function RegisterScreen({ navigation }) {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
+  const theme = getThemeColors(isDarkMode);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -40,29 +85,29 @@ export default function RegisterScreen({ navigation }) {
   const [focusedInput, setFocusedInput] = useState(null);
   const { register } = useAuth();
 
+  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const logoScale = useRef(new Animated.Value(0.8)).current;
+  const slideAnim = useRef(new Animated.Value(60)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const headerSlide = useRef(new Animated.Value(-30)).current;
+  const inputAnims = useRef([
+    new Animated.Value(0), new Animated.Value(0), new Animated.Value(0),
+    new Animated.Value(0), new Animated.Value(0), new Animated.Value(0),
+  ]).current;
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 20,
-        friction: 7,
-        useNativeDriver: true,
-      }),
-      Animated.spring(logoScale, {
-        toValue: 1,
-        tension: 15,
-        friction: 6,
-        useNativeDriver: true,
-      }),
+    Animated.sequence([
+      Animated.parallel([
+        Animated.spring(fadeAnim, { toValue: 1, tension: 20, friction: 8, useNativeDriver: true }),
+        Animated.spring(headerSlide, { toValue: 0, tension: 25, friction: 9, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, tension: 18, friction: 7, useNativeDriver: true }),
+      ]),
+      Animated.stagger(100, [
+        Animated.spring(slideAnim, { toValue: 0, tension: 30, friction: 10, useNativeDriver: true }),
+        ...inputAnims.map(anim =>
+          Animated.spring(anim, { toValue: 1, tension: 40, friction: 10, useNativeDriver: true })
+        ),
+      ]),
     ]).start();
   }, []);
 
@@ -105,17 +150,98 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
+  const renderInput = (config, index) => {
+    const { key, label, icon, placeholder, keyboardType, isPassword, showToggle, toggleValue, onToggle, optional } = config;
+
+    return (
+      <Animated.View
+        key={key}
+        style={[
+          styles.inputGroup,
+          {
+            opacity: inputAnims[index],
+            transform: [{ translateX: inputAnims[index].interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }]
+          }
+        ]}
+      >
+        <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
+          {label} {optional && <Text style={{ opacity: 0.6 }}>(Optional)</Text>}
+        </Text>
+        <View
+          style={[
+            styles.inputWrapper,
+            {
+              backgroundColor: theme.surface,
+              borderColor: focusedInput === key ? theme.primary : theme.border,
+            },
+            themeShadows.sm
+          ]}
+        >
+          <View style={[styles.inputIconContainer, { backgroundColor: focusedInput === key ? theme.primary + '15' : 'transparent' }]}>
+            <Ionicons name={icon} size={18} color={focusedInput === key ? theme.primary : theme.textSecondary} />
+          </View>
+          <TextInput
+            style={[styles.input, { color: theme.text }]}
+            placeholder={placeholder}
+            placeholderTextColor={theme.textMuted}
+            value={formData[key]}
+            onChangeText={(text) => setFormData({ ...formData, [key]: text })}
+            keyboardType={keyboardType || 'default'}
+            autoCapitalize={key === 'email' ? 'none' : key === 'name' ? 'words' : 'none'}
+            secureTextEntry={isPassword && !toggleValue}
+            onFocus={() => setFocusedInput(key)}
+            onBlur={() => setFocusedInput(null)}
+          />
+          {showToggle && (
+            <TouchableOpacity onPress={onToggle} style={styles.eyeButton}>
+              <Ionicons name={toggleValue ? 'eye-off-outline' : 'eye-outline'} size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </Animated.View>
+    );
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#FFFFFF' }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
+      {/* Background */}
       <View style={styles.bgContainer}>
         <LinearGradient
-          colors={isDarkMode ? ['#064e3b', '#000000'] : ['#ecfdf5', '#ffffff']}
+          colors={isDarkMode
+            ? [theme.background, '#0A1219', theme.background]
+            : [theme.background, '#F0EDE8', theme.background]
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
-        <View style={[styles.decorCircle, styles.circle1, { backgroundColor: isDarkMode ? '#10b98115' : '#d1fae550' }]} />
-        <View style={[styles.decorCircle, styles.circle2, { backgroundColor: isDarkMode ? '#05966910' : '#a7f3d040' }]} />
+
+        {/* Decorative blobs */}
+        <DecorativeBlob
+          style={styles.blob1}
+          colors={[theme.secondary, theme.accent]}
+        />
+        <DecorativeBlob
+          style={styles.blob2}
+          colors={[theme.primary, theme.accent]}
+        />
+
+        {/* Floating accents */}
+        <FloatingAccent style={styles.accent1} delay={0} color={theme.secondary} />
+        <FloatingAccent style={styles.accent2} delay={800} color={theme.primary} />
+        <FloatingAccent style={styles.accent3} delay={1600} color={theme.secondary} />
+
+        {/* Wave pattern */}
+        <View style={styles.waveContainer}>
+          <Svg width={width} height="100" viewBox={`0 0 ${width} 100`} style={styles.wave}>
+            <Path
+              d={`M0,50 Q${width * 0.25},20 ${width * 0.5},50 T${width},50 L${width},100 L0,100 Z`}
+              fill={theme.primary + '08'}
+            />
+          </Svg>
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -127,225 +253,139 @@ export default function RegisterScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-
+          {/* Back Button */}
           <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: isDarkMode ? '#1c1c1e' : '#f2f2f7' }]}
+            style={[styles.backButton, { backgroundColor: theme.primary + '10' }]}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="chevron-back" size={24} color={colors.text} />
+            <Ionicons name="arrow-back" size={22} color={theme.primary} />
           </TouchableOpacity>
 
-          <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ scale: logoScale }] }]}>
-            <View style={styles.logoWrapper}>
-              <View style={[styles.logoGlow, { shadowColor: isDarkMode ? '#10b981' : '#059669' }]} />
-              <Image
-                source={require('../../assets/logo.jpeg')}
-                style={styles.logo}
-              />
+          {/* Header Section */}
+          <Animated.View
+            style={[
+              styles.header,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: headerSlide }, { scale: scaleAnim }]
+              }
+            ]}
+          >
+            {/* Logo */}
+            <View style={styles.logoContainer}>
+              <View style={[styles.logoFrame, { backgroundColor: theme.secondary + '15' }]}>
+                <View style={[styles.logoInner, { borderColor: theme.primary + '40' }]}>
+                  <Image
+                    source={require('../../assets/logo.jpeg')}
+                    style={styles.logo}
+                  />
+                </View>
+              </View>
+              {/* Decorative dots */}
+              <View style={[styles.logoDot, styles.logoDot1, { backgroundColor: theme.secondary }]} />
+              <View style={[styles.logoDot, styles.logoDot2, { backgroundColor: theme.primary }]} />
             </View>
-            <Text style={[styles.title, { color: colors.text }]}>Join the Master</Text>
-            <Text style={[styles.subtitle, { color: colors.secondaryText }]}>
-              Start your journey to French fluency today.
+
+            <Text style={[styles.greeting, { color: theme.secondary }]}>Commencer</Text>
+            <Text style={[styles.title, { color: theme.text }]}>Join the Journey</Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              Begin your path to French fluency today
             </Text>
           </Animated.View>
 
+          {/* Form Section */}
           <Animated.View
             style={[
               styles.formCard,
               {
-                backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
                 opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
+                transform: [{ translateY: slideAnim }],
               },
-              premiumShadows.lg
             ]}
           >
-
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>I AM JOINING AS</Text>
+            {/* Role Selection */}
+            <Animated.View
+              style={[
+                styles.inputGroup,
+                { opacity: inputAnims[0], transform: [{ translateX: inputAnims[0].interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }
+              ]}
+            >
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>I am joining as</Text>
               <View style={styles.roleRow}>
                 <TouchableOpacity
                   style={[
                     styles.roleBtn,
+                    formData.role === 'student' && styles.roleBtnActive,
                     {
-                      backgroundColor: formData.role === 'student' ? (isDarkMode ? '#059669' : '#10b981') : (isDarkMode ? '#2c2c2e' : '#f2f2f7'),
-                    },
+                      backgroundColor: formData.role === 'student'
+                        ? theme.primary
+                        : theme.surface,
+                      borderColor: formData.role === 'student' ? theme.primary : theme.border,
+                    }
                   ]}
                   onPress={() => setFormData({ ...formData, role: 'student' })}
                 >
                   <Ionicons
                     name="school-outline"
                     size={20}
-                    color={formData.role === 'student' ? '#FFFFFF' : (isDarkMode ? '#8e8e93' : '#636366')}
+                    color={formData.role === 'student' ? '#FFFFFF' : theme.textSecondary}
                   />
-                  <Text style={[styles.roleBtnText, { color: formData.role === 'student' ? '#FFFFFF' : colors.text }]}>Student</Text>
+                  <Text style={[
+                    styles.roleBtnText,
+                    { color: formData.role === 'student' ? '#FFFFFF' : theme.text }
+                  ]}>Student</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[
                     styles.roleBtn,
+                    formData.role === 'instructor' && styles.roleBtnActive,
                     {
-                      backgroundColor: formData.role === 'instructor' ? (isDarkMode ? '#059669' : '#10b981') : (isDarkMode ? '#2c2c2e' : '#f2f2f7'),
-                    },
+                      backgroundColor: formData.role === 'instructor'
+                        ? theme.secondary
+                        : theme.surface,
+                      borderColor: formData.role === 'instructor' ? theme.secondary : theme.border,
+                    }
                   ]}
                   onPress={() => setFormData({ ...formData, role: 'instructor' })}
                 >
                   <Ionicons
                     name="person-outline"
                     size={20}
-                    color={formData.role === 'instructor' ? '#FFFFFF' : (isDarkMode ? '#8e8e93' : '#636366')}
+                    color={formData.role === 'instructor' ? '#FFFFFF' : theme.textSecondary}
                   />
-                  <Text style={[styles.roleBtnText, { color: formData.role === 'instructor' ? '#FFFFFF' : colors.text }]}>Teacher</Text>
+                  <Text style={[
+                    styles.roleBtnText,
+                    { color: formData.role === 'instructor' ? '#FFFFFF' : theme.text }
+                  ]}>Teacher</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
 
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>FULL NAME</Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: isDarkMode ? '#2c2c2e' : '#f8f9fa',
-                    borderColor: focusedInput === 'name' ? '#10b981' : 'transparent',
-                    borderWidth: 1
-                  }
-                ]}
-              >
-                <Ionicons name="person-outline" size={20} color={focusedInput === 'name' ? '#10b981' : '#8e8e93'} />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="John Doe"
-                  placeholderTextColor="#8e8e93"
-                  value={formData.name}
-                  onChangeText={(text) => setFormData({ ...formData, name: text })}
-                  onFocus={() => setFocusedInput('name')}
-                  onBlur={() => setFocusedInput(null)}
-                />
-              </View>
-            </View>
+            {/* Input Fields */}
+            {renderInput({ key: 'name', label: 'Full Name', icon: 'person-outline', placeholder: 'Your full name' }, 1)}
+            {renderInput({ key: 'email', label: 'Email Address', icon: 'mail-outline', placeholder: 'your@email.com', keyboardType: 'email-address' }, 2)}
+            {renderInput({ key: 'phone', label: 'Phone Number', icon: 'call-outline', placeholder: '+1 (555) 000-0000', keyboardType: 'phone-pad', optional: true }, 3)}
+            {renderInput({
+              key: 'password', label: 'Password', icon: 'lock-closed-outline', placeholder: '••••••••',
+              isPassword: true, showToggle: true, toggleValue: showPassword, onToggle: () => setShowPassword(!showPassword)
+            }, 4)}
+            {renderInput({
+              key: 'confirmPassword', label: 'Confirm Password', icon: 'shield-checkmark-outline', placeholder: '••••••••',
+              isPassword: true, showToggle: true, toggleValue: showConfirmPassword, onToggle: () => setShowConfirmPassword(!showConfirmPassword)
+            }, 5)}
 
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>EMAIL ADDRESS</Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: isDarkMode ? '#2c2c2e' : '#f8f9fa',
-                    borderColor: focusedInput === 'email' ? '#10b981' : 'transparent',
-                    borderWidth: 1
-                  }
-                ]}
-              >
-                <Ionicons name="mail-outline" size={20} color={focusedInput === 'email' ? '#10b981' : '#8e8e93'} />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="name@example.com"
-                  placeholderTextColor="#8e8e93"
-                  value={formData.email}
-                  onChangeText={(text) => setFormData({ ...formData, email: text })}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  onFocus={() => setFocusedInput('email')}
-                  onBlur={() => setFocusedInput(null)}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>PHONE (OPTIONAL)</Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: isDarkMode ? '#2c2c2e' : '#f8f9fa',
-                    borderColor: focusedInput === 'phone' ? '#10b981' : 'transparent',
-                    borderWidth: 1
-                  }
-                ]}
-              >
-                <Ionicons name="call-outline" size={20} color={focusedInput === 'phone' ? '#10b981' : '#8e8e93'} />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="+1 (555) 000-0000"
-                  placeholderTextColor="#8e8e93"
-                  value={formData.phone}
-                  onChangeText={(text) => setFormData({ ...formData, phone: text })}
-                  keyboardType="phone-pad"
-                  onFocus={() => setFocusedInput('phone')}
-                  onBlur={() => setFocusedInput(null)}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>PASSWORD</Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: isDarkMode ? '#2c2c2e' : '#f8f9fa',
-                    borderColor: focusedInput === 'password' ? '#10b981' : 'transparent',
-                    borderWidth: 1
-                  }
-                ]}
-              >
-                <Ionicons name="lock-closed-outline" size={20} color={focusedInput === 'password' ? '#10b981' : '#8e8e93'} />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="••••••••"
-                  placeholderTextColor="#8e8e93"
-                  value={formData.password}
-                  onChangeText={(text) => setFormData({ ...formData, password: text })}
-                  secureTextEntry={!showPassword}
-                  onFocus={() => setFocusedInput('password')}
-                  onBlur={() => setFocusedInput(null)}
-                />
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#8e8e93" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.secondaryText }]}>CONFIRM PASSWORD</Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: isDarkMode ? '#2c2c2e' : '#f8f9fa',
-                    borderColor: focusedInput === 'confirm' ? '#10b981' : 'transparent',
-                    borderWidth: 1
-                  }
-                ]}
-              >
-                <Ionicons name="shield-checkmark-outline" size={20} color={focusedInput === 'confirm' ? '#10b981' : '#8e8e93'} />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="••••••••"
-                  placeholderTextColor="#8e8e93"
-                  value={formData.confirmPassword}
-                  onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
-                  secureTextEntry={!showConfirmPassword}
-                  onFocus={() => setFocusedInput('confirm')}
-                  onBlur={() => setFocusedInput(null)}
-                />
-                <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                  <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#8e8e93" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
+            {/* Register Button */}
             <TouchableOpacity
               style={[styles.registerButton, loading && styles.disabledButton]}
               onPress={handleRegister}
               disabled={loading}
-              activeOpacity={0.9}
+              activeOpacity={0.85}
             >
               <LinearGradient
-                colors={['#10b981', '#059669']}
+                colors={[theme.primary, theme.primaryLight || theme.primary]}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={styles.gradientButton}
               >
                 {loading ? (
@@ -353,26 +393,37 @@ export default function RegisterScreen({ navigation }) {
                 ) : (
                   <>
                     <Text style={styles.registerButtonText}>Create Account</Text>
-                    <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                    <View style={styles.buttonIconContainer}>
+                      <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                    </View>
                   </>
                 )}
               </LinearGradient>
             </TouchableOpacity>
 
-            <Text style={[styles.termsText, { color: colors.secondaryText }]}>
+            {/* Terms */}
+            <Text style={[styles.termsText, { color: theme.textSecondary }]}>
               By joining, you agree to our{' '}
-              <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
-              <Text style={styles.termsLink}>Privacy Policy</Text>.
+              <Text style={[styles.termsLink, { color: theme.primary }]}>Terms of Service</Text> and{' '}
+              <Text style={[styles.termsLink, { color: theme.primary }]}>Privacy Policy</Text>.
             </Text>
           </Animated.View>
 
+          {/* Footer */}
           <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: colors.secondaryText }]}>
+            <Text style={[styles.footerText, { color: theme.textSecondary }]}>
               Already a member?{' '}
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.signInLink}>Sign In</Text>
+              <Text style={[styles.signInLink, { color: theme.primary }]}>Sign In</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* Footer Decoration */}
+          <View style={styles.footerDecor}>
+            <View style={[styles.decorLine, { backgroundColor: theme.border }]} />
+            <Ionicons name="school-outline" size={18} color={theme.textMuted} />
+            <View style={[styles.decorLine, { backgroundColor: theme.border }]} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -388,90 +439,130 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
   },
-  decorCircle: {
+  blob1: {
     position: 'absolute',
-    borderRadius: 200,
+    top: -60,
+    right: -80,
+    width: 260,
+    height: 260,
+    opacity: 0.5,
   },
-  circle1: {
-    width: 300,
-    height: 300,
-    top: -100,
-    right: -100,
+  blob2: {
+    position: 'absolute',
+    bottom: 150,
+    left: -100,
+    width: 220,
+    height: 220,
+    opacity: 0.35,
   },
-  circle2: {
-    width: 200,
-    height: 200,
-    bottom: -50,
-    left: -50,
+  accent1: {
+    position: 'absolute',
+    top: 100,
+    right: 25,
+  },
+  accent2: {
+    position: 'absolute',
+    top: 220,
+    left: 15,
+  },
+  accent3: {
+    position: 'absolute',
+    bottom: 250,
+    right: 40,
+  },
+  waveContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  wave: {
+    position: 'absolute',
+    bottom: 0,
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 26,
+    paddingTop: Platform.OS === 'ios' ? 55 : 40,
     paddingBottom: 40,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 28,
   },
-  logoWrapper: {
+  logoContainer: {
     position: 'relative',
     marginBottom: 20,
   },
-  logoGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 36,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    backgroundColor: 'transparent',
+  logoFrame: {
+    padding: 8,
+    borderRadius: 40,
   },
-  logo: {
-    width: 72,
-    height: 72,
+  logoInner: {
+    padding: 3,
     borderRadius: 36,
     borderWidth: 2,
-    borderColor: '#ffffff',
+  },
+  logo: {
+    width: 68,
+    height: 68,
+    borderRadius: 32,
+  },
+  logoDot: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  logoDot1: {
+    top: 0,
+    right: 5,
+  },
+  logoDot2: {
+    bottom: 5,
+    left: 0,
+  },
+  greeting: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
+    marginBottom: 5,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -1,
-    marginBottom: 6,
+    fontSize: 30,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     textAlign: 'center',
-    paddingHorizontal: 20,
     lineHeight: 20,
+    paddingHorizontal: 10,
   },
   formCard: {
-    borderRadius: 32,
-    padding: 24,
-    gap: 16,
+    gap: 18,
   },
-  inputContainer: {
+  inputGroup: {
     gap: 8,
   },
   inputLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1,
-    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    marginLeft: 2,
   },
   roleRow: {
     flexDirection: 'row',
@@ -482,9 +573,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 48,
-    borderRadius: 14,
+    height: 52,
+    borderRadius: 16,
     gap: 8,
+    borderWidth: 1.5,
+  },
+  roleBtnActive: {
+    shadowColor: '#1E3A5F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
   },
   roleBtnText: {
     fontSize: 14,
@@ -495,19 +594,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 56,
     borderRadius: 16,
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingHorizontal: 6,
+    paddingRight: 14,
+    gap: 8,
+    borderWidth: 1.5,
+  },
+  inputIconContainer: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   input: {
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
   },
+  eyeButton: {
+    padding: 6,
+  },
   registerButton: {
-    height: 58,
+    height: 56,
     borderRadius: 16,
     overflow: 'hidden',
-    marginTop: 8,
+    marginTop: 4,
+    shadowColor: '#1E3A5F',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
   },
   gradientButton: {
     flex: 1,
@@ -518,34 +634,52 @@ const styles = StyleSheet.create({
   },
   registerButtonText: {
     color: '#FFFFFF',
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  buttonIconContainer: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   disabledButton: {
     opacity: 0.7,
   },
   termsText: {
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
-    lineHeight: 18,
-    paddingHorizontal: 10,
+    lineHeight: 17,
+    paddingHorizontal: 8,
   },
   termsLink: {
     fontWeight: '700',
-    color: '#10b981',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: 28,
   },
   footerText: {
-    fontSize: 15,
+    fontSize: 14,
   },
   signInLink: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#10b981',
+  },
+  footerDecor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    gap: 12,
+  },
+  decorLine: {
+    width: 35,
+    height: 1,
   },
 });

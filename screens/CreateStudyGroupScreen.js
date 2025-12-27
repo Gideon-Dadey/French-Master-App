@@ -19,13 +19,14 @@ import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { spacing, fontSize } from '../src/utils/responsive';
 import { studyGroupsAPI } from '../src/services/api';
-import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
+import { getThemeColors, themeShadows } from '../src/utils/organicTheme';
 
 const { width } = Dimensions.get('window');
 
 export default function CreateStudyGroupScreen({ navigation }) {
   const { isAuthenticated } = useAuth();
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
+  const theme = getThemeColors(isDarkMode);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -58,21 +59,21 @@ export default function CreateStudyGroupScreen({ navigation }) {
   }, []);
 
   const levels = [
-    { id: 'all', name: 'All Levels', icon: 'apps', color: '#6366F1', gradient: ['#6366F1', '#4F46E5'] },
-    { id: 'beginner', name: 'Beginner', icon: 'leaf', color: '#10B981', gradient: ['#10B981', '#059669'] },
-    { id: 'intermediate', name: 'Intermediate', icon: 'flame', color: '#F59E0B', gradient: ['#F59E0B', '#D97706'] },
-    { id: 'advanced', name: 'Advanced', icon: 'diamond', color: '#EF4444', gradient: ['#EF4444', '#DC2626'] },
+    { id: 'all', name: 'All Levels', icon: 'apps', color: theme.primary },
+    { id: 'beginner', name: 'Beginner', icon: 'leaf', color: theme.success },
+    { id: 'intermediate', name: 'Intermediate', icon: 'flame', color: theme.secondary },
+    { id: 'advanced', name: 'Advanced', icon: 'diamond', color: theme.error },
   ];
 
   const focusOptions = [
-    { id: 'general', name: 'General', icon: 'grid', color: '#8B5CF6' },
-    { id: 'grammar', name: 'Grammar', icon: 'book', color: '#3B82F6' },
-    { id: 'vocabulary', name: 'Vocabulary', icon: 'library', color: '#14B8A6' },
-    { id: 'conversation', name: 'Speaking', icon: 'chatbubbles', color: '#F97316' },
-    { id: 'pronunciation', name: 'Pronunciation', icon: 'mic', color: '#EC4899' },
-    { id: 'writing', name: 'Writing', icon: 'pencil', color: '#8B5CF6' },
-    { id: 'reading', name: 'Reading', icon: 'glasses', color: '#06B6D4' },
-    { id: 'exam-prep', name: 'Exam Prep', icon: 'school', color: '#EF4444' },
+    { id: 'general', name: 'General', icon: 'grid', color: theme.primary },
+    { id: 'grammar', name: 'Grammar', icon: 'book', color: theme.info },
+    { id: 'vocabulary', name: 'Vocabulary', icon: 'library', color: theme.success },
+    { id: 'conversation', name: 'Speaking', icon: 'chatbubbles', color: theme.secondary },
+    { id: 'pronunciation', name: 'Pronunciation', icon: 'mic', color: theme.accent },
+    { id: 'writing', name: 'Writing', icon: 'pencil', color: theme.primary },
+    { id: 'reading', name: 'Reading', icon: 'glasses', color: theme.info },
+    { id: 'exam-prep', name: 'Exam Prep', icon: 'school', color: theme.error },
   ];
 
   const frequencies = [
@@ -184,7 +185,7 @@ export default function CreateStudyGroupScreen({ navigation }) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
 
       <Animated.View
         style={[
@@ -196,64 +197,41 @@ export default function CreateStudyGroupScreen({ navigation }) {
         ]}
       >
         <LinearGradient
-          colors={isDarkMode
-            ? ['#0C0A1D', '#1A1040', '#2D1B69']
-            : ['#F0F4FF', '#E8DEFF', '#F5E6FF']
-          }
+          colors={theme.heroGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-
           <View style={styles.headerDecor}>
-            <Animated.View
-              style={[
-                styles.decorOrb,
-                styles.decorOrb1,
-                { backgroundColor: isDarkMode ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.12)' }
-              ]}
-            />
-            <Animated.View
-              style={[
-                styles.decorOrb,
-                styles.decorOrb2,
-                { backgroundColor: isDarkMode ? 'rgba(236,72,153,0.12)' : 'rgba(236,72,153,0.1)' }
-              ]}
-            />
+            <View style={[styles.decorOrb, styles.decorOrb1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+            <View style={[styles.decorOrb, styles.decorOrb2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
           </View>
 
           <View style={styles.headerContent}>
-
             <View style={styles.headerNav}>
               <TouchableOpacity
-                style={[styles.backBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(139,92,246,0.1)' }]}
+                style={[styles.backBtn, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
                 onPress={() => navigation.goBack()}
               >
-                <Ionicons name="arrow-back" size={22} color={isDarkMode ? '#FFFFFF' : '#8B5CF6'} />
+                <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
               </TouchableOpacity>
               <View style={styles.headerTitleSection}>
-                <Text style={[styles.headerBadgeText, { color: isDarkMode ? '#C4B5FD' : '#8B5CF6' }]}>
-                  NEW GROUP
-                </Text>
-                <Text style={[styles.headerTitle, { color: colors.text }]}>
-                  Create Study Group
-                </Text>
+                <Text style={[styles.headerBadgeText, { color: theme.secondary }]}>NEW GROUP</Text>
+                <Text style={styles.headerTitle}>Create Study Group</Text>
               </View>
               <View style={{ width: 44 }} />
             </View>
 
             <View style={styles.progressSection}>
-              <View style={[styles.progressBar, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(139,92,246,0.15)' }]}>
-                <Animated.View
+              <View style={[styles.progressBar, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <View
                   style={[
                     styles.progressFill,
-                    { width: `${getCompletionPercentage()}%` }
+                    { width: `${getCompletionPercentage()}%`, backgroundColor: theme.secondary }
                   ]}
                 />
               </View>
-              <Text style={[styles.progressText, { color: colors.secondaryText }]}>
-                {getCompletionPercentage()}% Complete
-              </Text>
+              <Text style={styles.progressText}>{getCompletionPercentage()}% Complete</Text>
             </View>
           </View>
         </LinearGradient>
@@ -276,34 +254,34 @@ export default function CreateStudyGroupScreen({ navigation }) {
               transform: [{ translateY: formAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
             }}
           >
-
+            {/* Basic Information */}
             <View style={styles.formSection}>
               <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIcon, { backgroundColor: '#8B5CF6' + '20' }]}>
-                  <Ionicons name="create" size={20} color="#8B5CF6" />
+                <View style={[styles.sectionIcon, { backgroundColor: theme.primary + '20' }]}>
+                  <Ionicons name="create" size={20} color={theme.primary} />
                 </View>
                 <View>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Basic Information</Text>
-                  <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>Give your group an identity</Text>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Basic Information</Text>
+                  <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>Give your group an identity</Text>
                 </View>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: colors.text }]}>
-                  Group Name <Text style={{ color: '#EF4444' }}>*</Text>
+                <Text style={[styles.inputLabel, { color: theme.text }]}>
+                  Group Name <Text style={{ color: theme.error }}>*</Text>
                 </Text>
                 <View style={[
                   styles.inputContainer,
                   {
-                    backgroundColor: isDarkMode ? '#1E1B4B' : '#FFFFFF',
-                    borderColor: focusedField === 'name' ? '#8B5CF6' : (isDarkMode ? '#312E81' : '#E5E7EB'),
+                    backgroundColor: theme.surface,
+                    borderColor: focusedField === 'name' ? theme.primary : theme.border,
                   }
                 ]}>
-                  <Ionicons name="people" size={20} color={focusedField === 'name' ? '#8B5CF6' : colors.secondaryText} />
+                  <Ionicons name="people" size={20} color={focusedField === 'name' ? theme.primary : theme.textSecondary} />
                   <TextInput
-                    style={[styles.input, { color: colors.text }]}
+                    style={[styles.input, { color: theme.text }]}
                     placeholder="e.g., French Beginners Club"
-                    placeholderTextColor={colors.secondaryText}
+                    placeholderTextColor={theme.textMuted}
                     value={formData.name}
                     onChangeText={(text) => setFormData({ ...formData, name: text })}
                     onFocus={() => setFocusedField('name')}
@@ -312,30 +290,30 @@ export default function CreateStudyGroupScreen({ navigation }) {
                   />
                   {formData.name.length > 0 && (
                     <View style={styles.checkIcon}>
-                      <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                      <Ionicons name="checkmark-circle" size={20} color={theme.success} />
                     </View>
                   )}
                 </View>
-                <Text style={[styles.charCount, { color: colors.secondaryText }]}>
+                <Text style={[styles.charCount, { color: theme.textSecondary }]}>
                   {formData.name.length}/100
                 </Text>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: colors.text }]}>
-                  Description <Text style={{ color: '#EF4444' }}>*</Text>
+                <Text style={[styles.inputLabel, { color: theme.text }]}>
+                  Description <Text style={{ color: theme.error }}>*</Text>
                 </Text>
                 <View style={[
                   styles.textAreaContainer,
                   {
-                    backgroundColor: isDarkMode ? '#1E1B4B' : '#FFFFFF',
-                    borderColor: focusedField === 'description' ? '#8B5CF6' : (isDarkMode ? '#312E81' : '#E5E7EB'),
+                    backgroundColor: theme.surface,
+                    borderColor: focusedField === 'description' ? theme.primary : theme.border,
                   }
                 ]}>
                   <TextInput
-                    style={[styles.textArea, { color: colors.text }]}
+                    style={[styles.textArea, { color: theme.text }]}
                     placeholder="Describe what your group is about, learning goals, and what members can expect..."
-                    placeholderTextColor={colors.secondaryText}
+                    placeholderTextColor={theme.textMuted}
                     value={formData.description}
                     onChangeText={(text) => setFormData({ ...formData, description: text })}
                     onFocus={() => setFocusedField('description')}
@@ -346,20 +324,21 @@ export default function CreateStudyGroupScreen({ navigation }) {
                     textAlignVertical="top"
                   />
                 </View>
-                <Text style={[styles.charCount, { color: colors.secondaryText }]}>
+                <Text style={[styles.charCount, { color: theme.textSecondary }]}>
                   {formData.description.length}/500
                 </Text>
               </View>
             </View>
 
+            {/* Skill Level */}
             <View style={styles.formSection}>
               <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIcon, { backgroundColor: '#10B981' + '20' }]}>
-                  <Ionicons name="trophy" size={20} color="#10B981" />
+                <View style={[styles.sectionIcon, { backgroundColor: theme.success + '20' }]}>
+                  <Ionicons name="trophy" size={20} color={theme.success} />
                 </View>
                 <View>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Skill Level</Text>
-                  <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>Who should join your group?</Text>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Skill Level</Text>
+                  <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>Who should join your group?</Text>
                 </View>
               </View>
 
@@ -372,24 +351,22 @@ export default function CreateStudyGroupScreen({ navigation }) {
                       style={[
                         styles.levelCard,
                         {
-                          backgroundColor: isSelected
-                            ? level.color + '15'
-                            : isDarkMode ? '#1E1B4B' : '#FFFFFF',
-                          borderColor: isSelected ? level.color : (isDarkMode ? '#312E81' : '#E5E7EB'),
+                          backgroundColor: isSelected ? level.color + '15' : theme.surface,
+                          borderColor: isSelected ? level.color : theme.border,
                         },
                       ]}
                       onPress={() => setFormData({ ...formData, level: level.id })}
                       activeOpacity={0.8}
                     >
-                      <LinearGradient
-                        colors={isSelected ? level.gradient : [isDarkMode ? '#312E81' : '#F3F4F6', isDarkMode ? '#312E81' : '#F3F4F6']}
-                        style={styles.levelIconContainer}
-                      >
+                      <View style={[
+                        styles.levelIconContainer,
+                        { backgroundColor: isSelected ? level.color : level.color + '20' }
+                      ]}>
                         <Ionicons name={level.icon} size={22} color={isSelected ? '#FFFFFF' : level.color} />
-                      </LinearGradient>
+                      </View>
                       <Text style={[
                         styles.levelName,
-                        { color: isSelected ? level.color : colors.text }
+                        { color: isSelected ? level.color : theme.text }
                       ]}>
                         {level.name}
                       </Text>
@@ -404,14 +381,15 @@ export default function CreateStudyGroupScreen({ navigation }) {
               </View>
             </View>
 
+            {/* Focus Area */}
             <View style={styles.formSection}>
               <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIcon, { backgroundColor: '#3B82F6' + '20' }]}>
-                  <Ionicons name="book" size={20} color="#3B82F6" />
+                <View style={[styles.sectionIcon, { backgroundColor: theme.info + '20' }]}>
+                  <Ionicons name="book" size={20} color={theme.info} />
                 </View>
                 <View>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Focus Area</Text>
-                  <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>What will you study together?</Text>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Focus Area</Text>
+                  <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>What will you study together?</Text>
                 </View>
               </View>
 
@@ -424,8 +402,8 @@ export default function CreateStudyGroupScreen({ navigation }) {
                       style={[
                         styles.focusCard,
                         {
-                          backgroundColor: isSelected ? focus.color + '12' : (isDarkMode ? '#1E1B4B' : '#FFFFFF'),
-                          borderColor: isSelected ? focus.color : (isDarkMode ? '#312E81' : '#E5E7EB'),
+                          backgroundColor: isSelected ? focus.color + '12' : theme.surface,
+                          borderColor: isSelected ? focus.color : theme.border,
                         },
                       ]}
                       onPress={() => setFormData({ ...formData, focus: focus.id })}
@@ -439,7 +417,7 @@ export default function CreateStudyGroupScreen({ navigation }) {
                       </View>
                       <Text style={[
                         styles.focusCardText,
-                        { color: isSelected ? focus.color : colors.text }
+                        { color: isSelected ? focus.color : theme.text }
                       ]}>
                         {focus.name}
                       </Text>
@@ -454,19 +432,20 @@ export default function CreateStudyGroupScreen({ navigation }) {
               </View>
             </View>
 
+            {/* Group Settings */}
             <View style={styles.formSection}>
               <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIcon, { backgroundColor: '#F59E0B' + '20' }]}>
-                  <Ionicons name="settings" size={20} color="#F59E0B" />
+                <View style={[styles.sectionIcon, { backgroundColor: theme.secondary + '20' }]}>
+                  <Ionicons name="settings" size={20} color={theme.secondary} />
                 </View>
                 <View>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Group Settings</Text>
-                  <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>Customize your group</Text>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Group Settings</Text>
+                  <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>Customize your group</Text>
                 </View>
               </View>
 
               <View style={styles.settingItem}>
-                <Text style={[styles.settingLabel, { color: colors.text }]}>Maximum Members</Text>
+                <Text style={[styles.settingLabel, { color: theme.text }]}>Maximum Members</Text>
                 <View style={styles.memberOptions}>
                   {memberOptions.map((num) => {
                     const isSelected = formData.maxMembers === num;
@@ -476,15 +455,15 @@ export default function CreateStudyGroupScreen({ navigation }) {
                         style={[
                           styles.memberOption,
                           {
-                            backgroundColor: isSelected ? '#8B5CF6' : (isDarkMode ? '#1E1B4B' : '#F3F4F6'),
-                            borderColor: isSelected ? '#8B5CF6' : (isDarkMode ? '#312E81' : '#E5E7EB'),
+                            backgroundColor: isSelected ? theme.primary : theme.surface,
+                            borderColor: isSelected ? theme.primary : theme.border,
                           },
                         ]}
                         onPress={() => setFormData({ ...formData, maxMembers: num })}
                       >
                         <Text style={[
                           styles.memberOptionText,
-                          { color: isSelected ? '#FFFFFF' : colors.text }
+                          { color: isSelected ? '#FFFFFF' : theme.text }
                         ]}>
                           {num}
                         </Text>
@@ -496,19 +475,19 @@ export default function CreateStudyGroupScreen({ navigation }) {
 
               <View style={[
                 styles.toggleCard,
-                { backgroundColor: isDarkMode ? '#1E1B4B' : '#FFFFFF', borderColor: isDarkMode ? '#312E81' : '#E5E7EB' }
+                { backgroundColor: theme.surface, borderColor: theme.border }
               ]}>
                 <View style={styles.toggleContent}>
-                  <View style={[styles.toggleIcon, { backgroundColor: formData.isPrivate ? '#EC4899' + '20' : '#6366F1' + '20' }]}>
+                  <View style={[styles.toggleIcon, { backgroundColor: formData.isPrivate ? theme.accent + '20' : theme.primary + '20' }]}>
                     <Ionicons
                       name={formData.isPrivate ? 'lock-closed' : 'lock-open'}
                       size={20}
-                      color={formData.isPrivate ? '#EC4899' : '#6366F1'}
+                      color={formData.isPrivate ? theme.accent : theme.primary}
                     />
                   </View>
                   <View style={styles.toggleText}>
-                    <Text style={[styles.toggleTitle, { color: colors.text }]}>Private Group</Text>
-                    <Text style={[styles.toggleDescription, { color: colors.secondaryText }]}>
+                    <Text style={[styles.toggleTitle, { color: theme.text }]}>Private Group</Text>
+                    <Text style={[styles.toggleDescription, { color: theme.textSecondary }]}>
                       {formData.isPrivate
                         ? 'Members need an invite code to join'
                         : 'Anyone can discover and join this group'
@@ -519,7 +498,7 @@ export default function CreateStudyGroupScreen({ navigation }) {
                 <TouchableOpacity
                   style={[
                     styles.toggleSwitch,
-                    { backgroundColor: formData.isPrivate ? '#EC4899' : (isDarkMode ? '#374151' : '#E5E7EB') }
+                    { backgroundColor: formData.isPrivate ? theme.accent : theme.border }
                   ]}
                   onPress={() => setFormData({ ...formData, isPrivate: !formData.isPrivate })}
                   activeOpacity={0.8}
@@ -534,7 +513,7 @@ export default function CreateStudyGroupScreen({ navigation }) {
               </View>
 
               <View style={styles.settingItem}>
-                <Text style={[styles.settingLabel, { color: colors.text }]}>Meeting Schedule</Text>
+                <Text style={[styles.settingLabel, { color: theme.text }]}>Meeting Schedule</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -548,8 +527,8 @@ export default function CreateStudyGroupScreen({ navigation }) {
                         style={[
                           styles.frequencyChip,
                           {
-                            backgroundColor: isSelected ? '#8B5CF6' : (isDarkMode ? '#1E1B4B' : '#FFFFFF'),
-                            borderColor: isSelected ? '#8B5CF6' : (isDarkMode ? '#312E81' : '#E5E7EB'),
+                            backgroundColor: isSelected ? theme.primary : theme.surface,
+                            borderColor: isSelected ? theme.primary : theme.border,
                           },
                         ]}
                         onPress={() => setFormData({
@@ -557,10 +536,10 @@ export default function CreateStudyGroupScreen({ navigation }) {
                           meetingSchedule: { ...formData.meetingSchedule, frequency: freq.id },
                         })}
                       >
-                        <Ionicons name={freq.icon} size={16} color={isSelected ? '#FFFFFF' : '#8B5CF6'} />
+                        <Ionicons name={freq.icon} size={16} color={isSelected ? '#FFFFFF' : theme.primary} />
                         <Text style={[
                           styles.frequencyText,
-                          { color: isSelected ? '#FFFFFF' : colors.text }
+                          { color: isSelected ? '#FFFFFF' : theme.text }
                         ]}>
                           {freq.name}
                         </Text>
@@ -571,35 +550,36 @@ export default function CreateStudyGroupScreen({ navigation }) {
               </View>
             </View>
 
+            {/* Goals & Tags */}
             <View style={styles.formSection}>
               <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIcon, { backgroundColor: '#EC4899' + '20' }]}>
-                  <Ionicons name="flag" size={20} color="#EC4899" />
+                <View style={[styles.sectionIcon, { backgroundColor: theme.accent + '20' }]}>
+                  <Ionicons name="flag" size={20} color={theme.accent} />
                 </View>
                 <View>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Goals & Tags</Text>
-                  <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>Optional but recommended</Text>
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Goals & Tags</Text>
+                  <Text style={[styles.sectionSubtitle, { color: theme.textSecondary }]}>Optional but recommended</Text>
                 </View>
               </View>
 
               <View style={styles.inputGroup}>
                 <View style={styles.inputLabelRow}>
-                  <Text style={[styles.inputLabel, { color: colors.text }]}>Study Goals</Text>
-                  <Text style={[styles.inputHint, { color: colors.secondaryText }]}>
+                  <Text style={[styles.inputLabel, { color: theme.text }]}>Study Goals</Text>
+                  <Text style={[styles.inputHint, { color: theme.textSecondary }]}>
                     {formData.studyGoals.length}/5
                   </Text>
                 </View>
                 <View style={[
                   styles.addItemContainer,
                   {
-                    backgroundColor: isDarkMode ? '#1E1B4B' : '#FFFFFF',
-                    borderColor: focusedField === 'goal' ? '#8B5CF6' : (isDarkMode ? '#312E81' : '#E5E7EB'),
+                    backgroundColor: theme.surface,
+                    borderColor: focusedField === 'goal' ? theme.primary : theme.border,
                   }
                 ]}>
                   <TextInput
-                    style={[styles.addItemInput, { color: colors.text }]}
+                    style={[styles.addItemInput, { color: theme.text }]}
                     placeholder="e.g., Complete A1 level by June"
-                    placeholderTextColor={colors.secondaryText}
+                    placeholderTextColor={theme.textMuted}
                     value={currentGoal}
                     onChangeText={setCurrentGoal}
                     onFocus={() => setFocusedField('goal')}
@@ -612,7 +592,7 @@ export default function CreateStudyGroupScreen({ navigation }) {
                     disabled={!currentGoal.trim()}
                   >
                     <LinearGradient
-                      colors={['#8B5CF6', '#7C3AED']}
+                      colors={[theme.primary, theme.primaryLight || theme.primary]}
                       style={styles.addItemBtnGradient}
                     >
                       <Ionicons name="add" size={20} color="#FFFFFF" />
@@ -624,14 +604,14 @@ export default function CreateStudyGroupScreen({ navigation }) {
                     {formData.studyGoals.map((goal, index) => (
                       <View
                         key={index}
-                        style={[styles.goalChip, { backgroundColor: isDarkMode ? '#312E81' : '#F3F4F6' }]}
+                        style={[styles.goalChip, { backgroundColor: theme.border }]}
                       >
-                        <Ionicons name="flag" size={14} color="#EC4899" />
-                        <Text style={[styles.chipText, { color: colors.text }]} numberOfLines={1}>
+                        <Ionicons name="flag" size={14} color={theme.accent} />
+                        <Text style={[styles.chipText, { color: theme.text }]} numberOfLines={1}>
                           {goal}
                         </Text>
                         <TouchableOpacity onPress={() => removeGoal(index)}>
-                          <Ionicons name="close-circle" size={18} color={colors.secondaryText} />
+                          <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
                         </TouchableOpacity>
                       </View>
                     ))}
@@ -641,22 +621,22 @@ export default function CreateStudyGroupScreen({ navigation }) {
 
               <View style={styles.inputGroup}>
                 <View style={styles.inputLabelRow}>
-                  <Text style={[styles.inputLabel, { color: colors.text }]}>Tags</Text>
-                  <Text style={[styles.inputHint, { color: colors.secondaryText }]}>
+                  <Text style={[styles.inputLabel, { color: theme.text }]}>Tags</Text>
+                  <Text style={[styles.inputHint, { color: theme.textSecondary }]}>
                     {formData.tags.length}/5
                   </Text>
                 </View>
                 <View style={[
                   styles.addItemContainer,
                   {
-                    backgroundColor: isDarkMode ? '#1E1B4B' : '#FFFFFF',
-                    borderColor: focusedField === 'tag' ? '#8B5CF6' : (isDarkMode ? '#312E81' : '#E5E7EB'),
+                    backgroundColor: theme.surface,
+                    borderColor: focusedField === 'tag' ? theme.primary : theme.border,
                   }
                 ]}>
                   <TextInput
-                    style={[styles.addItemInput, { color: colors.text }]}
+                    style={[styles.addItemInput, { color: theme.text }]}
                     placeholder="e.g., daily-practice, conversation"
-                    placeholderTextColor={colors.secondaryText}
+                    placeholderTextColor={theme.textMuted}
                     value={currentTag}
                     onChangeText={setCurrentTag}
                     onFocus={() => setFocusedField('tag')}
@@ -669,7 +649,7 @@ export default function CreateStudyGroupScreen({ navigation }) {
                     disabled={!currentTag.trim()}
                   >
                     <LinearGradient
-                      colors={['#8B5CF6', '#7C3AED']}
+                      colors={[theme.primary, theme.primaryLight || theme.primary]}
                       style={styles.addItemBtnGradient}
                     >
                       <Ionicons name="add" size={20} color="#FFFFFF" />
@@ -681,11 +661,11 @@ export default function CreateStudyGroupScreen({ navigation }) {
                     {formData.tags.map((tag, index) => (
                       <View
                         key={index}
-                        style={[styles.tagChip, { backgroundColor: '#8B5CF6' + '15' }]}
+                        style={[styles.tagChip, { backgroundColor: theme.primary + '15' }]}
                       >
-                        <Text style={[styles.tagText, { color: '#8B5CF6' }]}>#{tag}</Text>
+                        <Text style={[styles.tagText, { color: theme.primary }]}>#{tag}</Text>
                         <TouchableOpacity onPress={() => removeTag(index)}>
-                          <Ionicons name="close-circle" size={18} color="#8B5CF6" />
+                          <Ionicons name="close-circle" size={18} color={theme.primary} />
                         </TouchableOpacity>
                       </View>
                     ))}
@@ -694,6 +674,7 @@ export default function CreateStudyGroupScreen({ navigation }) {
               </View>
             </View>
 
+            {/* Submit */}
             <Animated.View style={[styles.submitSection, { transform: [{ scale: buttonAnim }] }]}>
               <TouchableOpacity
                 style={styles.submitButton}
@@ -702,7 +683,7 @@ export default function CreateStudyGroupScreen({ navigation }) {
                 activeOpacity={0.9}
               >
                 <LinearGradient
-                  colors={loading ? ['#9CA3AF', '#6B7280'] : ['#8B5CF6', '#7C3AED']}
+                  colors={loading ? [theme.textMuted, theme.textSecondary] : [theme.primary, theme.primaryLight || theme.primary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={styles.submitGradient}
@@ -721,7 +702,7 @@ export default function CreateStudyGroupScreen({ navigation }) {
                 </LinearGradient>
               </TouchableOpacity>
 
-              <Text style={[styles.termsText, { color: colors.secondaryText }]}>
+              <Text style={[styles.termsText, { color: theme.textSecondary }]}>
                 By creating a group, you agree to our community guidelines
               </Text>
             </Animated.View>
@@ -745,8 +726,8 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
     paddingBottom: 24,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
   headerDecor: {
@@ -778,7 +759,7 @@ const styles = StyleSheet.create({
   headerNav: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 18,
   },
   backBtn: {
     width: 44,
@@ -793,32 +774,33 @@ const styles = StyleSheet.create({
   },
   headerBadgeText: {
     fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.5,
+    fontWeight: '700',
+    letterSpacing: 1.2,
     marginBottom: 4,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.3,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   progressSection: {
     gap: 8,
   },
   progressBar: {
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#8B5CF6',
-    borderRadius: 4,
+    borderRadius: 3,
   },
   progressText: {
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
+    color: 'rgba(255,255,255,0.8)',
   },
   scrollView: {
     flex: 1,
@@ -827,42 +809,43 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   formSection: {
-    marginBottom: 32,
+    marginBottom: 28,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    gap: 14,
+    marginBottom: 18,
+    gap: 12,
   },
   sectionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '700',
     marginBottom: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   sectionSubtitle: {
     fontSize: 13,
   },
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 10,
+    fontWeight: '600',
+    marginBottom: 8,
   },
   inputLabelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   inputHint: {
     fontSize: 12,
@@ -871,15 +854,15 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    gap: 12,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    gap: 10,
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    paddingVertical: 16,
+    fontSize: 15,
+    paddingVertical: 14,
   },
   checkIcon: {
     marginLeft: 8,
@@ -887,134 +870,133 @@ const styles = StyleSheet.create({
   charCount: {
     fontSize: 11,
     textAlign: 'right',
-    marginTop: 6,
+    marginTop: 4,
   },
   textAreaContainer: {
-    borderWidth: 2,
-    borderRadius: 16,
-    padding: 16,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 14,
   },
   textArea: {
-    fontSize: 16,
-    minHeight: 100,
+    fontSize: 15,
+    minHeight: 90,
     textAlignVertical: 'top',
   },
   levelGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
   levelCard: {
-    width: (width - 52) / 2,
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 2,
+    width: (width - 50) / 2,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
     alignItems: 'center',
     position: 'relative',
   },
   levelIconContainer: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   levelName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   selectedIndicator: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   focusGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
+    gap: 10,
   },
   focusCard: {
-    width: (width - 52) / 2,
+    width: (width - 50) / 2,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 2,
-    gap: 12,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    gap: 10,
     position: 'relative',
   },
   focusIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   focusCardText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     flex: 1,
   },
   focusSelectedBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    top: 6,
+    right: 6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   settingItem: {
-    marginBottom: 20,
+    marginBottom: 18,
   },
   settingLabel: {
     fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 12,
+    fontWeight: '600',
+    marginBottom: 10,
   },
   memberOptions: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
   },
   memberOption: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 2,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   memberOptionText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
   },
   toggleCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 2,
-    marginBottom: 20,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    marginBottom: 18,
   },
   toggleContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: 14,
+    gap: 12,
   },
   toggleIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1022,18 +1004,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   toggleTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     marginBottom: 2,
   },
   toggleDescription: {
-    fontSize: 12,
+    fontSize: 11,
   },
   toggleSwitch: {
-    width: 52,
-    height: 32,
-    borderRadius: 16,
-    padding: 4,
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    padding: 3,
     justifyContent: 'center',
   },
   toggleKnob: {
@@ -1041,23 +1023,19 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    ...themeShadows.sm,
   },
   frequencyScroll: {
-    gap: 10,
+    gap: 8,
   },
   frequencyChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 2,
-    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    gap: 6,
   },
   frequencyText: {
     fontSize: 13,
@@ -1066,88 +1044,84 @@ const styles = StyleSheet.create({
   addItemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderRadius: 16,
-    paddingLeft: 16,
-    paddingRight: 6,
-    gap: 12,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    paddingLeft: 14,
+    paddingRight: 5,
+    gap: 10,
   },
   addItemInput: {
     flex: 1,
-    fontSize: 15,
-    paddingVertical: 14,
+    fontSize: 14,
+    paddingVertical: 12,
   },
   addItemBtn: {
-    borderRadius: 12,
+    borderRadius: 10,
     overflow: 'hidden',
   },
   addItemBtnGradient: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     justifyContent: 'center',
     alignItems: 'center',
   },
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 12,
+    gap: 8,
+    marginTop: 10,
   },
   goalChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 6,
     maxWidth: '100%',
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     flex: 1,
   },
   tagChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 5,
   },
   tagText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
   submitSection: {
-    marginTop: 12,
+    marginTop: 8,
     alignItems: 'center',
   },
   submitButton: {
     width: '100%',
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
+    ...themeShadows.md,
   },
   submitGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 18,
-    gap: 12,
+    paddingVertical: 16,
+    gap: 10,
   },
   submitText: {
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   termsText: {
     fontSize: 12,
-    marginTop: 16,
+    marginTop: 14,
     textAlign: 'center',
   },
 });

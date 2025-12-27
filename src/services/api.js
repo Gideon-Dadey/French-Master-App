@@ -10,7 +10,7 @@ const getApiUrl = () => {
   if (__DEV__) {
     // In development, use local URL only if explicitly set
     // Otherwise fallback to production for mobile testing
-    const USE_LOCAL = false; // Set to true only for local development
+    const USE_LOCAL = true; // Set to true only for local development
     if (USE_LOCAL) {
       if (Platform.OS === 'android') {
         return DEVELOPMENT_URL;

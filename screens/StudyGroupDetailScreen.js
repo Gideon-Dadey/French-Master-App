@@ -2246,7 +2246,48 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
           >
-          {group.discussions?.length > 0 ? (
+          {/* Access Restriction Check */}
+          {!isAuthenticated ? (
+            <View style={styles.whatsappEmptyChat}>
+              <View style={[styles.restrictedAccessIcon, { backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)' }]}>
+                <Ionicons name="lock-closed" size={50} color="#EF4444" />
+              </View>
+              <Text style={[styles.whatsappEmptyTitle, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>
+                Login Required
+              </Text>
+              <Text style={[styles.whatsappEmptyText, { color: isDarkMode ? '#8696A0' : '#667781', textAlign: 'center', paddingHorizontal: 20 }]}>
+                Please login to view group messages and participate in discussions.
+              </Text>
+              <TouchableOpacity
+                style={[styles.restrictedAccessBtn, { backgroundColor: '#3B82F6' }]}
+                onPress={() => navigation.navigate('Auth')}
+              >
+                <Ionicons name="log-in-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.restrictedAccessBtnText}>Login to Continue</Text>
+              </TouchableOpacity>
+            </View>
+          ) : !isMember() ? (
+            <View style={styles.whatsappEmptyChat}>
+              <View style={[styles.restrictedAccessIcon, { backgroundColor: isDarkMode ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)' }]}>
+                <Ionicons name="people" size={50} color="#F59E0B" />
+              </View>
+              <Text style={[styles.whatsappEmptyTitle, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>
+                Members Only
+              </Text>
+              <Text style={[styles.whatsappEmptyText, { color: isDarkMode ? '#8696A0' : '#667781', textAlign: 'center', paddingHorizontal: 20 }]}>
+                Join this study group to view messages and participate in discussions with other members.
+              </Text>
+              <TouchableOpacity
+                style={[styles.restrictedAccessBtn, { backgroundColor: '#10B981' }]}
+                onPress={handleJoin}
+              >
+                <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.restrictedAccessBtnText}>
+                  {group.isPrivate ? 'Request to Join' : 'Join Group'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : group.discussions?.length > 0 ? (
             group.discussions.map((discussion, index) => {
               const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
               const isOwnMessage = discussionUser?._id === user?._id;
@@ -6183,6 +6224,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 40,
+  },
+  restrictedAccessIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  restrictedAccessBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 25,
+    marginTop: 24,
+    gap: 8,
+  },
+  restrictedAccessBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 
   // WhatsApp Input Container

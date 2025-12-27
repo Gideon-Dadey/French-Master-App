@@ -520,6 +520,13 @@ function AppNavigator() {
                 headerShown: false,
               }}
             />
+            <Stack.Screen
+              name="Achievements"
+              component={AchievementsScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
           </Stack.Navigator>
     </NavigationContainer>
   );

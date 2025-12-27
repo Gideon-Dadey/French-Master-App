@@ -11,63 +11,67 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { getThemeColors } from '../utils/organicTheme';
 
 const { width } = Dimensions.get('window');
 
-const tabConfig = {
+// Tab configuration with unified theme colors
+const getTabConfig = (theme) => ({
   Home: {
     icon: 'home',
     iconOutline: 'home-outline',
     label: 'Home',
-    color: '#6366f1',
+    activeColor: theme.primary,
   },
   Learn: {
     icon: 'school',
     iconOutline: 'school-outline',
     label: 'Learn',
-    color: '#8b5cf6',
+    activeColor: theme.primary,
   },
   Practice: {
     icon: 'create',
     iconOutline: 'create-outline',
     label: 'Practice',
-    color: '#f59e0b',
+    activeColor: theme.primary,
   },
   Community: {
     icon: 'chatbubbles',
     iconOutline: 'chatbubbles-outline',
     label: 'Social',
-    color: '#10b981',
+    activeColor: theme.primary,
   },
   Profile: {
     icon: 'person',
     iconOutline: 'person-outline',
     label: 'Profile',
-    color: '#ec4899',
+    activeColor: theme.primary,
   },
-};
+});
 
-// Tab item component - same for all navigation types
-function TabBarItem({ route, focused, onPress, onLongPress, isDarkMode }) {
+// Tab item component
+function TabBarItem({ route, focused, onPress, onLongPress, theme }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
+  const tabConfig = getTabConfig(theme);
   const config = tabConfig[route.name] || {
     icon: 'ellipse',
     iconOutline: 'ellipse-outline',
     label: route.name,
-    color: '#6366f1',
+    activeColor: theme.primary,
   };
 
   useEffect(() => {
     Animated.spring(scaleAnim, {
-      toValue: focused ? 1.05 : 1,
+      toValue: focused ? 1.08 : 1,
       useNativeDriver: true,
       tension: 300,
       friction: 15,
     }).start();
   }, [focused]);
 
-  const inactiveColor = isDarkMode ? '#6b7280' : '#9ca3af';
+  const inactiveColor = theme.textMuted;
+  const activeColor = theme.secondary; // Gold color for active state
 
   return (
     <TouchableOpacity
@@ -85,11 +89,16 @@ function TabBarItem({ route, focused, onPress, onLongPress, isDarkMode }) {
           { transform: [{ scale: scaleAnim }] }
         ]}
       >
-        {/* Icon - no background, transparent */}
+        {/* Active indicator */}
+        {focused && (
+          <View style={[styles.activeIndicator, { backgroundColor: activeColor }]} />
+        )}
+
+        {/* Icon */}
         <Ionicons
           name={focused ? config.icon : config.iconOutline}
           size={24}
-          color={focused ? config.color : inactiveColor}
+          color={focused ? activeColor : inactiveColor}
         />
 
         {/* Label */}
@@ -97,8 +106,8 @@ function TabBarItem({ route, focused, onPress, onLongPress, isDarkMode }) {
           style={[
             styles.label,
             {
-              color: focused ? config.color : inactiveColor,
-              fontWeight: focused ? '600' : '500',
+              color: focused ? activeColor : inactiveColor,
+              fontWeight: focused ? '700' : '500',
             }
           ]}
         >
@@ -111,23 +120,20 @@ function TabBarItem({ route, focused, onPress, onLongPress, isDarkMode }) {
 
 export default function CustomTabBar({ state, descriptors, navigation }) {
   const { isDarkMode } = useTheme();
+  const theme = getThemeColors(isDarkMode);
   const insets = useSafeAreaInsets();
 
   // Smart bottom padding for all device types
   const getBottomPadding = () => {
     if (Platform.OS === 'ios') {
-      // iOS with home indicator: insets.bottom ~34
-      // iOS with home button: insets.bottom ~0
       return insets.bottom > 20 ? insets.bottom - 16 : 8;
     } else {
-      // Android gesture nav: insets.bottom ~24-48
-      // Android 3-button nav: insets.bottom ~0
       if (insets.bottom > 40) {
-        return 4; // Gesture nav - minimal padding
+        return 4;
       } else if (insets.bottom > 0) {
-        return insets.bottom; // Some inset present
+        return insets.bottom;
       } else {
-        return 10; // 3-button nav - comfortable padding
+        return 10;
       }
     }
   };
@@ -136,14 +142,15 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
     <View style={[
       styles.container,
       {
-        backgroundColor: isDarkMode ? '#0f0f0f' : '#ffffff',
+        backgroundColor: theme.surface,
         paddingBottom: getBottomPadding(),
+        borderTopColor: theme.border,
       }
     ]}>
       {/* Subtle top border */}
       <View style={[
         styles.topBorder,
-        { backgroundColor: isDarkMode ? '#1f1f1f' : '#e8e8e8' }
+        { backgroundColor: theme.border }
       ]} />
 
       {/* Tab items */}
@@ -177,7 +184,7 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
               focused={focused}
               onPress={onPress}
               onLongPress={onLongPress}
-              isDarkMode={isDarkMode}
+              theme={theme}
             />
           );
         })}
@@ -193,20 +200,21 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 16,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 20,
+    borderTopWidth: 1,
   },
   topBorder: {
-    height: 0.5,
+    height: 0,
     width: '100%',
   },
   tabsContainer: {
     flexDirection: 'row',
-    paddingTop: 10,
+    paddingTop: 8,
     paddingBottom: 4,
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
   tabItem: {
     flex: 1,
@@ -217,10 +225,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 4,
+    position: 'relative',
+  },
+  activeIndicator: {
+    position: 'absolute',
+    top: -8,
+    width: 24,
+    height: 3,
+    borderRadius: 2,
   },
   label: {
-    fontSize: 11,
-    marginTop: 4,
-    letterSpacing: 0.2,
+    fontSize: 10,
+    marginTop: 2,
+    letterSpacing: 0.3,
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
 });

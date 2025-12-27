@@ -10,6 +10,7 @@ import {
   Image,
   Dimensions,
   Animated,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,18 +20,20 @@ import { useGamification } from '../src/context/GamificationContext';
 import { spacing, fontSize } from '../src/utils/responsive';
 import { coursesAPI, progressAPI } from '../src/services/api';
 import { getCourseImage } from '../src/utils/courseImages';
-import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
+import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 
 const { width, height } = Dimensions.get('window');
 
 export default function LearnScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
+  const theme = getThemeColors(isDarkMode);
   const gamificationContext = useGamification();
   const gamificationStats = gamificationContext?.stats || {};
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [featuredCourses, setFeaturedCourses] = useState([]);
@@ -45,11 +48,11 @@ export default function LearnScreen({ navigation }) {
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   const categories = [
-    { id: null, name: 'All', icon: 'apps', color: '#6366F1' },
-    { id: 'french', name: 'French', icon: 'flag', color: '#EF4444' },
-    { id: 'grammar', name: 'Grammar', icon: 'school', color: '#10B981' },
-    { id: 'vocabulary', name: 'Vocabulary', icon: 'book', color: '#F59E0B' },
-    { id: 'conversation', name: 'Speaking', icon: 'chatbubbles', color: '#EC4899' },
+    { id: null, name: 'All', icon: 'apps', color: theme.primary },
+    { id: 'french', name: 'French', icon: 'flag', color: theme.error },
+    { id: 'grammar', name: 'Grammar', icon: 'school', color: theme.success },
+    { id: 'vocabulary', name: 'Vocabulary', icon: 'book', color: theme.secondary },
+    { id: 'conversation', name: 'Speaking', icon: 'chatbubbles', color: theme.accent },
   ];
 
   useEffect(() => {
@@ -74,31 +77,25 @@ export default function LearnScreen({ navigation }) {
 
       const params = selectedCategory ? { category: selectedCategory } : {};
       
-      // Use Promise.allSettled to handle individual API failures
       const results = await Promise.allSettled([
         coursesAPI.getFeatured(),
         coursesAPI.getAll({ ...params, limit: 20 }),
         isAuthenticated ? progressAPI.getDashboard() : Promise.resolve(null),
       ]);
 
-      // Process featured courses
       if (results[0].status === 'fulfilled') {
         setFeaturedCourses(results[0].value?.data?.data || []);
       } else {
-        console.warn('Failed to fetch featured courses:', results[0].reason);
         setFeaturedCourses([]);
       }
 
-      // Process all courses
       if (results[1].status === 'fulfilled') {
         setAllCourses(results[1].value?.data?.data || []);
       } else {
-        console.warn('Failed to fetch courses:', results[1].reason);
         setAllCourses([]);
         setError('Failed to load courses. Please check your connection and refresh.');
       }
 
-      // Set continue learning from featured courses
       const courses = results[0].status === 'fulfilled' ? (results[0].value?.data?.data || []) : [];
       if (courses.length > 0) {
         setContinueLearning({
@@ -110,7 +107,6 @@ export default function LearnScreen({ navigation }) {
         });
       }
 
-      // Process progress data
       if (results[2].status === 'fulfilled' && results[2].value?.data?.data) {
         const dashboardData = results[2].value.data.data;
         setLearningStats({
@@ -171,12 +167,20 @@ export default function LearnScreen({ navigation }) {
 
   const userName = user?.name?.split(' ')[0] || 'Learner';
 
+  const getLevelColor = (level) => {
+    const l = (level || '').toLowerCase();
+    if (l === 'beginner') return theme.success;
+    if (l === 'intermediate') return theme.secondary;
+    if (l === 'advanced') return theme.error;
+    return theme.primary;
+  };
+
   if (loading && !refreshing) {
     return <LoadingSpinner />;
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
 
       <Animated.View
         style={[
@@ -188,58 +192,47 @@ export default function LearnScreen({ navigation }) {
         ]}
       >
         <LinearGradient
-          colors={isDarkMode
-            ? ['#0F172A', '#1E3A5F', '#1E40AF']
-            : ['#DBEAFE', '#BFDBFE', '#93C5FD']
-          }
+          colors={theme.heroGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-
           <View style={styles.headerDecor}>
-            <View style={[styles.decorCircle, styles.decorCircle1, { backgroundColor: isDarkMode ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.2)' }]} />
-            <View style={[styles.decorCircle, styles.decorCircle2, { backgroundColor: isDarkMode ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.15)' }]} />
+            <View style={[styles.decorCircle, styles.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
+            <View style={[styles.decorCircle, styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
           </View>
 
           <View style={styles.headerContent}>
-
             <View style={styles.headerTopRow}>
               <View style={styles.headerTitleSection}>
-                <Text style={[styles.headerBadgeText, { color: isDarkMode ? '#93C5FD' : '#1D4ED8' }]}>
-                  LEARN
-                </Text>
-                <Text style={[styles.headerTitle, { color: isDarkMode ? '#FFFFFF' : '#1E3A8A' }]}>
-                  Bonjour, {userName}! 👋
-                </Text>
-                <Text style={[styles.headerSubtitle, { color: isDarkMode ? '#94A3B8' : '#3B82F6' }]}>
-                  Continue your French journey
-                </Text>
+                <Text style={[styles.headerBadgeText, { color: theme.secondary }]}>LEARN</Text>
+                <Text style={styles.headerTitle}>Bonjour, {userName}! 👋</Text>
+                <Text style={styles.headerSubtitle}>Continue your French journey</Text>
               </View>
 
               <TouchableOpacity
-                style={[styles.headerActionBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(59,130,246,0.1)' }]}
+                style={[styles.headerActionBtn, { backgroundColor: 'rgba(255,255,255,0.1)' }]}
                 onPress={toggleSearch}
               >
-                <Ionicons name="search" size={22} color={isDarkMode ? '#FFFFFF' : '#3B82F6'} />
+                <Ionicons name="search" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
             {learningStats && (
-              <View style={[styles.levelCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.9)' }]}>
+              <View style={[styles.levelCard, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
                 <View style={styles.levelInfo}>
                   <View style={styles.levelBadgeContainer}>
-                    <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.levelBadge}>
+                    <LinearGradient colors={[theme.secondary, theme.secondaryLight || theme.secondary]} style={styles.levelBadge}>
                       <Text style={styles.levelNumber}>{learningStats.level}</Text>
                     </LinearGradient>
                   </View>
                   <View style={styles.levelDetails}>
-                    <Text style={[styles.levelTitle, { color: colors.text }]}>Level {learningStats.level}</Text>
-                    <Text style={[styles.levelXP, { color: colors.secondaryText }]}>{learningStats.xp} XP</Text>
+                    <Text style={styles.levelTitle}>Level {learningStats.level}</Text>
+                    <Text style={styles.levelXP}>{learningStats.xp} XP</Text>
                   </View>
                 </View>
                 <View style={styles.levelProgressContainer}>
-                  <View style={[styles.levelProgressTrack, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }]}>
+                  <View style={[styles.levelProgressTrack, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                     <Animated.View
                       style={[
                         styles.levelProgressFill,
@@ -252,17 +245,18 @@ export default function LearnScreen({ navigation }) {
                       ]}
                     >
                       <LinearGradient
-                        colors={['#3B82F6', '#2563EB']}
+                        colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         style={styles.levelProgressGradient}
                       />
                     </Animated.View>
                   </View>
-                  <Text style={[styles.levelProgressText, { color: colors.secondaryText }]}>650 XP to Level {learningStats.level + 1}</Text>
+                  <Text style={styles.levelProgressText}>650 XP to Level {learningStats.level + 1}</Text>
                 </View>
-                <View style={styles.streakBadge}>
-                  <Text style={[styles.streakText, { color: '#F97316' }]}>{learningStats.streak} day streak</Text>
+                <View style={[styles.streakBadge, { backgroundColor: theme.secondary + '30' }]}>
+                  <Ionicons name="flame" size={14} color={theme.secondary} />
+                  <Text style={[styles.streakText, { color: theme.secondary }]}>{learningStats.streak} day streak</Text>
                 </View>
               </View>
             )}
@@ -274,25 +268,25 @@ export default function LearnScreen({ navigation }) {
         <Animated.View
           style={[
             styles.searchOverlay,
-            { backgroundColor: colors.background },
+            { backgroundColor: theme.background },
             {
               opacity: searchAnim,
               transform: [{ translateY: searchAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
             },
           ]}
         >
-          <View style={[styles.searchContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Ionicons name="search" size={20} color={colors.secondaryText} />
+          <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Ionicons name="search" size={20} color={theme.textSecondary} />
             <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
+              style={[styles.searchInput, { color: theme.text }]}
               placeholder="Search courses, lessons..."
-              placeholderTextColor={colors.secondaryText}
+              placeholderTextColor={theme.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoFocus
             />
             <TouchableOpacity onPress={() => { setSearchQuery(''); toggleSearch(); }}>
-              <Ionicons name="close-circle" size={20} color={colors.secondaryText} />
+              <Ionicons name="close-circle" size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -302,7 +296,7 @@ export default function LearnScreen({ navigation }) {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -318,13 +312,13 @@ export default function LearnScreen({ navigation }) {
             ]}
           >
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Continue Learning</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Continue Learning</Text>
               <TouchableOpacity onPress={() => navigation.navigate('MyCourses')}>
-                <Text style={[styles.seeAllText, { color: '#3B82F6' }]}>View All</Text>
+                <Text style={[styles.seeAllText, { color: theme.primary }]}>View All</Text>
               </TouchableOpacity>
             </View>
             <TouchableOpacity
-              style={[styles.continueCard, { backgroundColor: colors.card }, premiumShadows.lg]}
+              style={[styles.continueCard, { backgroundColor: theme.surface }, themeShadows.lg]}
               onPress={() => navigation.navigate('CourseDetail', { courseId: continueLearning._id })}
               activeOpacity={0.9}
             >
@@ -333,18 +327,23 @@ export default function LearnScreen({ navigation }) {
                 style={styles.continueImage}
               />
               <LinearGradient
-                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                colors={['transparent', theme.primary + '90', theme.primary + 'E6']}
                 style={styles.continueOverlay}
               />
               <View style={styles.continueContent}>
-                <View style={styles.continueBadge}>
+                <View style={[styles.continueBadge, { backgroundColor: theme.secondary }]}>
                   <Text style={styles.continueBadgeText}>IN PROGRESS</Text>
                 </View>
                 <Text style={styles.continueTitle}>{continueLearning.title}</Text>
                 <Text style={styles.continueLesson}>{continueLearning.currentLesson}</Text>
                 <View style={styles.continueProgress}>
                   <View style={styles.continueProgressTrack}>
-                    <View style={[styles.continueProgressFill, { width: `${continueLearning.progress}%` }]} />
+                    <LinearGradient
+                      colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[styles.continueProgressFill, { width: `${continueLearning.progress}%` }]}
+                    />
                   </View>
                   <Text style={styles.continueProgressText}>
                     {continueLearning.completedLessons}/{continueLearning.totalLessons} lessons
@@ -352,7 +351,7 @@ export default function LearnScreen({ navigation }) {
                 </View>
               </View>
               <TouchableOpacity style={styles.playButton}>
-                <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.playButtonGradient}>
+                <LinearGradient colors={[theme.secondary, theme.secondaryLight || theme.secondary]} style={styles.playButtonGradient}>
                   <Ionicons name="play" size={24} color="#FFFFFF" />
                 </LinearGradient>
               </TouchableOpacity>
@@ -363,24 +362,33 @@ export default function LearnScreen({ navigation }) {
         {learningStats && (
           <View style={styles.section}>
             <View style={styles.statsGrid}>
-              <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-                <Text style={[styles.statValue, { color: colors.text }]}>{learningStats.totalLessons}</Text>
-                <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Lessons</Text>
+              <View style={[styles.statCard, { backgroundColor: theme.surface }, themeShadows.sm]}>
+                <View style={[styles.statIcon, { backgroundColor: theme.primary + '15' }]}>
+                  <Ionicons name="book" size={20} color={theme.primary} />
+                </View>
+                <Text style={[styles.statValue, { color: theme.text }]}>{learningStats.totalLessons}</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Lessons</Text>
               </View>
-              <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-                <Text style={[styles.statValue, { color: colors.text }]}>{learningStats.studyTime}</Text>
-                <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Study Time</Text>
+              <View style={[styles.statCard, { backgroundColor: theme.surface }, themeShadows.sm]}>
+                <View style={[styles.statIcon, { backgroundColor: theme.secondary + '15' }]}>
+                  <Ionicons name="time" size={20} color={theme.secondary} />
+                </View>
+                <Text style={[styles.statValue, { color: theme.text }]}>{learningStats.studyTime}</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Study Time</Text>
               </View>
-              <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-                <Text style={[styles.statValue, { color: colors.text }]}>{learningStats.coursesEnrolled}</Text>
-                <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Courses</Text>
+              <View style={[styles.statCard, { backgroundColor: theme.surface }, themeShadows.sm]}>
+                <View style={[styles.statIcon, { backgroundColor: theme.accent + '15' }]}>
+                  <Ionicons name="school" size={20} color={theme.accent} />
+                </View>
+                <Text style={[styles.statValue, { color: theme.text }]}>{learningStats.coursesEnrolled}</Text>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Courses</Text>
               </View>
             </View>
           </View>
         )}
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Browse by Category</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Browse by Category</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -392,8 +400,8 @@ export default function LearnScreen({ navigation }) {
                 style={[
                   styles.categoryPill,
                   {
-                    backgroundColor: selectedCategory === category.id ? category.color : colors.card,
-                    borderColor: selectedCategory === category.id ? category.color : colors.border,
+                    backgroundColor: selectedCategory === category.id ? theme.primary : theme.surface,
+                    borderColor: selectedCategory === category.id ? theme.primary : theme.border,
                   },
                 ]}
                 onPress={() => setSelectedCategory(category.id)}
@@ -402,7 +410,7 @@ export default function LearnScreen({ navigation }) {
                 <Text
                   style={[
                     styles.categoryPillText,
-                    { color: selectedCategory === category.id ? '#FFFFFF' : colors.text },
+                    { color: selectedCategory === category.id ? '#FFFFFF' : theme.text },
                   ]}
                 >
                   {category.name}
@@ -415,9 +423,9 @@ export default function LearnScreen({ navigation }) {
         {featuredCourses.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Courses</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Featured Courses</Text>
               <TouchableOpacity onPress={() => navigation.navigate('Courses')}>
-                <Text style={[styles.seeAllText, { color: '#3B82F6' }]}>See All</Text>
+                <Text style={[styles.seeAllText, { color: theme.primary }]}>See All</Text>
               </TouchableOpacity>
             </View>
             <ScrollView
@@ -430,8 +438,8 @@ export default function LearnScreen({ navigation }) {
                   key={course._id || index}
                   course={course}
                   index={index}
-                  colors={colors}
-                  isDarkMode={isDarkMode}
+                  theme={theme}
+                  getLevelColor={getLevelColor}
                   onPress={() => navigation.navigate('CourseDetail', { courseId: course._id })}
                 />
               ))}
@@ -441,10 +449,10 @@ export default function LearnScreen({ navigation }) {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>
               {searchQuery ? 'Search Results' : 'Explore Courses'}
             </Text>
-            <Text style={[styles.courseCount, { color: colors.secondaryText }]}>
+            <Text style={[styles.courseCount, { color: theme.textSecondary }]}>
               {filteredCourses.length} courses
             </Text>
           </View>
@@ -455,15 +463,17 @@ export default function LearnScreen({ navigation }) {
                   key={course._id || index}
                   course={course}
                   index={index}
-                  colors={colors}
+                  theme={theme}
+                  getLevelColor={getLevelColor}
                   onPress={() => navigation.navigate('CourseDetail', { courseId: course._id })}
                 />
               ))}
             </View>
           ) : (
             <View style={styles.emptyState}>
-              <Text style={[styles.emptyStateTitle, { color: colors.text }]}>No Courses Found</Text>
-              <Text style={[styles.emptyStateText, { color: colors.secondaryText }]}>
+              <Ionicons name="search-outline" size={48} color={theme.textMuted} />
+              <Text style={[styles.emptyStateTitle, { color: theme.text }]}>No Courses Found</Text>
+              <Text style={[styles.emptyStateText, { color: theme.textSecondary }]}>
                 Try adjusting your search or filters
               </Text>
             </View>
@@ -471,45 +481,40 @@ export default function LearnScreen({ navigation }) {
 
           {filteredCourses.length > 6 && (
             <TouchableOpacity
-              style={[styles.viewAllBtn, { borderColor: '#3B82F6' }]}
+              style={[styles.viewAllBtn, { borderColor: theme.primary }]}
               onPress={() => navigation.navigate('Courses')}
             >
-              <Text style={[styles.viewAllBtnText, { color: '#3B82F6' }]}>View All Courses</Text>
+              <Text style={[styles.viewAllBtnText, { color: theme.primary }]}>View All Courses</Text>
             </TouchableOpacity>
           )}
         </View>
 
         <View style={styles.section}>
-          <LinearGradient
-            colors={isDarkMode ? ['#1E3A5F', '#1E40AF'] : ['#DBEAFE', '#BFDBFE']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.goalBanner, premiumShadows.lg]}
+          <TouchableOpacity
+            style={[styles.goalBanner, themeShadows.lg]}
+            onPress={() => navigation.navigate('Courses')}
+            activeOpacity={0.9}
           >
-            <View style={styles.goalContent}>
-              <View style={styles.goalText}>
-                <Text style={[styles.goalTitle, { color: isDarkMode ? '#FFFFFF' : '#1E3A8A' }]}>
-                  Complete Your Daily Goal
-                </Text>
-                <Text style={[styles.goalSubtitle, { color: isDarkMode ? '#94A3B8' : '#3B82F6' }]}>
-                  Just 2 more lessons to reach your target!
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.goalBtn}
-              onPress={() => navigation.navigate('Courses')}
+            <LinearGradient
+              colors={[theme.primary, theme.primaryLight || theme.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.goalBannerGradient}
             >
-              <LinearGradient
-                colors={['#3B82F6', '#2563EB']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.goalBtnGradient}
-              >
-                <Text style={styles.goalBtnText}>Start Learning</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </LinearGradient>
+              <View style={styles.goalContent}>
+                <View style={styles.goalIcon}>
+                  <Ionicons name="trophy-outline" size={28} color="#FFFFFF" />
+                </View>
+                <View style={styles.goalText}>
+                  <Text style={styles.goalTitle}>Complete Your Daily Goal</Text>
+                  <Text style={styles.goalSubtitle}>Just 2 more lessons to reach your target!</Text>
+                </View>
+              </View>
+              <View style={styles.goalArrow}>
+                <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
 
         <View style={{ height: 120 }} />
@@ -518,30 +523,22 @@ export default function LearnScreen({ navigation }) {
   );
 }
 
-function FeaturedCourseCard({ course, index, colors, isDarkMode, onPress }) {
+function FeaturedCourseCard({ course, index, theme, getLevelColor, onPress }) {
   const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
     ? { uri: course.thumbnail }
     : getCourseImage(course._id, index, course.category, course.title);
 
-  const getLevelColor = (level) => {
-    const l = (level || '').toLowerCase();
-    if (l === 'beginner') return '#10B981';
-    if (l === 'intermediate') return '#F59E0B';
-    if (l === 'advanced') return '#EF4444';
-    return '#3B82F6';
-  };
-
   return (
     <TouchableOpacity
-      style={[styles.featuredCard, premiumShadows.md]}
+      style={[styles.featuredCard, themeShadows.md]}
       onPress={onPress}
       activeOpacity={0.9}
     >
       <Image source={imageSource} style={styles.featuredImage} />
-      <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={styles.featuredOverlay} />
+      <LinearGradient colors={['transparent', theme.primary + 'E6']} style={styles.featuredOverlay} />
       <View style={styles.featuredContent}>
         {course.isPremium && (
-          <View style={styles.premiumBadge}>
+          <View style={[styles.premiumBadge, { backgroundColor: theme.secondary }]}>
             <Text style={styles.premiumBadgeText}>PRO</Text>
           </View>
         )}
@@ -558,35 +555,27 @@ function FeaturedCourseCard({ course, index, colors, isDarkMode, onPress }) {
   );
 }
 
-function CourseCard({ course, index, colors, onPress }) {
+function CourseCard({ course, index, theme, getLevelColor, onPress }) {
   const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
     ? { uri: course.thumbnail }
     : getCourseImage(course._id, index, course.category, course.title);
 
-  const getLevelColor = (level) => {
-    const l = (level || '').toLowerCase();
-    if (l === 'beginner') return '#10B981';
-    if (l === 'intermediate') return '#F59E0B';
-    if (l === 'advanced') return '#EF4444';
-    return '#3B82F6';
-  };
-
   return (
     <TouchableOpacity
-      style={[styles.courseCard, { backgroundColor: colors.card }]}
+      style={[styles.courseCard, { backgroundColor: theme.surface }, themeShadows.sm]}
       onPress={onPress}
       activeOpacity={0.9}
     >
       <Image source={imageSource} style={styles.courseImage} />
       <View style={styles.courseContent}>
-        <Text style={[styles.courseCategory, { color: '#3B82F6' }]}>
+        <Text style={[styles.courseCategory, { color: theme.primary }]}>
           {(course.category || 'FRENCH').toUpperCase()}
         </Text>
-        <Text style={[styles.courseTitle, { color: colors.text }]} numberOfLines={2}>
+        <Text style={[styles.courseTitle, { color: theme.text }]} numberOfLines={2}>
           {course.title}
         </Text>
         <View style={styles.courseMeta}>
-          <Text style={[styles.courseRatingText, { color: colors.text }]}>
+          <Text style={[styles.courseRatingText, { color: theme.secondary }]}>
             ★ {course.rating?.average?.toFixed(1) || '4.5'}
           </Text>
           <View style={[styles.courseLevel, { backgroundColor: getLevelColor(course.level) }]}>
@@ -606,9 +595,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   header: {
-    paddingTop: 55,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
     overflow: 'hidden',
@@ -643,42 +632,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   headerTitleSection: {
     flex: 1,
-  },
-  headerBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  headerBadgeGradient: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   headerBadgeText: {
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.2,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    letterSpacing: -0.5,
     marginBottom: 4,
   },
-  headerSubtitle: {
-    fontSize: fontSize.sm,
-    fontWeight: '500',
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
-  headerActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
   },
   headerActionBtn: {
     width: 44,
@@ -686,25 +660,19 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
-  },
-  headerAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
   },
   levelCard: {
-    borderRadius: premiumBorderRadius.lg,
-    padding: spacing.md,
+    borderRadius: 16,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 12,
     flexWrap: 'wrap',
   },
   levelInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 10,
   },
   levelBadgeContainer: {},
   levelBadge: {
@@ -721,11 +689,13 @@ const styles = StyleSheet.create({
   },
   levelDetails: {},
   levelTitle: {
-    fontSize: fontSize.sm,
+    fontSize: 14,
     fontWeight: '700',
+    color: '#FFFFFF',
   },
   levelXP: {
     fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
   },
   levelProgressContainer: {
     flex: 1,
@@ -747,15 +717,15 @@ const styles = StyleSheet.create({
   },
   levelProgressText: {
     fontSize: 10,
+    color: 'rgba(255,255,255,0.6)',
   },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(249,115,22,0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: premiumBorderRadius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
   streakText: {
     fontSize: 11,
@@ -767,68 +737,56 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: premiumBorderRadius.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    gap: spacing.sm,
+    gap: 10,
   },
   searchInput: {
     flex: 1,
-    fontSize: fontSize.md,
-    paddingVertical: spacing.xs,
+    fontSize: 16,
+    paddingVertical: 4,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    paddingTop: 20,
+    paddingHorizontal: 20,
   },
   section: {
-    marginBottom: spacing.xl,
+    marginBottom: 24,
   },
   continueSection: {
-    marginBottom: spacing.xl,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: fontSize.lg,
+    fontSize: 18,
     fontWeight: '700',
-    letterSpacing: -0.3,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  sectionBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#DBEAFE',
-    justifyContent: 'center',
-    alignItems: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   seeAllText: {
-    fontSize: fontSize.sm,
+    fontSize: 14,
     fontWeight: '600',
   },
   courseCount: {
-    fontSize: fontSize.sm,
+    fontSize: 14,
   },
   continueCard: {
-    borderRadius: premiumBorderRadius.xl,
+    borderRadius: 20,
     overflow: 'hidden',
     height: 200,
   },
@@ -847,34 +805,32 @@ const styles = StyleSheet.create({
   continueContent: {
     flex: 1,
     justifyContent: 'flex-end',
-    padding: spacing.lg,
+    padding: 18,
   },
   continueBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(59,130,246,0.8)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: premiumBorderRadius.full,
     alignSelf: 'flex-start',
-    marginBottom: spacing.xs,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginBottom: 6,
   },
   continueBadgeText: {
     fontSize: 10,
     fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   continueTitle: {
-    fontSize: fontSize.lg,
+    fontSize: 18,
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   continueLesson: {
-    fontSize: fontSize.sm,
+    fontSize: 13,
     color: 'rgba(255,255,255,0.8)',
-    marginBottom: spacing.sm,
+    marginBottom: 10,
   },
   continueProgress: {
     gap: 4,
@@ -887,7 +843,6 @@ const styles = StyleSheet.create({
   },
   continueProgressFill: {
     height: '100%',
-    backgroundColor: '#3B82F6',
     borderRadius: 2,
   },
   continueProgressText: {
@@ -896,26 +851,25 @@ const styles = StyleSheet.create({
   },
   playButton: {
     position: 'absolute',
-    right: spacing.lg,
-    bottom: spacing.lg,
+    right: 18,
+    bottom: 18,
   },
   playButtonGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
   },
   statsGrid: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: 10,
   },
   statCard: {
     flex: 1,
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
+    padding: 14,
+    borderRadius: 16,
     alignItems: 'center',
-    ...premiumShadows.sm,
   },
   statIcon: {
     width: 40,
@@ -923,143 +877,38 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: 8,
   },
   statValue: {
-    fontSize: fontSize.lg,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
   },
   statLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  pathsScroll: {
-    gap: spacing.sm,
-  },
-  pathCard: {
-    width: 150,
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    alignItems: 'center',
-    paddingTop: spacing.xl,
-  },
-  pathTag: {
-    position: 'absolute',
-    top: spacing.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  pathTagText: {
-    fontSize: 9,
-    fontWeight: '800',
-  },
-  pathGradient: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  pathTitle: {
-    fontSize: fontSize.sm,
-    fontWeight: '700',
-    marginBottom: 2,
-    textAlign: 'center',
-  },
-  pathSubtitle: {
     fontSize: 11,
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  pathMeta: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  pathMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  pathMetaText: {
-    fontSize: 10,
     fontWeight: '500',
-  },
-  spotlightGrid: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  spotlightCard: {
-    flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
-  },
-  spotlightImage: {
-    width: '100%',
-    height: 100,
-  },
-  spotlightContent: {
-    padding: spacing.sm,
-  },
-  spotlightBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginBottom: 4,
-  },
-  spotlightBadgeText: {
-    fontSize: 8,
-    fontWeight: '800',
-  },
-  spotlightTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  spotlightDifficulty: {
-    fontSize: 10,
-  },
-  spotlightPlay: {
-    position: 'absolute',
-    top: 80,
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    ...premiumShadows.sm,
+    marginTop: 2,
   },
   categoriesScroll: {
-    gap: spacing.sm,
-    paddingTop: spacing.sm,
+    gap: 10,
+    paddingTop: 8,
   },
   categoryPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: premiumBorderRadius.full,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
     borderWidth: 1,
-    gap: spacing.xs,
   },
   categoryPillText: {
-    fontSize: fontSize.sm,
+    fontSize: 14,
     fontWeight: '600',
   },
   coursesScroll: {
-    gap: spacing.md,
+    gap: 14,
   },
   featuredCard: {
-    width: 280,
-    height: 180,
-    borderRadius: premiumBorderRadius.xl,
+    width: 260,
+    height: 170,
+    borderRadius: 18,
     overflow: 'hidden',
   },
   featuredImage: {
@@ -1077,19 +926,15 @@ const styles = StyleSheet.create({
   featuredContent: {
     flex: 1,
     justifyContent: 'flex-end',
-    padding: spacing.md,
+    padding: 14,
   },
   premiumBadge: {
     position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#8B5CF6',
-    paddingHorizontal: spacing.sm,
+    top: 12,
+    right: 12,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: premiumBorderRadius.full,
+    borderRadius: 8,
   },
   premiumBadgeText: {
     fontSize: 9,
@@ -1104,30 +949,25 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   featuredTitle: {
-    fontSize: fontSize.md,
+    fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   featuredMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-  },
-  featuredRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
   featuredRatingText: {
-    fontSize: fontSize.sm,
+    fontSize: 13,
     fontWeight: '600',
     color: '#FFFFFF',
   },
   featuredLevel: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: premiumBorderRadius.base,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   featuredLevelText: {
     fontSize: 10,
@@ -1138,20 +978,19 @@ const styles = StyleSheet.create({
   coursesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.sm,
+    gap: 12,
   },
   courseCard: {
-    width: (width - spacing.lg * 2 - spacing.sm) / 2,
-    borderRadius: premiumBorderRadius.lg,
+    width: (width - 52) / 2,
+    borderRadius: 16,
     overflow: 'hidden',
-    ...premiumShadows.sm,
   },
   courseImage: {
     width: '100%',
     height: 100,
   },
   courseContent: {
-    padding: spacing.sm,
+    padding: 12,
   },
   courseCategory: {
     fontSize: 9,
@@ -1160,29 +999,25 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   courseTitle: {
-    fontSize: fontSize.sm,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
-    lineHeight: 18,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 6,
+    lineHeight: 17,
+    height: 34,
   },
   courseMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  courseRating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
   courseRatingText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600',
   },
   courseLevel: {
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: premiumBorderRadius.base,
+    borderRadius: 6,
   },
   courseLevelText: {
     fontSize: 9,
@@ -1191,47 +1026,50 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   viewAllBtn: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
+    paddingVertical: 14,
+    borderRadius: 14,
     borderWidth: 1.5,
-    marginTop: spacing.md,
-    gap: spacing.sm,
+    marginTop: 14,
   },
   viewAllBtnText: {
-    fontSize: fontSize.md,
+    fontSize: 15,
     fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: spacing.xxl,
+    paddingVertical: 40,
   },
   emptyStateTitle: {
-    fontSize: fontSize.lg,
+    fontSize: 18,
     fontWeight: '700',
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
+    marginTop: 12,
+    marginBottom: 4,
   },
   emptyStateText: {
-    fontSize: fontSize.sm,
+    fontSize: 14,
   },
   goalBanner: {
-    borderRadius: premiumBorderRadius.xl,
-    padding: spacing.lg,
-    gap: spacing.md,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  goalBannerGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 18,
   },
   goalContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    flex: 1,
+    gap: 14,
   },
   goalIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: 'rgba(59,130,246,0.15)',
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1239,27 +1077,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   goalTitle: {
-    fontSize: fontSize.lg,
+    fontSize: 16,
     fontWeight: '700',
-    marginBottom: 4,
+    color: '#FFFFFF',
+    marginBottom: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   goalSubtitle: {
-    fontSize: fontSize.sm,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
   },
-  goalBtn: {
-    borderRadius: premiumBorderRadius.lg,
-    overflow: 'hidden',
-  },
-  goalBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  goalArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  goalBtnText: {
-    color: '#FFFFFF',
-    fontSize: fontSize.md,
-    fontWeight: '700',
+    alignItems: 'center',
   },
 });
