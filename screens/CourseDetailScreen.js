@@ -43,6 +43,7 @@ export default function CourseDetailScreen({ route, navigation }) {
   const [showCertificate, setShowCertificate] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [showStickyCard, setShowStickyCard] = useState(false);
+  const [instructorCourseCount, setInstructorCourseCount] = useState(0);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -67,7 +68,10 @@ export default function CourseDetailScreen({ route, navigation }) {
       
       if (response.data.data) {
         setCourse(response.data.data);
-        await loadReviews();
+        await Promise.all([
+          loadReviews(),
+          loadInstructorCourseCount(response.data.data.instructor?._id || response.data.data.instructor)
+        ]);
       } else {
         setError('Course not found');
       }
@@ -84,6 +88,42 @@ export default function CourseDetailScreen({ route, navigation }) {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadInstructorCourseCount = async (instructorId) => {
+    if (!instructorId) {
+      setInstructorCourseCount(0);
+      return;
+    }
+    
+    try {
+      // Get instructor ID (handle both object and string formats)
+      const id = instructorId._id || instructorId;
+      if (!id) {
+        setInstructorCourseCount(0);
+        return;
+      }
+
+      // Fetch all courses (with a reasonable limit) and count instructor's courses
+      // Note: This is a workaround since backend doesn't support instructor filter
+      // Ideally, backend should support ?instructor=id query parameter
+      const allCoursesResponse = await coursesAPI.getAll({ limit: 1000 });
+      const allCourses = allCoursesResponse.data.data || [];
+      
+      // Count courses by this instructor
+      const instructorCourses = allCourses.filter(c => {
+        const courseInstructorId = c.instructor?._id || c.instructor;
+        return courseInstructorId && (
+          courseInstructorId.toString() === id.toString() ||
+          courseInstructorId === id
+        );
+      });
+      
+      setInstructorCourseCount(instructorCourses.length || 0);
+    } catch (error) {
+      console.warn('Failed to load instructor course count:', error);
+      setInstructorCourseCount(0);
     }
   };
 
@@ -562,7 +602,7 @@ export default function CourseDetailScreen({ route, navigation }) {
                         <View style={styles.instructorStat}>
                           <Ionicons name="book" size={14} color={theme.textSecondary} />
                           <Text style={[styles.instructorStatText, { color: theme.textSecondary }]}>
-                            15 Courses
+                            {instructorCourseCount || 0} {instructorCourseCount === 1 ? 'Course' : 'Courses'}
                           </Text>
                         </View>
                       </View>

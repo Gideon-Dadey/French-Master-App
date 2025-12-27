@@ -99,6 +99,7 @@ export default function LearnerHomeScreen({ navigation }) {
   const [error, setError] = useState(null);
   const [dailyWord, setDailyWord] = useState(DAILY_WORDS[0]);
   const [headerInteractable, setHeaderInteractable] = useState(false);
+  const [totalCoursesCount, setTotalCoursesCount] = useState(0);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -154,24 +155,31 @@ export default function LearnerHomeScreen({ navigation }) {
 
       const results = await Promise.allSettled([
         coursesAPI.getFeatured(),
+        coursesAPI.getAll({ limit: 1 }), // Get total count
         blogAPI.getAll({ limit: 5 }),
       ]);
 
       let coursesData = [];
       let postsData = [];
+      let totalCount = 0;
 
       if (results[0].status === 'fulfilled') {
         coursesData = results[0].value?.data?.data || [];
       }
 
       if (results[1].status === 'fulfilled') {
-        postsData = results[1].value?.data?.data || [];
+        totalCount = results[1].value?.data?.total || 0;
+      }
+
+      if (results[2].status === 'fulfilled') {
+        postsData = results[2].value?.data?.data || [];
       }
 
       setTopCourses(coursesData);
       setRecentPosts(postsData);
+      setTotalCoursesCount(totalCount);
 
-      if (results[0].status === 'rejected' && results[1].status === 'rejected') {
+      if (results[0].status === 'rejected' && results[2].status === 'rejected') {
         setError('Connection Lost - Please check your internet connection');
       }
     } catch (err) {
@@ -392,7 +400,7 @@ export default function LearnerHomeScreen({ navigation }) {
                 <View style={[styles.statDivider, { backgroundColor: 'rgba(255,255,255,0.15)' }]} />
                 <View style={styles.statItem}>
                   <Ionicons name="book" size={18} color={theme.secondary} />
-                  <Text style={styles.statValue}>{topCourses.length}</Text>
+                  <Text style={styles.statValue}>{totalCoursesCount || topCourses.length}</Text>
                   <Text style={styles.statLabel}>Courses</Text>
                 </View>
               </View>

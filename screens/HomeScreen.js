@@ -125,9 +125,11 @@ export default function HomeScreen({ navigation }) {
       for (const category of categories) {
         try {
           const response = await coursesAPI.getAll({ category, limit: 1 });
-          counts[category] = response.data.total || Math.floor(Math.random() * 15) + 5;
+          // API returns { success: true, total, data: courses }
+          counts[category] = response.data?.total || 0;
         } catch (err) {
-          counts[category] = Math.floor(Math.random() * 15) + 5;
+          console.warn(`Failed to load count for ${category}:`, err);
+          counts[category] = 0;
         }
       }
 
