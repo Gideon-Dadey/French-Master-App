@@ -3,21 +3,27 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const getApiUrl = () => {
+  // Use production URL by default
+  const PRODUCTION_URL = 'https://api.frenchmastergh.com/api';
+  const DEVELOPMENT_URL = 'http://192.168.0.135:5001/api'; // Only for local development
+
   if (__DEV__) {
-
-    if (Platform.OS === 'android') {
-
-      return 'http://192.168.0.135:5001/api';
-
+    // In development, use local URL only if explicitly set
+    // Otherwise fallback to production for mobile testing
+    const USE_LOCAL = false; // Set to true only for local development
+    if (USE_LOCAL) {
+      if (Platform.OS === 'android') {
+        return DEVELOPMENT_URL;
+      }
+      if (Platform.OS === 'ios') {
+        return 'http://localhost:5001/api';
+      }
+      return DEVELOPMENT_URL;
     }
-
-    if (Platform.OS === 'ios') {
-      return 'http://localhost:5001/api';
-    }
-
-    return 'http://192.168.0.135:5000/api';
   }
-  return 'https://api.frenchmastergh.com/api';
+  
+  // Always use production URL for deployed/built apps
+  return PRODUCTION_URL;
 };
 
 const API_URL = getApiUrl();
@@ -53,11 +59,19 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle network errors
+    if (!error.response) {
+      console.error('Network Error:', error.message);
+      const networkError = new Error('Network connection failed. Please check your internet connection.');
+      networkError.isNetworkError = true;
+      return Promise.reject(networkError);
+    }
+
+    // Handle token refresh for 401 errors
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-
         const refreshToken = await SecureStore.getItemAsync('refreshToken');
         if (refreshToken) {
           const response = await axios.post(`${API_URL}/auth/refresh`, {
@@ -71,13 +85,19 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (refreshError) {
-
+        // Refresh failed, clear auth
         await SecureStore.deleteItemAsync('authToken');
         await SecureStore.deleteItemAsync('refreshToken');
       }
     }
 
-    return Promise.reject(error);
+    // Attach more detailed error information
+    const errorMessage = error.response?.data?.message || error.message || 'An error occurred';
+    const enhancedError = new Error(errorMessage);
+    enhancedError.status = error.response?.status;
+    enhancedError.data = error.response?.data;
+    
+    return Promise.reject(enhancedError);
   }
 );
 

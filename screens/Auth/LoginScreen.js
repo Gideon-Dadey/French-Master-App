@@ -79,10 +79,25 @@ export default function LoginScreen({ navigation }) {
           );
         }
       } else {
-        Alert.alert('Authentication Failed', result.message || 'Check your credentials and try again.');
+        const message = result.message || 'Check your credentials and try again.';
+        
+        // Provide helpful messages for different error types
+        let alertTitle = 'Authentication Failed';
+        let alertMessage = message;
+        
+        if (message.includes('network') || message.includes('Network')) {
+          alertTitle = 'Connection Error';
+          alertMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+        } else if (message.includes('Invalid credentials') || message.includes('not found')) {
+          alertMessage = 'Email or password is incorrect. Please try again.';
+        }
+        
+        Alert.alert(alertTitle, alertMessage);
       }
     } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      console.error('Login error:', error);
+      const errorMessage = error.message || 'An unexpected error occurred.';
+      Alert.alert('Error', errorMessage + '\n\nPlease check your internet connection and try again.');
     } finally {
       setLoading(false);
     }

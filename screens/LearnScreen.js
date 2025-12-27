@@ -70,20 +70,39 @@ export default function LearnScreen({ navigation }) {
   const loadData = async () => {
     try {
       setLoading(true);
+      setError(null);
 
       const params = selectedCategory ? { category: selectedCategory } : {};
-      const [featuredResponse, coursesResponse, progressResponse] = await Promise.all([
-        coursesAPI.getFeatured().catch(() => ({ data: { data: [] } })),
-        coursesAPI.getAll({ ...params, limit: 20 }).catch(() => ({ data: { data: [] } })),
-        isAuthenticated ? progressAPI.getDashboard().catch(() => null) : Promise.resolve(null),
+      
+      // Use Promise.allSettled to handle individual API failures
+      const results = await Promise.allSettled([
+        coursesAPI.getFeatured(),
+        coursesAPI.getAll({ ...params, limit: 20 }),
+        isAuthenticated ? progressAPI.getDashboard() : Promise.resolve(null),
       ]);
 
-      setFeaturedCourses(featuredResponse.data.data || []);
-      setAllCourses(coursesResponse.data.data || []);
+      // Process featured courses
+      if (results[0].status === 'fulfilled') {
+        setFeaturedCourses(results[0].value?.data?.data || []);
+      } else {
+        console.warn('Failed to fetch featured courses:', results[0].reason);
+        setFeaturedCourses([]);
+      }
 
-      if (featuredCourses.length > 0) {
+      // Process all courses
+      if (results[1].status === 'fulfilled') {
+        setAllCourses(results[1].value?.data?.data || []);
+      } else {
+        console.warn('Failed to fetch courses:', results[1].reason);
+        setAllCourses([]);
+        setError('Failed to load courses. Please check your connection and refresh.');
+      }
+
+      // Set continue learning from featured courses
+      const courses = results[0].status === 'fulfilled' ? (results[0].value?.data?.data || []) : [];
+      if (courses.length > 0) {
         setContinueLearning({
-          ...featuredCourses[0],
+          ...courses[0],
           progress: 65,
           currentLesson: 'Lesson 8: Past Tense',
           totalLessons: 12,
@@ -91,8 +110,9 @@ export default function LearnScreen({ navigation }) {
         });
       }
 
-      if (progressResponse?.data?.data) {
-        const dashboardData = progressResponse.data.data;
+      // Process progress data
+      if (results[2].status === 'fulfilled' && results[2].value?.data?.data) {
+        const dashboardData = results[2].value.data.data;
         setLearningStats({
           totalLessons: dashboardData.totalLessonsCompleted || 156,
           studyTime: formatStudyTime(dashboardData.totalTimeSpent || 45000),
@@ -113,6 +133,7 @@ export default function LearnScreen({ navigation }) {
       }
     } catch (error) {
       console.error('Failed to load learn data:', error);
+      setError('Connection error. Please check your internet and refresh.');
     } finally {
       setLoading(false);
       setRefreshing(false);

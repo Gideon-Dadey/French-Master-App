@@ -506,15 +506,66 @@ eas submit --platform ios
 
 ---
 
-## 🔧 Troubleshooting
+## 🔧 Troubleshooting & Mobile Setup
 
-| Issue | Solution |
-|-------|----------|
-| Metro cache error | `npx expo start --clear` |
-| Port in use | `taskkill /F /IM node.exe` (Windows) |
-| Network error | Check IP in `api.js`, ensure backend running |
-| Study group access | Logout and login again |
-| Slow loading | Clear app cache |
+### Quick Fixes for Common Issues
+
+| Issue | Root Cause | Solution |
+|-------|-----------|----------|
+| **Login Failed** | Network/API connection error | Check backend is running: `npm run dev` in `/backend` |
+| **"Connection Lost" on Learn** | Hardcoded local IP address | Update `USE_LOCAL = false` in `/src/services/api.js` |
+| **Courses Not Showing** | API endpoint incorrect | Verify `api.frenchmastergh.com` is configured |
+| **Study Groups Empty** | Network error or no data | Clear app cache and refresh |
+| **Metro cache error** | Cache corruption | `npx expo start --clear` |
+| **Port 5001 in use** | Another process using port | `taskkill /F /IM node.exe` (Windows) |
+
+### Mobile Deployment Issues
+
+If the app fails after mobile installation, read: **[MOBILE_SETUP_GUIDE.md](./MOBILE_SETUP_GUIDE.md)**
+
+**Key Points:**
+1. Backend must be running before starting the app
+2. API URL must point to production server (not local IP)
+3. Firebase/Notifications need proper configuration
+4. Database must have initial data seeded
+
+### Backend Diagnostics
+
+Run diagnostic script to verify backend setup:
+```bash
+cd backend
+node diagnose.js
+```
+
+This checks:
+- ✅ Environment variables
+- ✅ Node dependencies
+- ✅ Server configuration
+- ✅ Database connection
+- ✅ Port availability
+
+### Frontend Validation
+
+Validate mobile configuration:
+```bash
+node validate-mobile.js
+```
+
+This checks:
+- ✅ API configuration for mobile
+- ✅ Error handling implementation
+- ✅ Dependencies installed
+- ✅ Production URL configured
+
+### Recent Fixes (December 2025)
+
+**Fixed Issues:**
+- ❌ Login failing → ✅ Improved error handling
+- ❌ Connection lost errors → ✅ Production URL configured
+- ❌ Courses not showing → ✅ Promise.allSettled() implementation
+- ❌ Study groups empty → ✅ Better error messages
+
+See detailed changes in: **[FIX_SUMMARY.md](./FIX_SUMMARY.md)**
 
 ---
 

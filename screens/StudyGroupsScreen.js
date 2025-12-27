@@ -129,8 +129,16 @@ export default function StudyGroupsScreen({ navigation }) {
 
     } catch (err) {
       console.error('Failed to load study groups:', err);
+      const errorMessage = err.message || 'Failed to load study groups';
+      
       if (studyGroups.length === 0) {
-        setError('Network Connection Error');
+        if (errorMessage.includes('Network') || errorMessage.includes('network')) {
+          setError('Connection Lost - Please check your internet connection');
+        } else if (errorMessage.includes('401')) {
+          setError('Authentication Error - Please log in again');
+        } else {
+          setError(errorMessage);
+        }
       }
     } finally {
       setLoading(false);

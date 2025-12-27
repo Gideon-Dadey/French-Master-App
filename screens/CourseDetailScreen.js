@@ -97,11 +97,24 @@ export default function CourseDetailScreen({ route, navigation }) {
       setLoading(true);
       setError(null);
       const response = await coursesAPI.getById(courseId);
-      setCourse(response.data.data);
-      await loadReviews();
+      
+      if (response.data.data) {
+        setCourse(response.data.data);
+        await loadReviews();
+      } else {
+        setError('Course not found');
+      }
     } catch (error) {
       console.error('Failed to load course:', error);
-      setError('Failed to load course. Please try again.');
+      const errorMessage = error.message || 'Failed to load course';
+      
+      if (errorMessage.includes('Network') || errorMessage.includes('network')) {
+        setError('Connection Error - Please check your internet and try again.');
+      } else if (error.status === 404) {
+        setError('Course not found');
+      } else {
+        setError(errorMessage || 'Failed to load course. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -112,6 +125,7 @@ export default function CourseDetailScreen({ route, navigation }) {
       const response = await reviewsAPI.getByCourse(courseId);
       setReviews(response.data.data || []);
     } catch (error) {
+      console.warn('Failed to load reviews:', error);
       setReviews([]);
     }
   };

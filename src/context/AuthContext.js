@@ -51,9 +51,19 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       return { success: true };
     } catch (error) {
+      let message = 'Login failed';
+      
+      if (error.message?.includes('Network') || error.isNetworkError) {
+        message = 'Network connection failed. Please check your internet connection.';
+      } else if (error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error.message) {
+        message = error.message;
+      }
+      
       return {
         success: false,
-        message: error.response?.data?.message || 'Login failed'
+        message
       };
     }
   };
@@ -72,9 +82,19 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(true);
       return { success: true };
     } catch (error) {
+      let message = 'Registration failed';
+      
+      if (error.message?.includes('Network') || error.isNetworkError) {
+        message = 'Network connection failed. Please check your internet connection.';
+      } else if (error.response?.data?.message) {
+        message = error.response.data.message;
+      } else if (error.message) {
+        message = error.message;
+      }
+      
       return {
         success: false,
-        message: error.response?.data?.message || 'Registration failed'
+        message
       };
     }
   };

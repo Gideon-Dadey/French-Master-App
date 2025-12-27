@@ -127,20 +127,42 @@ export default function LearnerHomeScreen({ navigation }) {
       if (!refreshing) setLoading(true);
       setError(null);
 
-      const [coursesResponse, postsResponse] = await Promise.all([
+      const results = await Promise.allSettled([
         coursesAPI.getFeatured(),
         blogAPI.getAll({ limit: 5 }),
       ]);
 
-      const coursesData = coursesResponse.data.data || [];
-      const postsData = postsResponse.data.data || [];
+      let coursesData = [];
+      let postsData = [];
+
+      if (results[0].status === 'fulfilled') {
+        coursesData = results[0].value?.data?.data || [];
+      } else {
+        console.warn('Failed to fetch featured courses:', results[0].reason);
+      }
+
+      if (results[1].status === 'fulfilled') {
+        postsData = results[1].value?.data?.data || [];
+      } else {
+        console.warn('Failed to fetch blog posts:', results[1].reason);
+      }
 
       setTopCourses(coursesData);
       setRecentPosts(postsData);
 
+      // Show error only if both failed
+      if (results[0].status === 'rejected' && results[1].status === 'rejected') {
+        const errorMsg = results[0].reason?.message || 'Failed to load content';
+        if (errorMsg.includes('Network') || errorMsg.includes('network')) {
+          setError('Connection Lost - Please check your internet connection');
+        } else {
+          setError('Failed to load home content. Please refresh.');
+        }
+      }
+
     } catch (err) {
       console.error('Failed to load home data:', err);
-      setError('Network Error');
+      setError('Network Error - Please check your connection');
     } finally {
       setLoading(false);
       setRefreshing(false);
