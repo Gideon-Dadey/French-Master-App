@@ -1,13 +1,13 @@
 {
   "expo": {
     "name": "French Master GH",
-    "slug": "french-master-gh",
+    "slug": "french-master-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon.jpg",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash.jpg",
       "resizeMode": "contain",
       "backgroundColor": "#1E88E5"
     },
@@ -17,23 +17,26 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.frenchmastergh.app",
-      "icon": "./assets/icon.png",
+      "icon": "./assets/icon.jpg",
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to your camera to take profile photos.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile photos."
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile photos.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.frenchmastergh.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/adaptive-icon.jpg",
         "backgroundColor": "#1E88E5"
       },
-      "icon": "./assets/icon.png",
+      "icon": "./assets/icon.jpg",
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ]
     },
     "plugins": [
@@ -46,12 +49,14 @@
           "cameraPermission": "The app accesses your camera to let you take profile pictures."
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "expo-asset"
     ],
     "extra": {
       "eas": {
-        "projectId": "your-eas-project-id-here"
+        "projectId": "3cb7b33c-6b68-4f8a-a709-4225d8a59030"
       }
-    }
+    },
+    "owner": "s_phia"
   }
 }

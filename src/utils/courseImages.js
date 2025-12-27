@@ -2,12 +2,12 @@
 
 const englishCourseImages = [
   require('../../assets/english/6693140.jpg'),
-  require('../../assets/english/6741505.jpg'),
+  require('../../assets/english/6741505.png'),
   require('../../assets/english/6743349.jpg'),
-  require('../../assets/english/7324873.jpg'),
-  require('../../assets/english/7324874.jpg'),
-  require('../../assets/english/7324875.jpg'),
-  require('../../assets/english/7352668.jpg'),
+  require('../../assets/english/7324873.png'),
+  require('../../assets/english/7324874.png'),
+  require('../../assets/english/7324875.png'),
+  require('../../assets/english/7352668.png'),
   require('../../assets/english/7469136.jpg'),
   require('../../assets/english/8346224.jpg'),
   require('../../assets/english/little-boy-listening-his-teacher-through-headphones.jpg'),
