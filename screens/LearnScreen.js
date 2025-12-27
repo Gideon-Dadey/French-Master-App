@@ -41,6 +41,7 @@ export default function LearnScreen({ navigation }) {
   const [learningStats, setLearningStats] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [continueLearning, setContinueLearning] = useState(null);
+  const [totalCoursesCount, setTotalCoursesCount] = useState(0);
 
   const headerAnim = useRef(new Animated.Value(0)).current;
   const cardsAnim = useRef(new Animated.Value(0)).current;
@@ -80,6 +81,10 @@ export default function LearnScreen({ navigation }) {
       const results = await Promise.allSettled([
         coursesAPI.getFeatured(),
         coursesAPI.getAll({ ...params, limit: 20 }),
+        // Get total count - if category selected, use category query, otherwise get all
+        selectedCategory 
+          ? coursesAPI.getAll({ category: selectedCategory, limit: 1 })
+          : coursesAPI.getAll({ limit: 1 }),
         isAuthenticated ? progressAPI.getDashboard() : Promise.resolve(null),
       ]);
 
@@ -94,6 +99,16 @@ export default function LearnScreen({ navigation }) {
       } else {
         setAllCourses([]);
         setError('Failed to load courses. Please check your connection and refresh.');
+      }
+
+      // Get total course count (all courses or filtered by category)
+      if (results[2].status === 'fulfilled') {
+        const totalCount = results[2].value?.data?.total || 0;
+        setTotalCoursesCount(totalCount);
+      } else {
+        // Fallback to loaded courses length if API fails
+        const coursesData = results[1].status === 'fulfilled' ? (results[1].value?.data?.data || []) : [];
+        setTotalCoursesCount(coursesData.length || 0);
       }
 
       const courses = results[0].status === 'fulfilled' ? (results[0].value?.data?.data || []) : [];
@@ -461,7 +476,10 @@ export default function LearnScreen({ navigation }) {
               {searchQuery ? 'Search Results' : 'Explore Courses'}
             </Text>
             <Text style={[styles.courseCount, { color: theme.textSecondary }]}>
-              {filteredCourses.length} courses
+              {searchQuery 
+                ? `${filteredCourses.length} ${filteredCourses.length === 1 ? 'course' : 'courses'}` 
+                : `${totalCoursesCount || filteredCourses.length} ${(totalCoursesCount || filteredCourses.length) === 1 ? 'course' : 'courses'}`
+              }
             </Text>
           </View>
           {filteredCourses.length > 0 ? (
