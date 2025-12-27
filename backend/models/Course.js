@@ -61,7 +61,7 @@ const courseSchema = new mongoose.Schema({
   },
   isFree: {
     type: Boolean,
-    default: false
+    default: true
   },
   duration: {
     type: Number,

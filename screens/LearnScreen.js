@@ -49,10 +49,10 @@ export default function LearnScreen({ navigation }) {
 
   const categories = [
     { id: null, name: 'All', icon: 'apps', color: theme.primary },
-    { id: 'french', name: 'French', icon: 'flag', color: theme.error },
-    { id: 'grammar', name: 'Grammar', icon: 'school', color: theme.success },
-    { id: 'vocabulary', name: 'Vocabulary', icon: 'book', color: theme.secondary },
-    { id: 'conversation', name: 'Speaking', icon: 'chatbubbles', color: theme.accent },
+    { id: 'french', name: 'French', icon: 'flag', color: theme.primary },
+    { id: 'grammar', name: 'Grammar', icon: 'school', color: theme.primary },
+    { id: 'vocabulary', name: 'Vocabulary', icon: 'book', color: theme.primary },
+    { id: 'conversation', name: 'Speaking', icon: 'chatbubbles', color: theme.primary },
   ];
 
   useEffect(() => {
@@ -167,11 +167,19 @@ export default function LearnScreen({ navigation }) {
 
   const userName = user?.name?.split(' ')[0] || 'Learner';
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+      return 'Bonjour'; // Morning (5 AM - 11:59 AM)
+    } else if (hour >= 12 && hour < 18) {
+      return 'Bon après-midi'; // Afternoon (12 PM - 5:59 PM)
+    } else {
+      return 'Bonsoir'; // Evening (6 PM - 4:59 AM)
+    }
+  };
+
   const getLevelColor = (level) => {
-    const l = (level || '').toLowerCase();
-    if (l === 'beginner') return theme.success;
-    if (l === 'intermediate') return theme.secondary;
-    if (l === 'advanced') return theme.error;
+    // All levels use primary color for consistency
     return theme.primary;
   };
 
@@ -205,8 +213,8 @@ export default function LearnScreen({ navigation }) {
           <View style={styles.headerContent}>
             <View style={styles.headerTopRow}>
               <View style={styles.headerTitleSection}>
-                <Text style={[styles.headerBadgeText, { color: theme.secondary }]}>LEARN</Text>
-                <Text style={styles.headerTitle}>Bonjour, {userName}! 👋</Text>
+                <Text style={[styles.headerBadgeText, { color: theme.primary }]}>LEARN</Text>
+                <Text style={styles.headerTitle}>{getGreeting()}, {userName}! 👋</Text>
                 <Text style={styles.headerSubtitle}>Continue your French journey</Text>
               </View>
 
@@ -222,7 +230,7 @@ export default function LearnScreen({ navigation }) {
               <View style={[styles.levelCard, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
                 <View style={styles.levelInfo}>
                   <View style={styles.levelBadgeContainer}>
-                    <LinearGradient colors={[theme.secondary, theme.secondaryLight || theme.secondary]} style={styles.levelBadge}>
+                    <LinearGradient colors={[theme.primary, theme.primaryLight || theme.primary]} style={styles.levelBadge}>
                       <Text style={styles.levelNumber}>{learningStats.level}</Text>
                     </LinearGradient>
                   </View>
@@ -245,7 +253,7 @@ export default function LearnScreen({ navigation }) {
                       ]}
                     >
                       <LinearGradient
-                        colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
+                        colors={[theme.primary, theme.primaryLight || theme.primary]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         style={styles.levelProgressGradient}
@@ -254,9 +262,9 @@ export default function LearnScreen({ navigation }) {
                   </View>
                   <Text style={styles.levelProgressText}>650 XP to Level {learningStats.level + 1}</Text>
                 </View>
-                <View style={[styles.streakBadge, { backgroundColor: theme.secondary + '30' }]}>
-                  <Ionicons name="flame" size={14} color={theme.secondary} />
-                  <Text style={[styles.streakText, { color: theme.secondary }]}>{learningStats.streak} day streak</Text>
+                <View style={[styles.streakBadge, { backgroundColor: theme.primary + '30' }]}>
+                  <Ionicons name="flame" size={14} color={theme.primary} />
+                  <Text style={[styles.streakText, { color: theme.primary }]}>{learningStats.streak} day streak</Text>
                 </View>
               </View>
             )}
@@ -331,7 +339,7 @@ export default function LearnScreen({ navigation }) {
                 style={styles.continueOverlay}
               />
               <View style={styles.continueContent}>
-                <View style={[styles.continueBadge, { backgroundColor: theme.secondary }]}>
+                <View style={[styles.continueBadge, { backgroundColor: theme.primary }]}>
                   <Text style={styles.continueBadgeText}>IN PROGRESS</Text>
                 </View>
                 <Text style={styles.continueTitle}>{continueLearning.title}</Text>
@@ -339,7 +347,7 @@ export default function LearnScreen({ navigation }) {
                 <View style={styles.continueProgress}>
                   <View style={styles.continueProgressTrack}>
                     <LinearGradient
-                      colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
+                      colors={[theme.primary, theme.primaryLight || theme.primary]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={[styles.continueProgressFill, { width: `${continueLearning.progress}%` }]}
@@ -351,7 +359,7 @@ export default function LearnScreen({ navigation }) {
                 </View>
               </View>
               <TouchableOpacity style={styles.playButton}>
-                <LinearGradient colors={[theme.secondary, theme.secondaryLight || theme.secondary]} style={styles.playButtonGradient}>
+                <LinearGradient colors={[theme.primary, theme.primaryLight || theme.primary]} style={styles.playButtonGradient}>
                   <Ionicons name="play" size={24} color="#FFFFFF" />
                 </LinearGradient>
               </TouchableOpacity>
@@ -370,15 +378,15 @@ export default function LearnScreen({ navigation }) {
                 <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Lessons</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: theme.surface }, themeShadows.sm]}>
-                <View style={[styles.statIcon, { backgroundColor: theme.secondary + '15' }]}>
-                  <Ionicons name="time" size={20} color={theme.secondary} />
+                <View style={[styles.statIcon, { backgroundColor: theme.primary + '15' }]}>
+                  <Ionicons name="time" size={20} color={theme.primary} />
                 </View>
                 <Text style={[styles.statValue, { color: theme.text }]}>{learningStats.studyTime}</Text>
                 <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Study Time</Text>
               </View>
               <View style={[styles.statCard, { backgroundColor: theme.surface }, themeShadows.sm]}>
-                <View style={[styles.statIcon, { backgroundColor: theme.accent + '15' }]}>
-                  <Ionicons name="school" size={20} color={theme.accent} />
+                <View style={[styles.statIcon, { backgroundColor: theme.primary + '15' }]}>
+                  <Ionicons name="school" size={20} color={theme.primary} />
                 </View>
                 <Text style={[styles.statValue, { color: theme.text }]}>{learningStats.coursesEnrolled}</Text>
                 <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Courses</Text>
@@ -537,11 +545,6 @@ function FeaturedCourseCard({ course, index, theme, getLevelColor, onPress }) {
       <Image source={imageSource} style={styles.featuredImage} />
       <LinearGradient colors={['transparent', theme.primary + 'E6']} style={styles.featuredOverlay} />
       <View style={styles.featuredContent}>
-        {course.isPremium && (
-          <View style={[styles.premiumBadge, { backgroundColor: theme.secondary }]}>
-            <Text style={styles.premiumBadgeText}>PRO</Text>
-          </View>
-        )}
         <Text style={styles.featuredCategory}>{(course.category || 'FRENCH').toUpperCase()}</Text>
         <Text style={styles.featuredTitle} numberOfLines={2}>{course.title}</Text>
         <View style={styles.featuredMeta}>
@@ -575,7 +578,7 @@ function CourseCard({ course, index, theme, getLevelColor, onPress }) {
           {course.title}
         </Text>
         <View style={styles.courseMeta}>
-          <Text style={[styles.courseRatingText, { color: theme.secondary }]}>
+          <Text style={[styles.courseRatingText, { color: theme.primary }]}>
             ★ {course.rating?.average?.toFixed(1) || '4.5'}
           </Text>
           <View style={[styles.courseLevel, { backgroundColor: getLevelColor(course.level) }]}>
@@ -927,19 +930,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     padding: 14,
-  },
-  premiumBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  premiumBadgeText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
   featuredCategory: {
     fontSize: 10,
