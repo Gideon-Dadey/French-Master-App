@@ -15,18 +15,31 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
 import { speakText, stopSpeech } from '../src/utils/textToSpeech';
+import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
 
 const { width, height } = Dimensions.get('window');
 
+const BackgroundBlur = ({ style, color, size = 300 }) => (
+  <View style={[style, {
+    position: 'absolute',
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor: color,
+    opacity: 0.05,
+    transform: [{ scale: 1.5 }],
+  }]} />
+);
+
 const SPEAKING_CATEGORIES = [
-  { id: 'greetings', name: 'Greetings', icon: 'hand-right', color: '#EC4899', gradient: ['#EC4899', '#DB2777'], desc: 'Say hello & goodbye' },
+  { id: 'greetings', name: 'Greetings', icon: 'hand-right', color: '#1E3A5F', gradient: ['#1E3A5F', '#2D4A6F'], desc: 'Say hello & goodbye' },
   { id: 'introductions', name: 'Introductions', icon: 'person', color: '#8B5CF6', gradient: ['#8B5CF6', '#7C3AED'], desc: 'Introduce yourself' },
-  { id: 'questions', name: 'Questions', icon: 'help-circle', color: '#06B6D4', gradient: ['#06B6D4', '#0891B2'], desc: 'Ask for help' },
-  { id: 'directions', name: 'Directions', icon: 'navigate', color: '#10B981', gradient: ['#10B981', '#059669'], desc: 'Find your way' },
-  { id: 'restaurant', name: 'Restaurant', icon: 'restaurant', color: '#F59E0B', gradient: ['#F59E0B', '#D97706'], desc: 'Order food & drinks' },
-  { id: 'shopping', name: 'Shopping', icon: 'cart', color: '#EF4444', gradient: ['#EF4444', '#DC2626'], desc: 'Buy things' },
-  { id: 'travel', name: 'Travel', icon: 'airplane', color: '#3B82F6', gradient: ['#3B82F6', '#2563EB'], desc: 'Airport & hotel' },
-  { id: 'emergency', name: 'Emergency', icon: 'medkit', color: '#F43F5E', gradient: ['#F43F5E', '#E11D48'], desc: 'Get help fast' },
+  { id: 'questions', name: 'Questions', icon: 'help-circle', color: '#5B8FB9', gradient: ['#5B8FB9', '#7AA8D4'], desc: 'Ask for help' },
+  { id: 'directions', name: 'Directions', icon: 'navigate', color: '#2E7D5A', gradient: ['#2E7D5A', '#3A6BA7'], desc: 'Find your way' },
+  { id: 'restaurant', name: 'Restaurant', icon: 'restaurant', color: '#C9A227', gradient: ['#C9A227', '#D4B445'], desc: 'Order food & drinks' },
+  { id: 'shopping', name: 'Shopping', icon: 'cart', color: '#C94C4C', gradient: ['#C94C4C', '#E57373'], desc: 'Buy things' },
+  { id: 'travel', name: 'Travel', icon: 'airplane', color: '#0EA5E9', gradient: ['#0EA5E9', '#0284C7'], desc: 'Airport & hotel' },
+  { id: 'emergency', name: 'Emergency', icon: 'medkit', color: '#EF4444', gradient: ['#EF4444', '#B91C1C'], desc: 'Get help fast' },
 ];
 
 const SPEAKING_EXERCISES = {
@@ -433,7 +446,8 @@ const SPEAKING_EXERCISES = {
 };
 
 export default function SpeakingPracticeScreen({ navigation }) {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode, toggleTheme } = useTheme();
+  const theme = getThemeColors(isDarkMode);
   const { awardXP } = useGamification();
 
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -445,6 +459,28 @@ export default function SpeakingPracticeScreen({ navigation }) {
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [startTime, setStartTime] = useState(null);
+
+  // New states for redesign
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [headerInteractable, setHeaderInteractable] = useState(false);
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event) => {
+        const offset = event.nativeEvent.contentOffset.y;
+        if (offset > 40 && !headerInteractable) setHeaderInteractable(true);
+        else if (offset <= 40 && headerInteractable) setHeaderInteractable(false);
+      }
+    }
+  );
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 60],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -595,128 +631,142 @@ export default function SpeakingPracticeScreen({ navigation }) {
 
   if (!selectedCategory) {
     return (
-      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
-        <LinearGradient
-          colors={isDarkMode ? ['#831843', '#500724'] : ['#EC4899', '#DB2777']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.categoryHeader}
+        <Animated.View
+          pointerEvents={headerInteractable ? 'auto' : 'none'}
+          style={[
+            styles.floatingNavBar,
+            {
+              backgroundColor: theme.surface + 'F8',
+              opacity: headerOpacity,
+              borderBottomColor: theme.border,
+            }
+          ]}
         >
-          <View style={styles.headerDecor1} />
-          <View style={styles.headerDecor2} />
-          <View style={styles.headerDecor3} />
-
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <Animated.View
-            style={[
-              styles.headerContent,
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-            ]}
-          >
-            <View style={styles.headerIconWrap}>
-              <LinearGradient
-                colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
-                style={styles.headerIconGradient}
+          <View style={styles.navBarContent}>
+            <View style={styles.navBarLeft}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.navBackBtn}
               >
-                <Ionicons name="mic" size={44} color="#FFFFFF" />
-              </LinearGradient>
+                <Ionicons name="chevron-back" size={24} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={[styles.navTitle, { color: theme.text }]}>Speaking</Text>
             </View>
-            <Text style={styles.headerTitle}>Speaking Practice</Text>
-            <Text style={styles.headerSubtitle}>
-              Perfect your French pronunciation
-            </Text>
-          </Animated.View>
-        </LinearGradient>
+            <TouchableOpacity
+              onPress={toggleTheme}
+              style={[styles.navIconBtn, { backgroundColor: theme.surfaceAlt }]}
+            >
+              <Ionicons name={isDarkMode ? 'sunny' : 'moon'} size={20} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
 
-        <ScrollView
-          style={styles.categoryScroll}
-          contentContainerStyle={styles.categoryContent}
+        <Animated.ScrollView
+          style={styles.scrollView}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Choose a Scenario
-          </Text>
-          <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>
-            Practice real-life French conversations
-          </Text>
-
-          <View style={styles.categoryGrid}>
-            {SPEAKING_CATEGORIES.map((category, index) => (
-              <Animated.View
-                key={category.id}
-                style={{
-                  opacity: fadeAnim,
-                  transform: [
-                    { translateY: Animated.multiply(slideAnim, new Animated.Value(1 + index * 0.1)) },
-                    { scale: scaleAnim }
-                  ],
-                }}
-              >
+          <View style={styles.heroSection}>
+            <View style={styles.heroContent}>
+              <BackgroundBlur style={styles.blurTop} color={theme.primary} />
+              <View style={styles.heroHeader}>
                 <TouchableOpacity
-                  style={[
-                    styles.categoryCard,
-                    { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }
-                  ]}
-                  onPress={() => startSession(category.id)}
-                  activeOpacity={0.8}
+                  onPress={() => navigation.goBack()}
+                  style={[styles.backCircle, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
                 >
-                  <LinearGradient
-                    colors={category.gradient}
-                    style={styles.categoryIcon}
-                  >
-                    <Ionicons name={category.icon} size={26} color="#FFFFFF" />
-                  </LinearGradient>
-                  <Text style={[styles.categoryName, { color: colors.text }]}>
-                    {category.name}
-                  </Text>
-                  <Text style={[styles.categoryDesc, { color: colors.secondaryText }]} numberOfLines={1}>
-                    {category.desc}
-                  </Text>
-                  <View style={styles.categoryMeta}>
-                    <View style={[styles.phraseBadge, { backgroundColor: category.color + '20' }]}>
-                      <Text style={[styles.phraseBadgeText, { color: category.color }]}>6 phrases</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                  </View>
+                  <Ionicons name="chevron-back" size={24} color={theme.text} />
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={toggleTheme}
+                  style={[styles.themeToggle, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
+                >
+                  <Ionicons name={isDarkMode ? 'sunny' : 'moon'} size={20} color={theme.text} />
+                </TouchableOpacity>
+              </View>
+
+              <Animated.View style={[styles.greetingSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+                <Text style={[styles.greetingSubtitle, { color: theme.secondary }]}>CONVERSATIONAL FLUENCY</Text>
+                <Text style={[styles.greetingTitle, { color: theme.text }]}>Speaking</Text>
+                <Text style={[styles.heroDescription, { color: theme.textSecondary }]}>
+                  Master real-life French conversations with our voice-guided speaking exercises.
+                </Text>
               </Animated.View>
-            ))}
+            </View>
           </View>
 
-          <View style={[styles.statsCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={['#EC4899', '#DB2777']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.statsGradient}
-            >
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>48</Text>
-                <Text style={styles.statLabel}>Phrases</Text>
+          <View style={styles.contentBody}>
+            <View style={[styles.statsOverview, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>48</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Phrases</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>8</Text>
-                <Text style={styles.statLabel}>Scenarios</Text>
+              <View style={[styles.overviewDivider, { backgroundColor: theme.border }]} />
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>8</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Scenario</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Ionicons name="volume-high" size={28} color="#FFFFFF" />
-                <Text style={styles.statLabel}>Audio</Text>
+              <View style={[styles.overviewDivider, { backgroundColor: theme.border }]} />
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>Voice</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Active</Text>
               </View>
-            </LinearGradient>
-          </View>
+            </View>
 
-          <View style={{ height: 100 }} />
-        </ScrollView>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Choose a Scenario</Text>
+              </View>
+            </View>
+
+            <View style={styles.categoryGrid}>
+              {SPEAKING_CATEGORIES.map((category, index) => (
+                <Animated.View
+                  key={category.id}
+                  style={[
+                    styles.categoryWrapper,
+                    {
+                      opacity: fadeAnim,
+                      transform: [
+                        { translateY: Animated.multiply(slideAnim, new Animated.Value(1 + index * 0.1)) },
+                        { scale: scaleAnim }
+                      ],
+                    }
+                  ]}
+                >
+                  <TouchableOpacity
+                    style={[styles.categoryCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.sm]}
+                    onPress={() => startSession(category.id)}
+                    activeOpacity={0.9}
+                  >
+                    <LinearGradient
+                      colors={category.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.categoryIconWrap}
+                    >
+                      <Ionicons name={category.icon} size={28} color="#FFFFFF" />
+                    </LinearGradient>
+                    <View style={styles.categoryInfo}>
+                      <Text style={[styles.categoryName, { color: theme.text }]}>{category.name}</Text>
+                      <Text style={[styles.categoryDetails, { color: theme.textSecondary }]}>{category.desc}</Text>
+                    </View>
+                    <View style={[styles.playCircle, { backgroundColor: theme.primary + '10' }]}>
+                      <Ionicons name="mic-outline" size={16} color={theme.primary} />
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              ))}
+            </View>
+
+            <View style={{ height: 100 }} />
+          </View>
+        </Animated.ScrollView>
       </View>
     );
   }
@@ -726,11 +776,11 @@ export default function SpeakingPracticeScreen({ navigation }) {
     const categoryInfo = getCategoryInfo();
 
     return (
-      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle="light-content" />
 
         <LinearGradient
-          colors={completionRate >= 70 ? ['#10B981', '#059669'] : ['#EC4899', '#DB2777']}
+          colors={completionRate >= 70 ? [theme.success, theme.primary] : [theme.primary, theme.primaryLight]}
           style={styles.resultHeader}
         >
           <View style={styles.resultDecor1} />
@@ -765,90 +815,95 @@ export default function SpeakingPracticeScreen({ navigation }) {
           contentContainerStyle={styles.resultContent}
           showsVerticalScrollIndicator={false}
         >
-
-          <View style={[styles.scoreCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
+          <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.md]}>
             <View style={styles.scoreRow}>
               <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Practiced</Text>
-                <Text style={[styles.scoreValue, { color: colors.text }]}>{practiceAttempts.length}/{exercises.length}</Text>
+                <View style={[styles.scoreIcon, { backgroundColor: theme.primary + '15' }]}>
+                  <Ionicons name="mic" size={24} color={theme.primary} />
+                </View>
+                <Text style={[styles.scoreValue, { color: theme.text }]}>{practiceAttempts.length}/{exercises.length}</Text>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Practiced</Text>
               </View>
-              <View style={[styles.scoreDivider, { backgroundColor: colors.border }]} />
+              <View style={[styles.scoreDivider, { backgroundColor: theme.border }]} />
               <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Completion</Text>
-                <Text style={[styles.scoreValue, { color: completionRate >= 70 ? '#10B981' : colors.text }]}>
+                <View style={[styles.scoreIcon, { backgroundColor: theme.success + '15' }]}>
+                  <Ionicons name="trending-up" size={24} color={theme.success} />
+                </View>
+                <Text style={[styles.scoreValue, { color: completionRate >= 70 ? theme.success : theme.text }]}>
                   {completionRate.toFixed(0)}%
                 </Text>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Rate</Text>
               </View>
-              <View style={[styles.scoreDivider, { backgroundColor: colors.border }]} />
+              <View style={[styles.scoreDivider, { backgroundColor: theme.border }]} />
               <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Time</Text>
-                <Text style={[styles.scoreValue, { color: colors.text }]}>{formatTime(timeElapsed)}</Text>
+                <View style={[styles.scoreIcon, { backgroundColor: theme.secondary + '15' }]}>
+                  <Ionicons name="time" size={24} color={theme.secondary} />
+                </View>
+                <Text style={[styles.scoreValue, { color: theme.text }]}>{formatTime(timeElapsed)}</Text>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Time</Text>
               </View>
             </View>
           </View>
 
-          <View style={[styles.performanceCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
+          <View style={[styles.performanceCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.sm]}>
             <View style={[
               styles.performanceBadge,
-              { backgroundColor: completionRate >= 70 ? '#10B98120' : '#F59E0B20' }
+              { backgroundColor: completionRate >= 70 ? theme.success + '20' : theme.secondary + '20' }
             ]}>
               <Ionicons
                 name={completionRate >= 70 ? 'star' : 'trending-up'}
                 size={36}
-                color={completionRate >= 70 ? '#10B981' : '#F59E0B'}
+                color={completionRate >= 70 ? theme.success : theme.secondary}
               />
             </View>
-            <Text style={[styles.performanceTitle, { color: colors.text }]}>
-              {completionRate >= 90 ? 'Pronunciation Pro!' : completionRate >= 70 ? 'Great Progress!' : 'Keep Practicing!'}
-            </Text>
-            <Text style={[styles.performanceText, { color: colors.secondaryText }]}>
-              {completionRate >= 90
-                ? 'Your French pronunciation is excellent! Native speakers will understand you easily.'
-                : completionRate >= 70
-                ? 'You\'re making great progress with French pronunciation. Keep it up!'
-                : 'Practice makes perfect! Keep working on these phrases daily.'}
-            </Text>
+            <View style={styles.performanceInfo}>
+              <Text style={[styles.performanceTitle, { color: theme.text }]}>Performance Insights</Text>
+              <Text style={[styles.performanceDesc, { color: theme.textSecondary }]}>
+                {completionRate >= 70 ? 'Your pronunciation is improving significantly. Keep practicing these scenarios to build fluency.' : 'Keep practicing! Regular speaking exercises will help you master the rhythm and intonation of French.'}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.resultActions}>
             <TouchableOpacity
-              style={[styles.retryBtn, { backgroundColor: isDarkMode ? '#374151' : '#F1F5F9' }]}
+              style={[styles.retryBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border, borderWidth: 1 }]}
               onPress={() => startSession(selectedCategory)}
             >
-              <Ionicons name="refresh" size={22} color={colors.text} />
-              <Text style={[styles.retryBtnText, { color: colors.text }]}>Retry</Text>
+              <Ionicons name="refresh" size={22} color={theme.text} />
+              <Text style={[styles.retryBtnText, { color: theme.text }]}>Practice Again</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.newSessionBtn}
+              style={styles.newDeckBtn}
               onPress={() => setSelectedCategory(null)}
             >
               <LinearGradient
-                colors={['#EC4899', '#DB2777']}
+                colors={[theme.primary, theme.primaryLight]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.newSessionGradient}
+                style={styles.newDeckGradient}
               >
                 <Ionicons name="grid" size={22} color="#FFFFFF" />
-                <Text style={styles.newSessionBtnText}>New Scenario</Text>
+                <Text style={styles.newDeckBtnText}>Back to Hub</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 100 }} />
+          <View style={{ height: 40 }} />
         </ScrollView>
       </View>
     );
   }
 
+
   const categoryInfo = getCategoryInfo();
 
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="light-content" />
 
       <LinearGradient
-        colors={categoryInfo?.gradient || ['#EC4899', '#DB2777']}
+        colors={categoryInfo?.gradient || [theme.primary, theme.primaryLight]}
         style={styles.practiceHeader}
       >
         <View style={styles.practiceHeaderTop}>
@@ -877,10 +932,12 @@ export default function SpeakingPracticeScreen({ navigation }) {
             <Animated.View
               style={[
                 styles.progressBarFill,
-                { width: progressAnim.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ['0%', '100%'],
-                }) }
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: ['0%', '100%'],
+                  })
+                }
               ]}
             />
           </View>
@@ -897,20 +954,22 @@ export default function SpeakingPracticeScreen({ navigation }) {
           style={[
             styles.phraseCard,
             {
-              backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+              borderWidth: 1,
               transform: [{ scale: scaleAnim }]
-            }
+            },
+            themeShadows.md
           ]}
         >
-
           <View style={styles.phraseMeta}>
             <View style={[
               styles.difficultyBadge,
-              { backgroundColor: currentExercise?.difficulty === 'beginner' ? '#10B98120' : '#F59E0B20' }
+              { backgroundColor: currentExercise?.difficulty === 'beginner' ? theme.success + '20' : theme.secondary + '20' }
             ]}>
               <Text style={[
                 styles.difficultyText,
-                { color: currentExercise?.difficulty === 'beginner' ? '#10B981' : '#F59E0B' }
+                { color: currentExercise?.difficulty === 'beginner' ? theme.success : theme.secondary }
               ]}>
                 {currentExercise?.difficulty}
               </Text>
@@ -927,38 +986,38 @@ export default function SpeakingPracticeScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.phraseText, { color: colors.text }]}>
+          <Text style={[styles.phraseText, { color: theme.text }]}>
             {currentExercise?.phrase}
           </Text>
 
-          <View style={[styles.pronunciationBox, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' }]}>
+          <View style={[styles.pronunciationBox, { backgroundColor: theme.surfaceAlt }]}>
             <Ionicons name="ear" size={18} color={categoryInfo?.color} />
-            <Text style={[styles.pronunciationText, { color: colors.secondaryText }]}>
+            <Text style={[styles.pronunciationText, { color: theme.textSecondary }]}>
               {currentExercise?.pronunciation}
             </Text>
           </View>
 
           <View style={[styles.translationBox, { backgroundColor: categoryInfo?.color + '15', borderColor: categoryInfo?.color }]}>
             <Ionicons name="language" size={20} color={categoryInfo?.color} />
-            <Text style={[styles.translationText, { color: colors.text }]}>
+            <Text style={[styles.translationText, { color: theme.text }]}>
               {currentExercise?.translation}
             </Text>
           </View>
         </Animated.View>
 
         <View style={styles.recordingSection}>
-          <Text style={[styles.recordingTitle, { color: colors.text }]}>
+          <Text style={[styles.recordingTitle, { color: theme.text }]}>
             {isRecording ? 'Recording...' : hasPracticed ? 'Try Again?' : 'Your Turn!'}
           </Text>
-          <Text style={[styles.recordingSubtitle, { color: colors.secondaryText }]}>
+          <Text style={[styles.recordingSubtitle, { color: theme.textSecondary }]}>
             {isRecording ? 'Speak clearly into your microphone' : 'Tap the microphone to practice'}
           </Text>
 
           <View style={styles.micContainer}>
             {isRecording && (
               <>
-                <Animated.View style={[styles.micWave1, { opacity: waveAnim, transform: [{ scale: pulseAnim }] }]} />
-                <Animated.View style={[styles.micWave2, { opacity: waveAnim, transform: [{ scale: Animated.add(pulseAnim, 0.2) }] }]} />
+                <Animated.View style={[styles.micWave1, { opacity: waveAnim, transform: [{ scale: pulseAnim }], backgroundColor: theme.error }]} />
+                <Animated.View style={[styles.micWave2, { opacity: waveAnim, transform: [{ scale: Animated.add(pulseAnim, 0.2) }], backgroundColor: theme.error }]} />
               </>
             )}
 
@@ -966,7 +1025,8 @@ export default function SpeakingPracticeScreen({ navigation }) {
               <TouchableOpacity
                 style={[
                   styles.micBtn,
-                  { backgroundColor: isRecording ? '#EF4444' : categoryInfo?.color }
+                  { backgroundColor: isRecording ? theme.error : categoryInfo?.color },
+                  themeShadows.md
                 ]}
                 onPress={isRecording ? handleStopRecording : handleStartRecording}
                 activeOpacity={0.9}
@@ -984,8 +1044,8 @@ export default function SpeakingPracticeScreen({ navigation }) {
 
           {hasPracticed && (
             <View style={styles.practiceComplete}>
-              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-              <Text style={[styles.practiceCompleteText, { color: '#10B981' }]}>
+              <Ionicons name="checkmark-circle" size={24} color={theme.success} />
+              <Text style={[styles.practiceCompleteText, { color: theme.success }]}>
                 Great job! You practiced this phrase.
               </Text>
             </View>
@@ -993,25 +1053,25 @@ export default function SpeakingPracticeScreen({ navigation }) {
         </View>
 
         <TouchableOpacity
-          style={[styles.tipsToggle, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}
+          style={[styles.tipsToggle, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
           onPress={() => setShowTips(!showTips)}
         >
           <View style={styles.tipsToggleLeft}>
-            <Ionicons name="bulb" size={22} color="#F59E0B" />
-            <Text style={[styles.tipsToggleText, { color: colors.text }]}>
+            <Ionicons name="bulb" size={22} color={theme.secondary} />
+            <Text style={[styles.tipsToggleText, { color: theme.text }]}>
               Pronunciation Tips
             </Text>
           </View>
           <Ionicons
             name={showTips ? 'chevron-up' : 'chevron-down'}
             size={22}
-            color={colors.secondaryText}
+            color={theme.textSecondary}
           />
         </TouchableOpacity>
 
         {showTips && (
-          <View style={[styles.tipsContent, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
-            <Text style={[styles.tipsText, { color: colors.text }]}>
+          <View style={[styles.tipsContent, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}>
+            <Text style={[styles.tipsText, { color: theme.text }]}>
               {currentExercise?.tips}
             </Text>
           </View>
@@ -1024,7 +1084,7 @@ export default function SpeakingPracticeScreen({ navigation }) {
             activeOpacity={0.9}
           >
             <LinearGradient
-              colors={categoryInfo?.gradient || ['#EC4899', '#DB2777']}
+              colors={[theme.primary, theme.primaryLight]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.nextBtnGradient}
@@ -1047,172 +1107,185 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
-  categoryHeader: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 44,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-    overflow: 'hidden',
-  },
-  headerDecor1: {
-    position: 'absolute',
-    top: -60,
-    right: -60,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  headerDecor2: {
-    position: 'absolute',
-    bottom: -40,
-    left: -40,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  headerDecor3: {
-    position: 'absolute',
-    top: 80,
-    left: 60,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  backBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  headerContent: {
-    alignItems: 'center',
-  },
-  headerIconWrap: {
-    marginBottom: 16,
-  },
-  headerIconGradient: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.85)',
-    textAlign: 'center',
-  },
-  categoryScroll: {
+  scrollView: {
     flex: 1,
   },
-  categoryContent: {
-    padding: 20,
+  floatingNavBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 100 : 80,
+    paddingTop: Platform.OS === 'ios' ? 44 : 24,
+    zIndex: 100,
+    borderBottomWidth: 1,
+    justifyContent: 'center',
+  },
+  navBarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  navBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  navBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  navIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroSection: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 24,
+  },
+  heroContent: {
+    padding: 24,
+    paddingTop: 40,
+    overflow: 'hidden',
+  },
+  blurTop: {
+    top: -100,
+    right: -100,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 40,
+  },
+  backCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeToggle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  greetingSection: {
+    marginBottom: 8,
+  },
+  greetingSubtitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  greetingTitle: {
+    fontSize: 40,
+    fontWeight: '900',
+    letterSpacing: -1,
+    marginBottom: 12,
+  },
+  heroDescription: {
+    fontSize: 16,
+    lineHeight: 24,
+    opacity: 0.8,
+  },
+  contentBody: {
+    paddingHorizontal: 20,
+  },
+  statsOverview: {
+    flexDirection: 'row',
+    padding: 24,
+    borderRadius: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+  },
+  overviewItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  overviewValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  overviewLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    opacity: 0.6,
+  },
+  overviewDivider: {
+    width: 1,
+    height: '60%',
+    alignSelf: 'center',
+  },
+  sectionHeader: {
+    marginBottom: 20,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  titleAccent: {
+    width: 6,
+    height: 24,
+    borderRadius: 3,
   },
   sectionTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 8,
-    letterSpacing: -0.3,
-  },
-  sectionSubtitle: {
-    fontSize: 15,
-    marginBottom: 24,
+    fontSize: 22,
+    fontWeight: '800',
   },
   categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 12,
+  },
+  categoryWrapper: {
+    marginBottom: 12,
   },
   categoryCard: {
-    width: (width - 52) / 2,
-    padding: 18,
-    borderRadius: 22,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 20,
   },
-  categoryIcon: {
-    width: 54,
-    height: 54,
+  categoryIconWrap: {
+    width: 56,
+    height: 56,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+  },
+  categoryInfo: {
+    flex: 1,
+    marginLeft: 16,
   },
   categoryName: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     marginBottom: 4,
   },
-  categoryDesc: {
-    fontSize: 12,
-    marginBottom: 12,
+  categoryDetails: {
+    fontSize: 14,
+    opacity: 0.7,
   },
-  categoryMeta: {
-    flexDirection: 'row',
+  playCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  phraseBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  phraseBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  statsCard: {
-    borderRadius: 22,
-    marginTop: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  statsGradient: {
-    flexDirection: 'row',
-    padding: 26,
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  statLabel: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 44,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
   },
 
   practiceHeader: {
@@ -1286,11 +1359,6 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 26,
     marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
   },
   phraseMeta: {
     flexDirection: 'row',
@@ -1379,7 +1447,6 @@ const styles = StyleSheet.create({
     height: 140,
     borderRadius: 70,
     borderWidth: 2,
-    borderColor: '#EF4444',
   },
   micWave2: {
     position: 'absolute',
@@ -1387,7 +1454,6 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 80,
     borderWidth: 2,
-    borderColor: '#EF444480',
   },
   micBtn: {
     width: 100,
@@ -1395,17 +1461,11 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
   },
   practiceComplete: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#10B98115',
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 16,
@@ -1422,11 +1482,6 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 18,
     marginBottom: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   tipsToggleLeft: {
     flexDirection: 'row',
@@ -1451,10 +1506,6 @@ const styles = StyleSheet.create({
   nextBtn: {
     borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#EC4899',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
     elevation: 8,
   },
   nextBtnGradient: {
@@ -1537,14 +1588,9 @@ const styles = StyleSheet.create({
     marginTop: -28,
   },
   scoreCard: {
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 24,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
   },
   scoreRow: {
     flexDirection: 'row',
@@ -1554,46 +1600,52 @@ const styles = StyleSheet.create({
   scoreItem: {
     alignItems: 'center',
   },
+  scoreIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
   scoreLabel: {
-    fontSize: 13,
-    marginBottom: 6,
+    fontSize: 12,
+    marginTop: 4,
   },
   scoreValue: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '800',
   },
   scoreDivider: {
     width: 1,
-    height: 54,
+    height: 70,
   },
   performanceCard: {
     padding: 24,
-    borderRadius: 22,
+    borderRadius: 24,
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    gap: 20,
   },
   performanceBadge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+  },
+  performanceInfo: {
+    flex: 1,
   },
   performanceTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 4,
   },
-  performanceText: {
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 24,
+  performanceDesc: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   resultActions: {
     flexDirection: 'row',
@@ -1613,19 +1665,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  newSessionBtn: {
+  newDeckBtn: {
     flex: 1,
     borderRadius: 18,
     overflow: 'hidden',
   },
-  newSessionGradient: {
+  newDeckGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
     gap: 10,
   },
-  newSessionBtnText: {
+  newDeckBtnText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',

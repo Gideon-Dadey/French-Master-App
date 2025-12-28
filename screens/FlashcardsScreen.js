@@ -16,17 +16,30 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
 import { speakText, stopSpeech } from '../src/utils/textToSpeech';
+import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
 
 const { width, height } = Dimensions.get('window');
 
+const BackgroundBlur = ({ style, color, size = 300 }) => (
+  <View style={[style, {
+    position: 'absolute',
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor: color,
+    opacity: 0.05,
+    transform: [{ scale: 1.5 }],
+  }]} />
+);
+
 const FLASHCARD_CATEGORIES = [
-  { id: 'greetings', name: 'Greetings', icon: 'hand-right', color: '#10B981', gradient: ['#10B981', '#059669'], desc: 'Say hello & goodbye' },
-  { id: 'essentials', name: 'Essentials', icon: 'star', color: '#F59E0B', gradient: ['#F59E0B', '#D97706'], desc: 'Must-know words' },
-  { id: 'food', name: 'Food & Drinks', icon: 'restaurant', color: '#EF4444', gradient: ['#EF4444', '#DC2626'], desc: 'Delicious vocabulary' },
-  { id: 'travel', name: 'Travel', icon: 'airplane', color: '#3B82F6', gradient: ['#3B82F6', '#2563EB'], desc: 'Explore France' },
+  { id: 'greetings', name: 'Greetings', icon: 'hand-right', color: '#1E3A5F', gradient: ['#1E3A5F', '#2D4A6F'], desc: 'Say hello & goodbye' },
+  { id: 'essentials', name: 'Essentials', icon: 'star', color: '#C9A227', gradient: ['#C9A227', '#D4B445'], desc: 'Must-know words' },
+  { id: 'food', name: 'Food & Drinks', icon: 'restaurant', color: '#C94C4C', gradient: ['#C94C4C', '#E57373'], desc: 'Delicious vocabulary' },
+  { id: 'travel', name: 'Travel', icon: 'airplane', color: '#5B8FB9', gradient: ['#5B8FB9', '#7AA8D4'], desc: 'Explore France' },
   { id: 'family', name: 'Family', icon: 'people', color: '#8B5CF6', gradient: ['#8B5CF6', '#7C3AED'], desc: 'Family members' },
-  { id: 'numbers', name: 'Numbers', icon: 'calculator', color: '#06B6D4', gradient: ['#06B6D4', '#0891B2'], desc: 'Count in French' },
-  { id: 'time', name: 'Time & Days', icon: 'calendar', color: '#EC4899', gradient: ['#EC4899', '#DB2777'], desc: 'Schedules' },
+  { id: 'numbers', name: 'Numbers', icon: 'calculator', color: '#2E7D5A', gradient: ['#2E7D5A', '#3A6BA7'], desc: 'Count in French' },
+  { id: 'time', name: 'Time & Days', icon: 'time', color: '#0EA5E9', gradient: ['#0EA5E9', '#0284C7'], desc: 'Schedules' },
   { id: 'adjectives', name: 'Adjectives', icon: 'color-palette', color: '#14B8A6', gradient: ['#14B8A6', '#0D9488'], desc: 'Describe things' },
 ];
 
@@ -98,7 +111,8 @@ const FLASHCARD_DATA = {
 };
 
 export default function FlashcardsScreen({ navigation }) {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode, toggleTheme } = useTheme();
+  const theme = getThemeColors(isDarkMode);
   const { awardXP } = useGamification();
 
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -110,6 +124,28 @@ export default function FlashcardsScreen({ navigation }) {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [startTime, setStartTime] = useState(null);
   const [streak, setStreak] = useState(0);
+
+  // New states for redesign
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [headerInteractable, setHeaderInteractable] = useState(false);
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event) => {
+        const offset = event.nativeEvent.contentOffset.y;
+        if (offset > 40 && !headerInteractable) setHeaderInteractable(true);
+        else if (offset <= 40 && headerInteractable) setHeaderInteractable(false);
+      }
+    }
+  );
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 60],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -271,129 +307,142 @@ export default function FlashcardsScreen({ navigation }) {
 
   if (!selectedCategory) {
     return (
-      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
-        <LinearGradient
-          colors={isDarkMode ? ['#4C1D95', '#5B21B6'] : ['#8B5CF6', '#7C3AED']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.categoryHeader}
+        <Animated.View
+          pointerEvents={headerInteractable ? 'auto' : 'none'}
+          style={[
+            styles.floatingNavBar,
+            {
+              backgroundColor: theme.surface + 'F8',
+              opacity: headerOpacity,
+              borderBottomColor: theme.border,
+            }
+          ]}
         >
-          <View style={styles.headerDecor1} />
-          <View style={styles.headerDecor2} />
-          <View style={styles.headerDecor3} />
-
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <Animated.View
-            style={[
-              styles.headerContent,
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-            ]}
-          >
-            <View style={styles.headerIconWrap}>
-              <LinearGradient
-                colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
-                style={styles.headerIconGradient}
+          <View style={styles.navBarContent}>
+            <View style={styles.navBarLeft}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.navBackBtn}
               >
-                <Ionicons name="albums" size={44} color="#FFFFFF" />
-              </LinearGradient>
+                <Ionicons name="chevron-back" size={24} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={[styles.navTitle, { color: theme.text }]}>Flashcards</Text>
             </View>
-            <Text style={styles.headerTitle}>Flashcards</Text>
-            <Text style={styles.headerSubtitle}>
-              Master French vocabulary with spaced repetition
-            </Text>
-          </Animated.View>
-        </LinearGradient>
+            <TouchableOpacity
+              onPress={toggleTheme}
+              style={[styles.navIconBtn, { backgroundColor: theme.surfaceAlt }]}
+            >
+              <Ionicons name={isDarkMode ? 'sunny' : 'moon'} size={20} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
 
-        <ScrollView
-          style={styles.categoryScroll}
-          contentContainerStyle={styles.categoryContent}
+        <Animated.ScrollView
+          style={styles.scrollView}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Choose a Deck
-          </Text>
-          <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>
-            Swipe through cards to learn new words
-          </Text>
-
-          <View style={styles.categoryGrid}>
-            {FLASHCARD_CATEGORIES.map((category, index) => (
-              <Animated.View
-                key={category.id}
-                style={{
-                  opacity: fadeAnim,
-                  transform: [
-                    { translateY: Animated.multiply(slideAnim, new Animated.Value(1 + index * 0.1)) },
-                    { scale: scaleAnim }
-                  ],
-                }}
-              >
+          <View style={styles.heroSection}>
+            <View style={styles.heroContent}>
+              <BackgroundBlur style={styles.blurTop} color={theme.primary} />
+              <View style={styles.heroHeader}>
                 <TouchableOpacity
-                  style={[
-                    styles.categoryCard,
-                    { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }
-                  ]}
-                  onPress={() => startSession(category.id)}
-                  activeOpacity={0.8}
+                  onPress={() => navigation.goBack()}
+                  style={[styles.backCircle, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
                 >
-                  <LinearGradient
-                    colors={category.gradient}
-                    style={styles.categoryIcon}
-                  >
-                    <Ionicons name={category.icon} size={26} color="#FFFFFF" />
-                  </LinearGradient>
-                  <Text style={[styles.categoryName, { color: colors.text }]}>
-                    {category.name}
-                  </Text>
-                  <Text style={[styles.categoryDesc, { color: colors.secondaryText }]} numberOfLines={1}>
-                    {category.desc}
-                  </Text>
-                  <View style={styles.categoryMeta}>
-                    <View style={[styles.cardsBadge, { backgroundColor: category.color + '20' }]}>
-                      <Ionicons name="layers" size={12} color={category.color} />
-                      <Text style={[styles.cardsBadgeText, { color: category.color }]}>6 cards</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                  </View>
+                  <Ionicons name="chevron-back" size={24} color={theme.text} />
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={toggleTheme}
+                  style={[styles.themeToggle, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
+                >
+                  <Ionicons name={isDarkMode ? 'sunny' : 'moon'} size={20} color={theme.text} />
+                </TouchableOpacity>
+              </View>
+
+              <Animated.View style={[styles.greetingSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+                <Text style={[styles.greetingSubtitle, { color: theme.secondary }]}>EXPAND YOUR VOCABULARY</Text>
+                <Text style={[styles.greetingTitle, { color: theme.text }]}>Flashcards</Text>
+                <Text style={[styles.heroDescription, { color: theme.textSecondary }]}>
+                  Master essential French words and phrases with our interactive spaced-repetition decks.
+                </Text>
               </Animated.View>
-            ))}
+            </View>
           </View>
 
-          <View style={[styles.statsCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={['#8B5CF6', '#7C3AED']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.statsGradient}
-            >
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>48</Text>
-                <Text style={styles.statLabel}>Cards</Text>
+          <View style={styles.contentBody}>
+            <View style={[styles.statsOverview, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>48</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Cards</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>8</Text>
-                <Text style={styles.statLabel}>Decks</Text>
+              <View style={[styles.overviewDivider, { backgroundColor: theme.border }]} />
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>8</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Decks</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Ionicons name="musical-notes" size={28} color="#FFFFFF" />
-                <Text style={styles.statLabel}>Audio</Text>
+              <View style={[styles.overviewDivider, { backgroundColor: theme.border }]} />
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>High</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Quality</Text>
               </View>
-            </LinearGradient>
-          </View>
+            </View>
 
-          <View style={{ height: 100 }} />
-        </ScrollView>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Choose a Deck</Text>
+              </View>
+            </View>
+
+            <View style={styles.categoryGrid}>
+              {FLASHCARD_CATEGORIES.map((category, index) => (
+                <Animated.View
+                  key={category.id}
+                  style={[
+                    styles.categoryWrapper,
+                    {
+                      opacity: fadeAnim,
+                      transform: [
+                        { translateY: Animated.multiply(slideAnim, new Animated.Value(1 + index * 0.1)) },
+                        { scale: scaleAnim }
+                      ],
+                    }
+                  ]}
+                >
+                  <TouchableOpacity
+                    style={[styles.categoryCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.sm]}
+                    onPress={() => startSession(category.id)}
+                    activeOpacity={0.9}
+                  >
+                    <LinearGradient
+                      colors={category.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.categoryIconWrap}
+                    >
+                      <Ionicons name={category.icon} size={28} color="#FFFFFF" />
+                    </LinearGradient>
+                    <View style={styles.categoryInfo}>
+                      <Text style={[styles.categoryName, { color: theme.text }]}>{category.name}</Text>
+                      <Text style={[styles.categoryDetails, { color: theme.textSecondary }]}>{category.desc}</Text>
+                    </View>
+                    <View style={[styles.playCircle, { backgroundColor: theme.primary + '10' }]}>
+                      <Ionicons name="play" size={16} color={theme.primary} />
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              ))}
+            </View>
+
+            <View style={{ height: 100 }} />
+          </View>
+        </Animated.ScrollView>
       </View>
     );
   }
@@ -403,11 +452,11 @@ export default function FlashcardsScreen({ navigation }) {
     const categoryInfo = getCategoryInfo();
 
     return (
-      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle="light-content" />
 
         <LinearGradient
-          colors={masteryRate >= 70 ? ['#10B981', '#059669'] : ['#8B5CF6', '#7C3AED']}
+          colors={masteryRate >= 70 ? [theme.success, theme.primary] : [theme.primary, theme.primaryLight]}
           style={styles.resultHeader}
         >
           <View style={styles.resultDecor1} />
@@ -443,55 +492,55 @@ export default function FlashcardsScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
         >
 
-          <View style={[styles.scoreCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
+          <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.md]}>
             <View style={styles.scoreRow}>
               <View style={styles.scoreItem}>
-                <View style={[styles.scoreIcon, { backgroundColor: '#10B98120' }]}>
-                  <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                <View style={[styles.scoreIcon, { backgroundColor: theme.success + '15' }]}>
+                  <Ionicons name="checkmark-circle" size={24} color={theme.success} />
                 </View>
-                <Text style={[styles.scoreValue, { color: colors.text }]}>{knownCards.length}</Text>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Known</Text>
+                <Text style={[styles.scoreValue, { color: theme.text }]}>{knownCards.length}</Text>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Known</Text>
               </View>
-              <View style={[styles.scoreDivider, { backgroundColor: colors.border }]} />
+              <View style={[styles.scoreDivider, { backgroundColor: theme.border }]} />
               <View style={styles.scoreItem}>
-                <View style={[styles.scoreIcon, { backgroundColor: '#F59E0B20' }]}>
-                  <Ionicons name="refresh" size={24} color="#F59E0B" />
+                <View style={[styles.scoreIcon, { backgroundColor: theme.secondary + '15' }]}>
+                  <Ionicons name="refresh" size={24} color={theme.secondary} />
                 </View>
-                <Text style={[styles.scoreValue, { color: colors.text }]}>{reviewCards.length}</Text>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Review</Text>
+                <Text style={[styles.scoreValue, { color: theme.text }]}>{reviewCards.length}</Text>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Review</Text>
               </View>
-              <View style={[styles.scoreDivider, { backgroundColor: colors.border }]} />
+              <View style={[styles.scoreDivider, { backgroundColor: theme.border }]} />
               <View style={styles.scoreItem}>
-                <View style={[styles.scoreIcon, { backgroundColor: '#3B82F620' }]}>
-                  <Ionicons name="time" size={24} color="#3B82F6" />
+                <View style={[styles.scoreIcon, { backgroundColor: theme.primary + '15' }]}>
+                  <Ionicons name="time" size={24} color={theme.primary} />
                 </View>
-                <Text style={[styles.scoreValue, { color: colors.text }]}>{formatTime(timeElapsed)}</Text>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Time</Text>
+                <Text style={[styles.scoreValue, { color: theme.text }]}>{formatTime(timeElapsed)}</Text>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Time</Text>
               </View>
             </View>
           </View>
 
-          <View style={[styles.masteryCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
-            <Text style={[styles.masteryTitle, { color: colors.text }]}>Mastery Rate</Text>
+          <View style={[styles.masteryCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.sm]}>
+            <Text style={[styles.masteryTitle, { color: theme.text }]}>Mastery Rate</Text>
             <View style={styles.masteryBar}>
-              <View style={[styles.masteryBarBg, { backgroundColor: isDarkMode ? '#334155' : '#E2E8F0' }]}>
+              <View style={[styles.masteryBarBg, { backgroundColor: theme.surfaceAlt }]}>
                 <LinearGradient
-                  colors={masteryRate >= 70 ? ['#10B981', '#059669'] : masteryRate >= 50 ? ['#F59E0B', '#D97706'] : ['#EF4444', '#DC2626']}
+                  colors={masteryRate >= 70 ? [theme.success, theme.success + 'CC'] : masteryRate >= 50 ? [theme.secondary, theme.secondary + 'CC'] : [theme.error, theme.error + 'CC']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={[styles.masteryBarFill, { width: `${masteryRate}%` }]}
                 />
               </View>
-              <Text style={[styles.masteryPercent, { color: masteryRate >= 70 ? '#10B981' : masteryRate >= 50 ? '#F59E0B' : '#EF4444' }]}>
+              <Text style={[styles.masteryPercent, { color: masteryRate >= 70 ? theme.success : masteryRate >= 50 ? theme.secondary : theme.error }]}>
                 {masteryRate.toFixed(0)}%
               </Text>
             </View>
-            <Text style={[styles.masteryDesc, { color: colors.secondaryText }]}>
+            <Text style={[styles.masteryDesc, { color: theme.textSecondary }]}>
               {masteryRate >= 90 ? 'You\'ve mastered this deck!' : masteryRate >= 70 ? 'Great progress! Keep reviewing.' : masteryRate >= 50 ? 'You\'re getting there!' : 'Practice makes perfect!'}
             </Text>
           </View>
 
-          <Text style={[styles.reviewTitle, { color: colors.text }]}>Cards Summary</Text>
+          <Text style={[styles.reviewTitle, { color: theme.text }]}>Cards Summary</Text>
           {cards.map((card, index) => {
             const isKnown = knownCards.includes(card.id);
             const needsReview = reviewCards.includes(card.id);
@@ -502,23 +551,26 @@ export default function FlashcardsScreen({ navigation }) {
                 style={[
                   styles.reviewCard,
                   {
-                    backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
-                    borderLeftColor: isKnown ? '#10B981' : needsReview ? '#F59E0B' : colors.border,
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    borderWidth: 1,
+                    borderLeftColor: isKnown ? theme.success : needsReview ? theme.secondary : theme.border,
+                    borderLeftWidth: 4,
                   }
                 ]}
               >
                 <View style={styles.reviewCardContent}>
-                  <Text style={[styles.reviewWord, { color: colors.text }]}>{card.word}</Text>
-                  <Text style={[styles.reviewTranslation, { color: colors.secondaryText }]}>{card.translation}</Text>
+                  <Text style={[styles.reviewWord, { color: theme.text }]}>{card.word}</Text>
+                  <Text style={[styles.reviewTranslation, { color: theme.textSecondary }]}>{card.translation}</Text>
                 </View>
                 <View style={[
                   styles.reviewStatus,
-                  { backgroundColor: isKnown ? '#10B98120' : needsReview ? '#F59E0B20' : '#6B728020' }
+                  { backgroundColor: isKnown ? theme.success + '20' : needsReview ? theme.secondary + '20' : theme.surfaceAlt }
                 ]}>
                   <Ionicons
                     name={isKnown ? 'checkmark' : needsReview ? 'refresh' : 'remove'}
                     size={18}
-                    color={isKnown ? '#10B981' : needsReview ? '#F59E0B' : '#6B7280'}
+                    color={isKnown ? theme.success : needsReview ? theme.secondary : theme.textSecondary}
                   />
                 </View>
               </View>
@@ -527,11 +579,11 @@ export default function FlashcardsScreen({ navigation }) {
 
           <View style={styles.resultActions}>
             <TouchableOpacity
-              style={[styles.retryBtn, { backgroundColor: isDarkMode ? '#374151' : '#F1F5F9' }]}
+              style={[styles.retryBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border, borderWidth: 1 }]}
               onPress={() => startSession(selectedCategory)}
             >
-              <Ionicons name="refresh" size={22} color={colors.text} />
-              <Text style={[styles.retryBtnText, { color: colors.text }]}>Practice Again</Text>
+              <Ionicons name="refresh" size={22} color={theme.text} />
+              <Text style={[styles.retryBtnText, { color: theme.text }]}>Practice Again</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -539,7 +591,7 @@ export default function FlashcardsScreen({ navigation }) {
               onPress={() => setSelectedCategory(null)}
             >
               <LinearGradient
-                colors={['#8B5CF6', '#7C3AED']}
+                colors={[theme.primary, theme.primaryLight]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.newDeckGradient}
@@ -559,11 +611,11 @@ export default function FlashcardsScreen({ navigation }) {
   const categoryInfo = getCategoryInfo();
 
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="light-content" />
 
       <LinearGradient
-        colors={categoryInfo?.gradient || ['#8B5CF6', '#7C3AED']}
+        colors={categoryInfo?.gradient || [theme.primary, theme.primaryLight]}
         style={styles.practiceHeader}
       >
         <View style={styles.practiceHeaderTop}>
@@ -592,18 +644,20 @@ export default function FlashcardsScreen({ navigation }) {
             <Animated.View
               style={[
                 styles.progressBarFill,
-                { width: progressAnim.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ['0%', '100%'],
-                }) }
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: ['0%', '100%'],
+                  })
+                }
               ]}
             />
           </View>
         </View>
 
         {streak >= 2 && (
-          <Animated.View style={[styles.streakBadge, { transform: [{ scale: pulseAnim }] }]}>
-            <Ionicons name="flame" size={18} color="#F59E0B" />
+          <Animated.View style={[styles.streakBadge, { transform: [{ scale: pulseAnim }], backgroundColor: theme.surface }]}>
+            <Ionicons name="flame" size={18} color={theme.secondary} />
             <Text style={styles.streakText}>{streak} Streak!</Text>
           </Animated.View>
         )}
@@ -621,9 +675,12 @@ export default function FlashcardsScreen({ navigation }) {
               style={[
                 styles.flashcard,
                 {
-                  backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  borderWidth: 1,
                   transform: [{ rotateY: frontInterpolate }],
-                }
+                },
+                themeShadows.md
               ]}
             >
               <View style={styles.cardTopRow}>
@@ -642,18 +699,18 @@ export default function FlashcardsScreen({ navigation }) {
               </View>
 
               <View style={styles.cardCenter}>
-                <Text style={[styles.cardWord, { color: colors.text }]}>
+                <Text style={[styles.cardWord, { color: theme.text }]}>
                   {currentCard?.word}
                 </Text>
-                <Text style={[styles.cardPronunciation, { color: colors.secondaryText }]}>
+                <Text style={[styles.cardPronunciation, { color: theme.textSecondary }]}>
                   [{currentCard?.pronunciation}]
                 </Text>
               </View>
 
               <View style={styles.cardBottom}>
                 <View style={styles.flipHint}>
-                  <Ionicons name="sync" size={16} color={colors.secondaryText} />
-                  <Text style={[styles.flipHintText, { color: colors.secondaryText }]}>
+                  <Ionicons name="sync" size={16} color={theme.textSecondary} />
+                  <Text style={[styles.flipHintText, { color: theme.textSecondary }]}>
                     Tap to see translation
                   </Text>
                 </View>
@@ -665,40 +722,43 @@ export default function FlashcardsScreen({ navigation }) {
                 styles.flashcard,
                 styles.flashcardBack,
                 {
-                  backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  borderWidth: 1,
                   transform: [{ rotateY: backInterpolate }],
-                }
+                },
+                themeShadows.md
               ]}
             >
               <View style={styles.cardTopRow}>
-                <View style={[styles.cardCategoryBadge, { backgroundColor: '#10B98120' }]}>
-                  <Ionicons name="language" size={14} color="#10B981" />
-                  <Text style={[styles.cardCategoryText, { color: '#10B981' }]}>
+                <View style={[styles.cardCategoryBadge, { backgroundColor: theme.success + '20' }]}>
+                  <Ionicons name="language" size={14} color={theme.success} />
+                  <Text style={[styles.cardCategoryText, { color: theme.success }]}>
                     Translation
                   </Text>
                 </View>
               </View>
 
               <View style={styles.cardCenter}>
-                <Text style={[styles.cardTranslation, { color: colors.text }]}>
+                <Text style={[styles.cardTranslation, { color: theme.text }]}>
                   {currentCard?.translation}
                 </Text>
               </View>
 
-              <View style={[styles.exampleBox, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' }]}>
-                <Text style={[styles.exampleLabel, { color: colors.secondaryText }]}>Example:</Text>
-                <Text style={[styles.exampleFrench, { color: colors.text }]}>
+              <View style={[styles.exampleBox, { backgroundColor: theme.surfaceAlt }]}>
+                <Text style={[styles.exampleLabel, { color: theme.textSecondary }]}>Example:</Text>
+                <Text style={[styles.exampleFrench, { color: theme.text }]}>
                   {currentCard?.example}
                 </Text>
-                <Text style={[styles.exampleEnglish, { color: colors.secondaryText }]}>
+                <Text style={[styles.exampleEnglish, { color: theme.textSecondary }]}>
                   {currentCard?.exampleEn}
                 </Text>
               </View>
 
               <View style={styles.cardBottom}>
                 <View style={styles.flipHint}>
-                  <Ionicons name="sync" size={16} color={colors.secondaryText} />
-                  <Text style={[styles.flipHintText, { color: colors.secondaryText }]}>
+                  <Ionicons name="sync" size={16} color={theme.textSecondary} />
+                  <Text style={[styles.flipHintText, { color: theme.textSecondary }]}>
                     Tap to flip back
                   </Text>
                 </View>
@@ -714,7 +774,7 @@ export default function FlashcardsScreen({ navigation }) {
             activeOpacity={0.9}
           >
             <LinearGradient
-              colors={['#F59E0B', '#D97706']}
+              colors={[theme.secondary, theme.secondary + 'CC']}
               style={styles.actionBtnGradient}
             >
               <Ionicons name="refresh" size={28} color="#FFFFFF" />
@@ -728,7 +788,7 @@ export default function FlashcardsScreen({ navigation }) {
             activeOpacity={0.9}
           >
             <LinearGradient
-              colors={['#10B981', '#059669']}
+              colors={[theme.success, theme.success + 'CC']}
               style={styles.actionBtnGradient}
             >
               <Ionicons name="checkmark-circle" size={28} color="#FFFFFF" />
@@ -737,7 +797,7 @@ export default function FlashcardsScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        <Text style={[styles.swipeHint, { color: colors.secondaryText }]}>
+        <Text style={[styles.swipeHint, { color: theme.textSecondary }]}>
           Mark your knowledge to continue
         </Text>
       </View>
@@ -749,175 +809,185 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
-  categoryHeader: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 44,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-    overflow: 'hidden',
-  },
-  headerDecor1: {
-    position: 'absolute',
-    top: -60,
-    right: -60,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  headerDecor2: {
-    position: 'absolute',
-    bottom: -40,
-    left: -40,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  headerDecor3: {
-    position: 'absolute',
-    top: 80,
-    left: 60,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  backBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  headerContent: {
-    alignItems: 'center',
-  },
-  headerIconWrap: {
-    marginBottom: 16,
-  },
-  headerIconGradient: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.85)',
-    textAlign: 'center',
-  },
-  categoryScroll: {
+  scrollView: {
     flex: 1,
   },
-  categoryContent: {
-    padding: 20,
+  floatingNavBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 100 : 80,
+    paddingTop: Platform.OS === 'ios' ? 44 : 24,
+    zIndex: 100,
+    borderBottomWidth: 1,
+    justifyContent: 'center',
+  },
+  navBarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  navBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  navBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  navIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroSection: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 24,
+  },
+  heroContent: {
+    padding: 24,
+    paddingTop: 40,
+    overflow: 'hidden',
+  },
+  blurTop: {
+    top: -100,
+    right: -100,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 40,
+  },
+  backCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeToggle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  greetingSection: {
+    marginBottom: 8,
+  },
+  greetingSubtitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  greetingTitle: {
+    fontSize: 40,
+    fontWeight: '900',
+    letterSpacing: -1,
+    marginBottom: 12,
+  },
+  heroDescription: {
+    fontSize: 16,
+    lineHeight: 24,
+    opacity: 0.8,
+  },
+  contentBody: {
+    paddingHorizontal: 20,
+  },
+  statsOverview: {
+    flexDirection: 'row',
+    padding: 24,
+    borderRadius: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+  },
+  overviewItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  overviewValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  overviewLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    opacity: 0.6,
+  },
+  overviewDivider: {
+    width: 1,
+    height: '60%',
+    alignSelf: 'center',
+  },
+  sectionHeader: {
+    marginBottom: 20,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  titleAccent: {
+    width: 6,
+    height: 24,
+    borderRadius: 3,
   },
   sectionTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 8,
-    letterSpacing: -0.3,
-  },
-  sectionSubtitle: {
-    fontSize: 15,
-    marginBottom: 24,
+    fontSize: 22,
+    fontWeight: '800',
   },
   categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 12,
+  },
+  categoryWrapper: {
+    marginBottom: 12,
   },
   categoryCard: {
-    width: (width - 52) / 2,
-    padding: 18,
-    borderRadius: 22,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 20,
   },
-  categoryIcon: {
-    width: 54,
-    height: 54,
+  categoryIconWrap: {
+    width: 56,
+    height: 56,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+  },
+  categoryInfo: {
+    flex: 1,
+    marginLeft: 16,
   },
   categoryName: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     marginBottom: 4,
   },
-  categoryDesc: {
-    fontSize: 12,
-    marginBottom: 12,
+  categoryDetails: {
+    fontSize: 14,
+    opacity: 0.7,
   },
-  categoryMeta: {
-    flexDirection: 'row',
+  playCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardsBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-    gap: 4,
-  },
-  cardsBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  statsCard: {
-    borderRadius: 22,
-    marginTop: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  statsGradient: {
-    flexDirection: 'row',
-    padding: 26,
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  statLabel: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 44,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
   },
 
   practiceHeader: {
@@ -986,7 +1056,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 22,
@@ -1000,7 +1069,6 @@ const styles = StyleSheet.create({
   streakText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#F59E0B',
   },
 
   cardContainer: {
@@ -1021,11 +1089,6 @@ const styles = StyleSheet.create({
     padding: 24,
     position: 'absolute',
     backfaceVisibility: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 12,
   },
   flashcardBack: {
   },
@@ -1119,20 +1182,12 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
     elevation: 8,
   },
   knownBtn: {
     flex: 1,
     borderRadius: 18,
     overflow: 'hidden',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
     elevation: 8,
   },
   actionBtnGradient: {
@@ -1219,14 +1274,9 @@ const styles = StyleSheet.create({
     marginTop: -28,
   },
   scoreCard: {
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 24,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
   },
   scoreRow: {
     flexDirection: 'row',
@@ -1257,14 +1307,9 @@ const styles = StyleSheet.create({
     height: 70,
   },
   masteryCard: {
-    borderRadius: 22,
+    borderRadius: 24,
     padding: 20,
     marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
   },
   masteryTitle: {
     fontSize: 16,
@@ -1297,16 +1342,16 @@ const styles = StyleSheet.create({
   },
   reviewTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
     marginBottom: 14,
+    marginLeft: 4,
   },
   reviewCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 10,
-    borderLeftWidth: 4,
   },
   reviewCardContent: {
     flex: 1,
