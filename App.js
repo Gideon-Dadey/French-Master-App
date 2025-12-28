@@ -81,7 +81,7 @@ function AuthStack() {
 
 function MainTabs() {
   const { colors, isDarkMode } = useTheme();
-  
+
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -91,42 +91,42 @@ function MainTabs() {
         tabBarHideOnKeyboard: true,
       }}
     >
-      <Tab.Screen 
-        name="Home" 
+      <Tab.Screen
+        name="Home"
         component={LearnerHomeScreen}
-        options={{ 
+        options={{
           tabBarLabel: 'Home',
           tabBarAccessibilityLabel: 'Home',
         }}
       />
-      <Tab.Screen 
-        name="Learn" 
+      <Tab.Screen
+        name="Learn"
         component={LearnScreen}
-        options={{ 
+        options={{
           tabBarLabel: 'Learn',
           tabBarAccessibilityLabel: 'Learn',
         }}
       />
-      <Tab.Screen 
-        name="Practice" 
+      <Tab.Screen
+        name="Practice"
         component={PracticeScreen}
-        options={{ 
+        options={{
           tabBarLabel: 'Practice',
           tabBarAccessibilityLabel: 'Practice',
         }}
       />
-      <Tab.Screen 
-        name="Community" 
+      <Tab.Screen
+        name="Community"
         component={CommunityScreen}
-        options={{ 
+        options={{
           tabBarLabel: 'Community',
           tabBarAccessibilityLabel: 'Community',
         }}
       />
-      <Tab.Screen 
-        name="Profile" 
+      <Tab.Screen
+        name="Profile"
         component={ProfileScreen}
-        options={{ 
+        options={{
           tabBarLabel: 'Profile',
           tabBarAccessibilityLabel: 'User Profile',
         }}
@@ -156,28 +156,28 @@ function AppNavigator() {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator 
+      <Stack.Navigator
         screenOptions={{ headerShown: false }}
         initialRouteName="Main"
       >
         <Stack.Screen name="Landing" component={LandingScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="Auth" component={AuthStack} />
-        <Stack.Screen 
-          name="CourseDetail" 
+        <Stack.Screen
+          name="CourseDetail"
           component={CourseDetailScreen}
-          options={{ 
+          options={{
             headerShown: false,
           }}
         />
-        <Stack.Screen 
-          name="Lesson" 
+        <Stack.Screen
+          name="Lesson"
           component={LessonScreen}
-          options={{ 
-            headerShown: true, 
+          options={{
+            headerShown: true,
             title: 'Lesson',
-                headerStyle: {
-                  backgroundColor: colors.primary,
+            headerStyle: {
+              backgroundColor: colors.primary,
               elevation: 4,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
@@ -191,14 +191,14 @@ function AppNavigator() {
             },
           }}
         />
-        <Stack.Screen 
-          name="Resources" 
+        <Stack.Screen
+          name="Resources"
           component={ResourcesScreen}
-          options={{ 
-            headerShown: true, 
+          options={{
+            headerShown: true,
             title: 'Learning Resources',
-                headerStyle: {
-                  backgroundColor: colors.primary,
+            headerStyle: {
+              backgroundColor: colors.primary,
               elevation: 4,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
@@ -212,14 +212,14 @@ function AppNavigator() {
             },
           }}
         />
-        <Stack.Screen 
-          name="Notifications" 
+        <Stack.Screen
+          name="Notifications"
           component={NotificationsScreen}
-          options={{ 
-            headerShown: true, 
+          options={{
+            headerShown: true,
             title: 'Notifications',
-                headerStyle: {
-                  backgroundColor: colors.primary,
+            headerStyle: {
+              backgroundColor: colors.primary,
               elevation: 4,
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
@@ -233,287 +233,287 @@ function AppNavigator() {
             },
           }}
         />
-            <Stack.Screen
-              name="Wishlist"
-              component={WishlistScreen}
-              options={{
-                headerShown: true,
-                title: 'My Wishlist',
-                    headerStyle: {
-                      backgroundColor: colors.primary,
-                  elevation: 4,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                },
-                headerTintColor: '#fff',
-                headerTitleStyle: {
-                  fontWeight: '600',
-                  fontSize: 18,
-                },
-              }}
-            />
-            <Stack.Screen
-              name="BlogList"
-              component={BlogListScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="BlogDetail"
-              component={BlogDetailScreen}
-              options={{
-                headerShown: true,
-                title: 'Article',
-                headerStyle: {
-                  backgroundColor: colors.primary,
-                  elevation: 4,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                },
-                headerTintColor: '#fff',
-                headerTitleStyle: {
-                  fontWeight: '600',
-                  fontSize: 18,
-                },
-              }}
-            />
-            <Stack.Screen
-              name="Courses"
-              component={CoursesScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="MyCourses"
-              component={MyCoursesScreen}
-              options={{
-                headerShown: true,
-                title: 'My Courses',
-                headerStyle: {
-                  backgroundColor: colors.primary,
-                  elevation: 4,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                },
-                headerTintColor: '#fff',
-                headerTitleStyle: {
-                  fontWeight: '600',
-                  fontSize: 18,
-                },
-              }}
-            />
-            <Stack.Screen
-              name="FreeQuiz"
-              component={FreeQuizScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="GrammarDrills"
-              component={GrammarDrillsScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="Flashcards"
-              component={FlashcardsScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="SpeakingPractice"
-              component={SpeakingPracticeScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="ListeningPractice"
-              component={ListeningPracticeScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="WritingPractice"
-              component={WritingPracticeScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="WordOfTheDay"
-              component={WordOfTheDayScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="StudyGroups"
-              component={StudyGroupsScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="StudyGroupDetail"
-              component={StudyGroupDetailScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="CreateStudyGroup"
-              component={CreateStudyGroupScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="CreatePost"
-              component={CreatePostScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="Leaderboard"
-              component={LeaderboardScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="QandAForum"
-              component={QandAForumScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="QuestionDetail"
-              component={QuestionDetailScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="CreateQuestion"
-              component={CreateQuestionScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="ShareProgress"
-              component={ShareProgressScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="CreateProgressShare"
-              component={CreateProgressShareScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="Discussions"
-              component={DiscussionsScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="DiscussionDetail"
-              component={DiscussionDetailScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="CreateDiscussion"
-              component={CreateDiscussionScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="BrowseTopics"
-              component={BrowseTopicsScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="Teachers"
-              component={TeachersScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="AdvancedVideoHosting"
-              component={AdvancedVideoHostingScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="AnalyticsDashboard"
-              component={AnalyticsDashboardScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="StudentManagement"
-              component={StudentManagementScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="TeacherSubscriptionPayment"
-              component={TeacherSubscriptionPaymentScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="CoursePayment"
-              component={CoursePaymentScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="ManageSampleVideos"
-              component={ManageSampleVideosScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="Achievements"
-              component={AchievementsScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-          </Stack.Navigator>
+        <Stack.Screen
+          name="Wishlist"
+          component={WishlistScreen}
+          options={{
+            headerShown: true,
+            title: 'My Wishlist',
+            headerStyle: {
+              backgroundColor: colors.primary,
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            headerTintColor: '#fff',
+            headerTitleStyle: {
+              fontWeight: '600',
+              fontSize: 18,
+            },
+          }}
+        />
+        <Stack.Screen
+          name="BlogList"
+          component={BlogListScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="BlogDetail"
+          component={BlogDetailScreen}
+          options={{
+            headerShown: true,
+            title: 'Article',
+            headerStyle: {
+              backgroundColor: colors.primary,
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            headerTintColor: '#fff',
+            headerTitleStyle: {
+              fontWeight: '600',
+              fontSize: 18,
+            },
+          }}
+        />
+        <Stack.Screen
+          name="Courses"
+          component={CoursesScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="MyCourses"
+          component={MyCoursesScreen}
+          options={{
+            headerShown: true,
+            title: 'My Courses',
+            headerStyle: {
+              backgroundColor: colors.primary,
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+            headerTintColor: '#fff',
+            headerTitleStyle: {
+              fontWeight: '600',
+              fontSize: 18,
+            },
+          }}
+        />
+        <Stack.Screen
+          name="FreeQuiz"
+          component={FreeQuizScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="GrammarDrills"
+          component={GrammarDrillsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Flashcards"
+          component={FlashcardsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="SpeakingPractice"
+          component={SpeakingPracticeScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="ListeningPractice"
+          component={ListeningPracticeScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="WritingPractice"
+          component={WritingPracticeScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="WordOfTheDay"
+          component={WordOfTheDayScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="StudyGroups"
+          component={StudyGroupsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="StudyGroupDetail"
+          component={StudyGroupDetailScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="CreateStudyGroup"
+          component={CreateStudyGroupScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="CreatePost"
+          component={CreatePostScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Leaderboard"
+          component={LeaderboardScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="QandAForum"
+          component={QandAForumScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="QuestionDetail"
+          component={QuestionDetailScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="CreateQuestion"
+          component={CreateQuestionScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="ShareProgress"
+          component={ShareProgressScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="CreateProgressShare"
+          component={CreateProgressShareScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Discussions"
+          component={DiscussionsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="DiscussionDetail"
+          component={DiscussionDetailScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="CreateDiscussion"
+          component={CreateDiscussionScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="BrowseTopics"
+          component={BrowseTopicsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Teachers"
+          component={TeachersScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="AdvancedVideoHosting"
+          component={AdvancedVideoHostingScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="AnalyticsDashboard"
+          component={AnalyticsDashboardScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="StudentManagement"
+          component={StudentManagementScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="TeacherSubscriptionPayment"
+          component={TeacherSubscriptionPaymentScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="CoursePayment"
+          component={CoursePaymentScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="ManageSampleVideos"
+          component={ManageSampleVideosScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Achievements"
+          component={AchievementsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
@@ -524,15 +524,15 @@ export default function App() {
       <AuthProvider>
         <ThemeProvider>
           <CurrencyProvider>
-          <GamificationProvider>
-            <WishlistProvider>
-              <StudentProvider>
-                <InstructorStudentProvider>
-                  <ThemedApp />
-                </InstructorStudentProvider>
-              </StudentProvider>
-            </WishlistProvider>
-          </GamificationProvider>
+            <GamificationProvider>
+              <WishlistProvider>
+                <StudentProvider>
+                  <InstructorStudentProvider>
+                    <ThemedApp />
+                  </InstructorStudentProvider>
+                </StudentProvider>
+              </WishlistProvider>
+            </GamificationProvider>
           </CurrencyProvider>
         </ThemeProvider>
       </AuthProvider>
@@ -542,7 +542,7 @@ export default function App() {
 
 function ThemedApp() {
   const { isDarkMode } = useTheme();
-  
+
   return (
     <>
       <StatusBar style={isDarkMode ? 'light' : 'auto'} />
