@@ -576,9 +576,6 @@ function CourseCard({ course, index, colors, onPress }) {
             <Text style={styles.courseLevelText}>{course.level || 'All'}</Text>
           </View>
         </View>
-        <Text style={[styles.coursePrice, { color: '#3B82F6' }]}>
-          {course.price === 0 || course.price === null ? 'Free' : formatCurrency(course.price, 'GHS')}
-        </Text>
       </View>
     </TouchableOpacity>
   );

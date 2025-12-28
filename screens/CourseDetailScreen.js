@@ -65,7 +65,7 @@ export default function CourseDetailScreen({ route, navigation }) {
       setLoading(true);
       setError(null);
       const response = await coursesAPI.getById(courseId);
-      
+
       if (response.data.data) {
         setCourse(response.data.data);
         await Promise.all([
@@ -78,7 +78,7 @@ export default function CourseDetailScreen({ route, navigation }) {
     } catch (error) {
       console.error('Failed to load course:', error);
       const errorMessage = error.message || 'Failed to load course';
-      
+
       if (errorMessage.includes('Network') || errorMessage.includes('network')) {
         setError('Connection Error - Please check your internet and try again.');
       } else if (error.status === 404) {
@@ -96,7 +96,7 @@ export default function CourseDetailScreen({ route, navigation }) {
       setInstructorCourseCount(0);
       return;
     }
-    
+
     try {
       // Get instructor ID (handle both object and string formats)
       const id = instructorId._id || instructorId;
@@ -110,7 +110,7 @@ export default function CourseDetailScreen({ route, navigation }) {
       // Ideally, backend should support ?instructor=id query parameter
       const allCoursesResponse = await coursesAPI.getAll({ limit: 1000 });
       const allCourses = allCoursesResponse.data.data || [];
-      
+
       // Count courses by this instructor
       const instructorCourses = allCourses.filter(c => {
         const courseInstructorId = c.instructor?._id || c.instructor;
@@ -119,7 +119,7 @@ export default function CourseDetailScreen({ route, navigation }) {
           courseInstructorId === id
         );
       });
-      
+
       setInstructorCourseCount(instructorCourses.length || 0);
     } catch (error) {
       console.warn('Failed to load instructor course count:', error);
@@ -146,38 +146,22 @@ export default function CourseDetailScreen({ route, navigation }) {
       return;
     }
 
-    if (course.isFree || course.price === 0) {
-      try {
-        setPurchasing(true);
-        await paymentsAPI.confirm({
-          courseId,
-          type: 'course',
-          amount: 0,
-          paymentMethod: 'free',
-          transactionId: `FREE-${Date.now()}`,
-        });
-        Alert.alert('Success', 'You have been enrolled in this course!');
-        navigation.goBack();
-      } catch (error) {
-        Alert.alert('Error', error.response?.data?.message || 'Enrollment failed');
-      } finally {
-        setPurchasing(false);
-      }
-      return;
+    try {
+      setPurchasing(true);
+      await paymentsAPI.confirm({
+        courseId,
+        type: 'course',
+        amount: 0,
+        paymentMethod: 'free',
+        transactionId: `FREE-${Date.now()}`,
+      });
+      Alert.alert('Success', 'You have been enrolled in this course!');
+      loadCourse(); // Refresh course state to show 'Continue Learning'
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.message || 'Enrollment failed');
+    } finally {
+      setPurchasing(false);
     }
-
-    navigation.navigate('CoursePayment', {
-      course: {
-        id: course._id || courseId,
-        title: course.title,
-        price: course.price,
-        originalPrice: course.originalPrice,
-        currency: course.currency || 'GHS',
-        thumbnail: course.thumbnail,
-        isFree: course.isFree,
-      },
-      courseId: course._id || courseId,
-    });
   };
 
   const formatDuration = (seconds) => {
@@ -199,8 +183,8 @@ export default function CourseDetailScreen({ route, navigation }) {
   const isEnrolled = course.isEnrolled || user?.enrolledCourses?.includes(course._id);
   const totalLessons = course.lessons?.length || 0;
   const totalDuration = course.lessons?.reduce((acc, l) => acc + (l.duration || 0), 0) || 0;
-  const imageSource = course.thumbnail?.startsWith('http') 
-    ? { uri: course.thumbnail } 
+  const imageSource = course.thumbnail?.startsWith('http')
+    ? { uri: course.thumbnail }
     : getCourseImage(course._id, 0, course.category, course.title);
 
   const imageScale = scrollY.interpolate({
@@ -338,40 +322,20 @@ export default function CourseDetailScreen({ route, navigation }) {
             ]}
           >
             <View style={styles.priceSection}>
-              {(course.isFree || course.price === 0) ? (
-                <View>
-                  <Text style={[styles.priceText, { color: theme.primary }]}>FREE</Text>
-                  <Text style={[styles.priceSubtext, { color: theme.textSecondary }]}>
-                    Lifetime access
-                  </Text>
-                </View>
-              ) : (
-                <View>
-                  <View style={styles.priceRow}>
-                    <Text style={[styles.priceText, { color: theme.text }]}>
-                      {formatPrice ? formatPrice(course.price) : formatCurrency(course.price, 'GHS')}
-                    </Text>
-                    {course.originalPrice && course.originalPrice > course.price && (
-                      <Text style={[styles.originalPrice, { color: theme.textMuted }]}>
-                        {formatPrice ? formatPrice(course.originalPrice) : formatCurrency(course.originalPrice, 'GHS')}
-                      </Text>
-                    )}
-                  </View>
-                  {course.originalPrice && course.originalPrice > course.price && (
-                    <Text style={[styles.discountText, { color: theme.primary }]}>
-                      {Math.round(((course.originalPrice - course.price) / course.originalPrice) * 100)}% OFF
-                    </Text>
-                  )}
-                </View>
-              )}
+              <View>
+                <Text style={[styles.priceText, { color: theme.primary }]}>GET ACCESS</Text>
+                <Text style={[styles.priceSubtext, { color: theme.textSecondary }]}>
+                  Lifetime access included
+                </Text>
+              </View>
             </View>
 
             {isEnrolled ? (
               <TouchableOpacity
                 style={styles.enrollButton}
-                onPress={() => navigation.navigate('Lesson', { 
-                  courseId: course._id, 
-                  lessonId: course.lessons?.[0]?._id 
+                onPress={() => navigation.navigate('Lesson', {
+                  courseId: course._id,
+                  lessonId: course.lessons?.[0]?._id
                 })}
                 activeOpacity={0.9}
               >
@@ -398,10 +362,8 @@ export default function CourseDetailScreen({ route, navigation }) {
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
                     <>
-                      <Ionicons name={(course.isFree || course.price === 0) ? 'school' : 'cart'} size={22} color="#FFFFFF" />
-                      <Text style={styles.enrollButtonText}>
-                        {(course.isFree || course.price === 0) ? 'Enroll Free' : 'Enroll Now'}
-                      </Text>
+                      <Ionicons name="school" size={22} color="#FFFFFF" />
+                      <Text style={styles.enrollButtonText}>Enroll Now</Text>
                     </>
                   )}
                 </LinearGradient>
@@ -813,23 +775,17 @@ export default function CourseDetailScreen({ route, navigation }) {
               <Text style={[styles.stickyTitle, { color: theme.text }]} numberOfLines={1}>
                 {course.title}
               </Text>
-              <Text style={[styles.stickyPrice, { color: theme.primary }]}>
-                {(course.isFree || course.price === 0)
-                  ? 'Free'
-                  : formatPrice
-                  ? formatPrice(course.price)
-                  : formatCurrency(course.price, 'GHS')}
-              </Text>
+
             </View>
             <TouchableOpacity
               style={styles.stickyButton}
               onPress={
                 isEnrolled
                   ? () =>
-                      navigation.navigate('Lesson', {
-                        courseId: course._id,
-                        lessonId: course.lessons?.[0]?._id,
-                      })
+                    navigation.navigate('Lesson', {
+                      courseId: course._id,
+                      lessonId: course.lessons?.[0]?._id,
+                    })
                   : handlePurchase
               }
               activeOpacity={0.8}
@@ -839,11 +795,7 @@ export default function CourseDetailScreen({ route, navigation }) {
                 style={styles.stickyButtonGradient}
               >
                 <Text style={styles.stickyButtonText}>
-                  {isEnrolled
-                    ? 'Continue'
-                    : (course.isFree || course.price === 0)
-                    ? 'Enroll Free'
-                    : 'Enroll Now'}
+                  {isEnrolled ? 'Continue' : 'Enroll Now'}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>

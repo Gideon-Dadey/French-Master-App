@@ -130,11 +130,11 @@ export default function CoursesScreen({ navigation, route }) {
 
       const response = await coursesAPI.getAll(params);
       const allCourses = response.data.data || [];
-      
+
       // Separate featured courses
       const featured = allCourses.filter(c => c.featured).slice(0, 3);
       const regular = allCourses.filter(c => !c.featured);
-      
+
       setFeaturedCourses(featured);
       setCourses(regular);
     } catch (error) {
@@ -255,9 +255,6 @@ export default function CoursesScreen({ navigation, route }) {
                   {course.totalLessons || 0} lessons
                 </Text>
               </View>
-              <Text style={[styles.listCardPrice, { color: premiumColors.primary.main }]}>
-                {course.isFree ? 'FREE' : formatPrice ? formatPrice(course.price) : formatCurrency(course.price || 150, 'GHS')}
-              </Text>
             </View>
           </View>
         </View>
@@ -314,9 +311,6 @@ export default function CoursesScreen({ navigation, route }) {
                 {course.duration || 0}h
               </Text>
             </View>
-            <Text style={[styles.gridCardPrice, { color: premiumColors.primary.main }]}>
-              {course.isFree ? 'FREE' : formatPrice ? formatPrice(course.price) : formatCurrency(course.price || 150, 'GHS')}
-            </Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -625,30 +619,7 @@ export default function CoursesScreen({ navigation, route }) {
                 </View>
               </View>
 
-              <View style={styles.filterGroup}>
-                <Text style={[styles.filterGroupLabel, { color: colors.secondaryText }]}>Price</Text>
-                <View style={styles.filterChipsRow}>
-                  {['free', 'paid'].map((price) => (
-                    <TouchableOpacity
-                      key={price}
-                      style={[
-                        styles.filterChip,
-                        {
-                          backgroundColor: filters.price === price ? premiumColors.primary.main : colors.border,
-                        }
-                      ]}
-                      onPress={() => setFilters({ ...filters, price: filters.price === price ? null : price })}
-                    >
-                      <Text style={[
-                        styles.filterChipText,
-                        { color: filters.price === price ? '#FFFFFF' : colors.text }
-                      ]}>
-                        {price.charAt(0).toUpperCase() + price.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
+
 
               {activeFiltersCount > 0 && (
                 <TouchableOpacity

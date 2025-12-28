@@ -562,9 +562,6 @@ export default function LearnerHomeScreen({ navigation }) {
                                                     {course.rating?.average?.toFixed(1) || '4.8'}
                                                 </Text>
                                             </View>
-                                            <Text style={[styles.coursePrice, { color: theme.primary }]}>
-                                                {course.price === 0 ? 'FREE' : formatCurrency(course.price, 'GHS')}
-                                            </Text>
                                         </View>
                                     </View>
                                 </TouchableOpacity>

@@ -48,7 +48,7 @@ const courseSchema = new mongoose.Schema({
   },
   price: {
     type: Number,
-    required: true,
+    default: 0,
     min: 0
   },
   originalPrice: {
@@ -129,7 +129,7 @@ courseSchema.index({ studentsEnrolled: -1 });
 courseSchema.index({ createdAt: -1 });
 courseSchema.index({ featured: 1, status: 1 });
 
-courseSchema.pre('save', function(next) {
+courseSchema.pre('save', function (next) {
   if (this.isModified('title') && !this.slug) {
     this.slug = this.title
       .toLowerCase()

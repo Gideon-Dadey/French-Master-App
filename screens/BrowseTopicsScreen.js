@@ -476,11 +476,7 @@ function TopicContentCard({ item, colors, onPress, formatTimeAgo }) {
             </Text>
           </View>
         )}
-        {data.price !== undefined && (
-          <Text style={[styles.footerText, { color: premiumColors.primary.main }]}>
-            {data.isFree ? 'Free' : `GHS ${data.price}`}
-          </Text>
-        )}
+
       </View>
     </TouchableOpacity>
   );
