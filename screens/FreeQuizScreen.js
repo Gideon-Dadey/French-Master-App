@@ -15,35 +15,28 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
+import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
 
 const { width, height } = Dimensions.get('window');
 
-const premiumColors = {
-  primary: { main: '#6366F1', light: '#818CF8', dark: '#4F46E5' },
-  accent: {
-    emerald: '#10B981',
-    gold: '#F59E0B',
-    rose: '#F43F5E',
-    sky: '#0EA5E9',
-    violet: '#8B5CF6',
-    amber: '#F59E0B',
-  },
-  gradients: {
-    primary: ['#6366F1', '#8B5CF6'],
-    success: ['#10B981', '#059669'],
-    warning: ['#F59E0B', '#D97706'],
-    error: ['#F43F5E', '#E11D48'],
-    cool: ['#06B6D4', '#3B82F6'],
-    warm: ['#F97316', '#F43F5E'],
-  }
-};
+const BackgroundBlur = ({ style, color, size = 300 }) => (
+  <View style={[style, {
+    position: 'absolute',
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor: color,
+    opacity: 0.05,
+    transform: [{ scale: 1.5 }],
+  }]} />
+);
 
 const QUIZ_CATEGORIES = [
-  { id: 'greetings', name: 'Greetings', icon: 'hand-left', color: '#6366F1', gradient: ['#6366F1', '#8B5CF6'] },
-  { id: 'numbers', name: 'Numbers', icon: 'calculator', color: '#10B981', gradient: ['#10B981', '#059669'] },
-  { id: 'colors', name: 'Colors', icon: 'color-palette', color: '#F43F5E', gradient: ['#F43F5E', '#E11D48'] },
-  { id: 'food', name: 'Food & Drinks', icon: 'restaurant', color: '#F59E0B', gradient: ['#F59E0B', '#D97706'] },
-  { id: 'time', name: 'Time & Days', icon: 'time', color: '#0EA5E9', gradient: ['#0EA5E9', '#0284C7'] },
+  { id: 'greetings', name: 'Greetings', icon: 'hand-left', color: '#1E3A5F', gradient: ['#1E3A5F', '#2D4A6F'] },
+  { id: 'numbers', name: 'Numbers', icon: 'calculator', color: '#2E7D5A', gradient: ['#2E7D5A', '#3A6BA7'] },
+  { id: 'colors', name: 'Colors', icon: 'color-palette', color: '#C94C4C', gradient: ['#C94C4C', '#E57373'] },
+  { id: 'food', name: 'Food & Drinks', icon: 'restaurant', color: '#C9A227', gradient: ['#C9A227', '#D4B445'] },
+  { id: 'time', name: 'Time & Days', icon: 'time', color: '#5B8FB9', gradient: ['#5B8FB9', '#7AA8D4'] },
   { id: 'family', name: 'Family', icon: 'people', color: '#8B5CF6', gradient: ['#8B5CF6', '#7C3AED'] },
   { id: 'verbs', name: 'Common Verbs', icon: 'flash', color: '#EC4899', gradient: ['#EC4899', '#DB2777'] },
   { id: 'phrases', name: 'Useful Phrases', icon: 'chatbubbles', color: '#14B8A6', gradient: ['#14B8A6', '#0D9488'] },
@@ -405,7 +398,8 @@ const QUIZ_QUESTIONS = {
 };
 
 export default function FreeQuizScreen({ navigation }) {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode, toggleTheme } = useTheme();
+  const theme = getThemeColors(isDarkMode);
   const { awardXP } = useGamification();
 
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -418,6 +412,9 @@ export default function FreeQuizScreen({ navigation }) {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [startTime, setStartTime] = useState(null);
+  const [headerInteractable, setHeaderInteractable] = useState(false);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -442,12 +439,30 @@ export default function FreeQuizScreen({ navigation }) {
   }, [startTime, quizCompleted]);
 
   useEffect(() => {
+    navigation.setOptions({ headerShown: false });
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 8, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
     ]).start();
   }, []);
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: true,
+      listener: (event) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        setHeaderInteractable(offsetY > 100);
+      }
+    }
+  );
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 80, 120],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
     if (currentQuestion) {
@@ -549,119 +564,139 @@ export default function FreeQuizScreen({ navigation }) {
 
   if (!selectedCategory) {
     return (
-      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
-        <LinearGradient
-          colors={isDarkMode ? ['#1E1B4B', '#312E81'] : ['#6366F1', '#8B5CF6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.categoryHeader}
+        {/* Floating Navigation Bar */}
+        <Animated.View
+          pointerEvents={headerInteractable ? 'auto' : 'none'}
+          style={[
+            styles.floatingNavBar,
+            {
+              backgroundColor: theme.surface + 'F8',
+              opacity: headerOpacity,
+              borderBottomColor: theme.border,
+            }
+          ]}
         >
-          <View style={styles.headerDecor1} />
-          <View style={styles.headerDecor2} />
-
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <Animated.View
-            style={[
-              styles.headerContent,
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-            ]}
-          >
-            <View style={styles.headerIconWrap}>
-              <Ionicons name="school" size={40} color="#FFFFFF" />
+          <View style={styles.navBarContent}>
+            <View style={styles.navBarLeft}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.navBackBtn}>
+                <Ionicons name="arrow-back" size={24} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={[styles.navTitle, { color: theme.text }]}>Quick Quiz</Text>
             </View>
-            <Text style={styles.headerTitle}>Quick Quiz</Text>
-            <Text style={styles.headerSubtitle}>
-              Test your French knowledge with fun quizzes
-            </Text>
-          </Animated.View>
-        </LinearGradient>
-
-        <ScrollView
-          style={styles.categoryScroll}
-          contentContainerStyle={styles.categoryContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Choose a Category
-          </Text>
-          <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>
-            Each category has 6 questions to test your skills
-          </Text>
-
-          <View style={styles.categoryGrid}>
-            {QUIZ_CATEGORIES.map((category, index) => (
-              <Animated.View
-                key={category.id}
-                style={{
-                  opacity: fadeAnim,
-                  transform: [
-                    { translateY: slideAnim },
-                    { scale: scaleAnim }
-                  ],
-                }}
-              >
-                <TouchableOpacity
-                  style={[
-                    styles.categoryCard,
-                    { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }
-                  ]}
-                  onPress={() => startQuiz(category.id)}
-                  activeOpacity={0.8}
-                >
-                  <LinearGradient
-                    colors={category.gradient}
-                    style={styles.categoryIcon}
-                  >
-                    <Ionicons name={category.icon} size={28} color="#FFFFFF" />
-                  </LinearGradient>
-                  <Text style={[styles.categoryName, { color: colors.text }]}>
-                    {category.name}
-                  </Text>
-                  <View style={styles.categoryMeta}>
-                    <Text style={[styles.categoryCount, { color: colors.secondaryText }]}>
-                      6 Questions
-                    </Text>
-                    <Ionicons name="chevron-forward" size={16} color={colors.secondaryText} />
-                  </View>
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
-          </View>
-
-          <View style={[styles.statsCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={['#6366F1', '#8B5CF6']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.statsGradient}
+            <TouchableOpacity
+              style={[styles.navIconBtn, { backgroundColor: theme.primary + '15' }]}
+              onPress={toggleTheme}
             >
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>48</Text>
-                <Text style={styles.statLabel}>Questions</Text>
+              <Ionicons name={isDarkMode ? "sunny" : "moon"} size={18} color={theme.primary} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        <Animated.ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        >
+          {/* Hero Section */}
+          <View style={styles.heroSection}>
+            <View style={[styles.heroContent, { backgroundColor: theme.background }]}>
+              <BackgroundBlur style={styles.blurTop} color={theme.primary} />
+
+              <View style={styles.heroHeader}>
+                <TouchableOpacity
+                  style={[styles.backCircle, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
+                  onPress={() => navigation.goBack()}
+                >
+                  <Ionicons name="chevron-back" size={24} color={theme.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.themeToggle, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
+                  onPress={toggleTheme}
+                >
+                  <Ionicons name={isDarkMode ? "sunny" : "moon"} size={20} color={theme.text} />
+                </TouchableOpacity>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>8</Text>
-                <Text style={styles.statLabel}>Categories</Text>
+
+              <View style={styles.greetingSection}>
+                <Text style={[styles.greetingSubtitle, { color: theme.primary }]}>CHALLENGE YOURSELF</Text>
+                <Text style={[styles.greetingTitle, { color: theme.text }]}>Quick Quiz</Text>
+                <Text style={[styles.heroDescription, { color: theme.textSecondary }]}>
+                  Test your French skills across various topics and earn XP to level up!
+                </Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>∞</Text>
-                <Text style={styles.statLabel}>Attempts</Text>
-              </View>
-            </LinearGradient>
+            </View>
           </View>
 
-          <View style={{ height: 100 }} />
-        </ScrollView>
+          {/* Stats Summary */}
+          <View style={styles.contentBody}>
+            <View style={[styles.statsOverview, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}>
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>48</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Questions</Text>
+              </View>
+              <View style={[styles.overviewDivider, { backgroundColor: theme.border }]} />
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>8</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Levels</Text>
+              </View>
+              <View style={[styles.overviewDivider, { backgroundColor: theme.border }]} />
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>100%</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Free</Text>
+              </View>
+            </View>
+
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Choose a Category</Text>
+              </View>
+            </View>
+
+            <View style={styles.categoryGrid}>
+              {QUIZ_CATEGORIES.map((category, index) => (
+                <Animated.View
+                  key={category.id}
+                  style={[
+                    styles.categoryWrapper,
+                    {
+                      opacity: fadeAnim,
+                      transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+                    }
+                  ]}
+                >
+                  <TouchableOpacity
+                    style={[styles.categoryCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.sm]}
+                    onPress={() => startQuiz(category.id)}
+                    activeOpacity={0.9}
+                  >
+                    <LinearGradient
+                      colors={category.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.categoryIconWrap}
+                    >
+                      <Ionicons name={category.icon} size={28} color="#FFFFFF" />
+                    </LinearGradient>
+                    <View style={styles.categoryInfo}>
+                      <Text style={[styles.categoryName, { color: theme.text }]}>{category.name}</Text>
+                      <Text style={[styles.categoryDetails, { color: theme.textSecondary }]}>6 Questions</Text>
+                    </View>
+                    <View style={[styles.playCircle, { backgroundColor: theme.primary + '10' }]}>
+                      <Ionicons name="play" size={16} color={theme.primary} />
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              ))}
+            </View>
+
+            <View style={{ height: 100 }} />
+          </View>
+        </Animated.ScrollView>
       </View>
     );
   }
@@ -671,11 +706,11 @@ export default function FreeQuizScreen({ navigation }) {
     const categoryInfo = getCategoryInfo();
 
     return (
-      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle="light-content" />
 
         <LinearGradient
-          colors={percentage >= 70 ? ['#10B981', '#059669'] : ['#6366F1', '#8B5CF6']}
+          colors={percentage >= 70 ? [theme.success, theme.primary] : [theme.primary, theme.primaryLight]}
           style={styles.resultHeader}
         >
           <View style={styles.resultDecor1} />
@@ -711,23 +746,23 @@ export default function FreeQuizScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
         >
 
-          <View style={[styles.scoreCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
+          <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.md]}>
             <View style={styles.scoreRow}>
               <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Score</Text>
-                <Text style={[styles.scoreValue, { color: colors.text }]}>{score}/{questions.length}</Text>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Score</Text>
+                <Text style={[styles.scoreValue, { color: theme.text }]}>{score}/{questions.length}</Text>
               </View>
-              <View style={[styles.scoreDivider, { backgroundColor: colors.border }]} />
+              <View style={[styles.scoreDivider, { backgroundColor: theme.border }]} />
               <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Accuracy</Text>
-                <Text style={[styles.scoreValue, { color: percentage >= 70 ? '#10B981' : colors.text }]}>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Accuracy</Text>
+                <Text style={[styles.scoreValue, { color: percentage >= 70 ? theme.success : theme.text }]}>
                   {percentage.toFixed(0)}%
                 </Text>
               </View>
-              <View style={[styles.scoreDivider, { backgroundColor: colors.border }]} />
+              <View style={[styles.scoreDivider, { backgroundColor: theme.border }]} />
               <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Time</Text>
-                <Text style={[styles.scoreValue, { color: colors.text }]}>{formatTime(timeElapsed)}</Text>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Time</Text>
+                <Text style={[styles.scoreValue, { color: theme.text }]}>{formatTime(timeElapsed)}</Text>
               </View>
             </View>
           </View>
@@ -744,8 +779,11 @@ export default function FreeQuizScreen({ navigation }) {
                 style={[
                   styles.reviewCard,
                   {
-                    backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
-                    borderLeftColor: isCorrect ? '#10B981' : '#F43F5E',
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                    borderWidth: 1,
+                    borderLeftColor: isCorrect ? theme.success : theme.error,
+                    borderLeftWidth: 4,
                   }
                 ]}
               >
@@ -757,18 +795,18 @@ export default function FreeQuizScreen({ navigation }) {
                     <Ionicons
                       name={isCorrect ? 'checkmark-circle' : 'close-circle'}
                       size={20}
-                      color={isCorrect ? '#10B981' : '#F43F5E'}
+                      color={isCorrect ? theme.success : theme.error}
                     />
                   </View>
-                  <Text style={[styles.reviewQuestion, { color: colors.text }]} numberOfLines={2}>
+                  <Text style={[styles.reviewQuestion, { color: theme.text }]} numberOfLines={2}>
                     {question.question}
                   </Text>
                 </View>
-                <Text style={[styles.reviewAnswer, { color: colors.secondaryText }]}>
+                <Text style={[styles.reviewAnswer, { color: theme.textSecondary }]}>
                   Your answer: {question.options[userAnswer?.answer]}
                 </Text>
                 {!isCorrect && (
-                  <Text style={[styles.reviewCorrect, { color: '#10B981' }]}>
+                  <Text style={[styles.reviewCorrect, { color: theme.success }]}>
                     Correct: {question.options[question.correct]}
                   </Text>
                 )}
@@ -778,11 +816,11 @@ export default function FreeQuizScreen({ navigation }) {
 
           <View style={styles.resultActions}>
             <TouchableOpacity
-              style={[styles.retryBtn, { backgroundColor: isDarkMode ? '#374151' : '#F1F5F9' }]}
+              style={[styles.retryBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border, borderWidth: 1 }]}
               onPress={() => startQuiz(selectedCategory)}
             >
-              <Ionicons name="refresh" size={22} color={colors.text} />
-              <Text style={[styles.retryBtnText, { color: colors.text }]}>Retry Quiz</Text>
+              <Ionicons name="refresh" size={22} color={theme.text} />
+              <Text style={[styles.retryBtnText, { color: theme.text }]}>Retry Quiz</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -790,7 +828,7 @@ export default function FreeQuizScreen({ navigation }) {
               onPress={() => setSelectedCategory(null)}
             >
               <LinearGradient
-                colors={['#6366F1', '#8B5CF6']}
+                colors={[theme.primary, theme.primaryLight]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.newQuizGradient}
@@ -810,11 +848,11 @@ export default function FreeQuizScreen({ navigation }) {
   const categoryInfo = getCategoryInfo();
 
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="light-content" />
 
       <LinearGradient
-        colors={categoryInfo?.gradient || ['#6366F1', '#8B5CF6']}
+        colors={categoryInfo?.gradient || [theme.primary, theme.primaryLight]}
         style={styles.quizHeader}
       >
         <View style={styles.quizHeaderTop}>
@@ -843,10 +881,12 @@ export default function FreeQuizScreen({ navigation }) {
             <Animated.View
               style={[
                 styles.progressBarFill,
-                { width: progressAnim.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ['0%', '100%'],
-                }) }
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: ['0%', '100%'],
+                  })
+                }
               ]}
             />
           </View>
@@ -854,7 +894,7 @@ export default function FreeQuizScreen({ navigation }) {
 
         {streak >= 2 && (
           <View style={styles.streakBadge}>
-            <Ionicons name="flame" size={18} color="#F59E0B" />
+            <Ionicons name="flame" size={18} color={theme.secondary} />
             <Text style={styles.streakText}>{streak} Streak!</Text>
           </View>
         )}
@@ -870,15 +910,18 @@ export default function FreeQuizScreen({ navigation }) {
           style={[
             styles.questionCard,
             {
-              backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+              borderWidth: 1,
               transform: [{ translateX: shakeAnim }]
-            }
+            },
+            themeShadows.md
           ]}
         >
           <View style={styles.questionNumber}>
             <Text style={styles.questionNumberText}>Q{currentQuestionIndex + 1}</Text>
           </View>
-          <Text style={[styles.questionText, { color: colors.text }]}>
+          <Text style={[styles.questionText, { color: theme.text }]}>
             {currentQuestion?.question}
           </Text>
         </Animated.View>
@@ -907,10 +950,11 @@ export default function FreeQuizScreen({ navigation }) {
                   style={[
                     styles.optionBtn,
                     {
-                      backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
-                      borderColor: showCorrect ? '#10B981' : showWrong ? '#F43F5E' : isSelected ? '#6366F1' : isDarkMode ? '#334155' : '#E2E8F0',
+                      backgroundColor: theme.surface,
+                      borderColor: showCorrect ? theme.success : showWrong ? theme.error : isSelected ? theme.primary : theme.border,
                       borderWidth: showCorrect || showWrong || isSelected ? 2 : 1,
-                    }
+                    },
+                    isSelected && !showResult ? themeShadows.md : themeShadows.sm
                   ]}
                   onPress={() => handleAnswer(index)}
                   disabled={showResult}
@@ -919,24 +963,24 @@ export default function FreeQuizScreen({ navigation }) {
                   <View style={[
                     styles.optionLetter,
                     {
-                      backgroundColor: showCorrect ? '#10B981' : showWrong ? '#F43F5E' : isSelected ? '#6366F1' : isDarkMode ? '#374151' : '#F1F5F9',
+                      backgroundColor: showCorrect ? theme.success : showWrong ? theme.error : isSelected ? theme.primary : theme.surfaceAlt,
                     }
                   ]}>
                     <Text style={[
                       styles.optionLetterText,
-                      { color: showCorrect || showWrong || isSelected ? '#FFFFFF' : colors.text }
+                      { color: showCorrect || showWrong || isSelected ? '#FFFFFF' : theme.text }
                     ]}>
                       {String.fromCharCode(65 + index)}
                     </Text>
                   </View>
-                  <Text style={[styles.optionText, { color: colors.text }]}>
+                  <Text style={[styles.optionText, { color: theme.text }]}>
                     {option}
                   </Text>
                   {showCorrect && (
-                    <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                    <Ionicons name="checkmark-circle" size={24} color={theme.success} />
                   )}
                   {showWrong && (
-                    <Ionicons name="close-circle" size={24} color="#F43F5E" />
+                    <Ionicons name="close-circle" size={24} color={theme.error} />
                   )}
                 </TouchableOpacity>
               </Animated.View>
@@ -949,22 +993,26 @@ export default function FreeQuizScreen({ navigation }) {
             style={[
               styles.explanationCard,
               {
-                backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
-                borderLeftColor: selectedAnswer === currentQuestion.correct ? '#10B981' : '#F43F5E',
-              }
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                borderWidth: 1,
+                borderLeftColor: selectedAnswer === currentQuestion.correct ? theme.success : theme.error,
+                borderLeftWidth: 4,
+              },
+              themeShadows.md
             ]}
           >
             <View style={styles.explanationHeader}>
               <Ionicons
                 name={selectedAnswer === currentQuestion.correct ? 'bulb' : 'information-circle'}
                 size={22}
-                color={selectedAnswer === currentQuestion.correct ? '#10B981' : '#F59E0B'}
+                color={selectedAnswer === currentQuestion.correct ? theme.success : theme.secondary}
               />
-              <Text style={[styles.explanationTitle, { color: colors.text }]}>
+              <Text style={[styles.explanationTitle, { color: theme.text }]}>
                 {selectedAnswer === currentQuestion.correct ? 'Correct!' : 'Explanation'}
               </Text>
             </View>
-            <Text style={[styles.explanationText, { color: colors.secondaryText }]}>
+            <Text style={[styles.explanationText, { color: theme.textSecondary }]}>
               {currentQuestion?.explanation}
             </Text>
           </Animated.View>
@@ -977,7 +1025,7 @@ export default function FreeQuizScreen({ navigation }) {
             activeOpacity={0.9}
           >
             <LinearGradient
-              colors={['#6366F1', '#8B5CF6']}
+              colors={[theme.primary, theme.primaryLight]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.nextBtnGradient}
@@ -1000,167 +1048,202 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
-  categoryHeader: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+  floatingNavBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 100 : 80,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    zIndex: 1000,
+    borderBottomWidth: 1,
+  },
+  navBarContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  navBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  navBackBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  navIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  heroSection: {
     overflow: 'hidden',
   },
-  headerDecor1: {
-    position: 'absolute',
-    top: -50,
-    right: -50,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+  heroContent: {
+    paddingTop: Platform.OS === 'ios' ? 70 : 55,
+    paddingBottom: 20,
+    paddingHorizontal: 24,
   },
-  headerDecor2: {
-    position: 'absolute',
-    bottom: -30,
-    left: -30,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+  blurTop: {
+    top: -150,
+    right: -100,
   },
-  backBtn: {
+  heroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 26,
+  },
+  backCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  themeToggle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  greetingSection: {
     marginBottom: 20,
   },
-  headerContent: {
-    alignItems: 'center',
+  greetingSubtitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginBottom: 8,
   },
-  headerIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  headerTitle: {
+  greetingTitle: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    marginBottom: 12,
   },
-  headerSubtitle: {
+  heroDescription: {
     fontSize: 16,
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
+    lineHeight: 24,
   },
-  categoryScroll: {
-    flex: 1,
+  contentBody: {
+    paddingHorizontal: 20,
   },
-  categoryContent: {
+  statsOverview: {
+    flexDirection: 'row',
     padding: 20,
+    borderRadius: 24,
+    marginBottom: 32,
+    marginTop: 10,
+    borderWidth: 1,
+  },
+  overviewItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  overviewValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  overviewLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  overviewDivider: {
+    width: 1,
+    height: '60%',
+    alignSelf: 'center',
+  },
+  sectionHeader: {
+    marginBottom: 20,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  titleAccent: {
+    width: 4,
+    height: 24,
+    borderRadius: 2,
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    marginBottom: 8,
-  },
-  sectionSubtitle: {
-    fontSize: 15,
-    marginBottom: 24,
   },
   categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
+    gap: 16,
+  },
+  categoryWrapper: {
+    width: '100%',
   },
   categoryCard: {
-    width: (width - 52) / 2,
-    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
     borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
   },
-  categoryIcon: {
+  categoryIconWrap: {
     width: 56,
     height: 56,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+  },
+  categoryInfo: {
+    flex: 1,
+    marginLeft: 16,
   },
   categoryName: {
-    fontSize: 17,
-    fontWeight: '600',
-    marginBottom: 8,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
   },
-  categoryMeta: {
-    flexDirection: 'row',
+  categoryDetails: {
+    fontSize: 14,
+  },
+  playCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
-  categoryCount: {
-    fontSize: 13,
-  },
-  statsCard: {
-    borderRadius: 20,
-    marginTop: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  statsGradient: {
-    flexDirection: 'row',
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  statLabel: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-
   quizHeader: {
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
   },
   quizHeaderTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   quizBackBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1184,7 +1267,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 12,
     gap: 6,
   },
   timerText: {
@@ -1193,18 +1276,15 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   progressBarContainer: {
-    paddingHorizontal: 4,
-  },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 4,
+    borderRadius: 3,
   },
   streakBadge: {
     position: 'absolute',
@@ -1212,91 +1292,79 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     gap: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 4,
   },
   streakText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F59E0B',
+    color: '#FF9500',
   },
-
   quizScroll: {
     flex: 1,
   },
   quizContent: {
-    padding: 20,
-    paddingTop: 32,
+    padding: 24,
+    paddingTop: 40,
   },
   questionCard: {
     padding: 24,
     borderRadius: 24,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    marginBottom: 32,
   },
   questionNumber: {
-    position: 'absolute',
-    top: -12,
-    left: 20,
-    backgroundColor: '#6366F1',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 12,
+    marginBottom: 12,
   },
   questionNumberText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#8A94A6',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   questionText: {
-    fontSize: 20,
-    fontWeight: '600',
-    lineHeight: 30,
-    marginTop: 8,
+    fontSize: 22,
+    fontWeight: '700',
+    lineHeight: 32,
   },
   optionsContainer: {
-    gap: 12,
+    gap: 16,
   },
   optionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 18,
-    borderRadius: 16,
-    gap: 14,
+    padding: 16,
+    borderRadius: 20,
+    gap: 16,
   },
   optionLetter: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   optionLetterText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
   },
   optionText: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 17,
+    fontWeight: '600',
   },
   explanationCard: {
     padding: 20,
-    borderRadius: 16,
-    marginTop: 24,
-    borderLeftWidth: 4,
+    borderRadius: 24,
+    marginTop: 32,
   },
   explanationHeader: {
     flexDirection: 'row',
@@ -1305,39 +1373,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   explanationTitle: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
   },
   explanationText: {
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 24,
   },
-  nextBtn: {
-    marginTop: 24,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  nextBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    gap: 10,
-  },
-  nextBtnText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-
   resultHeader: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 50,
+    paddingTop: Platform.OS === 'ios' ? 70 : 60,
+    paddingBottom: 60,
     alignItems: 'center',
     overflow: 'hidden',
   },
@@ -1373,42 +1418,38 @@ const styles = StyleSheet.create({
   resultIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   resultIconGlow: {
     position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   resultTitle: {
-    fontSize: 34,
+    fontSize: 36,
     fontWeight: '800',
     color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     marginBottom: 8,
   },
   resultSubtitle: {
-    fontSize: 17,
-    color: 'rgba(255,255,255,0.85)',
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.9)',
   },
   resultScroll: {
     flex: 1,
   },
   resultContent: {
-    padding: 20,
+    padding: 24,
     paddingTop: 0,
-    marginTop: -24,
+    marginTop: -30,
   },
   scoreCard: {
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    marginBottom: 32,
   },
   scoreRow: {
     flexDirection: 'row',
@@ -1419,11 +1460,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scoreLabel: {
-    fontSize: 13,
-    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
   },
   scoreValue: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '800',
   },
   scoreDivider: {
@@ -1431,77 +1475,95 @@ const styles = StyleSheet.create({
     height: 50,
   },
   reviewTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    marginBottom: 16,
+    marginBottom: 20,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   reviewCard: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 16,
   },
   reviewHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   reviewBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   reviewQuestion: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    lineHeight: 22,
+    fontSize: 16,
+    fontWeight: '700',
+    lineHeight: 24,
   },
   reviewAnswer: {
-    fontSize: 14,
-    marginLeft: 48,
+    fontSize: 15,
+    marginLeft: 44,
   },
   reviewCorrect: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    marginLeft: 48,
-    marginTop: 4,
+    marginLeft: 44,
+    marginTop: 6,
   },
   resultActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
+    gap: 16,
+    marginTop: 40,
+    marginBottom: 40,
   },
   retryBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 18,
+    borderRadius: 20,
     gap: 8,
   },
   retryBtnText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   newQuizBtn: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
   },
   newQuizGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 18,
     gap: 8,
   },
   newQuizBtnText: {
     fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  nextBtn: {
+    marginTop: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  nextBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 10,
+  },
+  nextBtnText: {
+    fontSize: 17,
     fontWeight: '600',
     color: '#FFFFFF',
   },

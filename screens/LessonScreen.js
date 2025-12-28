@@ -10,25 +10,44 @@ import {
   Animated,
   Linking,
   Share,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
 import VideoPlayer from '../components/VideoPlayer';
 import { lessonsAPI } from '../src/services/api';
+import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+const BackgroundBlur = ({ style, color, size = 300 }) => (
+  <View style={[style, {
+    position: 'absolute',
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor: color,
+    opacity: 0.05,
+    transform: [{ scale: 1.5 }],
+  }]} />
+);
 
 export default function LessonScreen({ route, navigation }) {
   const lessonId = route?.params?.lessonId;
   const courseId = route?.params?.courseId;
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
+  const theme = getThemeColors(isDarkMode);
+
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
 
+  const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const cardAnims = useRef([...Array(6)].map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
     if (lessonId) {
@@ -36,8 +55,15 @@ export default function LessonScreen({ route, navigation }) {
     } else {
       setLoading(false);
     }
-    Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+    startAnimations();
   }, [lessonId]);
+
+  const startAnimations = () => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
+    Animated.stagger(100, cardAnims.map(anim =>
+      Animated.spring(anim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true })
+    )).start();
+  };
 
   const loadLesson = async () => {
     try {
@@ -58,6 +84,10 @@ export default function LessonScreen({ route, navigation }) {
     if (!lesson) return;
     const totalSeconds = lesson.videoDuration;
     const progressPercent = (watchedSeconds / totalSeconds) * 100;
+
+    // Update progress in state
+    setProgress(watchedSeconds);
+
     if (Math.floor(watchedSeconds) % 10 === 0) {
       try {
         await lessonsAPI.updateProgress(lessonId, {
@@ -92,199 +122,206 @@ export default function LessonScreen({ route, navigation }) {
     return Math.min((progress / lesson.videoDuration) * 100, 100);
   };
 
-  if (!lessonId) {
-    return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <View style={styles.errorCard}>
-          <Ionicons name="alert-circle" size={60} color="#EF4444" />
-          <Text style={[styles.errorTitle, { color: colors.text }]}>Lesson Not Found</Text>
-          <Text style={[styles.errorText, { color: colors.secondaryText }]}>Lesson ID is required</Text>
-          <TouchableOpacity style={styles.backBtnLarge} onPress={() => navigation.goBack()}>
-            <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.backBtnGradient}>
-              <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
-              <Text style={styles.backBtnText}>Go Back</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [200, 250],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color="#3B82F6" />
-        <Text style={[styles.loadingText, { color: colors.secondaryText }]}>Loading lesson...</Text>
+      <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
   if (!lesson) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
-        <View style={styles.errorCard}>
-          <Ionicons name="document-text-outline" size={60} color="#F59E0B" />
-          <Text style={[styles.errorTitle, { color: colors.text }]}>Lesson Not Found</Text>
-          <Text style={[styles.errorText, { color: colors.secondaryText }]}>This lesson may have been removed</Text>
-          <TouchableOpacity style={styles.backBtnLarge} onPress={() => navigation.goBack()}>
-            <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.backBtnGradient}>
-              <Ionicons name="arrow-back" size={18} color="#FFFFFF" />
-              <Text style={styles.backBtnText}>Go Back</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+      <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
+        <Ionicons name="alert-circle-outline" size={60} color={theme.error} />
+        <Text style={[styles.errorTitle, { color: theme.text }]}>Lesson Not Found</Text>
+        <TouchableOpacity style={styles.backBtnLarge} onPress={() => navigation.goBack()}>
+          <Text style={{ color: theme.primary, fontWeight: '700' }}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle="light-content" />
 
-      <View style={styles.videoContainer}>
-        <VideoPlayer
-          source={{ uri: lesson.videoUrl }}
-          thumbnail={lesson.thumbnail}
-          style={styles.videoPlayer}
-          onProgress={handleProgress}
-          downloadable={lesson.isDownloadable}
-        />
-
-        <View style={styles.videoOverlay}>
-          <View style={styles.videoOverlayRight}>
-            {lesson.isDownloadable && (
-              <TouchableOpacity style={styles.overlayBtn}>
-                <Ionicons name="download-outline" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </View>
-
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-        <Animated.View style={{ opacity: fadeAnim }}>
-
-          <View style={[styles.titleCard, { backgroundColor: colors.card }]}>
-            <View style={styles.titleRow}>
-              <View style={styles.titleInfo}>
-                <Text style={[styles.lessonTitle, { color: colors.text }]}>{lesson.title}</Text>
-                <View style={styles.metaRow}>
-                  <View style={styles.metaItem}>
-                    <Ionicons name="time-outline" size={14} color={colors.secondaryText} />
-                    <Text style={[styles.metaText, { color: colors.secondaryText }]}>
-                      {formatDuration(lesson.videoDuration || 0)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              {isCompleted && (
-                <View style={styles.completedBadge}>
-                  <LinearGradient colors={['#10B981', '#059669']} style={styles.completedGradient}>
-                    <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-                    <Text style={styles.completedText}>Completed</Text>
-                  </LinearGradient>
-                </View>
-              )}
-            </View>
-
-            {!isCompleted && progress > 0 && (
-              <View style={styles.progressSection}>
-                <View style={styles.progressHeader}>
-                  <Text style={[styles.progressLabel, { color: colors.secondaryText }]}>Your Progress</Text>
-                  <Text style={[styles.progressPercent, { color: colors.text }]}>{Math.round(getProgressPercent())}%</Text>
-                </View>
-                <View style={[styles.progressBar, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
-                  <LinearGradient colors={['#3B82F6', '#2563EB']} style={[styles.progressFill, { width: `${getProgressPercent()}%` }]} />
-                </View>
-              </View>
-            )}
-          </View>
-
-          {lesson.description && (
-            <View style={[styles.descriptionCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>About This Lesson</Text>
-              <Text style={[styles.description, { color: colors.text }]}>{lesson.description}</Text>
-            </View>
-          )}
-
-          {lesson.resources?.length > 0 && (
-            <View style={[styles.resourcesCard, { backgroundColor: colors.card }]}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Resources</Text>
-              {lesson.resources.map((resource, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[styles.resourceItem, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}
-                  onPress={() => resource.url && Linking.openURL(resource.url)}
-                >
-                  <View style={[styles.resourceIcon, { backgroundColor: '#3B82F6' + '15' }]}>
-                    <Ionicons
-                      name={resource.type === 'pdf' ? 'document-text' : resource.type === 'link' ? 'link' : 'download'}
-                      size={20}
-                      color="#3B82F6"
-                    />
-                  </View>
-                  <View style={styles.resourceInfo}>
-                    <Text style={[styles.resourceTitle, { color: colors.text }]}>{resource.title}</Text>
-                    <Text style={[styles.resourceType, { color: colors.secondaryText }]}>
-                      {resource.type?.toUpperCase() || 'FILE'}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {lesson.quiz?.enabled && (
-            <TouchableOpacity style={styles.quizBtn}>
-              <LinearGradient colors={['#8B5CF6', '#6366F1']} style={styles.quizBtnGradient}>
-                <View style={styles.quizBtnContent}>
-                  <View style={styles.quizIconContainer}>
-                    <Ionicons name="help-circle" size={28} color="#FFFFFF" />
-                  </View>
-                  <View style={styles.quizInfo}>
-                    <Text style={styles.quizTitle}>Take Quiz</Text>
-                    <Text style={styles.quizSubtitle}>Test your knowledge</Text>
-                  </View>
-                  <Ionicons name="arrow-forward" size={22} color="#FFFFFF" />
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
-
-          <View style={[styles.actionsCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Actions</Text>
-            <View style={styles.actionsGrid}>
-              <TouchableOpacity style={[styles.actionItem, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}>
-                <View style={[styles.actionIcon, { backgroundColor: '#EF4444' + '15' }]}>
-                  <Ionicons name="heart-outline" size={22} color="#EF4444" />
-                </View>
-                <Text style={[styles.actionText, { color: colors.text }]}>Save</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionItem, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}>
-                <View style={[styles.actionIcon, { backgroundColor: '#F59E0B' + '15' }]}>
-                  <Ionicons name="flag-outline" size={22} color="#F59E0B" />
-                </View>
-                <Text style={[styles.actionText, { color: colors.text }]}>Report</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.nextLessonBtn}>
-            <LinearGradient colors={['#10B981', '#059669']} style={styles.nextLessonGradient}>
-              <View style={styles.nextLessonContent}>
-                <View style={styles.nextLessonInfo}>
-                  <Text style={styles.nextLessonLabel}>NEXT UP</Text>
-                  <Text style={styles.nextLessonTitle}>Continue to Next Lesson</Text>
-                </View>
-                <View style={styles.nextArrow}>
-                  <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
-                </View>
-              </View>
-            </LinearGradient>
+      {/* Floating Navigation Bar (appears on scroll) */}
+      <Animated.View style={[styles.floatingNavBar, { backgroundColor: theme.surface + 'F8', opacity: headerOpacity, borderBottomColor: theme.border }]}>
+        <View style={styles.navBarContent}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={24} color={theme.text} />
           </TouchableOpacity>
+          <Text style={[styles.navTitle, { color: theme.text }]} numberOfLines={1}>{lesson.title}</Text>
+          <TouchableOpacity onPress={handleShare}>
+            <Ionicons name="share-outline" size={22} color={theme.text} />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
 
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Video Player Section */}
+        <View style={[styles.videoWrapper, themeShadows.md]}>
+          <VideoPlayer
+            source={{ uri: lesson.videoUrl }}
+            thumbnail={lesson.thumbnail}
+            style={styles.videoPlayer}
+            onProgress={handleProgress}
+            downloadable={lesson.isDownloadable}
+          />
+
+          {/* Overlay Controls */}
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="close" size={24} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Content Section */}
+        <View style={styles.content}>
+          <BackgroundBlur style={{ top: 0, right: -50 }} color={theme.primary} size={300} />
+
+          <Animated.View style={{ opacity: fadeAnim }}>
+            {/* Title & Stats */}
+            <Animated.View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm, { transform: [{ translateY: cardAnims[0].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
+              <View style={styles.headerRow}>
+                <View style={styles.titleInfo}>
+                  <Text style={[styles.lessonTitle, { color: theme.text }]}>{lesson.title}</Text>
+                  <View style={styles.metaRow}>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
+                      <Text style={[styles.metaText, { color: theme.textSecondary }]}>{formatDuration(lesson.videoDuration || 0)}</Text>
+                    </View>
+                    <View style={[styles.dot, { backgroundColor: theme.border }]} />
+                    <Text style={[styles.metaText, { color: theme.textSecondary }]}>Lesson Content</Text>
+                  </View>
+                </View>
+                {isCompleted && (
+                  <View style={[styles.completeBadge, { backgroundColor: theme.success + '15' }]}>
+                    <Ionicons name="checkmark-circle" size={16} color={theme.success} />
+                    <Text style={[styles.completeText, { color: theme.success }]}>COMPLETED</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Minimal Progress Bar */}
+              <View style={styles.progressContainer}>
+                <View style={styles.progressHeader}>
+                  <Text style={[styles.progressLabel, { color: theme.textSecondary }]}>Current Progress</Text>
+                  <Text style={[styles.progressVal, { color: theme.primary }]}>{Math.round(getProgressPercent())}%</Text>
+                </View>
+                <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
+                  <LinearGradient
+                    colors={[theme.primary, theme.primaryLight || theme.primary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.progressFill, { width: `${getProgressPercent()}%` }]}
+                  />
+                </View>
+              </View>
+            </Animated.View>
+
+            {/* Description */}
+            {lesson.description && (
+              <Animated.View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm, { transform: [{ translateY: cardAnims[1].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.accent, { backgroundColor: theme.primary }]} />
+                  <Text style={[styles.cardTitle, { color: theme.text }]}>Description</Text>
+                </View>
+                <Text style={[styles.description, { color: theme.textSecondary }]}>{lesson.description}</Text>
+              </Animated.View>
+            )}
+
+            {/* Resources */}
+            {lesson.resources?.length > 0 && (
+              <Animated.View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm, { transform: [{ translateY: cardAnims[2].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
+                <View style={styles.cardHeader}>
+                  <View style={[styles.accent, { backgroundColor: theme.secondary }]} />
+                  <Text style={[styles.cardTitle, { color: theme.text }]}>Learning Resources</Text>
+                </View>
+                <View style={styles.resourceList}>
+                  {lesson.resources.map((res, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[styles.resourceItem, { borderBottomColor: theme.border, borderBottomWidth: index === lesson.resources.length - 1 ? 0 : 1 }]}
+                      onPress={() => res.url && Linking.openURL(res.url)}
+                    >
+                      <View style={[styles.resourceIcon, { backgroundColor: theme.secondary + '10' }]}>
+                        <Ionicons
+                          name={res.type === 'pdf' ? 'document-text-outline' : 'link-outline'}
+                          size={20}
+                          color={theme.secondary}
+                        />
+                      </View>
+                      <View style={styles.resourceInfo}>
+                        <Text style={[styles.resourceName, { color: theme.text }]} numberOfLines={1}>{res.title}</Text>
+                        <Text style={[styles.resourceType, { color: theme.textMuted }]}>{res.type?.toUpperCase() || 'DOCUMENT'}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </Animated.View>
+            )}
+
+            {/* Quick Quiz */}
+            {lesson.quiz?.enabled && (
+              <Animated.View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm, { transform: [{ translateY: cardAnims[3].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
+                <TouchableOpacity style={styles.quizContent}>
+                  <LinearGradient
+                    colors={[theme.accent + '15', 'transparent']}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <View style={[styles.quizIcon, { backgroundColor: theme.accent + '15' }]}>
+                    <Ionicons name="help-circle-outline" size={24} color={theme.accent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.quizTitle, { color: theme.text }]}>Quick Assessment</Text>
+                    <Text style={[styles.quizSubtitle, { color: theme.textSecondary }]}>Test what you've just learned</Text>
+                  </View>
+                  <View style={[styles.startBtn, { backgroundColor: theme.accent }]}>
+                    <Text style={styles.startBtnText}>Start</Text>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+
+            {/* Next Action */}
+            <Animated.View style={[styles.footer, { transform: [{ translateY: cardAnims[4].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
+              <TouchableOpacity style={[styles.nextBtn, themeShadows.md]}>
+                <LinearGradient
+                  colors={[theme.primary, theme.primaryLight || theme.primary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.nextGradient}
+                >
+                  <View>
+                    <Text style={styles.nextLabel}>CONTINUE JOURNEY</Text>
+                    <Text style={styles.nextTitle}>Go to Next Lesson</Text>
+                  </View>
+                  <View style={styles.nextArrow}>
+                    <Ionicons name="arrow-forward" size={24} color="#FFF" />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
+
+          </Animated.View>
           <View style={{ height: 100 }} />
-        </Animated.View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -298,115 +335,96 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-  },
-  errorCard: {
-    alignItems: 'center',
-    padding: 30,
+    padding: 40,
   },
   errorTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 20,
   },
-  errorText: {
-    fontSize: 14,
+  floatingNavBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 100 : 80,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    zIndex: 100,
+    borderBottomWidth: 1,
+  },
+  navBarContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    height: 50,
+  },
+  navTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    flex: 1,
     textAlign: 'center',
-    marginBottom: 24,
+    marginHorizontal: 15,
   },
-  backBtnLarge: {
-    borderRadius: 14,
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 0,
+  },
+  videoWrapper: {
+    width: width,
+    height: width * 0.56,
+    backgroundColor: '#000',
     overflow: 'hidden',
   },
-  backBtnGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    gap: 8,
-  },
-  backBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  loadingText: {
-    fontSize: 14,
-    marginTop: 16,
-  },
-  videoContainer: {
-    position: 'relative',
-  },
   videoPlayer: {
-    width: '100%',
-    height: 220,
+    flex: 1,
   },
-  videoOverlay: {
+  closeBtn: {
     position: 'absolute',
-    top: 50,
-    left: 16,
-    right: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  backBtn: {
+    top: Platform.OS === 'ios' ? 50 : 30,
+    left: 20,
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
     alignItems: 'center',
-  },
-  videoOverlayRight: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  overlayBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
-    alignItems: 'center',
   },
   content: {
     flex: 1,
-    marginTop: -20,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    padding: 22,
+    marginTop: -10,
   },
-  contentContainer: {
-    padding: 16,
-  },
-  titleCard: {
-    borderRadius: 20,
+  card: {
+    borderRadius: 24,
+    borderWidth: 1,
     padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    marginBottom: 20,
   },
-  titleRow: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: 20,
   },
   titleInfo: {
     flex: 1,
+    marginRight: 10,
   },
   lessonTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
-    marginBottom: 8,
-    lineHeight: 28,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    marginBottom: 6,
+    lineHeight: 30,
   },
   metaRow: {
     flexDirection: 'row',
-    gap: 16,
+    alignItems: 'center',
+    gap: 10,
   },
   metaItem: {
     flexDirection: 'row',
@@ -415,28 +433,28 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
+    fontWeight: '600',
   },
-  completedBadge: {
-    borderRadius: 20,
-    overflow: 'hidden',
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
-  completedGradient: {
+  completeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 4,
   },
-  completedText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  completeText: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
-  progressSection: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+  progressContainer: {
+    marginTop: 10,
   },
   progressHeader: {
     flexDirection: 'row',
@@ -445,185 +463,135 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   progressLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  progressPercent: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
   },
-  progressBar: {
-    height: 8,
-    borderRadius: 4,
+  progressVal: {
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 3,
   },
-  descriptionCard: {
-    borderRadius: 20,
-    padding: 20,
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  sectionTitle: {
+  accent: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+  },
+  cardTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 14,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   description: {
     fontSize: 15,
     lineHeight: 24,
+    fontWeight: '500',
   },
-  resourcesCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+  resourceList: {
+    marginTop: 4,
   },
   resourceItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 10,
+    paddingVertical: 14,
+    gap: 14,
   },
   resourceIcon: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 12,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    justifyContent: 'center',
   },
   resourceInfo: {
     flex: 1,
   },
-  resourceTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+  resourceName: {
+    fontSize: 15,
+    fontWeight: '700',
     marginBottom: 2,
   },
   resourceType: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  quizBtn: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: 16,
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  quizBtnGradient: {
-    padding: 20,
-  },
-  quizBtnContent: {
+  quizContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 4,
+    gap: 16,
   },
-  quizIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
+  quizIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
-    marginRight: 14,
-  },
-  quizInfo: {
-    flex: 1,
+    justifyContent: 'center',
   },
   quizTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#FFFFFF',
     marginBottom: 2,
   },
   quizSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
   },
-  actionsCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+  startBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
-  actionsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  actionItem: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 14,
-  },
-  actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  actionText: {
+  startBtnText: {
+    color: '#FFF',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '800',
   },
-  nextLessonBtn: {
-    borderRadius: 20,
+  footerStatus: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  nextBtn: {
+    borderRadius: 24,
     overflow: 'hidden',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
   },
-  nextLessonGradient: {
-    padding: 20,
-  },
-  nextLessonContent: {
+  nextGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    padding: 24,
   },
-  nextLessonInfo: {},
-  nextLessonLabel: {
-    fontSize: 11,
-    fontWeight: '700',
+  nextLabel: {
     color: 'rgba(255,255,255,0.7)',
-    letterSpacing: 1,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 2,
     marginBottom: 4,
   },
-  nextLessonTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  nextTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
   },
   nextArrow: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
 });
