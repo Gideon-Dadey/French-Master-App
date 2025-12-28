@@ -685,7 +685,7 @@ const FeaturedCard = ({ item, index, onPress, onSave, isSaved, colors, isDarkMod
                 <Ionicons name="person" size={12} color="#FFFFFF" />
               </View>
               <Text style={styles.authorName} numberOfLines={1}>
-                {item.author?.name || 'French Master'}
+                {item.author?.name || "L'Alliance"}
               </Text>
             </View>
             <View style={styles.readTimeTag}>
@@ -770,7 +770,7 @@ const ArticleCard = ({ post, index, onPress, onSave, isSaved, colors, isDarkMode
               </View>
               <View>
                 <Text style={[styles.articleAuthorName, { color: colors.text }]} numberOfLines={1}>
-                  {post.author?.name || 'French Master'}
+                  {post.author?.name || "L'Alliance"}
                 </Text>
                 <Text style={[styles.articleDate, { color: colors.secondaryText }]}>
                   {formatDate(post.createdAt)}

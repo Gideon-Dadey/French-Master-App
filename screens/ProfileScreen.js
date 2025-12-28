@@ -39,7 +39,7 @@ export default function ProfileScreen({ navigation }) {
   const gamificationContext = useGamification();
   const gamificationStats = gamificationContext?.stats || {};
   const theme = getThemeColors(isDarkMode);
-  
+
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState({
     enrolledCourses: 0,
@@ -322,25 +322,25 @@ export default function ProfileScreen({ navigation }) {
           {/* Background */}
           <View style={styles.bgContainer}>
             <LinearGradient
-              colors={isDarkMode 
-                ? [theme.background, '#0A1219', theme.background] 
+              colors={isDarkMode
+                ? [theme.background, '#0A1219', theme.background]
                 : [theme.background, '#F0EDE8', theme.background]
               }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
-            
+
             {/* Decorative blobs */}
-            <DecorativeBlob 
-              style={styles.blob1} 
-              blobColors={[theme.secondary, theme.accent]} 
+            <DecorativeBlob
+              style={styles.blob1}
+              blobColors={[theme.secondary, theme.accent]}
             />
-            <DecorativeBlob 
-              style={styles.blob2} 
-              blobColors={[theme.primary, theme.accent]} 
+            <DecorativeBlob
+              style={styles.blob2}
+              blobColors={[theme.primary, theme.accent]}
             />
-            
+
             {/* Wave pattern */}
             <View style={styles.waveContainer}>
               <Svg width={width} height="120" viewBox={`0 0 ${width} 120`}>
@@ -379,7 +379,7 @@ export default function ProfileScreen({ navigation }) {
               </Animated.View>
 
               <Text style={[styles.guestGreeting, { color: theme.secondary }]}>Bienvenue</Text>
-              <Text style={[styles.guestTitle, { color: theme.text }]}>Join French Master</Text>
+              <Text style={[styles.guestTitle, { color: theme.text }]}>Join L'Alliance</Text>
               <Text style={[styles.guestSubtitle, { color: theme.textSecondary }]}>
                 Unlock the full potential of your language journey. Track progress, earn rewards, and join our global community.
               </Text>
@@ -415,7 +415,7 @@ export default function ProfileScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.createAccountBtn, { 
+              style={[styles.createAccountBtn, {
                 borderColor: theme.border,
                 backgroundColor: theme.surface
               }]}
@@ -516,7 +516,7 @@ export default function ProfileScreen({ navigation }) {
             <View style={[styles.headerDecor2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
             <View style={[styles.headerDecor3, { backgroundColor: 'rgba(255,255,255,0.1)' }]} />
 
-            <TouchableOpacity style={styles.settingsBtn} onPress={() => {}}>
+            <TouchableOpacity style={styles.settingsBtn} onPress={() => { }}>
               <Ionicons name="settings-outline" size={24} color="rgba(255,255,255,0.85)" />
             </TouchableOpacity>
 

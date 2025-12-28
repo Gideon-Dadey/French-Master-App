@@ -289,7 +289,7 @@ export default function RegisterScreen({ navigation }) {
             <Text style={[styles.greeting, { color: theme.secondary }]}>Commencer</Text>
             <Text style={[styles.title, { color: theme.text }]}>Join the Journey</Text>
             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-              Begin your path to French fluency today
+              Begin your path to L'Alliance fluency today
             </Text>
           </Animated.View>
 

@@ -326,8 +326,8 @@ export default function ResourcesScreen({ navigation }) {
               resource.type === 'MP3' || resource.type === 'audio'
                 ? 'musical-notes'
                 : resource.type === 'MP4' || resource.type === 'video'
-                ? 'videocam'
-                : 'document-text'
+                  ? 'videocam'
+                  : 'document-text'
             }
             size={fontSize.lg}
             color={category?.color || colors.primary}
@@ -441,105 +441,105 @@ export default function ResourcesScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
 
-      <View style={styles.categoriesSection}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Browse by Category</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContainer}
-        >
-          {RESOURCE_CATEGORIES.map(renderCategoryCard)}
-        </ScrollView>
-      </View>
-
-      <View style={styles.resourcesSection}>
-        <View style={styles.resourcesHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            {selectedCategory
-              ? RESOURCE_CATEGORIES.find((c) => c.id === selectedCategory)?.title
-              : 'All Resources'}
-          </Text>
-          <Text style={[styles.resourceCount, { color: colors.secondaryText }]}>
-            {filteredResources.length} {filteredResources.length === 1 ? 'resource' : 'resources'}
-          </Text>
+        <View style={styles.categoriesSection}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Browse by Category</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesContainer}
+          >
+            {RESOURCE_CATEGORIES.map(renderCategoryCard)}
+          </ScrollView>
         </View>
 
-        {filteredResources.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="document-outline" size={64} color={colors.secondaryText} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Resources Found</Text>
-            <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
-              {searchQuery
-                ? 'Try a different search term'
-                : selectedCategory
-                ? 'Try selecting a different category'
-                : 'No resources available at the moment'}
+        <View style={styles.resourcesSection}>
+          <View style={styles.resourcesHeader}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              {selectedCategory
+                ? RESOURCE_CATEGORIES.find((c) => c.id === selectedCategory)?.title
+                : 'All Resources'}
             </Text>
-            {(searchQuery || selectedCategory) && (
-              <TouchableOpacity
-                style={[styles.clearFiltersButton, { backgroundColor: colors.primary }]}
-                onPress={() => {
-                  setSearchQuery('');
-                  setSelectedCategory(null);
-                }}
-              >
-                <Text style={styles.clearFiltersText}>Clear Filters</Text>
-              </TouchableOpacity>
-            )}
+            <Text style={[styles.resourceCount, { color: colors.secondaryText }]}>
+              {filteredResources.length} {filteredResources.length === 1 ? 'resource' : 'resources'}
+            </Text>
           </View>
-        ) : (
-          <View style={styles.resourcesList}>
-            {filteredResources.map(renderResourceItem)}
+
+          {filteredResources.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="document-outline" size={64} color={colors.secondaryText} />
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>No Resources Found</Text>
+              <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
+                {searchQuery
+                  ? 'Try a different search term'
+                  : selectedCategory
+                    ? 'Try selecting a different category'
+                    : 'No resources available at the moment'}
+              </Text>
+              {(searchQuery || selectedCategory) && (
+                <TouchableOpacity
+                  style={[styles.clearFiltersButton, { backgroundColor: colors.primary }]}
+                  onPress={() => {
+                    setSearchQuery('');
+                    setSelectedCategory(null);
+                  }}
+                >
+                  <Text style={styles.clearFiltersText}>Clear Filters</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <View style={styles.resourcesList}>
+              {filteredResources.map(renderResourceItem)}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.blogSection}>
+          <View style={styles.blogHeader}>
+            <Heading
+              title="L'Alliance Lessons & News"
+              onSeeAll={() => navigation.navigate('BlogList')}
+              seeAllText="See all"
+            />
+            <Text style={[styles.blogSubtitle, { color: colors.secondaryText }]}>
+              Stay updated with the latest French learning tips and news
+            </Text>
+          </View>
+
+          {loadingBlogPosts ? (
+            <View style={styles.blogLoading}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : featuredBlogPosts.length > 0 ? (
+            <View style={styles.blogPostsContainer}>
+              {featuredBlogPosts.map((post) => (
+                <BlogCard
+                  key={post._id || post.id}
+                  post={post}
+                  onPress={() => navigation.navigate('BlogDetail', { postId: post._id || post.id, post })}
+                />
+              ))}
+            </View>
+          ) : null}
+        </View>
+
+        {!isAuthenticated && (
+          <View style={[styles.infoBanner, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}>
+            <Ionicons name="information-circle" size={24} color={colors.primary} />
+            <View style={styles.infoContent}>
+              <Text style={[styles.infoTitle, { color: colors.text }]}>Sign in to Download</Text>
+              <Text style={[styles.infoText, { color: colors.secondaryText }]}>
+                Create an account to access all free resources
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.signInButton, { backgroundColor: colors.primary }]}
+              onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+            >
+              <Text style={styles.signInButtonText}>Sign In</Text>
+            </TouchableOpacity>
           </View>
         )}
-      </View>
-
-      <View style={styles.blogSection}>
-        <View style={styles.blogHeader}>
-          <Heading
-            title="French Lessons & News"
-            onSeeAll={() => navigation.navigate('BlogList')}
-            seeAllText="See all"
-          />
-          <Text style={[styles.blogSubtitle, { color: colors.secondaryText }]}>
-            Stay updated with the latest French learning tips and news
-          </Text>
-        </View>
-
-        {loadingBlogPosts ? (
-          <View style={styles.blogLoading}>
-            <ActivityIndicator size="small" color={colors.primary} />
-          </View>
-        ) : featuredBlogPosts.length > 0 ? (
-          <View style={styles.blogPostsContainer}>
-            {featuredBlogPosts.map((post) => (
-              <BlogCard
-                key={post._id || post.id}
-                post={post}
-                onPress={() => navigation.navigate('BlogDetail', { postId: post._id || post.id, post })}
-              />
-            ))}
-          </View>
-        ) : null}
-      </View>
-
-      {!isAuthenticated && (
-        <View style={[styles.infoBanner, { backgroundColor: colors.primary + '15', borderColor: colors.primary }]}>
-          <Ionicons name="information-circle" size={24} color={colors.primary} />
-          <View style={styles.infoContent}>
-            <Text style={[styles.infoTitle, { color: colors.text }]}>Sign in to Download</Text>
-            <Text style={[styles.infoText, { color: colors.secondaryText }]}>
-              Create an account to access all free resources
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.signInButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
-          >
-            <Text style={styles.signInButtonText}>Sign In</Text>
-          </TouchableOpacity>
-        </View>
-      )}
       </ScrollView>
     </View>
   );

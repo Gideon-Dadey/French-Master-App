@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "French Master GH",
-    "slug": "french-master-app",
+    "name": "L'Alliance",
+    "slug": "l-alliance-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -16,7 +16,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.frenchmastergh.app",
+      "bundleIdentifier": "com.lalliance.app",
       "icon": "./assets/icon.png",
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to your camera to take profile photos.",
@@ -25,7 +25,7 @@
       }
     },
     "android": {
-      "package": "com.frenchmastergh.app",
+      "package": "com.lalliance.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1E88E5"

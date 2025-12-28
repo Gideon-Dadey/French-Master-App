@@ -239,7 +239,7 @@ export default function LearnerHomeScreen({ navigation }) {
                 <View style={styles.navBarContent}>
                     <View style={styles.navBarLeft}>
                         <Image source={require('../assets/logo.jpeg')} style={styles.navLogo} />
-                        <Text style={[styles.navTitle, { color: theme.text }]}>French Master</Text>
+                        <Text style={[styles.navTitle, { color: theme.text }]}>L'Alliance</Text>
                     </View>
                     <TouchableOpacity
                         style={[styles.navIconBtn, { backgroundColor: theme.primary + '15' }]}
@@ -276,7 +276,7 @@ export default function LearnerHomeScreen({ navigation }) {
                                     <Image source={require('../assets/logo.jpeg')} style={styles.heroLogo} />
                                 </View>
                                 <View>
-                                    <Text style={[styles.heroAppName, { color: theme.text }]}>French Master</Text>
+                                    <Text style={[styles.heroAppName, { color: theme.text }]}>L'Alliance</Text>
                                     <View style={styles.taglineRow}>
                                         <View style={[styles.taglineDot, { backgroundColor: theme.primary }]} />
                                         <Text style={[styles.heroTagline, { color: theme.textSecondary }]}>Modern Language Learning</Text>

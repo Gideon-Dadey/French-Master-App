@@ -2,7 +2,7 @@
  * Celebration & Feedback Components
  * 
  * A collection of delightful celebration and feedback components
- * to enhance user experience in the French Master app.
+ * to enhance user experience in the L'Alliance app.
  * 
  * These components add polish, personality, and engagement to the app
  * through beautiful animations and meaningful micro-interactions.

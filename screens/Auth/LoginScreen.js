@@ -94,7 +94,7 @@ export default function LoginScreen({ navigation }) {
       ]),
       Animated.stagger(150, [
         Animated.spring(slideAnim, { toValue: 0, tension: 30, friction: 10, useNativeDriver: true }),
-        ...inputAnims.map(anim => 
+        ...inputAnims.map(anim =>
           Animated.spring(anim, { toValue: 1, tension: 40, friction: 10, useNativeDriver: true })
         ),
       ]),
@@ -124,14 +124,14 @@ export default function LoginScreen({ navigation }) {
         const message = result.message || 'Check your credentials and try again.';
         let alertTitle = 'Authentication Failed';
         let alertMessage = message;
-        
+
         if (message.includes('network') || message.includes('Network')) {
           alertTitle = 'Connection Error';
           alertMessage = 'Unable to connect to the server. Please check your internet connection.';
         } else if (message.includes('Invalid credentials') || message.includes('not found')) {
           alertMessage = 'Email or password is incorrect. Please try again.';
         }
-        
+
         Alert.alert(alertTitle, alertMessage);
       }
     } catch (error) {
@@ -148,30 +148,30 @@ export default function LoginScreen({ navigation }) {
       {/* Background */}
       <View style={styles.bgContainer}>
         <LinearGradient
-          colors={isDarkMode 
-            ? [theme.background, '#0A1219', theme.background] 
+          colors={isDarkMode
+            ? [theme.background, '#0A1219', theme.background]
             : [theme.background, '#F0EDE8', theme.background]
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
-        
+
         {/* Decorative blobs */}
-        <DecorativeBlob 
-          style={styles.blob1} 
-          colors={[theme.secondary, theme.accent]} 
+        <DecorativeBlob
+          style={styles.blob1}
+          colors={[theme.secondary, theme.accent]}
         />
-        <DecorativeBlob 
-          style={styles.blob2} 
-          colors={[theme.accent, theme.primary]} 
+        <DecorativeBlob
+          style={styles.blob2}
+          colors={[theme.accent, theme.primary]}
         />
-        
+
         {/* Floating accents */}
         <FloatingAccent style={styles.accent1} color={theme.secondary} delay={0} />
         <FloatingAccent style={styles.accent2} color={theme.primary} delay={500} />
         <FloatingAccent style={styles.accent3} color={theme.secondary} delay={1000} />
-        
+
         {/* Wave pattern */}
         <View style={styles.waveContainer}>
           <Svg width={width} height="120" viewBox={`0 0 ${width} 120`} style={styles.wave}>
@@ -201,12 +201,12 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
 
           {/* Header Section */}
-          <Animated.View 
+          <Animated.View
             style={[
-              styles.header, 
-              { 
-                opacity: fadeAnim, 
-                transform: [{ translateY: headerSlide }, { scale: scaleAnim }] 
+              styles.header,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: headerSlide }, { scale: scaleAnim }]
               }
             ]}
           >
@@ -244,7 +244,7 @@ export default function LoginScreen({ navigation }) {
             ]}
           >
             {/* Email Input */}
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.inputGroup,
                 { opacity: inputAnims[0], transform: [{ translateX: inputAnims[0].interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }
@@ -279,7 +279,7 @@ export default function LoginScreen({ navigation }) {
             </Animated.View>
 
             {/* Password Input */}
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.inputGroup,
                 { opacity: inputAnims[1], transform: [{ translateX: inputAnims[1].interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }
@@ -372,7 +372,7 @@ export default function LoginScreen({ navigation }) {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: theme.textSecondary }]}>
-              New to French Master?{' '}
+              New to L'Alliance?{' '}
             </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
               <Text style={[styles.signUpLink, { color: theme.primary }]}>Create Account</Text>

@@ -237,10 +237,10 @@ export default function BlogDetailScreen({ route, navigation }) {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `📚 Check out this French lesson: "${post.title}"\n\n${post.excerpt || ''}\n\nLearn more on French Master!`,
+        message: `📚 Check out this French lesson: "${post.title}"\n\n${post.excerpt || ''}\n\nLearn more on L'Alliance!`,
         title: post.title,
       });
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const handleOpenInBrowser = () => {
@@ -496,7 +496,7 @@ export default function BlogDetailScreen({ route, navigation }) {
               </View>
               <View>
                 <Text style={[styles.authorName, { color: theme.text }]}>
-                  {post.author?.name || 'French Master'}
+                  {post.author?.name || "L'Alliance"}
                 </Text>
                 <Text style={[styles.authorRole, { color: theme.textSecondary }]}>Language Expert</Text>
               </View>

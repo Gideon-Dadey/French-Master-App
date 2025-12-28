@@ -22,7 +22,7 @@ export default function CertificateView({ course, userName, completionDate, onCl
 
   const handleShare = async () => {
     try {
-      const shareMessage = `I've completed the course "${course?.title || 'Course'}" on French Master GH! 🎓`;
+      const shareMessage = `I've completed the course "${course?.title || 'Course'}" on L'Alliance! 🎓`;
       await Share.share({
         message: shareMessage,
         title: 'Certificate of Completion',

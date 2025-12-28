@@ -104,7 +104,7 @@ export default function BlogCard({ post, onPress, layout = 'vertical' }) {
               </Text>
             </View>
             <Text style={[styles.authorName, { color: colors.text }]} numberOfLines={1}>
-              {post.author || 'French Master'}
+              {post.author || "L'Alliance"}
             </Text>
           </View>
 

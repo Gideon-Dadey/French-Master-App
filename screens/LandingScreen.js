@@ -94,7 +94,7 @@ export default function LandingScreen({ navigation }) {
               <Animated.View style={[styles.animatedRing, { transform: [{ scale: pulseAnim }] }]} />
             </View>
 
-            <Text style={styles.appName}>French Master GH</Text>
+            <Text style={styles.appName}>L'Alliance</Text>
             <View style={styles.taglineContainer}>
               <View style={styles.frenchFlag}>
                 <View style={[styles.flagStripe, { backgroundColor: '#0055A4' }]} />
