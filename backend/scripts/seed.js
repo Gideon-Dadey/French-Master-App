@@ -1162,34 +1162,35 @@ const seedData = async () => {
     }
 
     // Define lessons for each course to make them look "productive"
+    const sampleVideoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
     const courseLessonsData = {
       'FRENCH COURSE A1-A2': [
-        { title: 'Introduction to French Phonetics', description: 'Master the basic sounds and pronunciation of the French language.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 900, order: 1 },
-        { title: 'Greetings and Basic Introductions', description: 'Learn how to greet people and introduce yourself in various social settings.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1200, order: 2 },
-        { title: 'The French Alphabet & Accents', description: 'Deep dive into the French alphabet, special characters, and essential accents.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 720, order: 3 },
-        { title: 'Numbers, Colors and Basic Nouns', description: 'Building your foundational vocabulary with everyday items and numbers.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1080, order: 4 },
-        { title: 'Present Tense of Regular Verbs', description: 'Understanding the mechanics of -er, -ir, and -re regular verbs in the present tense.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1500, order: 5 },
+        { title: 'Introduction to French Phonetics', description: 'Master the basic sounds and pronunciation of the French language.', videoUrl: sampleVideoUrl, videoDuration: 900, order: 1 },
+        { title: 'Greetings and Basic Introductions', description: 'Learn how to greet people and introduce yourself in various social settings.', videoUrl: sampleVideoUrl, videoDuration: 1200, order: 2 },
+        { title: 'The French Alphabet & Accents', description: 'Deep dive into the French alphabet, special characters, and essential accents.', videoUrl: sampleVideoUrl, videoDuration: 720, order: 3 },
+        { title: 'Numbers, Colors and Basic Nouns', description: 'Building your foundational vocabulary with everyday items and numbers.', videoUrl: sampleVideoUrl, videoDuration: 1080, order: 4 },
+        { title: 'Present Tense of Regular Verbs', description: 'Understanding the mechanics of -er, -ir, and -re regular verbs in the present tense.', videoUrl: sampleVideoUrl, videoDuration: 1500, order: 5 },
       ],
       'FRENCH COURSE B1-B2': [
-        { title: 'Mastering the Subjunctive Mood', description: 'Exploring the complexities of the subjonctif for doubt, necessity, and emotion.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1800, order: 1 },
-        { title: 'Advanced Relative Pronouns', description: 'Mastering "dont", "lequel", "auquel" and "duquel" in formal French.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1320, order: 2 },
-        { title: 'The Passive Voice in French', description: 'Le Passif: when to use it and how to construct it correctly.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1140, order: 3 },
-        { title: 'French for Debates and Discussions', description: 'Key expressions and structures for articulating complex arguments.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1620, order: 4 },
+        { title: 'Mastering the Subjunctive Mood', description: 'Exploring the complexities of the subjonctif for doubt, necessity, and emotion.', videoUrl: sampleVideoUrl, videoDuration: 1800, order: 1 },
+        { title: 'Advanced Relative Pronouns', description: 'Mastering "dont", "lequel", "auquel" and "duquel" in formal French.', videoUrl: sampleVideoUrl, videoDuration: 1320, order: 2 },
+        { title: 'The Passive Voice in French', description: 'Le Passif: when to use it and how to construct it correctly.', videoUrl: sampleVideoUrl, videoDuration: 1140, order: 3 },
+        { title: 'French for Debates and Discussions', description: 'Key expressions and structures for articulating complex arguments.', videoUrl: sampleVideoUrl, videoDuration: 1620, order: 4 },
       ],
       'COURS D\'ANGLAIS A1-A2': [
-        { title: 'The English Verb "To Be"', description: 'Foundational grammar: am, is, are and their past forms.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 900, order: 1 },
-        { title: 'Essential Everyday Vocabulary', description: '500 most common words for daily survival in an English environment.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1200, order: 2 },
-        { title: 'Basic Sentence Structuring', description: 'Mastering the Subject-Verb-Object pattern in English.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1020, order: 3 },
+        { title: 'The English Verb "To Be"', description: 'Foundational grammar: am, is, are and their past forms.', videoUrl: sampleVideoUrl, videoDuration: 900, order: 1 },
+        { title: 'Essential Everyday Vocabulary', description: '500 most common words for daily survival in an English environment.', videoUrl: sampleVideoUrl, videoDuration: 1200, order: 2 },
+        { title: 'Basic Sentence Structuring', description: 'Mastering the Subject-Verb-Object pattern in English.', videoUrl: sampleVideoUrl, videoDuration: 1020, order: 3 },
       ],
       'Business French for Professionals': [
-        { title: 'Professional Email Etiquette', description: 'How to write formal business emails and correspondences in French.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1440, order: 1 },
-        { title: 'Negotiation Tactics and Phrases', description: 'Strategic language for winning business negotiations in a French context.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 2100, order: 2 },
-        { title: 'Presenting in French', description: 'Structuring and delivering powerful business presentations.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1800, order: 3 },
+        { title: 'Professional Email Etiquette', description: 'How to write formal business emails and correspondences in French.', videoUrl: sampleVideoUrl, videoDuration: 1440, order: 1 },
+        { title: 'Negotiation Tactics and Phrases', description: 'Strategic language for winning business negotiations in a French context.', videoUrl: sampleVideoUrl, videoDuration: 2100, order: 2 },
+        { title: 'Presenting in French', description: 'Structuring and delivering powerful business presentations.', videoUrl: sampleVideoUrl, videoDuration: 1800, order: 3 },
       ],
       'DELF A1 Exam Preparation - Complete Mastery': [
-        { title: 'DELF A1: Listening Strategies', description: 'Techniques for maximizing your score in the auditory component.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1200, order: 1 },
-        { title: 'Mastering the Oral Interview', description: 'How to approach the speaking test with confidence and clarity.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1500, order: 2 },
-        { title: 'Mock Exam: Reading & Writing', description: 'Timed practice for the written sections of the DELF A1 exam.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 2400, order: 3 },
+        { title: 'DELF A1: Listening Strategies', description: 'Techniques for maximizing your score in the auditory component.', videoUrl: sampleVideoUrl, videoDuration: 1200, order: 1 },
+        { title: 'Mastering the Oral Interview', description: 'How to approach the speaking test with confidence and clarity.', videoUrl: sampleVideoUrl, videoDuration: 1500, order: 2 },
+        { title: 'Mock Exam: Reading & Writing', description: 'Timed practice for the written sections of the DELF A1 exam.', videoUrl: sampleVideoUrl, videoDuration: 2400, order: 3 },
       ],
     };
 
