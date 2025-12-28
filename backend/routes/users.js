@@ -7,7 +7,15 @@ const { protect, authorize } = require('../middleware/auth');
 router.get('/profile', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
-      .populate('enrolledCourses.course', 'title thumbnail rating');
+      .populate({
+        path: 'enrolledCourses.course',
+        select: 'title thumbnail rating',
+        populate: {
+          path: 'lessons',
+          select: '_id title order',
+          options: { sort: { order: 1 } }
+        }
+      });
 
     res.json({
       success: true,

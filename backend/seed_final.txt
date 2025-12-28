@@ -1,0 +1,56 @@
+
+> french-master-api@1.0.0 seed
+> node scripts/seed.js
+
+MongoDB Connected
+Updated course: FRENCH COURSE A1-A2
+Added 5 lessons to course: FRENCH COURSE A1-A2
+Updated course: FRENCH COURSE B1-B2
+Added 4 lessons to course: FRENCH COURSE B1-B2
+Updated course: COURS D'ANGLAIS A1-A2
+Added 3 lessons to course: COURS D'ANGLAIS A1-A2
+Updated course: COURS D'ANGLAIS – B1-B2
+Updated course: CERTIFICATE IN FRENCH EDUCATION
+Updated course: DELF A1 Exam Preparation - Complete Mastery
+Added 3 lessons to course: DELF A1 Exam Preparation - Complete Mastery
+Updated course: DELF A2 Exam Preparation - Advanced Strategies
+Updated course: Business French for Professionals
+Added 3 lessons to course: Business French for Professionals
+Updated course: French Conversation Mastery - Fluent Speaking
+Updated course: French Grammar Mastery - Complete Guide
+Updated course: TCF Exam Preparation - Comprehensive Course
+Updated course: French for Travelers - Essential Communication
+Updated course: Advanced French Literature and Culture
+Updated course: French Pronunciation and Phonetics Mastery
+Updated course: English for French Speakers - Advanced Level
+Updated course: French for Healthcare Professionals
+Updated course: French Writing Excellence - Academic & Professional
+Updated course: French Listening Comprehension Mastery
+Updated course: French Vocabulary Builder - Advanced Level
+Updated course: French for Academic Success - University Preparation
+Updated course: Intensive French Immersion - Complete Program
+Updated course: Advanced English Grammar Mastery
+Updated course: Business English Communication
+Updated course: Academic English Writing Excellence
+Updated course: English Pronunciation and Phonetics
+Updated course: English Vocabulary Builder - Advanced
+Updated course: English Listening Comprehension Mastery
+Updated course: English Conversation Mastery - Advanced
+Updated course: English Literature and Culture
+Updated course: IELTS Preparation - Complete Mastery
+Updated course: TOEFL Preparation - Advanced Strategies
+Updated course: Cambridge English C1 Advanced (CAE)
+Updated course: English for Medical Professionals
+Updated course: English for Legal Professionals
+Updated course: English for Engineering and Technology
+Updated course: English Public Speaking and Presentations
+Updated course: English Creative Writing Mastery
+Updated course: English Negotiation and Persuasion
+Updated course: English for Media and Journalism
+Updated course: English Idioms and Phrasal Verbs Mastery
+Updated course: English for Academic Research
+Updated course: English for International Relations
+Updated course: Intensive English Immersion - Advanced
+Updated course: French Video Masterclass: Visual Immersion
+Added 14 lessons to course: French Video Masterclass: Visual Immersion
+Seed data created successfully!

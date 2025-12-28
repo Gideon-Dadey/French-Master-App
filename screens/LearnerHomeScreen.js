@@ -96,8 +96,11 @@ export default function LearnerHomeScreen({ navigation }) {
 
     const initScreen = async () => {
         await loadData();
-        if (isAuthenticated && user) {
-            await gamificationService.checkAndUpdateStreak(user);
+        if (isAuthenticated) {
+            await loadUser();
+            if (user) {
+                await gamificationService.checkAndUpdateStreak(user);
+            }
         }
     };
 

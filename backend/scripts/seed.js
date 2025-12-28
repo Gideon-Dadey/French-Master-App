@@ -1132,6 +1132,28 @@ const seedData = async () => {
         ],
         requirements: ['B1 level English proficiency', 'Commitment to intensive study', 'Regular practice'],
       },
+      {
+        title: 'French Video Masterclass: Visual Immersion',
+        description: 'Experience French like never before with 100% video-based learning. This course is designed for visual learners who want to master French through situational videos, cinematic dialogues, and expert visual guides.',
+        shortDescription: 'Master French through 100% video-based learning.',
+        instructor: instructor._id,
+        thumbnail: 'courses/video-immersion.jpg',
+        category: 'french',
+        level: 'beginner',
+        language: 'french',
+        duration: 15,
+        status: 'published',
+        featured: true,
+        certificate: { enabled: true },
+        tags: ['video', 'immersion', 'visual', 'masterclass'],
+        whatYouWillLearn: [
+          'Practical French through real-life video scenarios',
+          'Perfect pronunciation by watching native speakers',
+          'Contextual vocabulary used in visual contexts',
+          'Dynamic cinematic dialogues for better retention',
+        ],
+        requirements: ['No prior knowledge required', 'Device with video playback support'],
+      },
     ];
 
     // Clear existing courses (optional)
@@ -1191,6 +1213,22 @@ const seedData = async () => {
         { title: 'DELF A1: Listening Strategies', description: 'Techniques for maximizing your score in the auditory component.', videoUrl: sampleVideoUrl, videoDuration: 1200, order: 1 },
         { title: 'Mastering the Oral Interview', description: 'How to approach the speaking test with confidence and clarity.', videoUrl: sampleVideoUrl, videoDuration: 1500, order: 2 },
         { title: 'Mock Exam: Reading & Writing', description: 'Timed practice for the written sections of the DELF A1 exam.', videoUrl: sampleVideoUrl, videoDuration: 2400, order: 3 },
+      ],
+      'French Video Masterclass: Visual Immersion': [
+        { title: 'Cinema Dialogue: Meeting a Friend', description: 'Watch and learn how to greet friends in a natural, cinematic setting.', videoUrl: sampleVideoUrl, videoDuration: 600, order: 1 },
+        { title: 'Visual Guide: The French Bakery', description: 'Join us on a visual tour of a boulangerie and learn how to order like a local.', videoUrl: sampleVideoUrl, videoDuration: 850, order: 2 },
+        { title: 'Street French: Asking for Directions', description: 'Real street footage of people asking and giving directions in Paris.', videoUrl: sampleVideoUrl, videoDuration: 920, order: 3 },
+        { title: 'Masterclass: Perfecting Your Accent', description: 'A deep-dive video session focusing on mouth positioning and rhythm.', videoUrl: sampleVideoUrl, videoDuration: 1200, order: 4 },
+        { title: 'Cooking Class: The Perfect French Omelet', description: 'Follow a professional chef to learn the vocabulary of the kitchen and cooking techniques.', videoUrl: sampleVideoUrl, videoDuration: 1100, order: 5 },
+        { title: 'Market Day: Visual Guide to a Parisian Marché', description: 'Learn how to identify and buy fresh produce, cheeses, and meats at a local market.', videoUrl: sampleVideoUrl, videoDuration: 950, order: 6 },
+        { title: 'Café Culture: Coffee and Conversations', description: 'Experience the atmosphere of a French café and learn common social etiquette.', videoUrl: sampleVideoUrl, videoDuration: 780, order: 7 },
+        { title: 'Museum Tour: Louvre Masterpieces', description: 'A visual journey through the Louvre with commentary on famous art pieces in French.', videoUrl: sampleVideoUrl, videoDuration: 1500, order: 8 },
+        { title: 'Fashion Walk: Parisian Chic and Styles', description: 'Discover the vocabulary of fashion and style on the streets of the world fashion capital.', videoUrl: sampleVideoUrl, videoDuration: 1020, order: 9 },
+        { title: 'Metro Navigator: Moving around Paris like a Pro', description: 'A practical video guide to using the public transport system, tickets, and maps.', videoUrl: sampleVideoUrl, videoDuration: 880, order: 10 },
+        { title: 'Pharmacy Visit: Health and Wellness Phrases', description: 'Essential communication skills for health-related situations at a French pharmacie.', videoUrl: sampleVideoUrl, videoDuration: 740, order: 11 },
+        { title: 'At the Theatre: Buying Tickets for a Play', description: 'Navigating arts and culture: how to book tickets and understand theatre etiquette.', videoUrl: sampleVideoUrl, videoDuration: 960, order: 12 },
+        { title: 'Sports Scene: A Day at Roland Garros', description: 'Experience the excitement of French sports culture through a tennis-themed lesson.', videoUrl: sampleVideoUrl, videoDuration: 1320, order: 13 },
+        { title: 'Beach Life: Summer Phrases on the Côte d\'Azur', description: 'Relaxing vocabulary for holidays, beaches, and summer activities in the South of France.', videoUrl: sampleVideoUrl, videoDuration: 1080, order: 14 },
       ],
     };
 

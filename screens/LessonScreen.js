@@ -67,7 +67,7 @@ export default function LessonScreen({ route, navigation }) {
         if (progressPercent >= 90 && !isCompleted) {
           setIsCompleted(true);
         }
-      } catch (error) {}
+      } catch (error) { }
     }
   };
 
@@ -77,7 +77,7 @@ export default function LessonScreen({ route, navigation }) {
         message: `Check out this lesson: ${lesson?.title}`,
         title: lesson?.title,
       });
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const formatDuration = (seconds) => {
@@ -150,13 +150,7 @@ export default function LessonScreen({ route, navigation }) {
         />
 
         <View style={styles.videoOverlay}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
           <View style={styles.videoOverlayRight}>
-            <TouchableOpacity style={styles.overlayBtn} onPress={handleShare}>
-              <Ionicons name="share-outline" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
             {lesson.isDownloadable && (
               <TouchableOpacity style={styles.overlayBtn}>
                 <Ionicons name="download-outline" size={22} color="#FFFFFF" />
@@ -265,12 +259,6 @@ export default function LessonScreen({ route, navigation }) {
                   <Ionicons name="heart-outline" size={22} color="#EF4444" />
                 </View>
                 <Text style={[styles.actionText, { color: colors.text }]}>Save</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionItem, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]} onPress={handleShare}>
-                <View style={[styles.actionIcon, { backgroundColor: '#3B82F6' + '15' }]}>
-                  <Ionicons name="share-outline" size={22} color="#3B82F6" />
-                </View>
-                <Text style={[styles.actionText, { color: colors.text }]}>Share</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.actionItem, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}>
                 <View style={[styles.actionIcon, { backgroundColor: '#F59E0B' + '15' }]}>

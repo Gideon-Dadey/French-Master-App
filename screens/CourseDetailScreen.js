@@ -68,13 +68,16 @@ export default function CourseDetailScreen({ route, navigation }) {
       const response = await coursesAPI.getById(courseId);
 
       if (response.data.data) {
-        setCourse(response.data.data);
+        const courseData = response.data.data;
+        setCourse(courseData);
         await Promise.all([
           loadReviews(),
-          loadInstructorCourseCount(response.data.data.instructor?._id || response.data.data.instructor)
+          loadInstructorCourseCount(courseData.instructor?._id || courseData.instructor)
         ]);
+        return courseData;
       } else {
         setError('Course not found');
+        return null;
       }
     } catch (error) {
       console.error('Failed to load course:', error);
@@ -87,6 +90,7 @@ export default function CourseDetailScreen({ route, navigation }) {
       } else {
         setError(errorMessage || 'Failed to load course. Please try again.');
       }
+      return null;
     } finally {
       setLoading(false);
     }
@@ -157,8 +161,8 @@ export default function CourseDetailScreen({ route, navigation }) {
 
       setEnrolledSuccessfully(true);
 
-      // Load course to update UI
-      await loadCourse();
+      // Load course to update UI and get fresh lesson IDs
+      const updatedCourse = await loadCourse();
 
       // Refresh Auth state to show enrollment in Profile/Home
       await loadUser();
@@ -166,10 +170,11 @@ export default function CourseDetailScreen({ route, navigation }) {
       // Auto-navigate after a delay
       setTimeout(() => {
         setEnrolledSuccessfully(false);
-        if (course?.lessons && course.lessons.length > 0) {
+        const targetCourse = updatedCourse || course;
+        if (targetCourse?.lessons && targetCourse.lessons.length > 0) {
           navigation.navigate('Lesson', {
-            courseId: course._id,
-            lessonId: course.lessons[0]._id,
+            courseId: targetCourse._id,
+            lessonId: targetCourse.lessons[0]._id,
           });
         }
       }, 2000);
