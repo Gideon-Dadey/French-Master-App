@@ -10,25 +10,38 @@ import {
   Animated,
   Image,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
-import { spacing, fontSize } from '../src/utils/responsive';
 import { progressAPI } from '../src/services/api';
 import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 
 const { width, height } = Dimensions.get('window');
 
+const BackgroundBlur = ({ style, color, size = 300 }) => (
+  <View style={[style, {
+    position: 'absolute',
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor: color,
+    opacity: 0.05,
+    transform: [{ scale: 1.5 }],
+  }]} />
+);
+
 export default function PracticeScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
   const { isDarkMode } = useTheme();
   const theme = getThemeColors(isDarkMode);
-  const gamificationContext = useGamification();
-  const gamificationStats = gamificationContext?.stats || {};
+  const gamification = useGamification();
+  const gamificationStats = gamification?.stats || {};
+
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [practiceStats, setPracticeStats] = useState(null);
@@ -40,129 +53,81 @@ export default function PracticeScreen({ navigation }) {
   });
   const [flashcardFlipped, setFlashcardFlipped] = useState(false);
 
-  const headerAnim = useRef(new Animated.Value(0)).current;
-  const cardsAnim = useRef(new Animated.Value(0)).current;
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const cardAnims = useRef([...Array(10)].map(() => new Animated.Value(0))).current;
   const flipAnimation = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   const practiceCategories = [
     {
       id: 'flashcards',
       title: 'Flashcards',
-      subtitle: 'Spaced repetition learning',
-      icon: 'albums',
-      gradient: [theme.primary, theme.primaryLight || theme.primary],
-      exercises: 42,
-      progress: 68,
+      subtitle: 'Spaced repetition',
+      icon: 'albums-outline',
+      color: theme.primary,
       onPress: () => navigation.navigate('Flashcards'),
     },
     {
       id: 'quiz',
       title: 'Quick Quiz',
-      subtitle: 'Test your knowledge',
-      icon: 'checkmark-done-circle',
-      gradient: [theme.success, theme.success + 'CC'],
-      exercises: 15,
-      progress: 45,
+      subtitle: 'Knowledge check',
+      icon: 'checkmark-done-outline',
+      color: theme.success,
       onPress: () => navigation.navigate('FreeQuiz'),
     },
     {
       id: 'speaking',
       title: 'Speaking',
-      subtitle: 'AI pronunciation coach',
-      icon: 'mic',
-      gradient: [theme.accent, theme.accent + 'CC'],
-      exercises: 8,
-      progress: 30,
+      subtitle: 'Voice coach',
+      icon: 'mic-outline',
+      color: theme.secondary,
       onPress: () => navigation.navigate('SpeakingPractice'),
     },
     {
       id: 'listening',
       title: 'Listening',
-      subtitle: 'Audio comprehension',
-      icon: 'headset',
-      gradient: [theme.info, theme.info + 'CC'],
-      exercises: 12,
-      progress: 55,
+      subtitle: 'Comprehension',
+      icon: 'headset-outline',
+      color: theme.accent,
       onPress: () => navigation.navigate('ListeningPractice'),
     },
-    {
-      id: 'writing',
-      title: 'Writing',
-      subtitle: 'Composition practice',
-      icon: 'create',
-      gradient: [theme.secondary, theme.secondaryLight || theme.secondary],
-      exercises: 6,
-      progress: 20,
-      onPress: () => navigation.navigate('WritingPractice'),
-    },
-    {
-      id: 'grammar',
-      title: 'Grammar',
-      subtitle: 'Rules & exercises',
-      icon: 'school',
-      gradient: [theme.primary, theme.primaryLight || theme.primary],
-      exercises: 20,
-      progress: 72,
-      onPress: () => navigation.navigate('GrammarDrills'),
-    },
-  ];
-
-  const wordOfTheDayCard = {
-    id: 'wordofday',
-    title: 'Word of the Day',
-    subtitle: 'Expand your vocabulary daily',
-    icon: 'sunny',
-    gradient: [theme.secondary, theme.secondaryLight || theme.secondary],
-    onPress: () => navigation.navigate('WordOfTheDay'),
-  };
-
-  const quickSessions = [
-    { id: '5min', title: '5 Min', subtitle: 'Quick review', icon: 'flash', color: theme.primary },
-    { id: '10min', title: '10 Min', subtitle: 'Focus session', icon: 'time', color: theme.success },
-    { id: '15min', title: '15 Min', subtitle: 'Deep practice', icon: 'fitness', color: theme.secondary },
-    { id: 'custom', title: 'Custom', subtitle: 'Your pace', icon: 'settings', color: theme.accent },
   ];
 
   useEffect(() => {
     loadData();
-
-    Animated.stagger(100, [
-      Animated.spring(headerAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
-      Animated.spring(cardsAnim, { toValue: 1, useNativeDriver: true, tension: 50, friction: 8 }),
-    ]).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.1, duration: 1000, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
-      ])
-    ).start();
+    startAnimations();
   }, []);
+
+  const startAnimations = () => {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
+    Animated.stagger(80, cardAnims.map(anim =>
+      Animated.spring(anim, { toValue: 1, tension: 60, friction: 9, useNativeDriver: true })
+    )).start();
+  };
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (!refreshing) setLoading(true);
       if (isAuthenticated) {
         const progressResponse = await progressAPI.getDashboard().catch(() => null);
         if (progressResponse?.data?.data) {
           const dashboardData = progressResponse.data.data;
           setPracticeStats({
             wordsLearned: 245,
-            practiceStreak: gamificationStats?.streak || 7,
+            streak: gamificationStats?.streak || 0,
             accuracy: 87,
-            totalPractice: dashboardData.totalLessonsCompleted || 156,
-            timeSpent: formatStudyTime(dashboardData.totalTimeSpent || 3600),
-            xpEarned: gamificationStats?.xp || 2450,
+            totalPractice: dashboardData.totalLessonsCompleted || 0,
+            timeSpent: formatStudyTime(dashboardData.totalTimeSpent || 0),
+            xpEarned: gamificationStats?.xp || 0,
           });
         } else {
           setPracticeStats({
-            wordsLearned: 245,
-            practiceStreak: 7,
-            accuracy: 87,
-            totalPractice: 156,
-            timeSpent: '12h 30m',
-            xpEarned: 2450,
+            wordsLearned: 124,
+            streak: gamificationStats?.streak || 0,
+            accuracy: 82,
+            totalPractice: 12,
+            timeSpent: '2h 15m',
+            xpEarned: gamificationStats?.xp || 0,
           });
         }
       }
@@ -206,105 +171,93 @@ export default function PracticeScreen({ navigation }) {
     outputRange: ['180deg', '360deg'],
   });
 
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 80, 120],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
+
   if (loading && !refreshing) {
     return <LoadingSpinner />;
   }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
+      <BackgroundBlur style={{ top: -100, left: -50 }} color={theme.secondary} size={400} />
+      <BackgroundBlur style={{ bottom: 100, right: -100 }} color={theme.primary} size={350} />
+
+      {/* Floating Navigation Bar */}
       <Animated.View
         style={[
-          styles.headerWrapper,
+          styles.floatingNavBar,
           {
-            opacity: headerAnim,
-            transform: [{ translateY: headerAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }],
-          },
+            backgroundColor: theme.surface + 'F8',
+            opacity: headerOpacity,
+            borderBottomColor: theme.border,
+          }
         ]}
       >
-        <LinearGradient
-          colors={theme.heroGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          <View style={styles.headerDecor}>
-            <View style={[styles.decorCircle, styles.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.08)' }]} />
-            <View style={[styles.decorCircle, styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
-          </View>
-
-          <View style={styles.headerContent}>
-            <View style={styles.headerTopRow}>
-              <View style={styles.headerTitleSection}>
-                <Text style={[styles.headerBadgeText, { color: theme.secondary }]}>PRACTICE</Text>
-                <Text style={styles.headerTitle}>Training Center</Text>
-                <Text style={styles.headerSubtitle}>Master French with daily practice</Text>
-              </View>
-
-              {practiceStats && (
-                <Animated.View style={[styles.streakContainer, { transform: [{ scale: pulseAnim }] }]}>
-                  <LinearGradient
-                    colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
-                    style={styles.streakBadge}
-                  >
-                    <Ionicons name="flame" size={18} color="#FFFFFF" />
-                    <Text style={styles.streakNumber}>{practiceStats.practiceStreak}</Text>
-                    <Text style={styles.streakLabel}>Day Streak</Text>
-                  </LinearGradient>
-                </Animated.View>
-              )}
-            </View>
-
-            <View style={styles.statsPillsRow}>
-              <View style={[styles.statPill, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                <Ionicons name="book-outline" size={16} color="#FFFFFF" />
-                <Text style={styles.statPillValue}>{practiceStats?.wordsLearned || 0}</Text>
-                <Text style={styles.statPillLabel}>Words</Text>
-              </View>
-              <View style={[styles.statPill, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                <Ionicons name="checkmark-circle-outline" size={16} color="#FFFFFF" />
-                <Text style={styles.statPillValue}>{practiceStats?.accuracy || 0}%</Text>
-                <Text style={styles.statPillLabel}>Accuracy</Text>
-              </View>
-              <View style={[styles.statPill, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
-                <Ionicons name="star-outline" size={16} color="#FFFFFF" />
-                <Text style={styles.statPillValue}>{practiceStats?.xpEarned || 0}</Text>
-                <Text style={styles.statPillLabel}>XP</Text>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
+        <View style={styles.navBarContent}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={24} color={theme.text} />
+          </TouchableOpacity>
+          <Text style={[styles.navTitle, { color: theme.text }]}>Training Center</Text>
+          <View style={{ width: 24 }} />
+        </View>
       </Animated.View>
 
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
         }
         showsVerticalScrollIndicator={false}
       >
+        {/* Hero Header */}
+        <Animated.View style={[styles.hero, { opacity: fadeAnim }]}>
+          <Text style={[styles.heroBadge, { color: theme.secondary }]}>PRACTICE</Text>
+          <Text style={[styles.heroTitle, { color: theme.text }]}>Training Center</Text>
+          <Text style={[styles.heroSubtitle, { color: theme.textSecondary }]}>Sharpen your skills with daily drills</Text>
+        </Animated.View>
 
-        <Animated.View
-          style={[
-            styles.challengeSection,
-            {
-              opacity: cardsAnim,
-              transform: [{ translateY: cardsAnim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
-            },
-          ]}
-        >
-          <View style={[styles.dailyChallengeCard, { backgroundColor: theme.surface }, themeShadows.lg]}>
+        {/* Stats Summary */}
+        <Animated.View style={[styles.statsRow, { opacity: cardAnims[0], transform: [{ translateY: cardAnims[0].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
+          <View style={[styles.statItem, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}>
+            <Text style={[styles.statValue, { color: theme.text }]}>{practiceStats?.wordsLearned || '0'}</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Words Learned</Text>
+          </View>
+          <View style={[styles.statItem, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}>
+            <Text style={[styles.statValue, { color: theme.text }]}>{practiceStats?.accuracy || '0'}%</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Avg Accuracy</Text>
+          </View>
+        </Animated.View>
+
+        {/* Daily Challenge */}
+        <Animated.View style={[styles.section, { opacity: cardAnims[1], transform: [{ translateY: cardAnims[1].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }]}>
+          <View style={[styles.challengeCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}>
+            <LinearGradient
+              colors={[theme.secondary + '10', 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
             <View style={styles.challengeHeader}>
-              <View style={[styles.challengeIcon, { backgroundColor: theme.secondary + '20' }]}>
-                <Ionicons name="flag" size={24} color={theme.secondary} />
+              <View style={[styles.challengeIcon, { backgroundColor: theme.secondary + '15' }]}>
+                <Ionicons name="flag" size={22} color={theme.secondary} />
               </View>
               <View style={styles.challengeInfo}>
-                <Text style={[styles.challengeLabel, { color: theme.secondary }]}>DAILY CHALLENGE</Text>
-                <Text style={[styles.challengeTitle, { color: theme.text }]}>Complete 5 Practice Sessions</Text>
+                <Text style={[styles.challengeBadge, { color: theme.secondary }]}>DAILY CHALLENGE</Text>
+                <Text style={[styles.challengeTitle, { color: theme.text }]}>Complete 5 Drills Today</Text>
               </View>
-              <View style={[styles.challengeReward, { backgroundColor: theme.secondary + '15' }]}>
-                <Text style={[styles.challengeXP, { color: theme.secondary }]}>+100 XP</Text>
+              <View style={[styles.rewardBadge, { backgroundColor: theme.secondary + '15' }]}>
+                <Text style={[styles.rewardText, { color: theme.secondary }]}>+100 XP</Text>
               </View>
             </View>
             <View style={styles.challengeProgress}>
@@ -316,48 +269,47 @@ export default function PracticeScreen({ navigation }) {
                   style={[styles.progressFill, { width: '60%' }]}
                 />
               </View>
-              <Text style={[styles.progressText, { color: theme.textSecondary }]}>3 of 5 completed</Text>
+              <Text style={[styles.progressLabel, { color: theme.textSecondary }]}>3 of 5 completed</Text>
             </View>
           </View>
         </Animated.View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Sessions</Text>
+        {/* Training Modes Grid */}
+        <Animated.View style={[styles.section, { opacity: cardAnims[2], transform: [{ translateY: cardAnims[2].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }]}>
+          <View style={styles.sectionTitleRow}>
+            <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Training Modes</Text>
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.quickSessionsScroll}
-          >
-            {quickSessions.map((session) => (
+          <View style={styles.modesGrid}>
+            {practiceCategories.map((mode, idx) => (
               <TouchableOpacity
-                key={session.id}
-                style={[styles.quickSessionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
-                onPress={() => navigation.navigate('Flashcards', { duration: session.id })}
-                activeOpacity={0.85}
+                key={idx}
+                style={[styles.modeCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}
+                onPress={mode.onPress}
               >
-                <View style={[styles.quickSessionIcon, { backgroundColor: session.color + '15' }]}>
-                  <Ionicons name={session.icon} size={20} color={session.color} />
+                <View style={[styles.modeIcon, { backgroundColor: mode.color + '15' }]}>
+                  <Ionicons name={mode.icon} size={24} color={mode.color} />
                 </View>
-                <Text style={[styles.quickSessionTitle, { color: theme.text }]}>{session.title}</Text>
-                <Text style={[styles.quickSessionSubtitle, { color: theme.textSecondary }]}>{session.subtitle}</Text>
+                <Text style={[styles.modeTitle, { color: theme.text }]}>{mode.title}</Text>
+                <Text style={[styles.modeSubtitle, { color: theme.textSecondary }]}>{mode.subtitle}</Text>
+                <View style={styles.modeArrow}>
+                  <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+                </View>
               </TouchableOpacity>
             ))}
-          </ScrollView>
-        </View>
+          </View>
+        </Animated.View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Word of the Day</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Flashcards')}>
-              <Text style={[styles.seeAllText, { color: theme.primary }]}>View All</Text>
-            </TouchableOpacity>
+        {/* Word of the Day / Flashcard Preview */}
+        <Animated.View style={[styles.section, { opacity: cardAnims[3], transform: [{ translateY: cardAnims[3].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }]}>
+          <View style={styles.sectionTitleRow}>
+            <View style={[styles.titleAccent, { backgroundColor: theme.accent }]} />
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Daily Focus</Text>
           </View>
           <TouchableOpacity
-            style={[styles.flashcardPreview, { backgroundColor: theme.surface }, themeShadows.lg]}
+            style={[styles.flashcardContainer, themeShadows.lg]}
             onPress={handleFlashcardFlip}
-            activeOpacity={0.95}
+            activeOpacity={0.9}
           >
             <LinearGradient
               colors={[theme.primary, theme.primaryLight || theme.primary]}
@@ -365,208 +317,56 @@ export default function PracticeScreen({ navigation }) {
               end={{ x: 1, y: 1 }}
               style={styles.flashcardGradient}
             >
-              <View style={[styles.flashcardMasteryBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                <Ionicons name="star" size={12} color="#FFFFFF" />
-                <Text style={styles.flashcardMasteryText}>{currentFlashcard.mastery}% Mastered</Text>
+              <View style={styles.flashcardHeader}>
+                <View style={styles.flashcardBadge}>
+                  <Ionicons name="star" size={12} color="#FFFFFF" />
+                  <Text style={styles.flashcardBadgeText}>{currentFlashcard.mastery}% Mastered</Text>
+                </View>
               </View>
 
-              <Animated.View style={[styles.flashcardFront, { transform: [{ rotateY: frontInterpolate }] }]}>
-                <Text style={styles.flashcardWord}>{currentFlashcard.word}</Text>
-                <View style={styles.flashcardHint}>
+              <Animated.View style={[styles.cardSide, { transform: [{ rotateY: frontInterpolate }] }]}>
+                <Text style={styles.wordText}>{currentFlashcard.word}</Text>
+                <View style={styles.hintWrap}>
                   <Ionicons name="repeat" size={16} color="rgba(255,255,255,0.7)" />
-                  <Text style={styles.flashcardHintText}>Tap to reveal</Text>
+                  <Text style={styles.hintText}>Tap to reveal translation</Text>
                 </View>
               </Animated.View>
 
-              <Animated.View style={[styles.flashcardBack, { transform: [{ rotateY: backInterpolate }] }]}>
-                <Text style={styles.flashcardTranslation}>{currentFlashcard.translation}</Text>
-                <Text style={styles.flashcardExample}>"{currentFlashcard.example}"</Text>
+              <Animated.View style={[styles.cardSide, styles.cardBack, { transform: [{ rotateY: backInterpolate }] }]}>
+                <Text style={styles.translationText}>{currentFlashcard.translation}</Text>
+                <Text style={styles.exampleText}>"{currentFlashcard.example}"</Text>
               </Animated.View>
             </LinearGradient>
-
-            <View style={styles.flashcardActions}>
-              <TouchableOpacity style={[styles.flashcardBtn, { backgroundColor: theme.error + '15' }]}>
-                <Ionicons name="close" size={20} color={theme.error} />
-                <Text style={[styles.flashcardBtnText, { color: theme.error }]}>Again</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.flashcardBtn, { backgroundColor: theme.secondary + '15' }]}>
-                <Ionicons name="time" size={20} color={theme.secondary} />
-                <Text style={[styles.flashcardBtnText, { color: theme.secondary }]}>Hard</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.flashcardBtn, { backgroundColor: theme.success + '15' }]}>
-                <Ionicons name="checkmark" size={20} color={theme.success} />
-                <Text style={[styles.flashcardBtnText, { color: theme.success }]}>Good</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.flashcardBtn, { backgroundColor: theme.primary + '15' }]}>
-                <Ionicons name="flash" size={20} color={theme.primary} />
-                <Text style={[styles.flashcardBtnText, { color: theme.primary }]}>Easy</Text>
-              </TouchableOpacity>
-            </View>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
-        <TouchableOpacity
-          style={[styles.wordOfDayCard, themeShadows.lg]}
-          onPress={wordOfTheDayCard.onPress}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.wordOfDayGradient}
-          >
-            <View style={styles.wordOfDayDecor1} />
-            <View style={styles.wordOfDayDecor2} />
-            <View style={styles.wordOfDayContent}>
-              <View style={styles.wordOfDayLeft}>
-                <View style={styles.wordOfDayIconWrap}>
-                  <Ionicons name="sunny" size={28} color="#FFFFFF" />
-                </View>
-                <View>
-                  <Text style={styles.wordOfDayTitle}>Word of the Day</Text>
-                  <Text style={styles.wordOfDaySubtitle}>Learn a new word daily</Text>
-                </View>
-              </View>
-              <View style={styles.wordOfDayArrow}>
-                <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
-              </View>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Practice Modes</Text>
-          </View>
-          <View style={styles.categoriesGrid}>
-            {practiceCategories.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={[styles.categoryCard, { backgroundColor: theme.surface }, themeShadows.md]}
-                onPress={category.onPress}
-                activeOpacity={0.85}
-              >
-                <LinearGradient
-                  colors={category.gradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.categoryIcon}
-                >
-                  <Ionicons name={category.icon} size={26} color="#FFFFFF" />
-                </LinearGradient>
-                <View style={styles.categoryContent}>
-                  <Text style={[styles.categoryTitle, { color: theme.text }]}>{category.title}</Text>
-                  <Text style={[styles.categorySubtitle, { color: theme.textSecondary }]}>{category.subtitle}</Text>
-                  <View style={styles.categoryMeta}>
-                    <Text style={[styles.categoryExercisesText, { color: category.gradient[0] }]}>
-                      {category.exercises} exercises
-                    </Text>
-                    <View style={[styles.categoryProgress, { backgroundColor: theme.border }]}>
-                      <View
-                        style={[
-                          styles.categoryProgressFill,
-                          { width: `${category.progress}%`, backgroundColor: category.gradient[0] }
-                        ]}
-                      />
-                    </View>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {isAuthenticated && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent Achievements</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-                <Text style={[styles.seeAllText, { color: theme.primary }]}>View All</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.achievementsScroll}
-            >
-              <AchievementCard
-                title="Practice Master"
-                subtitle="50 sessions done"
-                icon="medal"
-                gradient={[theme.secondary, theme.secondaryLight || theme.secondary]}
-                theme={theme}
-              />
-              <AchievementCard
-                title="Streak Keeper"
-                subtitle="7 day streak"
-                icon="flame"
-                gradient={[theme.error, theme.error + 'CC']}
-                theme={theme}
-              />
-              <AchievementCard
-                title="Vocabulary Pro"
-                subtitle="200+ words"
-                icon="library"
-                gradient={[theme.primary, theme.primaryLight || theme.primary]}
-                theme={theme}
-              />
-              <AchievementCard
-                title="Perfect Score"
-                subtitle="100% accuracy"
-                icon="trophy"
-                gradient={[theme.success, theme.success + 'CC']}
-                theme={theme}
-              />
-            </ScrollView>
-          </View>
-        )}
-
-        <View style={styles.section}>
+        {/* Achievement Highlight */}
+        <Animated.View style={[styles.section, { opacity: cardAnims[4], transform: [{ translateY: cardAnims[4].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }] }]}>
           <TouchableOpacity
-            style={[styles.motivationBanner, themeShadows.lg]}
-            onPress={() => navigation.navigate('Flashcards')}
-            activeOpacity={0.9}
+            style={[styles.banner, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}
+            onPress={() => navigation.navigate('Profile')}
           >
             <LinearGradient
-              colors={[theme.primary, theme.primaryLight || theme.primary]}
+              colors={[theme.success + '10', 'transparent']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.motivationBannerGradient}
-            >
-              <View style={styles.motivationContent}>
-                <View style={styles.motivationIcon}>
-                  <Ionicons name="rocket" size={28} color="#FFFFFF" />
-                </View>
-                <View style={styles.motivationText}>
-                  <Text style={styles.motivationTitle}>Keep Up the Great Work!</Text>
-                  <Text style={styles.motivationSubtitle}>
-                    You're making amazing progress. Just 2 more sessions to reach your daily goal!
-                  </Text>
-                </View>
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.bannerContent}>
+              <View style={[styles.bannerIcon, { backgroundColor: theme.success + '15' }]}>
+                <Ionicons name="trophy" size={24} color={theme.success} />
               </View>
-              <View style={styles.motivationArrow}>
-                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+              <View style={styles.bannerInfo}>
+                <Text style={[styles.bannerTitle, { color: theme.text }]}>Practice Master</Text>
+                <Text style={[styles.bannerSubtitle, { color: theme.textSecondary }]}>You've completed 50 practice sessions!</Text>
               </View>
-            </LinearGradient>
+              <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+            </View>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
-        <View style={{ height: 120 }} />
-      </ScrollView>
-    </View>
-  );
-}
-
-function AchievementCard({ title, subtitle, icon, gradient, theme }) {
-  return (
-    <View style={[styles.achievementCard, { backgroundColor: theme.surface }, themeShadows.sm]}>
-      <LinearGradient colors={gradient} style={styles.achievementIcon}>
-        <Ionicons name={icon} size={22} color="#FFFFFF" />
-      </LinearGradient>
-      <Text style={[styles.achievementTitle, { color: theme.text }]}>{title}</Text>
-      <Text style={[styles.achievementSubtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
+        <View style={{ height: 100 }} />
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -575,166 +375,136 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerWrapper: {
-    zIndex: 10,
-  },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    overflow: 'hidden',
-  },
-  headerDecor: {
+  floatingNavBar: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
+    height: Platform.OS === 'ios' ? 100 : 80,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    zIndex: 100,
+    borderBottomWidth: 1,
   },
-  decorCircle: {
-    position: 'absolute',
-    borderRadius: 999,
-  },
-  decorCircle1: {
-    width: 200,
-    height: 200,
-    top: -50,
-    right: -50,
-  },
-  decorCircle2: {
-    width: 150,
-    height: 150,
-    bottom: -30,
-    left: -30,
-  },
-  headerContent: {
-    zIndex: 1,
-  },
-  headerTopRow: {
+  navBarContent: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 18,
+    paddingHorizontal: 20,
+    height: 50,
   },
-  headerTitleSection: {
-    flex: 1,
-  },
-  headerBadgeText: {
-    fontSize: 11,
+  navTitle: {
+    fontSize: 17,
     fontWeight: '700',
-    letterSpacing: 1.2,
-    marginBottom: 4,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  streakContainer: {
-    marginLeft: 12,
-  },
-  streakBadge: {
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 16,
-    minWidth: 70,
-  },
-  streakNumber: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginTop: 2,
-  },
-  streakLabel: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statsPillsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  statPill: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 14,
-    gap: 6,
-  },
-  statPillValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  statPillLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.7)',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 20,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 22,
   },
-  challengeSection: {
+  hero: {
+    marginTop: 20,
     marginBottom: 24,
   },
-  dailyChallengeCard: {
-    borderRadius: 18,
-    padding: 18,
+  heroBadge: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: 6,
+  },
+  heroTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  heroSubtitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 32,
+  },
+  statItem: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  section: {
+    marginBottom: 32,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  titleAccent: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  challengeCard: {
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
   challengeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
     gap: 12,
   },
   challengeIcon: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: 14,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   challengeInfo: {
     flex: 1,
   },
-  challengeLabel: {
+  challengeBadge: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 1,
     marginBottom: 2,
   },
   challengeTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
   },
-  challengeReward: {
+  rewardBadge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
   },
-  challengeXP: {
-    fontSize: 13,
-    fontWeight: '700',
+  rewardText: {
+    fontSize: 12,
+    fontWeight: '800',
   },
   challengeProgress: {
-    gap: 6,
+    gap: 8,
   },
   progressTrack: {
     height: 8,
@@ -745,322 +515,146 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 4,
   },
-  progressText: {
+  progressLabel: {
     fontSize: 12,
-    fontWeight: '500',
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  seeAllText: {
-    fontSize: 14,
     fontWeight: '600',
   },
-  quickSessionsScroll: {
-    gap: 10,
-  },
-  quickSessionCard: {
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 16,
-    borderWidth: 1,
-    minWidth: 100,
-  },
-  quickSessionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  quickSessionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  quickSessionSubtitle: {
-    fontSize: 10,
-    fontWeight: '500',
-  },
-  flashcardPreview: {
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  flashcardGradient: {
-    padding: 28,
-    minHeight: 180,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  flashcardMasteryBadge: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
+  modesGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  flashcardMasteryText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  flashcardFront: {
-    alignItems: 'center',
-    backfaceVisibility: 'hidden',
-  },
-  flashcardBack: {
-    position: 'absolute',
-    alignItems: 'center',
-    backfaceVisibility: 'hidden',
-  },
-  flashcardWord: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 10,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  flashcardTranslation: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 10,
-    textAlign: 'center',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  flashcardExample: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
-  },
-  flashcardHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  flashcardHintText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  flashcardActions: {
-    flexDirection: 'row',
-    padding: 14,
-    gap: 8,
-  },
-  flashcardBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 4,
-  },
-  flashcardBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  categoriesGrid: {
-    gap: 10,
-  },
-  categoryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 18,
-    gap: 14,
-  },
-  categoryIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  categoryContent: {
-    flex: 1,
-  },
-  categoryTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  categorySubtitle: {
-    fontSize: 13,
-    marginBottom: 8,
-  },
-  categoryMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  categoryExercisesText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  categoryProgress: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  categoryProgressFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  achievementsScroll: {
+    flexWrap: 'wrap',
     gap: 12,
   },
-  achievementCard: {
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 16,
-    width: 120,
+  modeCard: {
+    width: (width - 56) / 2,
+    padding: 16,
+    borderRadius: 22,
+    borderWidth: 1,
+    position: 'relative',
   },
-  achievementIcon: {
+  modeIcon: {
     width: 48,
     height: 48,
     borderRadius: 16,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  achievementTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  achievementSubtitle: {
-    fontSize: 10,
-    textAlign: 'center',
-  },
-  motivationBanner: {
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  motivationBannerGradient: {
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  motivationContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 14,
-  },
-  motivationIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  motivationText: {
-    flex: 1,
-  },
-  motivationTitle: {
+  modeTitle: {
     fontSize: 16,
     fontWeight: '700',
+    marginBottom: 4,
+  },
+  modeSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 16,
+    marginBottom: 8,
+  },
+  modeArrow: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  flashcardContainer: {
+    borderRadius: 28,
+    overflow: 'hidden',
+    height: 220,
+  },
+  flashcardGradient: {
+    flex: 1,
+    padding: 24,
+  },
+  flashcardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 20,
+  },
+  flashcardBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 4,
+  },
+  flashcardBadgeText: {
     color: '#FFFFFF',
-    marginBottom: 2,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontSize: 11,
+    fontWeight: '800',
   },
-  motivationSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-    lineHeight: 18,
-  },
-  motivationArrow: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+  cardSide: {
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
+    backfaceVisibility: 'hidden',
   },
-  wordOfDayCard: {
-    marginBottom: 24,
-    borderRadius: 18,
-    overflow: 'hidden',
-  },
-  wordOfDayGradient: {
-    padding: 18,
-    overflow: 'hidden',
-  },
-  wordOfDayDecor1: {
+  cardBack: {
     position: 'absolute',
-    top: -30,
-    right: -30,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 24,
   },
-  wordOfDayDecor2: {
-    position: 'absolute',
-    bottom: -20,
-    left: -20,
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+  wordText: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 12,
   },
-  wordOfDayContent: {
+  hintWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 8,
   },
-  wordOfDayLeft: {
+  hintText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  translationText: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  exampleText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 15,
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  banner: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 16,
+    overflow: 'hidden',
+  },
+  bannerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 16,
   },
-  wordOfDayIconWrap: {
+  bannerIcon: {
     width: 52,
     height: 52,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  wordOfDayTitle: {
-    fontSize: 17,
+  bannerInfo: {
+    flex: 1,
+  },
+  bannerTitle: {
+    fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
     marginBottom: 2,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
-  wordOfDaySubtitle: {
+  bannerSubtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-  },
-  wordOfDayArrow: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    fontWeight: '500',
   },
 });

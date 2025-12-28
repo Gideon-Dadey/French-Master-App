@@ -1183,52 +1183,54 @@ const seedData = async () => {
       }
     }
 
-    // Define lessons for each course to make them look "productive"
-    const sampleVideoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+    // Define real educational video URLs
+    const frenchInActionBase = 'https://archive.org/download/french_in_action/French%20in%20Action%20';
+    const englishLessonBase = 'https://archive.org/download/free-tutorials-us.com-udemy-intensive-english-language-course-beginner-level-english/Intensive%20English%20lesson%20';
+
     const courseLessonsData = {
       'FRENCH COURSE A1-A2': [
-        { title: 'Introduction to French Phonetics', description: 'Master the basic sounds and pronunciation of the French language.', videoUrl: sampleVideoUrl, videoDuration: 900, order: 1 },
-        { title: 'Greetings and Basic Introductions', description: 'Learn how to greet people and introduce yourself in various social settings.', videoUrl: sampleVideoUrl, videoDuration: 1200, order: 2 },
-        { title: 'The French Alphabet & Accents', description: 'Deep dive into the French alphabet, special characters, and essential accents.', videoUrl: sampleVideoUrl, videoDuration: 720, order: 3 },
-        { title: 'Numbers, Colors and Basic Nouns', description: 'Building your foundational vocabulary with everyday items and numbers.', videoUrl: sampleVideoUrl, videoDuration: 1080, order: 4 },
-        { title: 'Present Tense of Regular Verbs', description: 'Understanding the mechanics of -er, -ir, and -re regular verbs in the present tense.', videoUrl: sampleVideoUrl, videoDuration: 1500, order: 5 },
+        { title: 'Introduction to French Phonetics', description: 'Master the basic sounds and pronunciation of the French language.', videoUrl: `${frenchInActionBase}01%20Orientation.mp4`, videoDuration: 1800, order: 1 },
+        { title: 'Greetings and Basic Introductions', description: 'Learn how to greet people and introduce yourself in various social settings.', videoUrl: `${frenchInActionBase}02%20Planning%20and%20Anticipating%20I.mp4`, videoDuration: 1800, order: 2 },
+        { title: 'The French Alphabet & Accents', description: 'Deep dive into the French alphabet, special characters, and essential accents.', videoUrl: `${frenchInActionBase}03%20Planning%20and%20Anticipating%20II.mp4`, videoDuration: 1800, order: 3 },
+        { title: 'Numbers, Colors and Basic Nouns', description: 'Building your foundational vocabulary with everyday items and numbers.', videoUrl: `${frenchInActionBase}04%20Planning%20and%20Anticipating%20III.mp4`, videoDuration: 1800, order: 4 },
+        { title: 'Present Tense of Regular Verbs', description: 'Understanding the mechanics of -er, -ir, and -re regular verbs in the present tense.', videoUrl: `${frenchInActionBase}05%20Names%20and%20Origins.mp4`, videoDuration: 1800, order: 5 },
       ],
       'FRENCH COURSE B1-B2': [
-        { title: 'Mastering the Subjunctive Mood', description: 'Exploring the complexities of the subjonctif for doubt, necessity, and emotion.', videoUrl: sampleVideoUrl, videoDuration: 1800, order: 1 },
-        { title: 'Advanced Relative Pronouns', description: 'Mastering "dont", "lequel", "auquel" and "duquel" in formal French.', videoUrl: sampleVideoUrl, videoDuration: 1320, order: 2 },
-        { title: 'The Passive Voice in French', description: 'Le Passif: when to use it and how to construct it correctly.', videoUrl: sampleVideoUrl, videoDuration: 1140, order: 3 },
-        { title: 'French for Debates and Discussions', description: 'Key expressions and structures for articulating complex arguments.', videoUrl: sampleVideoUrl, videoDuration: 1620, order: 4 },
+        { title: 'Mastering the Subjunctive Mood', description: 'Exploring the complexities of the subjonctif for doubt, necessity, and emotion.', videoUrl: `${frenchInActionBase}06%20Physical%20Characteristics%20I.mp4`, videoDuration: 1800, order: 1 },
+        { title: 'Advanced Relative Pronouns', description: 'Mastering "dont", "lequel", "auquel" and "duquel" in formal French.', videoUrl: `${frenchInActionBase}07%20Physical%20Characteristics%20II.mp4`, videoDuration: 1800, order: 2 },
+        { title: 'The Passive Voice in French', description: 'Le Passif: when to use it and how to construct it correctly.', videoUrl: `${frenchInActionBase}08%20Kinship.mp4`, videoDuration: 1800, order: 3 },
+        { title: 'French for Debates and Discussions', description: 'Key expressions and structures for articulating complex arguments.', videoUrl: `${frenchInActionBase}09%20Describing%20Others%20I.mp4`, videoDuration: 1800, order: 4 },
       ],
       'COURS D\'ANGLAIS A1-A2': [
-        { title: 'The English Verb "To Be"', description: 'Foundational grammar: am, is, are and their past forms.', videoUrl: sampleVideoUrl, videoDuration: 900, order: 1 },
-        { title: 'Essential Everyday Vocabulary', description: '500 most common words for daily survival in an English environment.', videoUrl: sampleVideoUrl, videoDuration: 1200, order: 2 },
-        { title: 'Basic Sentence Structuring', description: 'Mastering the Subject-Verb-Object pattern in English.', videoUrl: sampleVideoUrl, videoDuration: 1020, order: 3 },
+        { title: 'The English Verb "To Be"', description: 'Foundational grammar: am, is, are and their past forms.', videoUrl: `${englishLessonBase}1.mp4`, videoDuration: 900, order: 1 },
+        { title: 'Essential Everyday Vocabulary', description: '500 most common words for daily survival in an English environment.', videoUrl: `${englishLessonBase}2.mp4`, videoDuration: 1200, order: 2 },
+        { title: 'Basic Sentence Structuring', description: 'Mastering the Subject-Verb-Object pattern in English.', videoUrl: `${englishLessonBase}3.mp4`, videoDuration: 1020, order: 3 },
       ],
       'Business French for Professionals': [
-        { title: 'Professional Email Etiquette', description: 'How to write formal business emails and correspondences in French.', videoUrl: sampleVideoUrl, videoDuration: 1440, order: 1 },
-        { title: 'Negotiation Tactics and Phrases', description: 'Strategic language for winning business negotiations in a French context.', videoUrl: sampleVideoUrl, videoDuration: 2100, order: 2 },
-        { title: 'Presenting in French', description: 'Structuring and delivering powerful business presentations.', videoUrl: sampleVideoUrl, videoDuration: 1800, order: 3 },
+        { title: 'Professional Email Etiquette', description: 'How to write formal business emails and correspondences in French.', videoUrl: `${frenchInActionBase}10%20Describing%20Others%20II.mp4`, videoDuration: 1800, order: 1 },
+        { title: 'Negotiation Tactics and Phrases', description: 'Strategic language for winning business negotiations in a French context.', videoUrl: `${frenchInActionBase}11%20Activities%20I.mp4`, videoDuration: 1800, order: 2 },
+        { title: 'Presenting in French', description: 'Structuring and delivering powerful business presentations.', videoUrl: `${frenchInActionBase}12%20Activities%20II.mp4`, videoDuration: 1800, order: 3 },
       ],
       'DELF A1 Exam Preparation - Complete Mastery': [
-        { title: 'DELF A1: Listening Strategies', description: 'Techniques for maximizing your score in the auditory component.', videoUrl: sampleVideoUrl, videoDuration: 1200, order: 1 },
-        { title: 'Mastering the Oral Interview', description: 'How to approach the speaking test with confidence and clarity.', videoUrl: sampleVideoUrl, videoDuration: 1500, order: 2 },
-        { title: 'Mock Exam: Reading & Writing', description: 'Timed practice for the written sections of the DELF A1 exam.', videoUrl: sampleVideoUrl, videoDuration: 2400, order: 3 },
+        { title: 'DELF A1: Listening Strategies', description: 'Techniques for maximizing your score in the auditory component.', videoUrl: `${frenchInActionBase}13%20Food%20I.mp4`, videoDuration: 1800, order: 1 },
+        { title: 'Mastering the Oral Interview', description: 'How to approach the speaking test with confidence and clarity.', videoUrl: `${frenchInActionBase}14%20Food%20II.mp4`, videoDuration: 1800, order: 2 },
+        { title: 'Mock Exam: Reading & Writing', description: 'Timed practice for the written sections of the DELF A1 exam.', videoUrl: `${frenchInActionBase}15%20Food%20III.mp4`, videoDuration: 1800, order: 3 },
       ],
       'French Video Masterclass: Visual Immersion': [
-        { title: 'Cinema Dialogue: Meeting a Friend', description: 'Watch and learn how to greet friends in a natural, cinematic setting.', videoUrl: sampleVideoUrl, videoDuration: 600, order: 1 },
-        { title: 'Visual Guide: The French Bakery', description: 'Join us on a visual tour of a boulangerie and learn how to order like a local.', videoUrl: sampleVideoUrl, videoDuration: 850, order: 2 },
-        { title: 'Street French: Asking for Directions', description: 'Real street footage of people asking and giving directions in Paris.', videoUrl: sampleVideoUrl, videoDuration: 920, order: 3 },
-        { title: 'Masterclass: Perfecting Your Accent', description: 'A deep-dive video session focusing on mouth positioning and rhythm.', videoUrl: sampleVideoUrl, videoDuration: 1200, order: 4 },
-        { title: 'Cooking Class: The Perfect French Omelet', description: 'Follow a professional chef to learn the vocabulary of the kitchen and cooking techniques.', videoUrl: sampleVideoUrl, videoDuration: 1100, order: 5 },
-        { title: 'Market Day: Visual Guide to a Parisian Marché', description: 'Learn how to identify and buy fresh produce, cheeses, and meats at a local market.', videoUrl: sampleVideoUrl, videoDuration: 950, order: 6 },
-        { title: 'Café Culture: Coffee and Conversations', description: 'Experience the atmosphere of a French café and learn common social etiquette.', videoUrl: sampleVideoUrl, videoDuration: 780, order: 7 },
-        { title: 'Museum Tour: Louvre Masterpieces', description: 'A visual journey through the Louvre with commentary on famous art pieces in French.', videoUrl: sampleVideoUrl, videoDuration: 1500, order: 8 },
-        { title: 'Fashion Walk: Parisian Chic and Styles', description: 'Discover the vocabulary of fashion and style on the streets of the world fashion capital.', videoUrl: sampleVideoUrl, videoDuration: 1020, order: 9 },
-        { title: 'Metro Navigator: Moving around Paris like a Pro', description: 'A practical video guide to using the public transport system, tickets, and maps.', videoUrl: sampleVideoUrl, videoDuration: 880, order: 10 },
-        { title: 'Pharmacy Visit: Health and Wellness Phrases', description: 'Essential communication skills for health-related situations at a French pharmacie.', videoUrl: sampleVideoUrl, videoDuration: 740, order: 11 },
-        { title: 'At the Theatre: Buying Tickets for a Play', description: 'Navigating arts and culture: how to book tickets and understand theatre etiquette.', videoUrl: sampleVideoUrl, videoDuration: 960, order: 12 },
-        { title: 'Sports Scene: A Day at Roland Garros', description: 'Experience the excitement of French sports culture through a tennis-themed lesson.', videoUrl: sampleVideoUrl, videoDuration: 1320, order: 13 },
-        { title: 'Beach Life: Summer Phrases on the Côte d\'Azur', description: 'Relaxing vocabulary for holidays, beaches, and summer activities in the South of France.', videoUrl: sampleVideoUrl, videoDuration: 1080, order: 14 },
+        { title: 'Cinema Dialogue: Meeting a Friend', description: 'Watch and learn how to greet friends in a natural, cinematic setting.', videoUrl: `${frenchInActionBase}01%20Orientation.mp4`, videoDuration: 1800, order: 1 },
+        { title: 'Visual Guide: The French Bakery', description: 'Join us on a visual tour of a boulangerie and learn how to order like a local.', videoUrl: `${frenchInActionBase}02%20Planning%20and%20Anticipating%20I.mp4`, videoDuration: 1800, order: 2 },
+        { title: 'Street French: Asking for Directions', description: 'Real street footage of people asking and giving directions in Paris.', videoUrl: `${frenchInActionBase}03%20Planning%20and%20Anticipating%20II.mp4`, videoDuration: 1800, order: 3 },
+        { title: 'Masterclass: Perfecting Your Accent', description: 'A deep-dive video session focusing on mouth positioning and rhythm.', videoUrl: `${frenchInActionBase}04%20Planning%20and%20Anticipating%20III.mp4`, videoDuration: 1800, order: 4 },
+        { title: 'Cooking Class: The Perfect French Omelet', description: 'Follow a professional chef to learn the vocabulary of the kitchen and cooking techniques.', videoUrl: `${frenchInActionBase}13%20Food%20I.mp4`, videoDuration: 1800, order: 5 },
+        { title: 'Market Day: Visual Guide to a Parisian Marché', description: 'Learn how to identify and buy fresh produce, cheeses, and meats at a local market.', videoUrl: `${frenchInActionBase}14%20Food%20II.mp4`, videoDuration: 1800, order: 6 },
+        { title: 'Café Culture: Coffee and Conversations', description: 'Experience the atmosphere of a French café and learn common social etiquette.', videoUrl: `${frenchInActionBase}15%20Food%20III.mp4`, videoDuration: 1800, order: 7 },
+        { title: 'Museum Tour: Louvre Masterpieces', description: 'A visual journey through the Louvre with commentary on famous art pieces in French.', videoUrl: `${frenchInActionBase}16%20Encounters.mp4`, videoDuration: 1800, order: 8 },
+        { title: 'Fashion Walk: Parisian Chic and Styles', description: 'Discover the vocabulary of fashion and style on the streets of the world fashion capital.', videoUrl: `${frenchInActionBase}17%20Encounters%20II.mp4`, videoDuration: 1800, order: 9 },
+        { title: 'Metro Navigator: Moving around Paris like a Pro', description: 'A practical video guide to using the public transport system, tickets, and maps.', videoUrl: `${frenchInActionBase}18%20Encounters%20III.mp4`, videoDuration: 1800, order: 10 },
+        { title: 'Pharmacy Visit: Health and Wellness Phrases', description: 'Essential communication skills for health-related situations at a French pharmacie.', videoUrl: `${frenchInActionBase}19%20Occupations.mp4`, videoDuration: 1800, order: 11 },
+        { title: 'At the Theatre: Buying Tickets for a Play', description: 'Navigating arts and culture: how to book tickets and understand theatre etiquette.', videoUrl: `${frenchInActionBase}20%20Occupations%20II.mp4`, videoDuration: 1800, order: 12 },
+        { title: 'Sports Scene: A Day at Roland Garros', description: 'Experience the excitement of French sports culture through a tennis-themed lesson.', videoUrl: `${frenchInActionBase}21%20Occupations%20III.mp4`, videoDuration: 1800, order: 13 },
+        { title: 'Beach Life: Summer Phrases on the Côte d\'Azur', description: 'Relaxing vocabulary for holidays, beaches, and summer activities in the South of France.', videoUrl: `${frenchInActionBase}22%20Occupations%20IV.mp4`, videoDuration: 1800, order: 14 },
       ],
     };
 
