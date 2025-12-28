@@ -20,7 +20,7 @@ app.use(xss());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'development' ? 10000 : 100 // increased for development
 });
 app.use('/api/', limiter);
 
@@ -115,7 +115,7 @@ const PORT = process.env.PORT || 5001;
 // Start server
 const startServer = async () => {
   const dbConnected = await connectDB();
-  
+
   // Listen on all network interfaces (0.0.0.0) to allow access from mobile devices
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);

@@ -33,7 +33,7 @@ const courseSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['french', 'english', 'exam-prep', 'business', 'conversation', 'grammar'],
+    enum: ['french', 'english', 'exam-prep', 'business', 'conversation', 'grammar', 'video-masterclass'],
     required: true
   },
   level: {

@@ -39,6 +39,7 @@ const SORT_OPTIONS = [
 
 const CATEGORIES = [
   { value: null, label: 'All Courses', icon: 'apps' },
+  { value: 'video-masterclass', label: 'Video Masterclass', icon: 'play-circle' },
   { value: 'french', label: 'French', icon: 'language' },
   { value: 'english', label: 'English', icon: 'school' },
   { value: 'exam-prep', label: 'Exam Prep', icon: 'document-text' },

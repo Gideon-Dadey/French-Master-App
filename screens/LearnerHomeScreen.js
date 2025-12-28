@@ -60,6 +60,7 @@ export default function LearnerHomeScreen({ navigation }) {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [topCourses, setTopCourses] = useState([]);
+    const [videoMasterclasses, setVideoMasterclasses] = useState([]);
     const [recentPosts, setRecentPosts] = useState([]);
     const [error, setError] = useState(null);
     const [dailyWord, setDailyWord] = useState(DAILY_WORDS[0]);
@@ -124,10 +125,12 @@ export default function LearnerHomeScreen({ navigation }) {
                 coursesAPI.getFeatured(),
                 coursesAPI.getAll({ limit: 1 }), // Get total count
                 blogAPI.getAll({ limit: 5 }),
+                coursesAPI.getAll({ category: 'video-masterclass', limit: 10 }),
             ]);
 
             let coursesData = [];
             let postsData = [];
+            let videoData = [];
             let totalCount = 0;
 
             if (results[0].status === 'fulfilled') {
@@ -142,8 +145,13 @@ export default function LearnerHomeScreen({ navigation }) {
                 postsData = results[2].value?.data?.data || [];
             }
 
+            if (results[3].status === 'fulfilled') {
+                videoData = results[3].value?.data?.data || [];
+            }
+
             setTopCourses(coursesData);
             setRecentPosts(postsData);
+            setVideoMasterclasses(videoData);
             setTotalCoursesCount(totalCount);
 
             if (results[0].status === 'rejected' && results[2].status === 'rejected') {
@@ -184,12 +192,7 @@ export default function LearnerHomeScreen({ navigation }) {
         return theme.accent;
     };
 
-    const quickActions = [
-        { id: 'courses', icon: 'book-outline', label: 'Courses', screen: 'Learn' },
-        { id: 'practice', icon: 'barbell-outline', label: 'Practice', screen: 'Practice' },
-        { id: 'flashcards', icon: 'albums-outline', label: 'Flashcards', screen: 'Flashcards' },
-        { id: 'community', icon: 'people-outline', label: 'Community', screen: 'Community' },
-    ];
+
 
     const headerOpacity = scrollY.interpolate({
         inputRange: [0, 80, 120],
@@ -415,121 +418,6 @@ export default function LearnerHomeScreen({ navigation }) {
                         </View>
                     </Animated.View>
 
-                    {/* Quick Actions */}
-                    <Animated.View style={[
-                        styles.section,
-                        {
-                            opacity: cardAnims[2],
-                            transform: [{ translateY: cardAnims[2].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
-                        },
-                    ]}>
-                        <View style={styles.sectionHeader}>
-                            <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Actions</Text>
-                        </View>
-                        <View style={styles.quickActionsGrid}>
-                            {quickActions.map((action) => (
-                                <TouchableOpacity
-                                    key={action.id}
-                                    style={[styles.quickActionCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}
-                                    onPress={() => navigation.navigate(action.screen)}
-                                    activeOpacity={0.8}
-                                >
-                                    <View style={[styles.quickActionIconBg, { backgroundColor: theme.primary + '12' }]}>
-                                        <Ionicons name={action.icon} size={24} color={theme.primary} />
-                                    </View>
-                                    <Text style={[styles.quickActionLabel, { color: theme.text }]}>{action.label}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </Animated.View>
-
-                    {/* Continue Learning */}
-                    {isAuthenticated && user?.enrolledCourses?.length > 0 && (() => {
-                        const latestEnrollment = user.enrolledCourses[user.enrolledCourses.length - 1];
-                        const course = latestEnrollment.course;
-                        if (!course) return null;
-                        const progress = latestEnrollment.progress || 0;
-
-                        return (
-                            <Animated.View style={[
-                                styles.section,
-                                {
-                                    opacity: cardAnims[3],
-                                    transform: [{ translateY: cardAnims[3].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
-                                },
-                            ]}>
-                                <View style={styles.sectionHeader}>
-                                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Continue Learning</Text>
-                                    <TouchableOpacity onPress={() => navigation.navigate('MyCourses')}>
-                                        <Text style={[styles.seeAllBtn, { color: theme.primary }]}>See All</Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                                <TouchableOpacity
-                                    style={[styles.continueCard, themeShadows.lg]}
-                                    onPress={() => {
-                                        const firstLessonId = course.lessons?.[0]?._id;
-                                        if (firstLessonId) {
-                                            navigation.navigate('Lesson', {
-                                                courseId: course._id,
-                                                lessonId: firstLessonId
-                                            });
-                                        } else {
-                                            navigation.navigate('CourseDetail', { courseId: course._id });
-                                        }
-                                    }}
-                                    activeOpacity={0.95}
-                                >
-                                    <Image
-                                        source={course.thumbnail ? { uri: course.thumbnail } : getCourseImage(course._id, 0, course.category, course.title)}
-                                        style={styles.continueImage}
-                                    />
-                                    <LinearGradient
-                                        colors={['transparent', theme.primary + '80', theme.primary + 'E6']}
-                                        style={styles.continueOverlay}
-                                    />
-
-                                    <View style={styles.playButtonContainer}>
-                                        <LinearGradient
-                                            colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
-                                            style={styles.playButton}
-                                        >
-                                            <Ionicons name="play" size={26} color="#FFFFFF" />
-                                        </LinearGradient>
-                                    </View>
-
-                                    <View style={styles.continueContent}>
-                                        <View style={styles.continueTopRow}>
-                                            <View style={[styles.continueBadge, { backgroundColor: theme.secondary }]}>
-                                                <Text style={styles.continueBadgeText}>IN PROGRESS</Text>
-                                            </View>
-                                            <View style={[styles.levelTag, { backgroundColor: getLevelColor(course.level) }]}>
-                                                <Text style={styles.levelTagText}>{course.level || 'Beginner'}</Text>
-                                            </View>
-                                        </View>
-
-                                        <Text style={styles.continueTitle} numberOfLines={2}>
-                                            {course.title}
-                                        </Text>
-
-                                        <View style={styles.continueProgress}>
-                                            <View style={styles.progressBarContainer}>
-                                                <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-                                                    <View
-                                                        style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.secondary }]}
-                                                    />
-                                                </View>
-                                                <Text style={styles.progressPercent}>{progress}%</Text>
-                                            </View>
-                                            <Text style={styles.progressHint}>
-                                                {progress === 0 ? 'Start your first lesson today!' : progress < 100 ? "Keep going! You're making great progress" : 'Course completed! Well done!'}
-                                            </Text>
-                                        </View>
-                                    </View>
-                                </TouchableOpacity>
-                            </Animated.View>
-                        );
-                    })()}
 
                     {/* Featured Courses */}
                     <Animated.View style={[
@@ -587,6 +475,79 @@ export default function LearnerHomeScreen({ navigation }) {
                             ))}
                         </ScrollView>
                     </Animated.View>
+
+                    {/* Video Masterclasses Section */}
+                    {videoMasterclasses.length > 0 && (
+                        <Animated.View style={[
+                            styles.section,
+                            {
+                                opacity: cardAnims[7],
+                                transform: [{ translateY: cardAnims[7].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+                            },
+                        ]}>
+                            <View style={styles.sectionHeader}>
+                                <View style={styles.sectionTitleRow}>
+                                    <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
+                                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Video Masterclasses</Text>
+                                </View>
+                                <TouchableOpacity onPress={() => navigation.navigate('Learn', { category: 'video-masterclass' })}>
+                                    <Text style={[styles.seeAllBtn, { color: theme.primary }]}>View All</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.coursesScroll}
+                            >
+                                {videoMasterclasses.map((course, index) => (
+                                    <TouchableOpacity
+                                        key={course._id || index}
+                                        style={[styles.courseCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}
+                                        onPress={() => navigation.navigate('CourseDetail', { courseId: course._id })}
+                                        activeOpacity={0.9}
+                                    >
+                                        <View style={styles.courseImageContainer}>
+                                            <Image
+                                                source={getCourseImage(course._id, index, course.category, course.title)}
+                                                style={styles.courseImage}
+                                            />
+                                            <View style={[styles.courseLevelBadge, { backgroundColor: getLevelColor(course.level) }]}>
+                                                <Text style={styles.courseLevelText}>{course.level || 'All'}</Text>
+                                            </View>
+                                            <View style={styles.videoBadge}>
+                                                <Ionicons name="play" size={12} color="#FFFFFF" />
+                                                <Text style={styles.videoBadgeText}>VIDEO</Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.courseInfo}>
+                                            <Text style={[styles.courseCategory, { color: theme.primary }]}>
+                                                MASTERCLASS
+                                            </Text>
+                                            <Text style={[styles.courseTitle, { color: theme.text }]} numberOfLines={2}>
+                                                {course.title}
+                                            </Text>
+                                            <View style={[styles.courseMeta, { borderTopColor: theme.border }]}>
+                                                <View style={styles.courseRating}>
+                                                    <Ionicons name="star" size={14} color={theme.secondary} />
+                                                    <Text style={[styles.courseRatingText, { color: theme.text }]}>
+                                                        {course.rating?.average?.toFixed(1) || '4.9'}
+                                                    </Text>
+                                                </View>
+                                                <View style={styles.metaDivider} />
+                                                <View style={styles.courseDuration}>
+                                                    <Ionicons name="play-circle-outline" size={14} color={theme.textSecondary} />
+                                                    <Text style={[styles.courseMetaText, { color: theme.textSecondary }]}>
+                                                        {course.duration ? `${course.duration}h` : 'Video'}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </Animated.View>
+                    )}
 
                     {/* Skill Overview */}
                     <Animated.View style={[
@@ -981,31 +942,7 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         lineHeight: 20,
     },
-    quickActionsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-    },
-    quickActionCard: {
-        width: (width - 60) / 2,
-        padding: 16,
-        borderRadius: 16,
-        borderWidth: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    quickActionIconBg: {
-        width: 42,
-        height: 42,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    quickActionLabel: {
-        fontWeight: '700',
-        flex: 1,
-    },
+
 
     missionStatus: {
         fontSize: 14,
@@ -1077,100 +1014,7 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: 3,
     },
-    continueCard: {
-        height: 240,
-        borderRadius: 26,
-        overflow: 'hidden',
-    },
-    continueImage: {
-        width: '100%',
-        height: '100%',
-        position: 'absolute',
-    },
-    continueOverlay: {
-        ...StyleSheet.absoluteFillObject,
-    },
-    playButtonContainer: {
-        position: 'absolute',
-        top: 20,
-        right: 20,
-    },
-    playButton: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    continueContent: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        padding: 22,
-    },
-    continueTopRow: {
-        flexDirection: 'row',
-        gap: 10,
-        marginBottom: 10,
-    },
-    continueBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 10,
-    },
-    continueBadgeText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: '700',
-        letterSpacing: 0.5,
-    },
-    levelTag: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 10,
-    },
-    levelTagText: {
-        color: '#FFFFFF',
-        fontSize: 10,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-    },
-    continueTitle: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: '#FFFFFF',
-        marginBottom: 14,
-        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    },
-    continueProgress: {
-        gap: 8,
-    },
-    progressBarContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    progressTrack: {
-        flex: 1,
-        height: 6,
-        borderRadius: 3,
-        overflow: 'hidden',
-    },
-    progressFill: {
-        height: '100%',
-        borderRadius: 3,
-    },
-    progressPercent: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        fontWeight: '700',
-    },
-    progressHint: {
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: 13,
-        fontWeight: '500',
-    },
+
     coursesScroll: {
         paddingRight: 22,
         gap: 16,
@@ -1342,5 +1186,47 @@ const styles = StyleSheet.create({
     decorLine: {
         width: 50,
         height: 1,
+    },
+    sectionTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    titleAccent: {
+        width: 4,
+        height: 20,
+        borderRadius: 2,
+    },
+    videoBadge: {
+        position: 'absolute',
+        bottom: 12,
+        right: 12,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        gap: 4,
+    },
+    videoBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: '800',
+    },
+    metaDivider: {
+        width: 1,
+        height: 12,
+        backgroundColor: 'rgba(0,0,0,0.1)',
+        marginHorizontal: 8,
+    },
+    courseDuration: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    courseMetaText: {
+        fontSize: 13,
+        fontWeight: '500',
     },
 });
