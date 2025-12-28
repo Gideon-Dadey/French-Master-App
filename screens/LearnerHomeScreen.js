@@ -70,7 +70,7 @@ export default function LearnerHomeScreen({ navigation }) {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(40)).current;
     const scaleAnim = useRef(new Animated.Value(0.9)).current;
-    const cardAnims = useRef([...Array(6)].map(() => new Animated.Value(0))).current;
+    const cardAnims = useRef([...Array(8)].map(() => new Animated.Value(0))).current;
 
 
 
@@ -272,9 +272,14 @@ export default function LearnerHomeScreen({ navigation }) {
 
                         <View style={styles.heroHeader}>
                             <View style={styles.headerBranding}>
-                                <View style={[styles.logoFrame, { borderColor: theme.border }]}>
-                                    <Image source={require('../assets/logo.jpeg')} style={styles.heroLogo} />
-                                </View>
+                                <LinearGradient
+                                    colors={['#3B82F6', '#8B5CF6', '#EC4899']}
+                                    style={styles.logoFrame}
+                                >
+                                    <View style={[styles.logoInner, { backgroundColor: theme.background }]}>
+                                        <Image source={require('../assets/logo.jpeg')} style={styles.heroLogo} />
+                                    </View>
+                                </LinearGradient>
                                 <View>
                                     <Text style={[styles.heroAppName, { color: theme.text }]}>L'Alliance</Text>
                                     <View style={styles.taglineRow}>
@@ -288,6 +293,40 @@ export default function LearnerHomeScreen({ navigation }) {
                                 onPress={toggleTheme}
                             >
                                 <Ionicons name={isDarkMode ? "sunny" : "moon"} size={20} color={theme.text} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Personalized Greeting */}
+                        <View style={styles.greetingSection}>
+                            <Text style={[styles.greetingSubtitle, { color: theme.textSecondary }]}>
+                                {new Date().getHours() < 12 ? 'Bonjour' : new Date().getHours() < 18 ? 'Bon après-midi' : 'Bonsoir'},
+                            </Text>
+                            <Text style={[styles.greetingTitle, { color: theme.text }]}>
+                                {user?.name?.split(' ')[0] || 'Learner'} 👋
+                            </Text>
+                        </View>
+
+                        {/* Gamification HUD */}
+                        <View style={styles.statsRow}>
+                            <TouchableOpacity style={[styles.statBadge, { backgroundColor: theme.surface }, themeShadows.sm]}>
+                                <View style={[styles.statIconBg, { backgroundColor: '#FF950015' }]}>
+                                    <Ionicons name="flame" size={18} color="#FF9500" />
+                                </View>
+                                <Text style={[styles.statText, { color: theme.text }]}>{gamificationStats.streak || 0}d</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={[styles.statBadge, { backgroundColor: theme.surface }, themeShadows.sm]}>
+                                <View style={[styles.statIconBg, { backgroundColor: '#34C75915' }]}>
+                                    <Ionicons name="flash" size={18} color="#34C759" />
+                                </View>
+                                <Text style={[styles.statText, { color: theme.text }]}>{gamificationStats.xp || 0} XP</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={[styles.statBadge, { backgroundColor: theme.surface }, themeShadows.sm]}>
+                                <View style={[styles.statIconBg, { backgroundColor: '#5856D615' }]}>
+                                    <Ionicons name="diamond" size={16} color="#5856D6" />
+                                </View>
+                                <Text style={[styles.statText, { color: theme.text }]}>{gamificationStats.diamonds || 0}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -326,12 +365,59 @@ export default function LearnerHomeScreen({ navigation }) {
                         </TouchableOpacity>
                     </Animated.View>
 
-                    {/* Quick Actions */}
+                    {/* Daily Missions */}
                     <Animated.View style={[
                         styles.section,
                         {
                             opacity: cardAnims[1],
                             transform: [{ translateY: cardAnims[1].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+                        },
+                    ]}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={[styles.sectionTitle, { color: theme.text }]}>Daily Missions</Text>
+                            <Text style={[styles.missionStatus, { color: theme.primary }]}>2/3 Done</Text>
+                        </View>
+                        <View style={styles.missionsContainer}>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.missionsScroll}>
+                                <TouchableOpacity style={[styles.missionCard, { backgroundColor: theme.surface }, themeShadows.md]}>
+                                    <View style={[styles.missionIconContainer, { backgroundColor: '#4CD96420' }]}>
+                                        <Ionicons name="checkmark-circle" size={20} color="#4CD964" />
+                                    </View>
+                                    <View>
+                                        <Text style={[styles.missionTitle, { color: theme.text }]}>Daily Lesson</Text>
+                                        <Text style={[styles.missionReward, { color: theme.secondary }]}>+50 XP</Text>
+                                    </View>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity style={[styles.missionCard, { backgroundColor: theme.surface }, themeShadows.md]}>
+                                    <View style={[styles.missionIconContainer, { backgroundColor: '#FFCC0020' }]}>
+                                        <Ionicons name="star" size={20} color="#FFCC00" />
+                                    </View>
+                                    <View>
+                                        <Text style={[styles.missionTitle, { color: theme.text }]}>Perfect Quiz</Text>
+                                        <Text style={[styles.missionReward, { color: theme.secondary }]}>+100 XP</Text>
+                                    </View>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity style={[styles.missionCard, { backgroundColor: theme.surface, opacity: 0.7 }, themeShadows.md]}>
+                                    <View style={[styles.missionIconContainer, { backgroundColor: theme.primary + '20' }]}>
+                                        <Ionicons name="people" size={20} color={theme.primary} />
+                                    </View>
+                                    <View>
+                                        <Text style={[styles.missionTitle, { color: theme.text }]}>Socialize</Text>
+                                        <Text style={[styles.missionReward, { color: theme.secondary }]}>+30 XP</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            </ScrollView>
+                        </View>
+                    </Animated.View>
+
+                    {/* Quick Actions */}
+                    <Animated.View style={[
+                        styles.section,
+                        {
+                            opacity: cardAnims[2],
+                            transform: [{ translateY: cardAnims[2].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
                         },
                     ]}>
                         <View style={styles.sectionHeader}>
@@ -359,8 +445,8 @@ export default function LearnerHomeScreen({ navigation }) {
                         <Animated.View style={[
                             styles.section,
                             {
-                                opacity: cardAnims[2],
-                                transform: [{ translateY: cardAnims[2].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+                                opacity: cardAnims[3],
+                                transform: [{ translateY: cardAnims[3].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
                             },
                         ]}>
                             <View style={styles.sectionHeader}>
@@ -430,8 +516,8 @@ export default function LearnerHomeScreen({ navigation }) {
                     <Animated.View style={[
                         styles.section,
                         {
-                            opacity: cardAnims[3],
-                            transform: [{ translateY: cardAnims[3].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+                            opacity: cardAnims[4],
+                            transform: [{ translateY: cardAnims[4].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
                         },
                     ]}>
                         <View style={styles.sectionHeader}>
@@ -486,12 +572,70 @@ export default function LearnerHomeScreen({ navigation }) {
                         </ScrollView>
                     </Animated.View>
 
+                    {/* Skill Overview */}
+                    <Animated.View style={[
+                        styles.section,
+                        {
+                            opacity: cardAnims[5],
+                            transform: [{ translateY: cardAnims[5].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+                        },
+                    ]}>
+                        <View style={styles.sectionHeader}>
+                            <Text style={[styles.sectionTitle, { color: theme.text }]}>Skill Overview</Text>
+                            <TouchableOpacity onPress={() => navigation.navigate('Achievements')}>
+                                <Text style={[styles.seeAllBtn, { color: theme.primary }]}>Stats</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <View style={[styles.skillsCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}>
+                            <View style={styles.skillRow}>
+                                <View style={styles.skillItem}>
+                                    <View style={styles.skillHeader}>
+                                        <Ionicons name="headset-outline" size={16} color={theme.primary} />
+                                        <Text style={[styles.skillName, { color: theme.textSecondary }]}>Listening</Text>
+                                    </View>
+                                    <View style={[styles.skillProgressContainer, { backgroundColor: theme.primary + '15' }]}>
+                                        <View style={[styles.skillProgressBar, { width: '65%', backgroundColor: theme.primary }]} />
+                                    </View>
+                                </View>
+                                <View style={styles.skillItem}>
+                                    <View style={styles.skillHeader}>
+                                        <Ionicons name="mic-outline" size={16} color={theme.secondary} />
+                                        <Text style={[styles.skillName, { color: theme.textSecondary }]}>Speaking</Text>
+                                    </View>
+                                    <View style={[styles.skillProgressContainer, { backgroundColor: theme.secondary + '15' }]}>
+                                        <View style={[styles.skillProgressBar, { width: '40%', backgroundColor: theme.secondary }]} />
+                                    </View>
+                                </View>
+                            </View>
+                            <View style={[styles.skillRow, { marginTop: 16 }]}>
+                                <View style={styles.skillItem}>
+                                    <View style={styles.skillHeader}>
+                                        <Ionicons name="book-outline" size={16} color="#4CD964" />
+                                        <Text style={[styles.skillName, { color: theme.textSecondary }]}>Reading</Text>
+                                    </View>
+                                    <View style={[styles.skillProgressContainer, { backgroundColor: '#4CD96415' }]}>
+                                        <View style={[styles.skillProgressBar, { width: '80%', backgroundColor: '#4CD964' }]} />
+                                    </View>
+                                </View>
+                                <View style={styles.skillItem}>
+                                    <View style={styles.skillHeader}>
+                                        <Ionicons name="create-outline" size={16} color="#FF9500" />
+                                        <Text style={[styles.skillName, { color: theme.textSecondary }]}>Writing</Text>
+                                    </View>
+                                    <View style={[styles.skillProgressContainer, { backgroundColor: '#FF950015' }]}>
+                                        <View style={[styles.skillProgressBar, { width: '55%', backgroundColor: '#FF9500' }]} />
+                                    </View>
+                                </View>
+                            </View>
+                        </View>
+                    </Animated.View>
+
                     {/* Latest Stories */}
                     <Animated.View style={[
                         styles.section,
                         {
-                            opacity: cardAnims[4],
-                            transform: [{ translateY: cardAnims[4].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+                            opacity: cardAnims[6],
+                            transform: [{ translateY: cardAnims[6].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
                         },
                     ]}>
                         <View style={styles.sectionHeader}>
@@ -539,8 +683,8 @@ export default function LearnerHomeScreen({ navigation }) {
                     <Animated.View style={[
                         styles.section,
                         {
-                            opacity: cardAnims[5],
-                            transform: [{ translateY: cardAnims[5].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+                            opacity: cardAnims[7],
+                            transform: [{ translateY: cardAnims[7].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
                         },
                     ]}>
                         <TouchableOpacity
@@ -668,14 +812,25 @@ const styles = StyleSheet.create({
         gap: 14,
     },
     logoFrame: {
-        padding: 3,
-        borderRadius: 16,
-        borderWidth: 2,
+        width: 54,
+        height: 54,
+        borderRadius: 27,
+        padding: 2,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    logoInner: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
     },
     heroLogo: {
-        width: 46,
-        height: 46,
-        borderRadius: 12,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
     },
     heroAppName: {
         fontSize: 26,
@@ -687,11 +842,49 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     themeToggle: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+
+    greetingSection: {
+        marginTop: 20,
+        marginBottom: 24,
+    },
+    greetingSubtitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    greetingTitle: {
+        fontSize: 32,
+        fontWeight: '800',
+        letterSpacing: -0.5,
+    },
+    statsRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 8,
+    },
+    statBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 16,
+        height: 48,
+        minWidth: 90,
+    },
+    statIconBg: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        marginRight: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    statText: {
+        fontSize: 14,
+        fontWeight: '700',
     },
 
     contentBody: {
@@ -794,9 +987,79 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     quickActionLabel: {
-        fontSize: 14,
         fontWeight: '700',
         flex: 1,
+    },
+
+    missionStatus: {
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    missionsContainer: {
+        marginBottom: 10,
+    },
+    missionsScroll: {
+        paddingRight: 22,
+        gap: 14,
+    },
+    missionCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 18,
+        gap: 12,
+        width: 180,
+    },
+    missionIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    missionTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+    },
+    missionReward: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 2,
+    },
+
+    skillsCard: {
+        padding: 20,
+        borderRadius: 22,
+        borderWidth: 1,
+    },
+    skillRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 20,
+    },
+    skillItem: {
+        flex: 1,
+        gap: 8,
+    },
+    skillHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    skillName: {
+        fontSize: 12,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    skillProgressContainer: {
+        height: 6,
+        borderRadius: 3,
+        overflow: 'hidden',
+    },
+    skillProgressBar: {
+        height: '100%',
+        borderRadius: 3,
     },
     continueCard: {
         height: 240,
