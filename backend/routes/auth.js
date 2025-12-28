@@ -117,7 +117,15 @@ router.post('/login', [
 router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
-      .populate('enrolledCourses.course', 'title thumbnail');
+      .populate({
+        path: 'enrolledCourses.course',
+        select: 'title thumbnail totalLessons',
+        populate: {
+          path: 'lessons',
+          select: '_id title order',
+          options: { sort: { order: 1 } }
+        }
+      });
 
     res.json({
       success: true,

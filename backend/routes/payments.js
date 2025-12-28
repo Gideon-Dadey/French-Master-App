@@ -89,6 +89,68 @@ router.post('/create-intent', protect, async (req, res) => {
   }
 });
 
+router.post('/enroll-free', protect, async (req, res) => {
+  try {
+    const { courseId } = req.body;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found'
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    const isEnrolled = user.enrolledCourses.some(
+      ec => ec.course.toString() === courseId
+    );
+
+    if (isEnrolled) {
+      return res.status(400).json({
+        success: false,
+        message: 'You are already enrolled in this course'
+      });
+    }
+
+    // Create a completed payment record for tracking
+    const payment = await Payment.create({
+      user: req.user._id,
+      course: courseId,
+      type: 'course',
+      amount: 0,
+      currency: 'GHS',
+      paymentMethod: 'free',
+      transactionId: `FREE-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      status: 'completed',
+      paidAt: new Date()
+    });
+
+    // Enroll user
+    user.enrolledCourses.push({
+      course: courseId,
+      enrolledAt: new Date()
+    });
+    await user.save();
+
+    await Course.findByIdAndUpdate(courseId, {
+      $inc: { studentsEnrolled: 1 }
+    });
+
+    res.json({
+      success: true,
+      message: 'Enrollment successful',
+      payment
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 router.post('/confirm', protect, async (req, res) => {
   try {
     const { paymentId, transactionId } = req.body;

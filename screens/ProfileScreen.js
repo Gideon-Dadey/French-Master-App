@@ -56,6 +56,7 @@ export default function ProfileScreen({ navigation }) {
   const [notifications, setNotifications] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [myCourses, setMyCourses] = useState([]);
   const [editingProfile, setEditingProfile] = useState(false);
   const [editFormData, setEditFormData] = useState({
     name: '',
@@ -99,6 +100,7 @@ export default function ProfileScreen({ navigation }) {
       if (profileResponse?.data?.data) {
         const profileData = profileResponse.data.data;
         setProfile(profileData);
+        setMyCourses(profileData.enrolledCourses || []);
         setNotifications(profileData.preferences?.notifications !== false);
         setEditFormData({
           name: profileData.name || '',
@@ -576,6 +578,74 @@ export default function ProfileScreen({ navigation }) {
             <StatCard icon="trending-up" value={`${stats.totalProgress}%`} label="Progress" color={theme.primary} theme={theme} />
           </ScrollView>
         </Animated.View>
+
+        {myCourses.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Continue Learning</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('MyCourses')}>
+                <Text style={{ color: theme.primary, fontWeight: '600' }}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.enrolledScroll}>
+              {myCourses.map((item, index) => {
+                const course = item.course;
+                if (!course) return null;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.enrolledCard, { backgroundColor: theme.surface }, themeShadows.md]}
+                    onPress={() => {
+                      const firstLessonId = course.lessons?.[0]?._id;
+                      if (firstLessonId) {
+                        navigation.navigate('Lesson', {
+                          courseId: course._id,
+                          lessonId: firstLessonId
+                        });
+                      } else {
+                        navigation.navigate('CourseDetail', { courseId: course._id });
+                      }
+                    }}
+                    activeOpacity={0.9}
+                  >
+                    <Image
+                      source={course.thumbnail ? { uri: course.thumbnail } : require('../assets/logo.jpeg')}
+                      style={styles.enrolledImage}
+                    />
+                    <View style={styles.enrolledInfo}>
+                      <Text style={[styles.enrolledTitle, { color: theme.text }]} numberOfLines={1}>
+                        {course.title}
+                      </Text>
+                      <View style={styles.progressRow}>
+                        <View style={[styles.progressBar, { backgroundColor: theme.border }]}>
+                          <View style={[styles.progressFill, { width: `${item.progress || 0}%`, backgroundColor: theme.primary }]} />
+                        </View>
+                        <Text style={[styles.progressText, { color: theme.textSecondary }]}>{item.progress || 0}%</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={[styles.resumeBtn, { backgroundColor: theme.primary + '15' }]}
+                        onPress={() => {
+                          const firstLessonId = course.lessons?.[0]?._id;
+                          if (firstLessonId) {
+                            navigation.navigate('Lesson', {
+                              courseId: course._id,
+                              lessonId: firstLessonId
+                            });
+                          } else {
+                            navigation.navigate('CourseDetail', { courseId: course._id });
+                          }
+                        }}
+                      >
+                        <Text style={[styles.resumeText, { color: theme.primary }]}>Resume</Text>
+                        <Ionicons name="play" size={10} color={theme.primary} />
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Quick Actions</Text>
@@ -1351,5 +1421,67 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  enrolledScroll: {
+    paddingLeft: 20,
+    paddingRight: 10,
+    paddingBottom: 10,
+  },
+  enrolledCard: {
+    width: 260,
+    marginRight: 15,
+    borderRadius: 20,
+    overflow: 'hidden',
+    flexDirection: 'row',
+    padding: 12,
+  },
+  enrolledImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+  },
+  enrolledInfo: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: 'space-between',
+  },
+  enrolledTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  progressBar: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: 10,
+    fontWeight: '600',
+    width: 30,
+  },
+  resumeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    gap: 4,
+  },
+  resumeText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

@@ -441,76 +441,92 @@ export default function LearnerHomeScreen({ navigation }) {
                     </Animated.View>
 
                     {/* Continue Learning */}
-                    {topCourses.length > 0 && (
-                        <Animated.View style={[
-                            styles.section,
-                            {
-                                opacity: cardAnims[3],
-                                transform: [{ translateY: cardAnims[3].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
-                            },
-                        ]}>
-                            <View style={styles.sectionHeader}>
-                                <Text style={[styles.sectionTitle, { color: theme.text }]}>Continue Learning</Text>
-                                <TouchableOpacity onPress={() => navigation.navigate('MyCourses')}>
-                                    <Text style={[styles.seeAllBtn, { color: theme.primary }]}>See All</Text>
-                                </TouchableOpacity>
-                            </View>
+                    {isAuthenticated && user?.enrolledCourses?.length > 0 && (() => {
+                        const latestEnrollment = user.enrolledCourses[user.enrolledCourses.length - 1];
+                        const course = latestEnrollment.course;
+                        if (!course) return null;
+                        const progress = latestEnrollment.progress || 0;
 
-                            <TouchableOpacity
-                                style={[styles.continueCard, themeShadows.lg]}
-                                onPress={() => navigation.navigate('CourseDetail', { courseId: topCourses[0]._id })}
-                                activeOpacity={0.95}
-                            >
-                                <Image
-                                    source={getCourseImage(topCourses[0]._id, 0, topCourses[0].category, topCourses[0].title)}
-                                    style={styles.continueImage}
-                                />
-                                <LinearGradient
-                                    colors={['transparent', theme.primary + '80', theme.primary + 'E6']}
-                                    style={styles.continueOverlay}
-                                />
+                        return (
+                            <Animated.View style={[
+                                styles.section,
+                                {
+                                    opacity: cardAnims[3],
+                                    transform: [{ translateY: cardAnims[3].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+                                },
+                            ]}>
+                                <View style={styles.sectionHeader}>
+                                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Continue Learning</Text>
+                                    <TouchableOpacity onPress={() => navigation.navigate('MyCourses')}>
+                                        <Text style={[styles.seeAllBtn, { color: theme.primary }]}>See All</Text>
+                                    </TouchableOpacity>
+                                </View>
 
-                                <View style={styles.playButtonContainer}>
+                                <TouchableOpacity
+                                    style={[styles.continueCard, themeShadows.lg]}
+                                    onPress={() => {
+                                        const firstLessonId = course.lessons?.[0]?._id;
+                                        if (firstLessonId) {
+                                            navigation.navigate('Lesson', {
+                                                courseId: course._id,
+                                                lessonId: firstLessonId
+                                            });
+                                        } else {
+                                            navigation.navigate('CourseDetail', { courseId: course._id });
+                                        }
+                                    }}
+                                    activeOpacity={0.95}
+                                >
+                                    <Image
+                                        source={course.thumbnail ? { uri: course.thumbnail } : getCourseImage(course._id, 0, course.category, course.title)}
+                                        style={styles.continueImage}
+                                    />
                                     <LinearGradient
-                                        colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
-                                        style={styles.playButton}
-                                    >
-                                        <Ionicons name="play" size={26} color="#FFFFFF" />
-                                    </LinearGradient>
-                                </View>
+                                        colors={['transparent', theme.primary + '80', theme.primary + 'E6']}
+                                        style={styles.continueOverlay}
+                                    />
 
-                                <View style={styles.continueContent}>
-                                    <View style={styles.continueTopRow}>
-                                        <View style={[styles.continueBadge, { backgroundColor: theme.secondary }]}>
-                                            <Text style={styles.continueBadgeText}>IN PROGRESS</Text>
-                                        </View>
-                                        <View style={[styles.levelTag, { backgroundColor: getLevelColor(topCourses[0].level) }]}>
-                                            <Text style={styles.levelTagText}>{topCourses[0].level || 'Beginner'}</Text>
-                                        </View>
+                                    <View style={styles.playButtonContainer}>
+                                        <LinearGradient
+                                            colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
+                                            style={styles.playButton}
+                                        >
+                                            <Ionicons name="play" size={26} color="#FFFFFF" />
+                                        </LinearGradient>
                                     </View>
 
-                                    <Text style={styles.continueTitle} numberOfLines={2}>
-                                        {topCourses[0].title}
-                                    </Text>
-
-                                    <View style={styles.continueProgress}>
-                                        <View style={styles.progressBarContainer}>
-                                            <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-                                                <LinearGradient
-                                                    colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
-                                                    start={{ x: 0, y: 0 }}
-                                                    end={{ x: 1, y: 0 }}
-                                                    style={[styles.progressFill, { width: '45%' }]}
-                                                />
+                                    <View style={styles.continueContent}>
+                                        <View style={styles.continueTopRow}>
+                                            <View style={[styles.continueBadge, { backgroundColor: theme.secondary }]}>
+                                                <Text style={styles.continueBadgeText}>IN PROGRESS</Text>
                                             </View>
-                                            <Text style={styles.progressPercent}>45%</Text>
+                                            <View style={[styles.levelTag, { backgroundColor: getLevelColor(course.level) }]}>
+                                                <Text style={styles.levelTagText}>{course.level || 'Beginner'}</Text>
+                                            </View>
                                         </View>
-                                        <Text style={styles.progressHint}>Keep going! You're making great progress</Text>
+
+                                        <Text style={styles.continueTitle} numberOfLines={2}>
+                                            {course.title}
+                                        </Text>
+
+                                        <View style={styles.continueProgress}>
+                                            <View style={styles.progressBarContainer}>
+                                                <View style={[styles.progressTrack, { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
+                                                    <View
+                                                        style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.secondary }]}
+                                                    />
+                                                </View>
+                                                <Text style={styles.progressPercent}>{progress}%</Text>
+                                            </View>
+                                            <Text style={styles.progressHint}>
+                                                {progress === 0 ? 'Start your first lesson today!' : progress < 100 ? "Keep going! You're making great progress" : 'Course completed! Well done!'}
+                                            </Text>
+                                        </View>
                                     </View>
-                                </View>
-                            </TouchableOpacity>
-                        </Animated.View>
-                    )}
+                                </TouchableOpacity>
+                            </Animated.View>
+                        );
+                    })()}
 
                     {/* Featured Courses */}
                     <Animated.View style={[
@@ -722,8 +738,8 @@ export default function LearnerHomeScreen({ navigation }) {
                     </View>
                     <View style={{ height: 120 }} />
                 </View>
-            </Animated.ScrollView>
-        </View>
+            </Animated.ScrollView >
+        </View >
     );
 }
 

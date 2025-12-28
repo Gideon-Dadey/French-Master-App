@@ -25,7 +25,7 @@ const paymentSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['stripe', 'paypal', 'mtn', 'vodafone', 'bank'],
+    enum: ['stripe', 'paypal', 'mtn', 'vodafone', 'bank', 'free'],
     required: true
   },
   transactionId: {

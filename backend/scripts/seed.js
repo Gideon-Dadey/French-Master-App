@@ -1161,14 +1161,48 @@ const seedData = async () => {
       }
     }
 
+    // Define lessons for each course to make them look "productive"
+    const courseLessonsData = {
+      'FRENCH COURSE A1-A2': [
+        { title: 'Introduction to French Phonetics', description: 'Master the basic sounds and pronunciation of the French language.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 900, order: 1 },
+        { title: 'Greetings and Basic Introductions', description: 'Learn how to greet people and introduce yourself in various social settings.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1200, order: 2 },
+        { title: 'The French Alphabet & Accents', description: 'Deep dive into the French alphabet, special characters, and essential accents.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 720, order: 3 },
+        { title: 'Numbers, Colors and Basic Nouns', description: 'Building your foundational vocabulary with everyday items and numbers.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1080, order: 4 },
+        { title: 'Present Tense of Regular Verbs', description: 'Understanding the mechanics of -er, -ir, and -re regular verbs in the present tense.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1500, order: 5 },
+      ],
+      'FRENCH COURSE B1-B2': [
+        { title: 'Mastering the Subjunctive Mood', description: 'Exploring the complexities of the subjonctif for doubt, necessity, and emotion.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1800, order: 1 },
+        { title: 'Advanced Relative Pronouns', description: 'Mastering "dont", "lequel", "auquel" and "duquel" in formal French.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1320, order: 2 },
+        { title: 'The Passive Voice in French', description: 'Le Passif: when to use it and how to construct it correctly.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1140, order: 3 },
+        { title: 'French for Debates and Discussions', description: 'Key expressions and structures for articulating complex arguments.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1620, order: 4 },
+      ],
+      'COURS D\'ANGLAIS A1-A2': [
+        { title: 'The English Verb "To Be"', description: 'Foundational grammar: am, is, are and their past forms.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 900, order: 1 },
+        { title: 'Essential Everyday Vocabulary', description: '500 most common words for daily survival in an English environment.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1200, order: 2 },
+        { title: 'Basic Sentence Structuring', description: 'Mastering the Subject-Verb-Object pattern in English.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1020, order: 3 },
+      ],
+      'Business French for Professionals': [
+        { title: 'Professional Email Etiquette', description: 'How to write formal business emails and correspondences in French.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1440, order: 1 },
+        { title: 'Negotiation Tactics and Phrases', description: 'Strategic language for winning business negotiations in a French context.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 2100, order: 2 },
+        { title: 'Presenting in French', description: 'Structuring and delivering powerful business presentations.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1800, order: 3 },
+      ],
+      'DELF A1 Exam Preparation - Complete Mastery': [
+        { title: 'DELF A1: Listening Strategies', description: 'Techniques for maximizing your score in the auditory component.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1200, order: 1 },
+        { title: 'Mastering the Oral Interview', description: 'How to approach the speaking test with confidence and clarity.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 1500, order: 2 },
+        { title: 'Mock Exam: Reading & Writing', description: 'Timed practice for the written sections of the DELF A1 exam.', videoUrl: 'https://vimeo.com/76979871', videoDuration: 2400, order: 3 },
+      ],
+    };
+
     for (const courseData of courses) {
+      let course;
       const existingCourse = await Course.findOne({ title: courseData.title });
+
       if (!existingCourse) {
-        const course = await Course.create(courseData);
+        course = await Course.create(courseData);
         console.log(`Created course: ${course.title}`);
       } else {
         // Update existing course with new data (especially prices)
-        await Course.findOneAndUpdate(
+        course = await Course.findOneAndUpdate(
           { title: courseData.title },
           {
             $set: {
@@ -1189,6 +1223,28 @@ const seedData = async () => {
           { new: true }
         );
         console.log(`Updated course: ${courseData.title}`);
+      }
+
+      // Add lessons for this course if they exist in our data
+      const lessonsToAdd = courseLessonsData[course.title];
+      if (lessonsToAdd) {
+        // Clear existing lessons for this course to start fresh
+        await Lesson.deleteMany({ course: course._id });
+        const createdLessons = [];
+
+        for (const lessonInfo of lessonsToAdd) {
+          const lesson = await Lesson.create({
+            ...lessonInfo,
+            course: course._id
+          });
+          createdLessons.push(lesson._id);
+        }
+
+        // Update course with lessons
+        course.lessons = createdLessons;
+        course.totalLessons = createdLessons.length;
+        await course.save();
+        console.log(`Added ${createdLessons.length} lessons to course: ${course.title}`);
       }
     }
 
@@ -1486,7 +1542,7 @@ const seedData = async () => {
       {
         title: 'French Vocabulary Builder - Intermediate Level',
         description: 'Systematic vocabulary building guide for intermediate learners with themed word lists and exercises',
-        category: 'study-guides',
+        category: 'vocabulary',
         type: 'PDF',
         fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
         size: 3670016, // 3.5 MB

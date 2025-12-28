@@ -11,6 +11,7 @@ import {
   Dimensions,
   Animated,
   Platform,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,7 +32,7 @@ const { width, height } = Dimensions.get('window');
 
 export default function CourseDetailScreen({ route, navigation }) {
   const { courseId } = route.params;
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loadUser } = useAuth();
   const { isDarkMode } = useTheme();
   const theme = getThemeColors(isDarkMode);
   const { formatPrice } = useCurrency();
@@ -137,6 +138,8 @@ export default function CourseDetailScreen({ route, navigation }) {
     }
   };
 
+  const [enrolledSuccessfully, setEnrolledSuccessfully] = useState(false);
+
   const handlePurchase = async () => {
     if (!isAuthenticated) {
       Alert.alert('Login Required', 'Please login to enroll in this course', [
@@ -148,16 +151,31 @@ export default function CourseDetailScreen({ route, navigation }) {
 
     try {
       setPurchasing(true);
-      await paymentsAPI.confirm({
+      await paymentsAPI.enrollFree({
         courseId,
-        type: 'course',
-        amount: 0,
-        paymentMethod: 'free',
-        transactionId: `FREE-${Date.now()}`,
       });
-      Alert.alert('Success', 'You have been enrolled in this course!');
-      loadCourse(); // Refresh course state to show 'Continue Learning'
+
+      setEnrolledSuccessfully(true);
+
+      // Load course to update UI
+      await loadCourse();
+
+      // Refresh Auth state to show enrollment in Profile/Home
+      await loadUser();
+
+      // Auto-navigate after a delay
+      setTimeout(() => {
+        setEnrolledSuccessfully(false);
+        if (course?.lessons && course.lessons.length > 0) {
+          navigation.navigate('Lesson', {
+            courseId: course._id,
+            lessonId: course.lessons[0]._id,
+          });
+        }
+      }, 2000);
+
     } catch (error) {
+      console.error('Enrollment error:', error);
       Alert.alert('Error', error.response?.data?.message || 'Enrollment failed');
     } finally {
       setPurchasing(false);
@@ -180,7 +198,9 @@ export default function CourseDetailScreen({ route, navigation }) {
     return <ErrorMessage message={error || 'Course not found'} onRetry={loadCourse} />;
   }
 
-  const isEnrolled = course.isEnrolled || user?.enrolledCourses?.includes(course._id);
+  const isEnrolled = course.isEnrolled || user?.enrolledCourses?.some(ec =>
+    (ec.course?._id || ec.course) === (course._id || courseId)
+  );
   const totalLessons = course.lessons?.length || 0;
   const totalDuration = course.lessons?.reduce((acc, l) => acc + (l.duration || 0), 0) || 0;
   const imageSource = course.thumbnail?.startsWith('http')
@@ -811,6 +831,29 @@ export default function CourseDetailScreen({ route, navigation }) {
           user={user}
         />
       )}
+
+      {/* Success Enrollment Overlay */}
+      <Modal
+        visible={enrolledSuccessfully}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.successOverlay}>
+          <View style={[styles.successContent, { backgroundColor: theme.surface }]}>
+            <LinearGradient
+              colors={[theme.primary, theme.secondary]}
+              style={styles.successIconContainer}
+            >
+              <Ionicons name="checkmark-circle" size={60} color="#FFFFFF" />
+            </LinearGradient>
+            <Text style={[styles.successTitle, { color: theme.text }]}>Enrolled!</Text>
+            <Text style={[styles.successMessage, { color: theme.textSecondary }]}>
+              Welcome to the course. Let's start learning!
+            </Text>
+            <ActivityIndicator color={theme.primary} style={{ marginTop: 20 }} />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1393,5 +1436,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  successOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successContent: {
+    width: width * 0.8,
+    padding: 30,
+    borderRadius: 24,
+    alignItems: 'center',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  successIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+  successMessage: {
+    fontSize: 16,
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

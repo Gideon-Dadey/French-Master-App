@@ -55,10 +55,17 @@ router.get('/my-courses', protect, async (req, res) => {
     const user = await User.findById(req.user._id)
       .populate({
         path: 'enrolledCourses.course',
-        populate: {
-          path: 'instructor',
-          select: 'name avatar'
-        }
+        populate: [
+          {
+            path: 'instructor',
+            select: 'name avatar'
+          },
+          {
+            path: 'lessons',
+            select: '_id title order',
+            options: { sort: { order: 1 } }
+          }
+        ]
       });
 
     res.json({

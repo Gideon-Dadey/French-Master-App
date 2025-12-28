@@ -21,7 +21,7 @@ const getApiUrl = () => {
       return DEVELOPMENT_URL;
     }
   }
-  
+
   // Always use production URL for deployed/built apps
   return PRODUCTION_URL;
 };
@@ -96,7 +96,7 @@ api.interceptors.response.use(
     const enhancedError = new Error(errorMessage);
     enhancedError.status = error.response?.status;
     enhancedError.data = error.response?.data;
-    
+
     return Promise.reject(enhancedError);
   }
 );
@@ -126,6 +126,7 @@ export const paymentsAPI = {
   createIntent: (data) => api.post('/payments/create-intent', data),
   confirm: (data) => api.post('/payments/confirm', data),
   confirmCourse: (data) => api.post('/payments/confirm', data),
+  enrollFree: (data) => api.post('/payments/enroll-free', data),
   getHistory: () => api.get('/payments/history'),
 };
 
