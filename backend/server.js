@@ -92,6 +92,7 @@ app.use('/api/progress-share', require('./routes/progressShare'));
 app.use('/api/discussions', require('./routes/discussions'));
 app.use('/api/topics', require('./routes/topics'));
 app.use('/api/uploads', require('./routes/uploads'));
+app.use('/api/notes', require('./routes/notes'));
 
 // Health check
 app.get('/health', (req, res) => {

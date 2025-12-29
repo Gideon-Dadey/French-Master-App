@@ -17,7 +17,15 @@ import { spacing, fontSize } from '../utils/responsive';
 const { width } = Dimensions.get('window');
 
 export default function CertificateView({ course, userName, completionDate, onClose }) {
-  const { colors } = useTheme();
+  const { isDarkMode } = useTheme();
+
+  // L'Alliance Theme
+  const bgColor = '#0D1B2A';
+  const textColor = '#F0EBE3';
+  const subTextColor = '#A8B4C4';
+  const goldColor = '#C9A227';
+  const accentColor = '#1E3A5F';
+
   const certificateRef = React.useRef();
 
   const handleShare = async () => {
@@ -34,79 +42,83 @@ export default function CertificateView({ course, userName, completionDate, onCl
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Certificate of Completion</Text>
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      <View style={[styles.header, { borderBottomColor: accentColor + '40' }]}>
+        <Text style={[styles.headerTitle, { color: textColor }]}>Course Completion</Text>
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close" size={24} color={colors.text} />
+          <Ionicons name="close" size={24} color={textColor} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View ref={certificateRef} collapsable={false} style={styles.certificate}>
+        <View ref={certificateRef} collapsable={false} style={[styles.certificate, { shadowColor: goldColor }]}>
           <LinearGradient
-            colors={['#1E88E5', '#1565C0', '#0D47A1']}
+            colors={['#102A43', '#0D1B2A', '#020D19']}
             style={styles.certificateGradient}
           >
+            {/* Border */}
+            <View style={[styles.innerBorder, { borderColor: goldColor + '40' }]} />
 
             <View style={styles.decorativeTop}>
-              <Ionicons name="school" size={60} color="rgba(255, 255, 255, 0.2)" />
+              <Ionicons name="school" size={70} color={goldColor + '20'} />
             </View>
 
             <View style={styles.certificateContent}>
-              <Text style={styles.certificateTitle}>CERTIFICATE OF COMPLETION</Text>
-              <View style={styles.divider} />
-              <Text style={styles.certificateSubtitle}>This is to certify that</Text>
-              <Text style={styles.userName}>{userName}</Text>
-              <Text style={styles.certificateSubtitle}>
-                has successfully completed the course
+              <Text style={[styles.certificateTitle, { color: goldColor }]}>CERTIFICATE</Text>
+              <Text style={[styles.certificateSubtitleText, { color: textColor }]}>OF COMPLETION</Text>
+
+              <View style={[styles.divider, { backgroundColor: goldColor }]} />
+
+              <Text style={[styles.presentedTo, { color: subTextColor }]}>This certificate is proudly presented to</Text>
+              <Text style={[styles.userName, { color: textColor }]}>{userName}</Text>
+
+              <Text style={[styles.hasCompleted, { color: subTextColor }]}>
+                for successfully completing the masterclass
               </Text>
-              <Text style={styles.courseName}>{course?.title || 'Course Name'}</Text>
-              <View style={styles.divider} />
-              <Text style={styles.dateText}>
-                {completionDate ? new Date(completionDate).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                }) : new Date().toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </Text>
+              <Text style={[styles.courseName, { color: goldColor }]}>{course?.title || 'French Masterclass'}</Text>
+
+              <View style={[styles.dateArea, { borderTopColor: goldColor + '30' }]}>
+                <Text style={[styles.dateText, { color: subTextColor }]}>
+                  Issued on {completionDate ? new Date(completionDate).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  }) : new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </Text>
+              </View>
             </View>
 
             <View style={styles.decorativeBottom}>
-              <Ionicons name="trophy" size={40} color="rgba(255, 255, 255, 0.2)" />
+              <Ionicons name="ribbon" size={60} color={goldColor + '20'} />
             </View>
 
-            <View style={styles.signatureArea}>
-              <View style={styles.signature}>
-                <View style={styles.signatureLine} />
-                <Text style={styles.signatureLabel}>Instructor Signature</Text>
+            <View style={styles.sealContainer}>
+              <View style={[styles.seal, { borderColor: goldColor }]}>
+                <Ionicons name="shield-checkmark" size={32} color={goldColor} />
               </View>
-              <View style={styles.signature}>
-                <View style={styles.signatureLine} />
-                <Text style={styles.signatureLabel}>Date</Text>
-              </View>
+              <Text style={[styles.certifiedText, { color: goldColor }]}>L'ALLIANCE CERTIFIED</Text>
             </View>
           </LinearGradient>
         </View>
       </ScrollView>
 
-      <View style={[styles.actions, { backgroundColor: colors.card }]}>
+      <View style={[styles.actions, { backgroundColor: bgColor, borderTopColor: accentColor + '40' }]}>
         <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: colors.primary }]}
+          style={[styles.actionButton, { backgroundColor: goldColor }]}
           onPress={handleShare}
         >
-          <Ionicons name="share-outline" size={20} color="#fff" />
-          <Text style={styles.actionButtonText}>Share Certificate</Text>
+          <Ionicons name="share-social" size={20} color="#1A2332" />
+          <Text style={[styles.actionButtonText, { color: '#1A2332' }]}>Share with Friends</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: colors.secondaryBackground, borderColor: colors.border }]}
+          style={[styles.closeActionBtn, { borderColor: goldColor + '40' }]}
           onPress={onClose}
         >
-          <Text style={[styles.actionButtonText, { color: colors.text }]}>Close</Text>
+          <Text style={[styles.closeActionText, { color: goldColor }]}>Back to Course</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -121,138 +133,151 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: spacing.lg,
+    padding: 20,
     borderBottomWidth: 1,
   },
   headerTitle: {
-    fontSize: fontSize.xl,
+    fontSize: 18,
     fontWeight: '700',
   },
   closeButton: {
-    padding: spacing.xs,
+    padding: 4,
   },
   scrollContent: {
-    padding: spacing.lg,
+    padding: 20,
+    paddingBottom: 40,
   },
   certificate: {
-    width: width - spacing.xl * 2,
-    minHeight: 600,
-    borderRadius: spacing.lg,
+    width: width - 40,
+    minHeight: width * 1.4,
+    borderRadius: 24,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 15,
   },
   certificateGradient: {
     flex: 1,
-    padding: spacing.xxxl,
+    padding: 30,
     alignItems: 'center',
-    justifyContent: 'space-between',
+  },
+  innerBorder: {
+    position: 'absolute',
+    top: 15,
+    left: 15,
+    right: 15,
+    bottom: 15,
+    borderWidth: 1,
+    borderRadius: 15,
   },
   decorativeTop: {
-    position: 'absolute',
-    top: spacing.xl,
-    right: spacing.xl,
-    opacity: 0.3,
-  },
-  decorativeBottom: {
-    position: 'absolute',
-    bottom: spacing.xl,
-    left: spacing.xl,
-    opacity: 0.3,
+    marginTop: 20,
+    marginBottom: 40,
   },
   certificateContent: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xxxl,
+    width: '100%',
   },
   certificateTitle: {
-    fontSize: fontSize.heading,
+    fontSize: 32,
     fontWeight: '800',
-    color: '#fff',
-    letterSpacing: 4,
-    marginBottom: spacing.lg,
-    textAlign: 'center',
+    letterSpacing: 6,
+  },
+  certificateSubtitleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 3,
+    marginTop: 4,
   },
   divider: {
-    width: '60%',
-    height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    marginVertical: spacing.xl,
+    width: 60,
+    height: 3,
+    marginVertical: 40,
   },
-  certificateSubtitle: {
-    fontSize: fontSize.lg,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
-    marginBottom: spacing.md,
+  presentedTo: {
+    fontSize: 14,
+    fontStyle: 'italic',
+    marginBottom: 12,
   },
   userName: {
-    fontSize: fontSize.heading,
+    fontSize: 30,
     fontWeight: '700',
-    color: '#FFD700',
     textAlign: 'center',
-    marginVertical: spacing.lg,
-    textTransform: 'uppercase',
-    letterSpacing: 2,
+    marginBottom: 40,
+  },
+  hasCompleted: {
+    fontSize: 14,
+    marginBottom: 12,
   },
   courseName: {
-    fontSize: fontSize.xxl,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: 22,
+    fontWeight: '700',
     textAlign: 'center',
-    marginVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    marginBottom: 40,
+    paddingHorizontal: 10,
+  },
+  dateArea: {
+    width: '100%',
+    alignItems: 'center',
+    paddingTop: 20,
+    borderTopWidth: 1,
   },
   dateText: {
-    fontSize: fontSize.md,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: spacing.lg,
+    fontSize: 13,
   },
-  signatureArea: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginTop: spacing.xl,
-    paddingTop: spacing.xl,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
+  decorativeBottom: {
+    position: 'absolute',
+    bottom: 80,
+    right: 30,
   },
-  signature: {
+  sealContainer: {
     alignItems: 'center',
-    width: '40%',
+    marginTop: 40,
+    marginBottom: 20,
   },
-  signatureLine: {
-    width: '100%',
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: spacing.sm,
+  seal: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    backgroundColor: 'rgba(201, 162, 39, 0.1)',
   },
-  signatureLabel: {
-    fontSize: fontSize.sm,
-    color: 'rgba(255, 255, 255, 0.8)',
+  certifiedText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   actions: {
-    flexDirection: 'row',
-    padding: spacing.lg,
-    gap: spacing.md,
+    padding: 20,
+    gap: 12,
     borderTopWidth: 1,
   },
   actionButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: spacing.md,
-    gap: spacing.sm,
-    borderWidth: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 10,
   },
   actionButtonText: {
-    color: '#fff',
-    fontSize: fontSize.md,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  closeActionBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  closeActionText: {
+    fontSize: 16,
     fontWeight: '600',
   },
 });

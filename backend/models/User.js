@@ -129,21 +129,25 @@ const userSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+  bookmarkedLessons: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Lesson'
+  }],
 }, {
   timestamps: true
 });
 
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-userSchema.methods.generateToken = function() {
+userSchema.methods.generateToken = function () {
   return jwt.sign(
     { id: this._id, role: this.role },
     process.env.JWT_SECRET,
@@ -151,7 +155,7 @@ userSchema.methods.generateToken = function() {
   );
 };
 
-userSchema.methods.generateRefreshToken = function() {
+userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
     { id: this._id },
     process.env.JWT_REFRESH_SECRET,

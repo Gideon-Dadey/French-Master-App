@@ -33,6 +33,18 @@ const DAILY_WORDS = [
     { french: 'Enchanté', english: 'Nice to meet you', phonetic: 'ahn-shahn-TAY', example: 'Enchanté de vous rencontrer.' },
 ];
 
+// Immersion Mode rotating images - changes every 15 minutes
+const IMMERSION_IMAGES = [
+    'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=2070&auto=format&fit=crop', // People collaborating
+    'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop', // Study group
+    'https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=2070&auto=format&fit=crop', // Students learning
+    'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?q=80&w=2032&auto=format&fit=crop', // Friends talking
+    'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?q=80&w=2049&auto=format&fit=crop', // Group discussion
+    'https://images.unsplash.com/photo-1531545514256-b1400bc00f31?q=80&w=2074&auto=format&fit=crop', // Team working
+    'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop', // Collaborative work
+    'https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?q=80&w=2070&auto=format&fit=crop', // Friends laughing
+];
+
 export default function LearnerHomeScreen({ navigation }) {
     const { user, isAuthenticated, loadUser } = useAuth();
     const { isDarkMode } = useTheme(); // Removed toggleTheme for cleaner UI
@@ -46,6 +58,7 @@ export default function LearnerHomeScreen({ navigation }) {
     const [videoMasterclasses, setVideoMasterclasses] = useState([]);
     const [recentPosts, setRecentPosts] = useState([]);
     const [dailyWord, setDailyWord] = useState(DAILY_WORDS[0]);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     // Animations
     const scrollY = useRef(new Animated.Value(0)).current;
@@ -55,8 +68,25 @@ export default function LearnerHomeScreen({ navigation }) {
         navigation.setOptions({ headerShown: false });
         const today = new Date().getDate();
         setDailyWord(DAILY_WORDS[today % DAILY_WORDS.length]);
+
+        // Calculate which image to show based on 15-minute intervals
+        const updateImageIndex = () => {
+            const now = new Date();
+            const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
+            const fifteenMinuteSlot = Math.floor(minutesSinceMidnight / 15);
+            const imageIndex = fifteenMinuteSlot % IMMERSION_IMAGES.length;
+            setCurrentImageIndex(imageIndex);
+        };
+
+        updateImageIndex(); // Set initial image
+
+        // Check every minute if we need to update (to catch the 15-minute boundary)
+        const imageInterval = setInterval(updateImageIndex, 60000);
+
         initScreen();
         Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
+
+        return () => clearInterval(imageInterval);
     }, []);
 
     const initScreen = async () => {
@@ -147,7 +177,7 @@ export default function LearnerHomeScreen({ navigation }) {
                         activeOpacity={0.95}
                     >
                         <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=2070&auto=format&fit=crop' }}
+                            source={{ uri: IMMERSION_IMAGES[currentImageIndex] }}
                             style={styles.heroImage}
                         />
                         <LinearGradient
@@ -164,7 +194,7 @@ export default function LearnerHomeScreen({ navigation }) {
                     <View style={styles.sectionContainer}>
                         <TouchableOpacity
                             style={[styles.focusCard, { backgroundColor: theme.surface }, themeShadows.sm]}
-                            onPress={() => navigation.navigate('Practice')}
+                            onPress={() => navigation.navigate('Streaks')}
                             activeOpacity={0.92}
                         >
                             <View style={styles.focusLeft}>
@@ -172,12 +202,14 @@ export default function LearnerHomeScreen({ navigation }) {
                                     <Ionicons name="flame" size={24} color={theme.primary} />
                                 </View>
                                 <View>
-                                    <Text style={[styles.focusLabel, { color: theme.textSecondary }]}>DAILY GOAL</Text>
-                                    <Text style={[styles.focusValue, { color: theme.text }]}>Keep the streak alive!</Text>
+                                    <Text style={[styles.focusLabel, { color: theme.textSecondary }]}>DAILY STREAK</Text>
+                                    <Text style={[styles.focusValue, { color: theme.text }]}>
+                                        {user?.streak?.current || 0} Days Active
+                                    </Text>
                                 </View>
                             </View>
                             <View style={[styles.actionButton, { backgroundColor: theme.surfaceAlt }]}>
-                                <Text style={[styles.actionButtonText, { color: theme.primary }]}>GO</Text>
+                                <Text style={[styles.actionButtonText, { color: theme.primary }]}>VIEW</Text>
                             </View>
                         </TouchableOpacity>
                     </View>

@@ -230,5 +230,60 @@ router.get('/instructor/students/:id', protect, authorize('instructor', 'admin')
   }
 });
 
+// LESSON BOOKMARKS
+router.get('/bookmarks', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate({
+      path: 'bookmarkedLessons',
+      populate: {
+        path: 'course',
+        select: 'title thumbnail'
+      }
+    });
+
+    res.json({
+      success: true,
+      data: user.bookmarkedLessons
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+router.post('/bookmarks/toggle', protect, async (req, res) => {
+  try {
+    const { lessonId } = req.body;
+    const user = await User.findById(req.user._id);
+
+    const isBookmarked = user.bookmarkedLessons.includes(lessonId);
+
+    if (isBookmarked) {
+      user.bookmarkedLessons = user.bookmarkedLessons.filter(
+        id => id.toString() !== lessonId
+      );
+    } else {
+      user.bookmarkedLessons.push(lessonId);
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      isBookmarked: !isBookmarked,
+      data: user.bookmarkedLessons
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 

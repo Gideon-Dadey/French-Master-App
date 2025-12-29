@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   Alert,
   Dimensions,
-  Animated,
   Platform,
   Modal,
   StatusBar,
+  ImageBackground,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,10 +20,12 @@ import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import ErrorMessage from '../src/components/ErrorMessage';
+import CertificateView from '../src/components/CertificateView';
 import { getCourseImage } from '../src/utils/courseImages';
 import { getThemeColors, themeShadows } from '../src/utils/organicTheme';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+const VIDEO_HEIGHT = width * 0.56; // 16:9 aspect ratio
 
 export default function CourseDetailScreen({ route, navigation }) {
   const { courseId } = route.params;
@@ -32,13 +33,25 @@ export default function CourseDetailScreen({ route, navigation }) {
   const { isDarkMode } = useTheme();
   const theme = getThemeColors(isDarkMode);
 
+  // L'Alliance Theme Colors
+  const bgColor = '#0D1B2A';        // Deep Navy background
+  const cardColor = '#1B2838';      // Navy cards
+  const textColor = '#F0EBE3';      // Warm Cream text
+  const subTextColor = '#A8B4C4';   // Muted Blue-Grey
+  const accentColor = '#1E3A5F';    // Deep Midnight Blue (primary)
+  const goldColor = '#C9A227';      // Warm Gold (accent)
+
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [error, setError] = useState(null);
   const [enrolledSuccessfully, setEnrolledSuccessfully] = useState(false);
+  const [showCertificate, setShowCertificate] = useState(false);
 
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // Calculate Progress
+  const enrollment = user?.enrolledCourses?.find(ec => (ec.course?._id || ec.course) === (courseId));
+  const progressPercent = enrollment?.progress || 0;
+  const isCompleted = progressPercent === 100;
 
   useEffect(() => {
     loadCourse();
@@ -74,7 +87,7 @@ export default function CourseDetailScreen({ route, navigation }) {
       setPurchasing(true);
       await paymentsAPI.enrollFree({ courseId });
       setEnrolledSuccessfully(true);
-      await loadUser(); // Refresh user state
+      await loadUser();
 
       const updatedCourse = await coursesAPI.getById(courseId);
       if (updatedCourse?.data?.data) {
@@ -114,11 +127,11 @@ export default function CourseDetailScreen({ route, navigation }) {
       await loadUser();
       const updatedCourse = await coursesAPI.getById(courseId);
       if (updatedCourse?.data?.data) {
-        setCourse(updatedCourse.data.data); // Update to reflect unenrolled status
+        setCourse(updatedCourse.data.data);
+        navigation.goBack();
       }
-      Alert.alert("Success", "You have successfully unenrolled from the course.");
     } catch (error) {
-      Alert.alert('Error', 'Failed to unenroll. Please try again.');
+      Alert.alert('Error', 'Failed to unenroll.');
     } finally {
       setLoading(false);
     }
@@ -139,187 +152,254 @@ export default function CourseDetailScreen({ route, navigation }) {
   const totalLessons = course.lessons?.length || 0;
   const totalDuration = course.lessons?.reduce((acc, l) => acc + (l.duration || 0), 0) || 0;
 
-  const imageSource = course.thumbnail?.startsWith('http')
+  const imageSource = course.thumbnail && course.thumbnail.startsWith('http')
     ? { uri: course.thumbnail }
     : getCourseImage(course._id, 0, course.category, course.title);
 
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 200],
-    outputRange: [height * 0.45, height * 0.3],
-    extrapolate: 'clamp',
-  });
-
-  const imageScale = scrollY.interpolate({
-    inputRange: [-100, 0],
-    outputRange: [1.2, 1],
-    extrapolate: 'clamp',
-  });
+  const startActionLabel = isEnrolled ? 'Continue Learning' : 'Enroll Now — Free';
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle="light-content" />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1c1d1f" />
 
-      {/* Hero Image / Animated Header */}
-      <Animated.View style={[styles.hero, { height: headerHeight }]}>
-        <Animated.Image
-          source={imageSource}
-          style={[styles.heroImage, { transform: [{ scale: imageScale }] }]}
-          resizeMode="cover"
-        />
-        <LinearGradient
-          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
-          style={styles.heroOverlay}
-        />
-
-
-
-        {/* Hero Content */}
-        <View style={styles.heroContent}>
-          <View style={styles.badgeRow}>
-            <View style={[styles.badge, { backgroundColor: theme.primary }]}>
-              <Text style={styles.badgeText}>{(course.category || 'Course').toUpperCase()}</Text>
-            </View>
-            <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-              <Text style={styles.badgeText}>{course.level || 'All Levels'}</Text>
-            </View>
-          </View>
-          <Text style={styles.heroTitle} numberOfLines={2}>{course.title}</Text>
-          <View style={styles.heroMeta}>
-            <Ionicons name="star" size={16} color="#FFD700" />
-            <Text style={styles.heroMetaText}>{course.rating?.average?.toFixed(1) || '4.8'}</Text>
-            <Text style={[styles.heroMetaText, { opacity: 0.7 }]}>•</Text>
-            <Text style={styles.heroMetaText}>{totalLessons} Lessons</Text>
-            <Text style={[styles.heroMetaText, { opacity: 0.7 }]}>•</Text>
-            <Text style={styles.heroMetaText}>{formatDuration(totalDuration)}</Text>
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Header Nav - Fixed Position */}
-      <View style={[styles.headerNav, { paddingTop: Platform.OS === 'ios' ? 50 : 30 }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+      {/* Fixed Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
-
-        {isEnrolled && (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleUnenrollConfirm}
-          >
-            <Ionicons name="ellipsis-horizontal" size={24} color="#FFF" />
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.headerIconBtn}>
+            <Ionicons name="share-outline" size={22} color="#FFF" />
           </TouchableOpacity>
-        )}
+          {isEnrolled && (
+            <TouchableOpacity style={styles.headerIconBtn} onPress={handleUnenrollConfirm}>
+              <Ionicons name="ellipsis-vertical" size={22} color="#FFF" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {/* Content Scroll */}
-      <Animated.ScrollView
+      <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
+        bounces={false}
       >
-        <View style={[styles.contentCard, { backgroundColor: theme.background }]}>
+        {/* Video Preview Section - Udemy Style */}
+        <View style={styles.videoContainer}>
+          <ImageBackground
+            source={imageSource}
+            style={styles.videoThumbnail}
+            imageStyle={styles.videoImage}
+          >
+            <LinearGradient
+              colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.5)']}
+              style={styles.videoOverlay}
+            >
+              <TouchableOpacity
+                style={styles.playButton}
+                onPress={() => {
+                  if (isEnrolled && course.lessons?.[0]) {
+                    navigation.navigate('Lesson', { courseId, lessonId: course.lessons[0]._id });
+                  } else {
+                    handlePurchase();
+                  }
+                }}
+              >
+                <View style={styles.playButtonInner}>
+                  <Ionicons name="play" size={32} color="#FFF" style={{ marginLeft: 4 }} />
+                </View>
+              </TouchableOpacity>
+              <Text style={styles.previewText}>Preview this course</Text>
+            </LinearGradient>
+          </ImageBackground>
+        </View>
 
-          {/* Instructor Row */}
-          {course.instructor && (
-            <View style={[styles.instructorRow, { borderBottomColor: theme.border }]}>
-              <Image
-                source={course.instructor.avatar ? { uri: course.instructor.avatar } : require('../assets/logo.jpeg')}
-                style={styles.instructorAvatar}
-              />
-              <View>
-                <Text style={[styles.instructorLabel, { color: theme.textSecondary }]}>Instructor</Text>
-                <Text style={[styles.instructorName, { color: theme.text }]}>{course.instructor.name || 'L\'Alliance Team'}</Text>
-              </View>
+        {/* Course Info Section */}
+        <View style={styles.courseInfo}>
+          {/* Title */}
+          <Text style={styles.courseTitle}>{course.title}</Text>
+
+          {/* Short Description */}
+          <Text style={styles.courseSubtitle} numberOfLines={2}>
+            {course.description?.substring(0, 100) || 'Master the fundamentals and advance your skills'}
+          </Text>
+
+          {/* Rating and Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.ratingBadge}>
+              <Text style={styles.ratingText}>{course.rating?.average?.toFixed(1) || '4.5'}</Text>
             </View>
-          )}
-
-          {/* Description */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>About</Text>
-            <Text style={[styles.descriptionText, { color: theme.textSecondary }]}>
-              {course.description || 'Join this course to master French efficiently.'}
-            </Text>
+            <View style={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Ionicons
+                  key={star}
+                  name={star <= Math.round(course.rating?.average || 4.5) ? 'star' : 'star-outline'}
+                  size={14}
+                  color="#f3ca8c"
+                />
+              ))}
+            </View>
+            <Text style={styles.statsText}>({course.rating?.count || '128'} ratings)</Text>
+            <Text style={styles.statsText}>• {course.enrolledCount || '1,234'} students</Text>
           </View>
 
-          {/* Curriculum */}
-          <View style={styles.section}>
-            <View style={styles.curriculumHeader}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Curriculum</Text>
-              <Text style={[styles.lessonCount, { color: theme.textSecondary }]}>{totalLessons} videos</Text>
-            </View>
+          {/* Instructor */}
+          <View style={styles.instructorRow}>
+            <Text style={styles.instructorLabel}>Created by </Text>
+            <Text style={styles.instructorName}>{course.instructor?.name || 'French Master'}</Text>
+          </View>
 
+          {/* Meta Info */}
+          <View style={styles.metaRow}>
+            <View style={styles.metaItem}>
+              <Ionicons name="alert-circle-outline" size={16} color={subTextColor} />
+              <Text style={styles.metaText}>Last updated 12/2024</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="globe-outline" size={16} color={subTextColor} />
+              <Text style={styles.metaText}>English / French</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* CTA Button */}
+        <View style={styles.ctaSection}>
+          <TouchableOpacity
+            style={[styles.enrollButton, isEnrolled && styles.enrolledButton]}
+            onPress={isEnrolled ? () => navigation.navigate('Lesson', { courseId, lessonId: course.lessons?.[0]?._id }) : handlePurchase}
+          >
+            <Text style={styles.enrollButtonText}>{startActionLabel}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* What You'll Learn */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>What you'll learn</Text>
+          <View style={styles.learnCard}>
+            {(course.objectives || [
+              'Understand core concepts thoroughly',
+              'Apply knowledge in practical scenarios',
+              'Build confidence in the subject',
+              'Master advanced techniques'
+            ]).slice(0, 4).map((item, index) => (
+              <View key={index} style={styles.learnItem}>
+                <Ionicons name="checkmark" size={18} color={goldColor} />
+                <Text style={styles.learnText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Course Content */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Course content</Text>
+          <Text style={styles.contentSummary}>
+            {totalLessons} lessons • {formatDuration(totalDuration)} total length
+          </Text>
+
+          <View style={styles.lessonsCard}>
             {course.lessons?.map((lesson, index) => {
               const isLocked = !isEnrolled && index !== 0;
+
               return (
                 <TouchableOpacity
                   key={index}
-                  style={[styles.lessonItem, { borderBottomColor: theme.border }]}
+                  activeOpacity={0.7}
                   onPress={() => {
-                    if (!isLocked) {
-                      navigation.navigate('Lesson', { courseId: course._id, lessonId: lesson._id });
-                    } else {
-                      handlePurchase();
-                    }
+                    if (!isLocked) navigation.navigate('Lesson', { courseId, lessonId: lesson._id });
+                    else handlePurchase();
                   }}
+                  style={[
+                    styles.lessonItem,
+                    index !== (course.lessons?.length || 0) - 1 && styles.lessonBorder
+                  ]}
                 >
-                  <View style={[styles.lessonIndex, { backgroundColor: theme.surfaceAlt }]}>
-                    <Text style={[styles.lessonIndexText, { color: theme.textSecondary }]}>{index + 1}</Text>
+                  <View style={styles.lessonLeft}>
+                    {isLocked ? (
+                      <View style={styles.lessonIconLocked}>
+                        <Ionicons name="lock-closed" size={16} color="#6a6f73" />
+                      </View>
+                    ) : (
+                      <View style={styles.lessonIconPlay}>
+                        <Ionicons name="play-circle" size={24} color={goldColor} />
+                      </View>
+                    )}
+                    <View style={styles.lessonInfo}>
+                      <Text style={[styles.lessonTitle, isLocked && styles.lessonTitleLocked]} numberOfLines={2}>
+                        {lesson.title}
+                      </Text>
+                      <Text style={styles.lessonDuration}>{formatDuration(lesson.duration)}</Text>
+                    </View>
                   </View>
-                  <View style={styles.lessonInfo}>
-                    <Text style={[styles.lessonTitle, { color: isLocked ? theme.textSecondary : theme.text }]}>{lesson.title}</Text>
-                    <Text style={[styles.lessonDuration, { color: theme.textMuted }]}>{formatDuration(lesson.duration)}</Text>
-                  </View>
-                  <Ionicons
-                    name={isLocked ? "lock-closed" : "play-circle"}
-                    size={24}
-                    color={isLocked ? theme.textMuted : theme.primary}
-                  />
+                  <Ionicons name="chevron-forward" size={20} color="#6a6f73" />
                 </TouchableOpacity>
               );
             })}
           </View>
-
-          <View style={{ height: 100 }} />
         </View>
-      </Animated.ScrollView>
 
-      {/* Sticky Action Bar */}
-      <View style={[styles.actionBar, { backgroundColor: theme.surface, borderTopColor: theme.border }, themeShadows.lg]}>
-        <View>
-          <Text style={[styles.actionPrice, { color: theme.text }]}>Free</Text>
-          <Text style={[styles.actionSub, { color: theme.textSecondary }]}>Lifetime access</Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: isEnrolled ? theme.success : theme.primary }]}
-          onPress={isEnrolled ? () => navigation.navigate('Lesson', {
-            courseId: course._id,
-            lessonId: course.lessons?.[0]?._id
-          }) : handlePurchase}
-        >
-          <Text style={styles.actionBtnText}>
-            {isEnrolled ? 'Continue Learning' : 'Enroll Now'}
+        {/* Description */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Description</Text>
+          <Text style={styles.descriptionText}>
+            {course.description || 'No description available.'}
           </Text>
-        </TouchableOpacity>
+        </View>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Bottom Bar - Fixed */}
+      <View style={styles.bottomBar}>
+        <View style={styles.priceSection}>
+          <Text style={styles.priceLabel}>{isEnrolled ? (isCompleted ? 'Finished' : 'Progress') : 'Price'}</Text>
+          <Text style={styles.priceValue}>{isEnrolled ? (isCompleted ? '✓ Completed' : `${progressPercent}%`) : 'Free'}</Text>
+        </View>
+
+        {isCompleted ? (
+          <TouchableOpacity
+            style={[styles.bottomButton, { backgroundColor: goldColor }]}
+            onPress={() => setShowCertificate(true)}
+          >
+            <Ionicons name="ribbon-outline" size={20} color="#1A2332" />
+            <Text style={styles.bottomButtonText}>View Certificate</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.bottomButton, isEnrolled && styles.bottomButtonEnrolled]}
+            onPress={isEnrolled ? () => navigation.navigate('Lesson', { courseId, lessonId: course.lessons?.[0]?._id }) : handlePurchase}
+          >
+            <Text style={styles.bottomButtonText}>
+              {isEnrolled ? 'Continue Course' : 'Enroll Now'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Success Modal */}
       <Modal visible={enrolledSuccessfully} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={[styles.successCard, { backgroundColor: theme.surface }]}>
-            <Ionicons name="checkmark-circle" size={50} color={theme.success} />
-            <Text style={[styles.successTitle, { color: theme.text }]}>Enrolled!</Text>
+          <View style={styles.successCard}>
+            <View style={styles.successIcon}>
+              <Ionicons name="checkmark-circle" size={60} color={goldColor} />
+            </View>
+            <Text style={styles.successTitle}>You're In!</Text>
+            <Text style={styles.successSub}>Start learning now.</Text>
           </View>
         </View>
       </Modal>
 
+      {/* Certificate Modal */}
+      <Modal visible={showCertificate} transparent animationType="slide">
+        <View style={styles.certificateOverlay}>
+          <CertificateView
+            course={course}
+            userName={user?.name || 'Student'}
+            completionDate={enrollment?.completedAt || new Date()}
+            onClose={() => setShowCertificate(false)}
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -327,211 +407,339 @@ export default function CourseDetailScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#0D1B2A',
   },
-  hero: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 1,
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  headerNav: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    paddingHorizontal: 20,
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 50 : 35,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#0D1B2A',
+    zIndex: 100,
   },
-  backButton: {
+  backBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  heroContent: {
-    position: 'absolute',
-    bottom: 40,
-    left: 20,
-    right: 20,
-  },
-  badgeRow: {
+  headerActions: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 12,
   },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-  },
-  badgeText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  heroTitle: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFF',
-    marginBottom: 8,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  heroMeta: {
-    flexDirection: 'row',
+  headerIconBtn: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
-    gap: 8,
-  },
-  heroMetaText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
+    justifyContent: 'center',
   },
   scrollView: {
     flex: 1,
-    zIndex: 2,
   },
-  scrollContent: {
-    paddingTop: height * 0.4, // Push content down to reveal hero initially
+
+  // Video Preview
+  videoContainer: {
+    width: '100%',
+    height: VIDEO_HEIGHT,
+    backgroundColor: '#000',
   },
-  contentCard: {
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    paddingHorizontal: 24,
-    paddingTop: 30,
-    minHeight: height * 0.7,
+  videoThumbnail: {
+    width: '100%',
+    height: '100%',
+  },
+  videoImage: {
+    resizeMode: 'cover',
+  },
+  videoOverlay: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFF',
+  },
+  playButtonInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  previewText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: 12,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+
+  // Course Info
+  courseInfo: {
+    padding: 16,
+    backgroundColor: '#1c1d1f',
+  },
+  courseTitle: {
+    color: '#FFF',
+    fontSize: 22,
+    fontWeight: '700',
+    lineHeight: 30,
+    marginBottom: 8,
+  },
+  courseSubtitle: {
+    color: '#d1d7dc',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 10,
+  },
+  ratingBadge: {
+    backgroundColor: '#eceb98',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  ratingText: {
+    color: '#3d3c0a',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    marginRight: 6,
+  },
+  statsText: {
+    color: '#a1a1a1',
+    fontSize: 12,
+    marginRight: 4,
   },
   instructorRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingBottom: 20,
-    borderBottomWidth: 1,
-    marginBottom: 24,
-  },
-  instructorAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    marginRight: 12,
+    marginBottom: 10,
   },
   instructorLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    color: '#a1a1a1',
+    fontSize: 13,
   },
   instructorName: {
+    color: '#C9A227',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaText: {
+    color: '#a1a1a1',
+    fontSize: 12,
+  },
+
+  // CTA
+  ctaSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#0D1B2A',
+  },
+  enrollButton: {
+    backgroundColor: '#1E3A5F',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  enrolledButton: {
+    backgroundColor: '#2E7D5A',
+  },
+  enrollButtonText: {
+    color: '#FFF',
     fontSize: 16,
     fontWeight: '700',
   },
+
+  // Sections
   section: {
-    marginBottom: 32,
+    padding: 16,
+    backgroundColor: '#0D1B2A',
+    borderTopWidth: 1,
+    borderTopColor: '#1B2838',
   },
   sectionTitle: {
-    fontSize: 20,
+    color: '#FFF',
+    fontSize: 18,
     fontWeight: '700',
     marginBottom: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
-  descriptionText: {
-    fontSize: 16,
-    lineHeight: 24,
+
+  // What You'll Learn
+  learnCard: {
+    backgroundColor: '#1B2838',
+    borderRadius: 12,
+    padding: 16,
   },
-  curriculumHeader: {
+  learnItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 12,
   },
-  lessonCount: {
+  learnText: {
+    color: '#d1d7dc',
     fontSize: 14,
+    flex: 1,
+    lineHeight: 20,
+  },
+
+  // Course Content
+  contentSummary: {
+    color: '#a1a1a1',
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  lessonsCard: {
+    backgroundColor: '#1B2838',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   lessonItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    justifyContent: 'space-between',
+    padding: 14,
   },
-  lessonIndex: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    justifyContent: 'center',
+  lessonBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#2D3E50',
+  },
+  lessonLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
+  },
+  lessonIconPlay: {
     marginRight: 12,
   },
-  lessonIndexText: {
-    fontWeight: '700',
-    fontSize: 12,
+  lessonIconLocked: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   lessonInfo: {
     flex: 1,
   },
   lessonTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 2,
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  lessonTitleLocked: {
+    color: '#6a6f73',
   },
   lessonDuration: {
+    color: '#a1a1a1',
     fontSize: 12,
   },
-  actionBar: {
+
+  // Description
+  descriptionText: {
+    color: '#d1d7dc',
+    fontSize: 14,
+    lineHeight: 22,
+  },
+
+  // Bottom Bar
+  bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 20,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#1B2838',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
     borderTopWidth: 1,
-    zIndex: 100,
+    borderTopColor: '#2D3E50',
   },
-  actionPrice: {
-    fontSize: 20,
-    fontWeight: '800',
+  priceSection: {
+    flex: 1,
   },
-  actionSub: {
+  priceLabel: {
+    color: '#a1a1a1',
     fontSize: 12,
   },
-  actionBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 16,
-  },
-  actionBtnText: {
+  priceValue: {
     color: '#FFF',
+    fontSize: 20,
     fontWeight: '700',
-    fontSize: 16,
   },
+  bottomButton: {
+    backgroundColor: '#C9A227',
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  bottomButtonEnrolled: {
+    backgroundColor: '#2E7D5A',
+  },
+  bottomButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   successCard: {
-    padding: 30,
+    backgroundColor: '#1B2838',
+    padding: 40,
     borderRadius: 20,
     alignItems: 'center',
-    gap: 16,
+    width: width * 0.8,
+  },
+  successIcon: {
+    marginBottom: 16,
   },
   successTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    color: '#F0EBE3',
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  successSub: {
+    color: '#A8B4C4',
+    fontSize: 16,
+  },
+  certificateOverlay: {
+    flex: 1,
+    backgroundColor: '#0D1B2A',
   },
 });

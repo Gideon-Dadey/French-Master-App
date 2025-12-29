@@ -21,6 +21,7 @@ import AppSplashScreen from './src/components/AppSplashScreen';
 
 // Screens
 import LandingScreen from './screens/LandingScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
 import LearnerHomeScreen from './screens/LearnerHomeScreen';
 import LearnScreen from './screens/LearnScreen';
 import PracticeScreen from './screens/PracticeScreen';
@@ -69,6 +70,8 @@ import ManageSampleVideosScreen from './screens/ManageSampleVideosScreen';
 import CreatePostScreen from './screens/CreatePostScreen';
 import WordOfTheDayScreen from './screens/WordOfTheDayScreen';
 import ConversationSimulatorScreen from './screens/ConversationSimulatorScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import StreaksScreen from './screens/StreaksScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -164,6 +167,7 @@ function AppNavigator() {
         initialRouteName={isAuthenticated ? "Main" : "Landing"}
       >
         <Stack.Screen name="Landing" component={LandingScreen} />
+        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen name="Auth" component={AuthStack} />
         <Stack.Screen
@@ -519,6 +523,20 @@ function AppNavigator() {
         <Stack.Screen
           name="Achievements"
           component={AchievementsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="Streaks"
+          component={StreaksScreen}
           options={{
             headerShown: false,
           }}

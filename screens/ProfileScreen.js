@@ -401,34 +401,24 @@ export default function ProfileScreen({ navigation }) {
         <Animated.View style={[styles.section, { opacity: cardAnims[2], transform: [{ translateY: cardAnims[2].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
           <View style={styles.sectionTitleRow}>
             <View style={[styles.titleAccent, { backgroundColor: theme.accent }]} />
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Settings</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Account & Settings</Text>
           </View>
           <View style={[styles.settingsCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}>
             <SettingItem
-              icon="moon-outline"
-              title="Dark Mode"
-              isSwitch
-              value={isDarkMode}
-              onValueChange={() => handleUpdatePreference('theme', !isDarkMode ? 'dark' : 'light')}
-              theme={theme}
-            />
-            <SettingItem
-              icon="notifications-outline"
-              title="Notifications"
-              isSwitch
-              value={notifications}
-              onValueChange={(val) => handleUpdatePreference('notifications', val)}
+              icon="settings-outline"
+              title="Full App Settings"
+              onPress={() => navigation.navigate('Settings')}
               theme={theme}
             />
             <SettingItem
               icon="shield-checkmark-outline"
               title="Privacy & Security"
-              onPress={() => { }}
+              onPress={() => navigation.navigate('Settings')}
               theme={theme}
             />
             <SettingItem
               icon="help-circle-outline"
-              title="Help Support"
+              title="Help & Support"
               onPress={() => navigation.navigate('Resources')}
               theme={theme}
               isLast

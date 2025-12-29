@@ -134,6 +134,7 @@ export const paymentsAPI = {
 export const progressAPI = {
   getByCourse: (courseId) => api.get(`/progress/course/${courseId}`),
   getDashboard: () => api.get('/progress/dashboard'),
+  getActivity: () => api.get('/progress/activity'),
 };
 
 export const usersAPI = {
@@ -141,6 +142,8 @@ export const usersAPI = {
   updateProfile: (data) => api.put('/users/profile', data),
   getMyCourses: () => api.get('/users/my-courses'),
   updatePushToken: (pushToken) => api.put('/users/push-token', { pushToken }),
+  getBookmarks: () => api.get('/users/bookmarks'),
+  toggleBookmarkLesson: (lessonId) => api.post('/users/bookmarks/toggle', { lessonId }),
 };
 
 export const reviewsAPI = {
@@ -323,6 +326,13 @@ export const sampleVideosAPI = {
   getByCourse: (courseId) => api.get(`/sample-videos/course/${courseId}`),
   assignToCourse: (videoId, courseId) =>
     api.put(`/sample-videos/${videoId}/assign`, { courseId }),
+};
+
+export const notesAPI = {
+  getByLesson: (lessonId) => api.get(`/notes/lesson/${lessonId}`),
+  create: (data) => api.post('/notes', data),
+  update: (id, data) => api.put(`/notes/${id}`, data),
+  delete: (id) => api.delete(`/notes/${id}`),
 };
 
 export default api;

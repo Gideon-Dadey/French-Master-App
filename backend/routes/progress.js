@@ -112,5 +112,34 @@ router.get('/dashboard', protect, async (req, res) => {
   }
 });
 
+router.get('/activity', protect, async (req, res) => {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Get active days from Progress
+    const progressRecords = await Progress.find({
+      user: req.user._id,
+      updatedAt: { $gte: thirtyDaysAgo }
+    }).select('updatedAt');
+
+    const activeDays = new Set();
+    progressRecords.forEach(p => {
+      activeDays.add(p.updatedAt.toISOString().split('T')[0]);
+    });
+
+    res.json({
+      success: true,
+      data: Array.from(activeDays).sort()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 

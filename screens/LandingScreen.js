@@ -92,7 +92,7 @@ export default function LandingScreen({ navigation }) {
         <Animated.View style={[styles.bottomActions, { opacity: fadeAnim }]}>
           <TouchableOpacity
             style={[styles.primaryBtn, { backgroundColor: theme.primary }, themeShadows.md]}
-            onPress={() => navigation.replace('Main')}
+            onPress={() => navigation.replace('Onboarding')}
             activeOpacity={0.9}
           >
             <Text style={styles.primaryBtnText}>Get Started</Text>
