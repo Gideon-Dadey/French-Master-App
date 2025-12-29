@@ -59,8 +59,8 @@ function TabBarItem({ route, focused, onPress, onLongPress, theme }) {
     activeColor: '#1A2332',
   };
 
-  const inactiveColor = '#B0B0B0'; // Light grey like the image
-  const activeColor = '#1A2332'; // Dark charcoal like the image
+  const inactiveColor = theme.textSecondary;
+  const activeColor = theme.primary;
 
   return (
     <TouchableOpacity
@@ -115,7 +115,8 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
     <View style={[
       styles.container,
       {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: theme.surface,
+        borderTopColor: theme.border,
         paddingBottom: getBottomPadding(),
       }
     ]}>
@@ -165,9 +166,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
     paddingTop: 10,
   },
   tabsContainer: {

@@ -2573,40 +2573,49 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                                 isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble,
                                 messageData.type === MESSAGE_TYPES.IMAGE && styles.imageBubble,
                                 messageData.type === MESSAGE_TYPES.IMAGE && (isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble),
+                                // Telegram-style background colors
+                                messageData.type !== MESSAGE_TYPES.IMAGE && {
+                                  backgroundColor: isOwnMessage
+                                    ? (isDarkMode ? '#2B5278' : '#EEFFDE')
+                                    : (isDarkMode ? '#182533' : '#FFFFFF')
+                                },
                               ]}>
+                                {/* Telegram-style Gradient Overlay for Own Messages */}
                                 {isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
                                   <LinearGradient
-                                    colors={[premiumColors.primary.main, premiumColors.primary.dark]}
+                                    colors={isDarkMode
+                                      ? ['rgba(43, 82, 120, 0)', 'rgba(43, 82, 120, 0.3)']
+                                      : ['rgba(200, 255, 200, 0)', 'rgba(180, 240, 180, 0.2)']
+                                    }
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 1 }}
                                     style={StyleSheet.absoluteFill}
                                   />
                                 )}
 
+                                {/* Telegram-style Author Name with Random Colors */}
                                 {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
-                                  <View style={[
-                                    StyleSheet.absoluteFill,
-                                    {
-                                      backgroundColor: isDarkMode ? 'rgba(42, 57, 66, 0.8)' : 'rgba(255, 255, 255, 0.9)',
-                                    }
-                                  ]} />
-                                )}
-
-                                {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
-                                  <Text style={[styles.messageAuthor, { color: isDarkMode ? '#53BDEB' : '#075E54' }]}>
-                                    {discussionUser?.name?.toUpperCase() || 'MEMBER'}
+                                  <Text style={[styles.messageAuthor, {
+                                    color: [
+                                      '#E17076', '#7BC862', '#65AADD', '#EE7AE6',
+                                      '#FAA05A', '#6EC9CB', '#E47FBD', '#7B88FF'
+                                    ][Math.abs((discussionUser?.name?.charCodeAt(0) || 0) % 8)]
+                                  }]}>
+                                    {discussionUser?.name || 'Member'}
                                   </Text>
                                 )}
 
                                 {messageData.replyTo && (
                                   <View style={[styles.replyPreview, {
-                                    backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background,
-                                    borderLeftColor: premiumColors.accent.emerald,
+                                    backgroundColor: isOwnMessage
+                                      ? (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,128,0,0.08)')
+                                      : (isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'),
+                                    borderLeftColor: '#6EB545',
                                   }]}>
-                                    <Text style={[styles.replyAuthor, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.emerald }]}>
+                                    <Text style={[styles.replyAuthor, { color: '#6EB545' }]}>
                                       {messageData.replyTo.userName}
                                     </Text>
-                                    <Text style={[styles.replyText, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]} numberOfLines={1}>
+                                    <Text style={[styles.replyText, { color: isOwnMessage ? (isDarkMode ? 'rgba(255,255,255,0.7)' : '#2E7D32') : colors.secondaryText }]} numberOfLines={1}>
                                       {messageData.replyTo.message}
                                     </Text>
                                   </View>
@@ -4066,10 +4075,13 @@ const styles = StyleSheet.create({
     maxWidth: width * 0.75,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 0.5,
+    borderRadius: 18,
     position: 'relative',
-    overflow: 'hidden',
-    ...premiumShadows.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   imageBubble: {
     padding: 0,
@@ -4077,10 +4089,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   ownMessageBubble: {
-    borderRadius: 0.5,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 6,
   },
   otherMessageBubble: {
-    borderRadius: 0.5,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 18,
   },
 
   ownBubbleTail: {
@@ -4172,10 +4190,16 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   ownImageBubble: {
-    borderRadius: 0.5,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 6,
   },
   otherImageBubble: {
-    borderRadius: 0.5,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 18,
   },
   imageOverlay: {
     position: 'absolute',
