@@ -16,6 +16,8 @@ import NetworkStatus from './src/components/NetworkStatus';
 import TabBarIcon from './src/components/TabBarIcon';
 import CustomTabBar from './src/components/CustomTabBar';
 import ToastContainer from './src/components/ToastNotification';
+import AppSplashScreen from './src/components/AppSplashScreen';
+
 
 // Screens
 import LandingScreen from './screens/LandingScreen';
@@ -151,14 +153,14 @@ function AppNavigator() {
   }, [isAuthenticated, loading]);
 
   if (loading) {
-    return null; // Or a loading screen
+    return <AppSplashScreen />;
   }
 
   return (
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         screenOptions={{ headerShown: false }}
-        initialRouteName="Main"
+        initialRouteName={isAuthenticated ? "Main" : "Landing"}
       >
         <Stack.Screen name="Landing" component={LandingScreen} />
         <Stack.Screen name="Main" component={MainTabs} />
