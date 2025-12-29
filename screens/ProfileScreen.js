@@ -149,12 +149,15 @@ export default function ProfileScreen({ navigation }) {
 
   const handleUpdatePreference = async (key, value) => {
     try {
-      await usersAPI.updateProfile({ preferences: { [key]: value } });
+      // Optimistic update for instant feedback
       if (key === 'theme') {
         toggleTheme();
       } else if (key === 'notifications') {
         setNotifications(value);
       }
+
+      // Persist to backend without blocking UI
+      await usersAPI.updateProfile({ preferences: { [key]: value } });
     } catch (error) {
       console.error('Failed to update preference:', error);
     }
