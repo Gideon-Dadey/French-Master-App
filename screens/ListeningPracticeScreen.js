@@ -15,18 +15,31 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
 import { speakText, stopSpeech } from '../src/utils/textToSpeech';
+import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
 
 const { width, height } = Dimensions.get('window');
 
+const BackgroundBlur = ({ style, color, size = 300 }) => (
+  <View style={[style, {
+    position: 'absolute',
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor: color,
+    opacity: 0.05,
+    transform: [{ scale: 1.5 }],
+  }]} />
+);
+
 const LISTENING_CATEGORIES = [
-  { id: 'conversations', name: 'Conversations', icon: 'chatbubbles', color: '#3B82F6', gradient: ['#3B82F6', '#2563EB'], desc: 'Daily dialogues' },
-  { id: 'numbers', name: 'Numbers & Math', icon: 'calculator', color: '#10B981', gradient: ['#10B981', '#059669'], desc: 'Counting & prices' },
-  { id: 'time_dates', name: 'Time & Dates', icon: 'calendar', color: '#8B5CF6', gradient: ['#8B5CF6', '#7C3AED'], desc: 'Schedules & plans' },
-  { id: 'directions', name: 'Directions', icon: 'navigate', color: '#F59E0B', gradient: ['#F59E0B', '#D97706'], desc: 'Finding places' },
-  { id: 'food_restaurant', name: 'Restaurant', icon: 'restaurant', color: '#EF4444', gradient: ['#EF4444', '#DC2626'], desc: 'Ordering food' },
-  { id: 'travel', name: 'Travel', icon: 'airplane', color: '#06B6D4', gradient: ['#06B6D4', '#0891B2'], desc: 'Airport & hotel' },
-  { id: 'shopping', name: 'Shopping', icon: 'cart', color: '#EC4899', gradient: ['#EC4899', '#DB2777'], desc: 'Buying things' },
-  { id: 'weather', name: 'Weather', icon: 'cloudy', color: '#14B8A6', gradient: ['#14B8A6', '#0D9488'], desc: 'Forecasts' },
+  { id: 'conversations', name: 'Conversations', icon: 'chatbubbles', color: '#6366F1', gradient: ['#6366F1', '#4F46E5'], desc: 'Daily dialogues' },
+  { id: 'numbers', name: 'Numbers & Math', icon: 'calculator', color: '#8B5CF6', gradient: ['#8B5CF6', '#7C3AED'], desc: 'Counting & prices' },
+  { id: 'time_dates', name: 'Time & Dates', icon: 'calendar', color: '#EC4899', gradient: ['#EC4899', '#DB2777'], desc: 'Schedules & plans' },
+  { id: 'directions', name: 'Directions', icon: 'navigate', color: '#10B981', gradient: ['#10B981', '#059669'], desc: 'Finding places' },
+  { id: 'food_restaurant', name: 'Restaurant', icon: 'restaurant', color: '#F59E0B', gradient: ['#F59E0B', '#D97706'], desc: 'Ordering food' },
+  { id: 'travel', name: 'Travel', icon: 'airplane', color: '#3B82F6', gradient: ['#3B82F6', '#2563EB'], desc: 'Airport & hotel' },
+  { id: 'shopping', name: 'Shopping', icon: 'cart', color: '#F43F5E', gradient: ['#F43F5E', '#E11D48'], desc: 'Buying things' },
+  { id: 'weather', name: 'Weather', icon: 'cloudy', color: '#06B6D4', gradient: ['#06B6D4', '#0891B2'], desc: 'Forecasts' },
 ];
 
 const LISTENING_EXERCISES = {
@@ -529,7 +542,8 @@ const LISTENING_EXERCISES = {
 };
 
 export default function ListeningPracticeScreen({ navigation }) {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode, toggleTheme } = useTheme();
+  const theme = getThemeColors(isDarkMode);
   const { awardXP } = useGamification();
 
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -544,6 +558,28 @@ export default function ListeningPracticeScreen({ navigation }) {
   const [sessionCompleted, setSessionCompleted] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [startTime, setStartTime] = useState(null);
+
+  // New states for redesign
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [headerInteractable, setHeaderInteractable] = useState(false);
+
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event) => {
+        const offset = event.nativeEvent.contentOffset.y;
+        if (offset > 40 && !headerInteractable) setHeaderInteractable(true);
+        else if (offset <= 40 && headerInteractable) setHeaderInteractable(false);
+      }
+    }
+  );
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 60],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -714,128 +750,142 @@ export default function ListeningPracticeScreen({ navigation }) {
 
   if (!selectedCategory) {
     return (
-      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
-        <LinearGradient
-          colors={isDarkMode ? ['#1E3A8A', '#1E40AF'] : ['#3B82F6', '#2563EB']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.categoryHeader}
+        <Animated.View
+          pointerEvents={headerInteractable ? 'auto' : 'none'}
+          style={[
+            styles.floatingNavBar,
+            {
+              backgroundColor: theme.surface + 'F8',
+              opacity: headerOpacity,
+              borderBottomColor: theme.border,
+            }
+          ]}
         >
-          <View style={styles.headerDecor1} />
-          <View style={styles.headerDecor2} />
-          <View style={styles.headerDecor3} />
-
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <Animated.View
-            style={[
-              styles.headerContent,
-              { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-            ]}
-          >
-            <View style={styles.headerIconWrap}>
-              <LinearGradient
-                colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
-                style={styles.headerIconGradient}
+          <View style={styles.navBarContent}>
+            <View style={styles.navBarLeft}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.navBackBtn}
               >
-                <Ionicons name="headset" size={44} color="#FFFFFF" />
-              </LinearGradient>
+                <Ionicons name="chevron-back" size={24} color={theme.text} />
+              </TouchableOpacity>
+              <Text style={[styles.navTitle, { color: theme.text }]}>Listening</Text>
             </View>
-            <Text style={styles.headerTitle}>Listening Practice</Text>
-            <Text style={styles.headerSubtitle}>
-              Train your ear for French conversations
-            </Text>
-          </Animated.View>
-        </LinearGradient>
+            <TouchableOpacity
+              onPress={toggleTheme}
+              style={[styles.navIconBtn, { backgroundColor: theme.surfaceAlt }]}
+            >
+              <Ionicons name={isDarkMode ? 'sunny' : 'moon'} size={20} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
 
-        <ScrollView
-          style={styles.categoryScroll}
-          contentContainerStyle={styles.categoryContent}
+        <Animated.ScrollView
+          style={styles.scrollView}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Choose a Topic
-          </Text>
-          <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>
-            Listen and understand real French
-          </Text>
-
-          <View style={styles.categoryGrid}>
-            {LISTENING_CATEGORIES.map((category, index) => (
-              <Animated.View
-                key={category.id}
-                style={{
-                  opacity: fadeAnim,
-                  transform: [
-                    { translateY: Animated.multiply(slideAnim, new Animated.Value(1 + index * 0.1)) },
-                    { scale: scaleAnim }
-                  ],
-                }}
-              >
+          <View style={styles.heroSection}>
+            <View style={styles.heroContent}>
+              <BackgroundBlur style={styles.blurTop} color={theme.primary} />
+              <View style={styles.heroHeader}>
                 <TouchableOpacity
-                  style={[
-                    styles.categoryCard,
-                    { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }
-                  ]}
-                  onPress={() => startSession(category.id)}
-                  activeOpacity={0.8}
+                  onPress={() => navigation.goBack()}
+                  style={[styles.backCircle, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
                 >
-                  <LinearGradient
-                    colors={category.gradient}
-                    style={styles.categoryIcon}
-                  >
-                    <Ionicons name={category.icon} size={26} color="#FFFFFF" />
-                  </LinearGradient>
-                  <Text style={[styles.categoryName, { color: colors.text }]}>
-                    {category.name}
-                  </Text>
-                  <Text style={[styles.categoryDesc, { color: colors.secondaryText }]} numberOfLines={1}>
-                    {category.desc}
-                  </Text>
-                  <View style={styles.categoryMeta}>
-                    <View style={[styles.exerciseBadge, { backgroundColor: category.color + '20' }]}>
-                      <Text style={[styles.exerciseBadgeText, { color: category.color }]}>6 audio</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                  </View>
+                  <Ionicons name="chevron-back" size={24} color={theme.text} />
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={toggleTheme}
+                  style={[styles.themeToggle, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
+                >
+                  <Ionicons name={isDarkMode ? 'sunny' : 'moon'} size={20} color={theme.text} />
+                </TouchableOpacity>
+              </View>
+
+              <Animated.View style={[styles.greetingSection, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+                <Text style={[styles.greetingSubtitle, { color: theme.secondary }]}>IMMERSIVE COMPREHENSION</Text>
+                <Text style={[styles.greetingTitle, { color: theme.text }]}>Listening</Text>
+                <Text style={[styles.heroDescription, { color: theme.textSecondary }]}>
+                  Master French listening with immersive exercises and real-world conversations.
+                </Text>
               </Animated.View>
-            ))}
+            </View>
           </View>
 
-          <View style={[styles.statsCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
-            <LinearGradient
-              colors={['#3B82F6', '#2563EB']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.statsGradient}
-            >
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>48</Text>
-                <Text style={styles.statLabel}>Audio Clips</Text>
+          <View style={styles.contentBody}>
+            <View style={[styles.statsOverview, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>54</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Clips</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>8</Text>
-                <Text style={styles.statLabel}>Topics</Text>
+              <View style={[styles.overviewDivider, { backgroundColor: theme.border }]} />
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>8</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Topics</Text>
               </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Ionicons name="ear" size={28} color="#FFFFFF" />
-                <Text style={styles.statLabel}>Native Audio</Text>
+              <View style={[styles.overviewDivider, { backgroundColor: theme.border }]} />
+              <View style={styles.overviewItem}>
+                <Text style={[styles.overviewValue, { color: theme.text }]}>Studio</Text>
+                <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Quality</Text>
               </View>
-            </LinearGradient>
-          </View>
+            </View>
 
-          <View style={{ height: 100 }} />
-        </ScrollView>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Choose a Topic</Text>
+              </View>
+            </View>
+
+            <View style={styles.categoryGrid}>
+              {LISTENING_CATEGORIES.map((category, index) => (
+                <Animated.View
+                  key={category.id}
+                  style={[
+                    styles.categoryWrapper,
+                    {
+                      opacity: fadeAnim,
+                      transform: [
+                        { translateY: Animated.multiply(slideAnim, new Animated.Value(1 + index * 0.1)) },
+                        { scale: scaleAnim }
+                      ],
+                    }
+                  ]}
+                >
+                  <TouchableOpacity
+                    style={[styles.categoryCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.sm]}
+                    onPress={() => startSession(category.id)}
+                    activeOpacity={0.9}
+                  >
+                    <LinearGradient
+                      colors={category.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.categoryIconWrap}
+                    >
+                      <Ionicons name={category.icon} size={28} color="#FFFFFF" />
+                    </LinearGradient>
+                    <View style={styles.categoryInfo}>
+                      <Text style={[styles.categoryName, { color: theme.text }]}>{category.name}</Text>
+                      <Text style={[styles.categoryDetails, { color: theme.textSecondary }]}>{category.desc}</Text>
+                    </View>
+                    <View style={[styles.playCircle, { backgroundColor: theme.primary + '10' }]}>
+                      <Ionicons name="headset-outline" size={16} color={theme.primary} />
+                    </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              ))}
+            </View>
+
+            <View style={{ height: 100 }} />
+          </View>
+        </Animated.ScrollView>
       </View>
     );
   }
@@ -845,11 +895,11 @@ export default function ListeningPracticeScreen({ navigation }) {
     const categoryInfo = getCategoryInfo();
 
     return (
-      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle="light-content" />
 
         <LinearGradient
-          colors={percentage >= 70 ? ['#10B981', '#059669'] : ['#3B82F6', '#2563EB']}
+          colors={percentage >= 70 ? [theme.success, theme.primary] : [theme.primary, theme.primaryLight]}
           style={styles.resultHeader}
         >
           <View style={styles.resultDecor1} />
@@ -865,14 +915,14 @@ export default function ListeningPracticeScreen({ navigation }) {
           <View style={styles.resultIconContainer}>
             <View style={styles.resultIconGlow} />
             <Ionicons
-              name={percentage >= 70 ? 'headset' : 'ear'}
+              name={percentage >= 70 ? 'musical-notes' : 'headset'}
               size={56}
               color="#FFFFFF"
             />
           </View>
 
           <Text style={styles.resultTitle}>
-            {percentage >= 90 ? 'Parfait!' : percentage >= 70 ? 'Excellent!' : percentage >= 50 ? 'Bien!' : 'Continue!'}
+            {percentage >= 90 ? 'Incroyable!' : percentage >= 70 ? 'Excellent!' : percentage >= 50 ? 'Bien joué!' : 'Continue!'}
           </Text>
           <Text style={styles.resultSubtitle}>
             {categoryInfo?.name} Complete
@@ -884,98 +934,84 @@ export default function ListeningPracticeScreen({ navigation }) {
           contentContainerStyle={styles.resultContent}
           showsVerticalScrollIndicator={false}
         >
-
-          <View style={[styles.scoreCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
+          <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.md]}>
             <View style={styles.scoreRow}>
               <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Score</Text>
-                <Text style={[styles.scoreValue, { color: colors.text }]}>{score}/{exercises.length}</Text>
+                <View style={[styles.scoreIcon, { backgroundColor: theme.primary + '15' }]}>
+                  <Ionicons name="stats-chart" size={24} color={theme.primary} />
+                </View>
+                <Text style={[styles.scoreValue, { color: theme.text }]}>{score}/{exercises.length}</Text>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Correct</Text>
               </View>
-              <View style={[styles.scoreDivider, { backgroundColor: colors.border }]} />
+
+              <View style={[styles.scoreDivider, { backgroundColor: theme.border }]} />
+
               <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Accuracy</Text>
-                <Text style={[styles.scoreValue, { color: percentage >= 70 ? '#10B981' : colors.text }]}>
-                  {percentage.toFixed(0)}%
-                </Text>
+                <View style={[styles.scoreIcon, { backgroundColor: theme.success + '15' }]}>
+                  <Ionicons name="checkmark-done" size={24} color={theme.success} />
+                </View>
+                <Text style={[styles.scoreValue, { color: theme.success }]}>{percentage.toFixed(0)}%</Text>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Accuracy</Text>
               </View>
-              <View style={[styles.scoreDivider, { backgroundColor: colors.border }]} />
+
+              <View style={[styles.scoreDivider, { backgroundColor: theme.border }]} />
+
               <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: colors.secondaryText }]}>Time</Text>
-                <Text style={[styles.scoreValue, { color: colors.text }]}>{formatTime(timeElapsed)}</Text>
+                <View style={[styles.scoreIcon, { backgroundColor: theme.secondary + '15' }]}>
+                  <Ionicons name="time" size={24} color={theme.secondary} />
+                </View>
+                <Text style={[styles.scoreValue, { color: theme.text }]}>{formatTime(timeElapsed)}</Text>
+                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Duration</Text>
               </View>
             </View>
           </View>
 
-          <Text style={[styles.reviewTitle, { color: colors.text }]}>Review Answers</Text>
-
-          {exercises.map((exercise, index) => {
-            const userAnswer = answers[index];
-            const isCorrect = userAnswer?.isCorrect;
-
-            return (
-              <View
-                key={exercise.id}
-                style={[
-                  styles.reviewCard,
-                  {
-                    backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
-                    borderLeftColor: isCorrect ? '#10B981' : '#F43F5E',
-                  }
-                ]}
-              >
-                <View style={styles.reviewHeader}>
-                  <View style={[
-                    styles.reviewBadge,
-                    { backgroundColor: isCorrect ? '#10B98120' : '#F43F5E20' }
-                  ]}>
-                    <Ionicons
-                      name={isCorrect ? 'checkmark-circle' : 'close-circle'}
-                      size={20}
-                      color={isCorrect ? '#10B981' : '#F43F5E'}
-                    />
-                  </View>
-                  <Text style={[styles.reviewQuestion, { color: colors.text }]} numberOfLines={2}>
-                    {exercise.question}
-                  </Text>
-                </View>
-                <Text style={[styles.reviewAudio, { color: colors.secondaryText }]} numberOfLines={1}>
-                  "{exercise.audioText}"
-                </Text>
-                <Text style={[styles.reviewAnswer, { color: colors.secondaryText }]}>
-                  Your answer: <Text style={{ fontWeight: '600', color: isCorrect ? '#10B981' : '#F43F5E' }}>
-                    {exercise.options[userAnswer?.answer]}
-                  </Text>
-                </Text>
-              </View>
-            );
-          })}
+          <View style={[styles.performanceCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.sm]}>
+            <View style={[styles.performanceBadge, { backgroundColor: percentage >= 70 ? theme.success + '15' : theme.secondary + '15' }]}>
+              <Ionicons
+                name={percentage >= 70 ? "trophy" : "bulb"}
+                size={32}
+                color={percentage >= 70 ? theme.success : theme.secondary}
+              />
+            </View>
+            <View style={styles.performanceInfo}>
+              <Text style={[styles.performanceTitle, { color: theme.text }]}>Performance Insights</Text>
+              <Text style={[styles.performanceDesc, { color: theme.textSecondary }]}>
+                {percentage >= 90
+                  ? "Flawless! Your French listening skills are exceptional."
+                  : percentage >= 70
+                    ? "Great work! You understood most of the audio clearly."
+                    : "Good effort. Try listening to the clips multiple times to catch every word."}
+              </Text>
+            </View>
+          </View>
 
           <View style={styles.resultActions}>
             <TouchableOpacity
-              style={[styles.retryBtn, { backgroundColor: isDarkMode ? '#374151' : '#F1F5F9' }]}
+              style={[styles.retryBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border, borderWidth: 1 }]}
               onPress={() => startSession(selectedCategory)}
             >
-              <Ionicons name="refresh" size={22} color={colors.text} />
-              <Text style={[styles.retryBtnText, { color: colors.text }]}>Retry</Text>
+              <Ionicons name="refresh" size={22} color={theme.text} />
+              <Text style={[styles.retryBtnText, { color: theme.text }]}>Practice Again</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.newSessionBtn}
+              style={styles.newDeckBtn}
               onPress={() => setSelectedCategory(null)}
             >
               <LinearGradient
-                colors={['#3B82F6', '#2563EB']}
+                colors={[theme.primary, theme.primaryLight]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.newSessionGradient}
+                style={styles.newDeckGradient}
               >
                 <Ionicons name="grid" size={22} color="#FFFFFF" />
-                <Text style={styles.newSessionBtnText}>New Topic</Text>
+                <Text style={styles.newDeckBtnText}>Back to Hub</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 100 }} />
+          <View style={{ height: 40 }} />
         </ScrollView>
       </View>
     );
@@ -984,11 +1020,11 @@ export default function ListeningPracticeScreen({ navigation }) {
   const categoryInfo = getCategoryInfo();
 
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="light-content" />
 
       <LinearGradient
-        colors={categoryInfo?.gradient || ['#3B82F6', '#2563EB']}
+        colors={categoryInfo?.gradient || [theme.primary, theme.primaryLight]}
         style={styles.practiceHeader}
       >
         <View style={styles.practiceHeaderTop}>
@@ -1017,21 +1053,16 @@ export default function ListeningPracticeScreen({ navigation }) {
             <Animated.View
               style={[
                 styles.progressBarFill,
-                { width: progressAnim.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ['0%', '100%'],
-                }) }
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: ['0%', '100%'],
+                  })
+                }
               ]}
             />
           </View>
         </View>
-
-        {streak >= 2 && (
-          <View style={styles.streakBadge}>
-            <Ionicons name="flame" size={18} color="#F59E0B" />
-            <Text style={styles.streakText}>{streak} Streak!</Text>
-          </View>
-        )}
       </LinearGradient>
 
       <ScrollView
@@ -1040,21 +1071,21 @@ export default function ListeningPracticeScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
 
-        <View style={[styles.audioCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
+        <View style={[styles.audioCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.md]}>
           <View style={styles.audioMeta}>
             <View style={[
               styles.difficultyBadge,
-              { backgroundColor: currentExercise?.difficulty === 'beginner' ? '#10B98120' : currentExercise?.difficulty === 'intermediate' ? '#F59E0B20' : '#EF444420' }
+              { backgroundColor: currentExercise?.difficulty === 'beginner' ? theme.success + '20' : currentExercise?.difficulty === 'intermediate' ? theme.secondary + '20' : theme.error + '20' }
             ]}>
               <Text style={[
                 styles.difficultyText,
-                { color: currentExercise?.difficulty === 'beginner' ? '#10B981' : currentExercise?.difficulty === 'intermediate' ? '#F59E0B' : '#EF4444' }
+                { color: currentExercise?.difficulty === 'beginner' ? theme.success : currentExercise?.difficulty === 'intermediate' ? theme.secondary : theme.error }
               ]}>
                 {currentExercise?.difficulty}
               </Text>
             </View>
             {playCount > 0 && (
-              <Text style={[styles.playCountText, { color: colors.secondaryText }]}>
+              <Text style={[styles.playCountText, { color: theme.textSecondary }]}>
                 Played {playCount}×
               </Text>
             )}
@@ -1079,7 +1110,7 @@ export default function ListeningPracticeScreen({ navigation }) {
 
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
             <TouchableOpacity
-              style={[styles.playBtn, { backgroundColor: categoryInfo?.color }]}
+              style={[styles.playBtn, { backgroundColor: categoryInfo?.color }, themeShadows.md]}
               onPress={handlePlayAudio}
               activeOpacity={0.9}
             >
@@ -1091,21 +1122,24 @@ export default function ListeningPracticeScreen({ navigation }) {
             </TouchableOpacity>
           </Animated.View>
 
-          <Text style={[styles.playHint, { color: colors.secondaryText }]}>
+          <Text style={[styles.playHint, { color: theme.textSecondary }]}>
             {isPlaying ? 'Playing audio...' : 'Tap to listen'}
           </Text>
         </View>
 
-        <View style={[styles.questionCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
-          <View style={styles.questionIcon}>
-            <Ionicons name="help-circle" size={24} color={categoryInfo?.color} />
+        <View style={[styles.phraseCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.md]}>
+          <View style={styles.phraseMeta}>
+            <View style={[styles.difficultyBadge, { backgroundColor: theme.primary + '15' }]}>
+              <Ionicons name="help-circle" size={16} color={theme.primary} />
+            </View>
+            <Text style={[styles.difficultyText, { color: theme.primary }]}>QUESTION</Text>
           </View>
-          <Text style={[styles.questionText, { color: colors.text }]}>
+          <Text style={[styles.phraseText, { color: theme.text }]}>
             {currentExercise?.question}
           </Text>
         </View>
 
-        <View style={styles.optionsContainer}>
+        <View style={styles.optionsGrid}>
           {currentExercise?.options.map((option, index) => {
             const isSelected = selectedAnswer === index;
             const isCorrect = index === currentExercise.correct;
@@ -1129,10 +1163,11 @@ export default function ListeningPracticeScreen({ navigation }) {
                   style={[
                     styles.optionBtn,
                     {
-                      backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
-                      borderColor: showCorrect ? '#10B981' : showWrong ? '#F43F5E' : isSelected ? categoryInfo?.color : isDarkMode ? '#334155' : '#E2E8F0',
-                      borderWidth: showCorrect || showWrong || isSelected ? 2.5 : 1.5,
-                    }
+                      backgroundColor: theme.surface,
+                      borderColor: showCorrect ? theme.success : showWrong ? theme.error : isSelected ? categoryInfo?.color : theme.border,
+                      borderWidth: showCorrect || showWrong || isSelected ? 2.5 : 1,
+                    },
+                    (showCorrect || showWrong || isSelected) ? themeShadows.sm : {}
                   ]}
                   onPress={() => handleAnswer(index)}
                   disabled={showResult}
@@ -1141,24 +1176,24 @@ export default function ListeningPracticeScreen({ navigation }) {
                   <View style={[
                     styles.optionLetter,
                     {
-                      backgroundColor: showCorrect ? '#10B981' : showWrong ? '#F43F5E' : isSelected ? categoryInfo?.color : isDarkMode ? '#374151' : '#F1F5F9',
+                      backgroundColor: showCorrect ? theme.success : showWrong ? theme.error : isSelected ? categoryInfo?.color : theme.surfaceAlt,
                     }
                   ]}>
                     <Text style={[
                       styles.optionLetterText,
-                      { color: showCorrect || showWrong || isSelected ? '#FFFFFF' : colors.text }
+                      { color: (showCorrect || showWrong || isSelected) ? '#FFFFFF' : theme.text }
                     ]}>
                       {String.fromCharCode(65 + index)}
                     </Text>
                   </View>
-                  <Text style={[styles.optionText, { color: colors.text }]}>
+                  <Text style={[styles.optionText, { color: theme.text }]}>
                     {option}
                   </Text>
                   {showCorrect && (
-                    <Ionicons name="checkmark-circle" size={26} color="#10B981" />
+                    <Ionicons name="checkmark-circle" size={26} color={theme.success} />
                   )}
                   {showWrong && (
-                    <Ionicons name="close-circle" size={26} color="#F43F5E" />
+                    <Ionicons name="close-circle" size={26} color={theme.error} />
                   )}
                 </TouchableOpacity>
               </Animated.View>
@@ -1170,26 +1205,29 @@ export default function ListeningPracticeScreen({ navigation }) {
           <View style={[
             styles.explanationCard,
             {
-              backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
-              borderLeftColor: selectedAnswer === currentExercise.correct ? '#10B981' : '#F59E0B',
-            }
+              backgroundColor: theme.surface,
+              borderLeftColor: selectedAnswer === currentExercise.correct ? theme.success : theme.secondary,
+              borderWidth: 1,
+              borderColor: theme.border,
+            },
+            themeShadows.sm
           ]}>
             <View style={styles.explanationHeader}>
               <Ionicons
                 name={selectedAnswer === currentExercise.correct ? 'checkmark-circle' : 'bulb'}
                 size={24}
-                color={selectedAnswer === currentExercise.correct ? '#10B981' : '#F59E0B'}
+                color={selectedAnswer === currentExercise.correct ? theme.success : theme.secondary}
               />
-              <Text style={[styles.explanationTitle, { color: colors.text }]}>
+              <Text style={[styles.explanationTitle, { color: theme.text }]}>
                 {selectedAnswer === currentExercise.correct ? 'Correct!' : 'Explanation'}
               </Text>
             </View>
-            <Text style={[styles.explanationText, { color: colors.secondaryText }]}>
+            <Text style={[styles.explanationText, { color: theme.textSecondary }]}>
               {currentExercise?.explanation}
             </Text>
-            <View style={[styles.translationBox, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' }]}>
-              <Ionicons name="language" size={16} color={colors.secondaryText} />
-              <Text style={[styles.translationText, { color: colors.secondaryText }]}>
+            <View style={[styles.translationBox, { backgroundColor: theme.surfaceAlt, borderColor: theme.border, borderWidth: 1 }]}>
+              <Ionicons name="language" size={16} color={theme.textSecondary} />
+              <Text style={[styles.translationText, { color: theme.textSecondary }]}>
                 {currentExercise?.translation}
               </Text>
             </View>
@@ -1203,7 +1241,7 @@ export default function ListeningPracticeScreen({ navigation }) {
             activeOpacity={0.9}
           >
             <LinearGradient
-              colors={categoryInfo?.gradient || ['#3B82F6', '#2563EB']}
+              colors={[theme.primary, theme.primaryLight]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.nextBtnGradient}
@@ -1226,178 +1264,195 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
-  categoryHeader: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 44,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-    overflow: 'hidden',
-  },
-  headerDecor1: {
-    position: 'absolute',
-    top: -60,
-    right: -60,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-  headerDecor2: {
-    position: 'absolute',
-    bottom: -40,
-    left: -40,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  headerDecor3: {
-    position: 'absolute',
-    top: 80,
-    left: 60,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  backBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  headerContent: {
-    alignItems: 'center',
-  },
-  headerIconWrap: {
-    marginBottom: 16,
-  },
-  headerIconGradient: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.85)',
-    textAlign: 'center',
-  },
-  categoryScroll: {
+  scrollView: {
     flex: 1,
   },
-  categoryContent: {
-    padding: 20,
+  floatingNavBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
   },
-  sectionTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 8,
-    letterSpacing: -0.3,
-  },
-  sectionSubtitle: {
-    fontSize: 15,
-    marginBottom: 24,
-  },
-  categoryGrid: {
+  navBarContent: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: 20,
   },
-  categoryCard: {
-    width: (width - 52) / 2,
-    padding: 18,
-    borderRadius: 22,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
+  navBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
   },
-  categoryIcon: {
-    width: 54,
-    height: 54,
-    borderRadius: 16,
+  navBackBtn: {
+    padding: 5,
+  },
+  navTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  navIconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+  },
+  heroSection: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 20,
+    overflow: 'hidden',
+  },
+  heroContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+  },
+  blurTop: {
+    position: 'absolute',
+    top: -50,
+    right: -20,
+    width: 250,
+    height: 250,
+    opacity: 0.15,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 40,
+    zIndex: 10,
+  },
+  backCircle: {
+    width: 45,
+    height: 45,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeToggle: {
+    width: 45,
+    height: 45,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  greetingSection: {
+    marginBottom: 20,
+  },
+  greetingSubtitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  greetingTitle: {
+    fontSize: 42,
+    fontWeight: '900',
+    letterSpacing: -1,
+    marginBottom: 12,
+  },
+  heroDescription: {
+    fontSize: 16,
+    lineHeight: 24,
+    maxWidth: '85%',
+  },
+  contentBody: {
+    paddingHorizontal: 24,
+  },
+  statsOverview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: 20,
+    borderRadius: 24,
+    marginBottom: 32,
+    borderWidth: 1,
+  },
+  overviewItem: {
+    alignItems: 'center',
+  },
+  overviewValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  overviewLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  overviewDivider: {
+    width: 1,
+    height: 30,
+  },
+  sectionHeader: {
+    marginBottom: 20,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  titleAccent: {
+    width: 4,
+    height: 24,
+    borderRadius: 2,
+    marginRight: 12,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  categoryGrid: {
+    gap: 16,
+  },
+  categoryWrapper: {
+    marginBottom: 4,
+  },
+  categoryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 24,
+  },
+  categoryIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryInfo: {
+    flex: 1,
+    marginLeft: 16,
   },
   categoryName: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     marginBottom: 4,
   },
-  categoryDesc: {
-    fontSize: 12,
-    marginBottom: 12,
-  },
-  categoryMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  exerciseBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  exerciseBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  statsCard: {
-    borderRadius: 22,
-    marginTop: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  statsGradient: {
-    flexDirection: 'row',
-    padding: 26,
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  statLabel: {
+  categoryDetails: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 4,
+    fontWeight: '500',
   },
-  statDivider: {
-    width: 1,
-    height: 44,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+  playCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-
   practiceHeader: {
     paddingTop: Platform.OS === 'ios' ? 60 : 50,
     paddingBottom: 28,
     paddingHorizontal: 20,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
   practiceHeaderTop: {
     flexDirection: 'row',
@@ -1454,29 +1509,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 4,
   },
-  streakBadge: {
-    position: 'absolute',
-    bottom: -16,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 22,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  streakText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#F59E0B',
-  },
-
   practiceScroll: {
     flex: 1,
   },
@@ -1486,120 +1518,112 @@ const styles = StyleSheet.create({
   },
   audioCard: {
     padding: 24,
-    borderRadius: 26,
-    marginBottom: 20,
+    borderRadius: 28,
+    marginBottom: 24,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
   },
   audioMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   difficultyBadge: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   difficultyText: {
     fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'capitalize',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   playCountText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   waveformContainer: {
-    marginBottom: 20,
+    marginBottom: 30,
+    width: '100%',
+    alignItems: 'center',
   },
   waveform: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 50,
-    gap: 6,
+    height: 60,
+    gap: 5,
   },
   waveBar: {
-    width: 8,
-    height: 50,
-    borderRadius: 4,
+    width: 6,
+    height: 60,
+    borderRadius: 3,
   },
   playBtn: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   playHint: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '700',
   },
-  questionCard: {
+  phraseCard: {
+    padding: 24,
+    borderRadius: 28,
+    marginBottom: 24,
+  },
+  phraseMeta: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 20,
-    borderRadius: 20,
-    marginBottom: 20,
-    gap: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
   },
-  questionIcon: {
-    marginTop: 2,
+  phraseText: {
+    fontSize: 22,
+    fontWeight: '800',
+    lineHeight: 32,
+    letterSpacing: -0.5,
   },
-  questionText: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    lineHeight: 26,
-  },
-  optionsContainer: {
-    gap: 14,
+  optionsGrid: {
+    gap: 16,
+    marginBottom: 24,
   },
   optionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 18,
-    borderRadius: 18,
-    gap: 14,
+    padding: 16,
+    borderRadius: 20,
+    gap: 16,
   },
   optionLetter: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   optionLetterText: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
   },
   optionText: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
   },
   explanationCard: {
-    padding: 20,
-    borderRadius: 18,
-    marginTop: 24,
-    borderLeftWidth: 5,
+    padding: 24,
+    borderRadius: 24,
+    marginBottom: 24,
+    borderLeftWidth: 6,
   },
   explanationHeader: {
     flexDirection: 'row',
@@ -1609,189 +1633,182 @@ const styles = StyleSheet.create({
   },
   explanationTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   explanationText: {
-    fontSize: 15,
-    lineHeight: 24,
-    marginBottom: 16,
+    fontSize: 16,
+    lineHeight: 26,
+    marginBottom: 20,
   },
   translationBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: 14,
-    borderRadius: 12,
-    gap: 10,
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
   },
   translationText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     fontStyle: 'italic',
-    lineHeight: 22,
+    lineHeight: 24,
   },
   nextBtn: {
-    marginTop: 24,
-    borderRadius: 18,
+    borderRadius: 22,
     overflow: 'hidden',
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    elevation: 8,
   },
   nextBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
-    gap: 10,
+    gap: 12,
   },
   nextBtnText: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
-
   resultHeader: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 56,
+    paddingTop: Platform.OS === 'ios' ? 70 : 60,
+    paddingBottom: 60,
     alignItems: 'center',
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
     overflow: 'hidden',
   },
   resultDecor1: {
     position: 'absolute',
     top: -80,
     right: -80,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   resultDecor2: {
     position: 'absolute',
     bottom: -60,
     left: -60,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   closeBtn: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 50,
-    right: 20,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    right: 25,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
   },
   resultIconContainer: {
+    width: 120,
+    height: 120,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
   },
   resultIconGlow: {
     position: 'absolute',
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
   resultTitle: {
-    fontSize: 38,
-    fontWeight: '800',
+    fontSize: 42,
+    fontWeight: '900',
     color: '#FFFFFF',
-    marginBottom: 8,
-    letterSpacing: -0.5,
+    marginBottom: 10,
+    letterSpacing: -1,
   },
   resultSubtitle: {
-    fontSize: 17,
-    color: 'rgba(255,255,255,0.9)',
+    fontSize: 18,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.95)',
   },
   resultScroll: {
     flex: 1,
   },
   resultContent: {
-    padding: 20,
+    padding: 24,
     paddingTop: 0,
-    marginTop: -28,
+    marginTop: -30,
   },
   scoreCard: {
-    borderRadius: 22,
+    borderRadius: 32,
     padding: 24,
     marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
   },
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
   },
   scoreItem: {
     alignItems: 'center',
+    flex: 1,
   },
-  scoreLabel: {
-    fontSize: 13,
-    marginBottom: 6,
+  scoreIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   scoreValue: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  scoreLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   scoreDivider: {
     width: 1,
-    height: 54,
+    height: 60,
+    marginHorizontal: 10,
   },
-  reviewTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 16,
-  },
-  reviewCard: {
-    padding: 18,
-    borderRadius: 18,
-    marginBottom: 14,
-    borderLeftWidth: 4,
-  },
-  reviewHeader: {
+  performanceCard: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 8,
+    alignItems: 'center',
+    padding: 20,
+    borderRadius: 28,
+    marginBottom: 32,
   },
-  reviewBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  performanceBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 16,
   },
-  reviewQuestion: {
+  performanceInfo: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    lineHeight: 22,
   },
-  reviewAudio: {
-    fontSize: 13,
-    fontStyle: 'italic',
-    marginLeft: 48,
-    marginBottom: 6,
+  performanceTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 4,
   },
-  reviewAnswer: {
+  performanceDesc: {
     fontSize: 14,
-    marginLeft: 48,
+    lineHeight: 20,
   },
   resultActions: {
     flexDirection: 'row',
-    gap: 14,
-    marginTop: 24,
+    gap: 15,
   },
   retryBtn: {
     flex: 1,
@@ -1799,28 +1816,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
-    borderRadius: 18,
+    borderRadius: 22,
     gap: 10,
   },
   retryBtnText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
   },
-  newSessionBtn: {
+  newDeckBtn: {
     flex: 1,
-    borderRadius: 18,
+    borderRadius: 22,
     overflow: 'hidden',
   },
-  newSessionGradient: {
+  newDeckGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
     gap: 10,
   },
-  newSessionBtnText: {
+  newDeckBtnText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '800',
     color: '#FFFFFF',
   },
 });
