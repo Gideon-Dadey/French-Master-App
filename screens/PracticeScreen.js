@@ -99,6 +99,14 @@ export default function PracticeScreen({ navigation }) {
       color: theme.secondary,
       onPress: () => navigation.navigate('WritingPractice'),
     },
+    {
+      id: 'grammar',
+      title: 'Grammar',
+      subtitle: 'Rule Master',
+      icon: 'school-outline',
+      color: theme.primary,
+      onPress: () => navigation.navigate('GrammarDrills'),
+    },
   ];
 
   useEffect(() => {
