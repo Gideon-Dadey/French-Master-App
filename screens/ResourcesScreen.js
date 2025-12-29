@@ -70,7 +70,7 @@ const RESOURCE_CATEGORIES = [
 ];
 
 export default function ResourcesScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { organicColors: colors } = useTheme();
   const { isAuthenticated } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -265,7 +265,7 @@ export default function ResourcesScreen({ navigation }) {
         style={[
           styles.categoryCard,
           {
-            backgroundColor: isSelected ? category.color : colors.card,
+            backgroundColor: isSelected ? category.color : colors.surface,
             borderColor: isSelected ? category.color : colors.border,
           },
         ]}
@@ -297,7 +297,7 @@ export default function ResourcesScreen({ navigation }) {
         <Text
           style={[
             styles.categoryDescription,
-            { color: isSelected ? 'rgba(255, 255, 255, 0.9)' : colors.secondaryText },
+            { color: isSelected ? 'rgba(255, 255, 255, 0.9)' : colors.textSecondary },
           ]}
           numberOfLines={2}
         >
@@ -317,7 +317,7 @@ export default function ResourcesScreen({ navigation }) {
     return (
       <TouchableOpacity
         key={resource._id || resource.id}
-        style={[styles.resourceItem, { backgroundColor: colors.card, borderColor: colors.border }]}
+        style={[styles.resourceItem, { backgroundColor: colors.surface, borderColor: colors.border }]}
         activeOpacity={0.7}
       >
         <View style={[styles.resourceIcon, { backgroundColor: category?.color + '20' }]}>
@@ -338,19 +338,19 @@ export default function ResourcesScreen({ navigation }) {
             {resource.title}
           </Text>
           {resource.description ? (
-            <Text style={[styles.resourceDescription, { color: colors.secondaryText }]} numberOfLines={1}>
+            <Text style={[styles.resourceDescription, { color: colors.textSecondary }]} numberOfLines={1}>
               {resource.description}
             </Text>
           ) : null}
           <View style={styles.resourceMeta}>
-            <Text style={[styles.resourceType, { color: colors.secondaryText }]}>
+            <Text style={[styles.resourceType, { color: colors.textSecondary }]}>
               {resource.type}
             </Text>
-            <Text style={[styles.resourceSize, { color: colors.secondaryText }]}>
+            <Text style={[styles.resourceSize, { color: colors.textSecondary }]}>
               • {fileSize}
             </Text>
             {downloads > 0 && (
-              <Text style={[styles.resourceDownloads, { color: colors.secondaryText }]}>
+              <Text style={[styles.resourceDownloads, { color: colors.textSecondary }]}>
                 • {downloads} {downloads === 1 ? 'download' : 'downloads'}
               </Text>
             )}
@@ -369,7 +369,7 @@ export default function ResourcesScreen({ navigation }) {
             styles.downloadButton,
             {
               backgroundColor: isDownloading
-                ? colors.secondaryText
+                ? colors.textSecondary
                 : category?.color || colors.primary
             }
           ]}
@@ -405,11 +405,11 @@ export default function ResourcesScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
 
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerText}>
             <Text style={[styles.headerTitle, { color: colors.text }]}>Learning Resources</Text>
-            <Text style={[styles.headerSubtitle, { color: colors.secondaryText }]}>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
               Free study materials and guides
             </Text>
           </View>

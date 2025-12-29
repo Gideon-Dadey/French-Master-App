@@ -86,7 +86,6 @@ function AuthStack() {
 }
 
 function MainTabs() {
-  const { organicColors: colors, isDarkMode } = useTheme();
 
   return (
     <Tab.Navigator
@@ -568,7 +567,7 @@ function ThemedApp() {
 
   return (
     <>
-      <StatusBar style={isDarkMode ? 'light' : 'auto'} />
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <NetworkStatus />
       <AppNavigator />
       <ToastContainer />

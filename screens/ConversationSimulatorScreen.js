@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
 import { speakText, stopSpeech } from '../src/utils/textToSpeech';
-import { getThemeColors, themeShadows } from '../src/utils/organicTheme';
+import { themeShadows } from '../src/utils/organicTheme';
 
 // Mock Data for Scenarios
 const SCENARIOS = [
@@ -28,7 +28,6 @@ const SCENARIOS = [
         location: 'Le Café Flore',
         description: 'Order your morning coffee and a pastry like a local.',
         icon: 'cafe',
-        gradient: ['#FB923C', '#EA580C'],
         steps: [
             {
                 id: 1,
@@ -90,7 +89,6 @@ const SCENARIOS = [
         location: 'Marché Bastille',
         description: 'Buy fresh fruits and vegetables from a vendor.',
         icon: 'basket',
-        gradient: ['#4ADE80', '#16A34A'],
         steps: [
             {
                 id: 1,
@@ -132,7 +130,6 @@ const SCENARIOS = [
         location: 'Rue de Rivoli',
         description: 'Ask a local for directions to the museum.',
         icon: 'map',
-        gradient: ['#60A5FA', '#2563EB'],
         steps: [
             {
                 id: 1,
@@ -168,8 +165,7 @@ const SCENARIOS = [
 ];
 
 export default function ConversationSimulatorScreen({ navigation }) {
-    const { isDarkMode, toggleTheme } = useTheme();
-    const theme = getThemeColors(isDarkMode);
+    const { isDarkMode, organicColors: theme } = useTheme();
     const { awardXP } = useGamification();
 
     const [selectedScenario, setSelectedScenario] = useState(null);
@@ -263,7 +259,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
     if (selectedScenario) {
         return (
             <View style={[styles.container, { backgroundColor: theme.background }]}>
-                <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+                <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={theme.background} />
 
                 {/* Chat Header */}
                 <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
@@ -347,56 +343,79 @@ export default function ConversationSimulatorScreen({ navigation }) {
     // Dashboard View for Selection
     return (
         <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+            <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={theme.background} />
             <Animated.ScrollView style={[styles.scrollView, { opacity: fadeAnim }]}>
-                <View style={styles.hero}>
+                <View style={[styles.hero, themeShadows.lg]}>
                     <LinearGradient
-                        colors={['#4F46E5', '#7C3AED']}
+                        colors={theme.heroGradient}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.heroGradient}
                     >
+                        {/* Decorative Circles */}
+                        <View style={styles.heroDecor1} />
+                        <View style={styles.heroDecor2} />
+                        <View style={styles.heroDecor3} />
+
                         <TouchableOpacity style={styles.backAbsBtn} onPress={() => navigation.goBack()}>
                             <Ionicons name="arrow-back" size={24} color="#FFF" />
                         </TouchableOpacity>
-                        <Text style={styles.heroTitle}>Immersion Mode</Text>
-                        <Text style={styles.heroDesc}>Practice real-world conversations in simulated environments.</Text>
+
+                        <View style={styles.heroContent}>
+                            <View style={styles.heroIconCircle}>
+                                <Ionicons name="headset" size={32} color={theme.primary} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.heroTitle}>Immersion Mode</Text>
+                                <Text style={styles.heroDesc}>Practice real-world conversations in simulated environments.</Text>
+                            </View>
+                        </View>
                     </LinearGradient>
                 </View>
 
                 <View style={styles.listContent}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Available Scenarios</Text>
-                    {SCENARIOS.map((scenario, index) => (
-                        <TouchableOpacity
-                            key={scenario.id}
-                            style={[styles.scenarioCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}
-                            onPress={() => startScenario(scenario)}
-                            activeOpacity={0.9}
-                        >
-                            <LinearGradient
-                                colors={scenario.gradient}
-                                style={styles.cardHeader}
+                    {SCENARIOS.map((scenario, index) => {
+                        // Semantic colors based on difficulty
+                        let diffColor = theme.secondary;
+                        let diffIcon = 'fitness';
+                        if (scenario.difficulty === 'Beginner') { diffColor = theme.success; diffIcon = 'leaf'; }
+                        if (scenario.difficulty === 'Intermediate') { diffColor = theme.warning; diffIcon = 'trending-up'; }
+                        if (scenario.difficulty === 'Advanced') { diffColor = theme.error; diffIcon = 'flame'; }
+
+                        return (
+                            <TouchableOpacity
+                                key={scenario.id}
+                                style={[styles.scenarioCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}
+                                onPress={() => startScenario(scenario)}
+                                activeOpacity={0.9}
                             >
-                                <Ionicons name={scenario.icon} size={32} color="#FFF" />
-                            </LinearGradient>
-                            <View style={styles.cardBody}>
-                                <View style={styles.cardTop}>
-                                    <Text style={[styles.cardTitle, { color: theme.text }]}>{scenario.title}</Text>
-                                    <View style={[styles.badge, { backgroundColor: theme.surfaceAlt }]}>
-                                        <Text style={[styles.badgeText, { color: theme.textSecondary }]}>{scenario.difficulty}</Text>
+                                <LinearGradient
+                                    colors={[theme.primary, theme.primaryLight]}
+                                    style={styles.cardHeader}
+                                >
+                                    <Ionicons name={scenario.icon} size={32} color={theme.textOnPrimary} />
+                                </LinearGradient>
+                                <View style={styles.cardBody}>
+                                    <View style={styles.cardTop}>
+                                        <Text style={[styles.cardTitle, { color: theme.text }]}>{scenario.title}</Text>
+                                        <View style={[styles.badge, { backgroundColor: diffColor + '20', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                                            <Ionicons name={diffIcon} size={12} color={diffColor} />
+                                            <Text style={[styles.badgeText, { color: diffColor }]}>{scenario.difficulty}</Text>
+                                        </View>
+                                    </View>
+                                    <Text style={[styles.cardLoc, { color: theme.primary }]}>
+                                        <Ionicons name="location-sharp" size={14} /> {scenario.location}
+                                    </Text>
+                                    <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{scenario.description}</Text>
+                                    <View style={[styles.startBtn, { borderColor: theme.border }]}>
+                                        <Text style={[styles.startBtnText, { color: theme.primary }]}>Start Conversation</Text>
+                                        <Ionicons name="chatbubble-ellipses-outline" size={16} color={theme.primary} />
                                     </View>
                                 </View>
-                                <Text style={[styles.cardLoc, { color: theme.primary }]}>
-                                    <Ionicons name="location-sharp" size={14} /> {scenario.location}
-                                </Text>
-                                <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{scenario.description}</Text>
-                                <View style={[styles.startBtn, { borderColor: theme.border }]}>
-                                    <Text style={[styles.startBtnText, { color: theme.primary }]}>Start Conversation</Text>
-                                    <Ionicons name="chatbubble-ellipses-outline" size={16} color={theme.primary} />
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    ))}
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
             </Animated.ScrollView>
         </View>
@@ -411,36 +430,90 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     hero: {
-        height: 200,
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
+        height: 240,
         overflow: 'hidden',
-        marginBottom: 20,
+        marginBottom: 24,
     },
     heroGradient: {
         flex: 1,
         padding: 24,
-        justifyContent: 'center',
+        paddingTop: 60,
+    },
+    heroDecor1: {
+        position: 'absolute',
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        top: -100,
+        right: -100,
+    },
+    heroDecor2: {
+        position: 'absolute',
+        width: 150,
+        height: 150,
+        borderRadius: 75,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        bottom: -40,
+        left: -40,
+    },
+    heroDecor3: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+        top: -50,
+        left: '20%',
     },
     backAbsBtn: {
         position: 'absolute',
         top: 50,
         left: 20,
-        padding: 8,
+        width: 40,
+        height: 40,
         borderRadius: 20,
-        backgroundColor: 'rgba(255,255,255,0.2)'
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    heroContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 40,
+        gap: 16,
+    },
+    heroIconCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 20,
+        backgroundColor: '#FFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 6,
+        transform: [{ rotate: '-5deg' }],
     },
     heroTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
+        fontSize: 30,
+        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+        fontWeight: '700',
         color: '#FFF',
         marginBottom: 8,
-        marginTop: 20
+        textShadowColor: 'rgba(0,0,0,0.2)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     heroDesc: {
-        fontSize: 16,
+        fontSize: 15,
         color: 'rgba(255,255,255,0.9)',
-        lineHeight: 22
+        lineHeight: 22,
+        fontWeight: '500',
     },
     listContent: {
         padding: 20,

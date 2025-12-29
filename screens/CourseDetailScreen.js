@@ -30,8 +30,7 @@ const VIDEO_HEIGHT = width * 0.56; // 16:9 aspect ratio
 export default function CourseDetailScreen({ route, navigation }) {
   const { courseId } = route.params;
   const { isAuthenticated, user, loadUser } = useAuth();
-  const { isDarkMode } = useTheme();
-  const theme = getThemeColors(isDarkMode);
+  const { isDarkMode, organicColors: theme } = useTheme();
 
   // L'Alliance Theme Colors - derived from Organic Theme
   const bgColor = theme.background;
@@ -159,21 +158,21 @@ export default function CourseDetailScreen({ route, navigation }) {
   const startActionLabel = isEnrolled ? 'Continue Learning' : 'Enroll Now — Free';
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1c1d1f" />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={theme.background} />
 
       {/* Fixed Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.background }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
+          <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.headerIconBtn}>
-            <Ionicons name="share-outline" size={22} color="#FFF" />
+            <Ionicons name="share-outline" size={22} color={theme.text} />
           </TouchableOpacity>
           {isEnrolled && (
             <TouchableOpacity style={styles.headerIconBtn} onPress={handleUnenrollConfirm}>
-              <Ionicons name="ellipsis-vertical" size={22} color="#FFF" />
+              <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
             </TouchableOpacity>
           )}
         </View>
@@ -215,12 +214,12 @@ export default function CourseDetailScreen({ route, navigation }) {
         </View>
 
         {/* Course Info Section */}
-        <View style={styles.courseInfo}>
+        <View style={[styles.courseInfo, { backgroundColor: theme.surface }]}>
           {/* Title */}
-          <Text style={styles.courseTitle}>{course.title}</Text>
+          <Text style={[styles.courseTitle, { color: theme.text }]}>{course.title}</Text>
 
           {/* Short Description */}
-          <Text style={styles.courseSubtitle} numberOfLines={2}>
+          <Text style={[styles.courseSubtitle, { color: theme.textSecondary }]} numberOfLines={2}>
             {course.description?.substring(0, 100) || 'Master the fundamentals and advance your skills'}
           </Text>
 
@@ -239,14 +238,14 @@ export default function CourseDetailScreen({ route, navigation }) {
                 />
               ))}
             </View>
-            <Text style={styles.statsText}>({course.rating?.count || '128'} ratings)</Text>
-            <Text style={styles.statsText}>• {course.enrolledCount || '1,234'} students</Text>
+            <Text style={[styles.statsText, { color: theme.textSecondary }]}>({course.rating?.count || '128'} ratings)</Text>
+            <Text style={[styles.statsText, { color: theme.textSecondary }]}>• {course.enrolledCount || '1,234'} students</Text>
           </View>
 
           {/* Instructor */}
           <View style={styles.instructorRow}>
-            <Text style={styles.instructorLabel}>Created by </Text>
-            <Text style={styles.instructorName}>{course.instructor?.name || 'French Master'}</Text>
+            <Text style={[styles.instructorLabel, { color: theme.textSecondary }]}>Created by </Text>
+            <Text style={[styles.instructorName, { color: theme.secondary }]}>{course.instructor?.name || 'French Master'}</Text>
           </View>
 
           {/* Meta Info */}
@@ -263,7 +262,7 @@ export default function CourseDetailScreen({ route, navigation }) {
         </View>
 
         {/* CTA Button */}
-        <View style={styles.ctaSection}>
+        <View style={[styles.ctaSection, { backgroundColor: theme.background }]}>
           <TouchableOpacity
             style={[styles.enrollButton, isEnrolled && styles.enrolledButton]}
             onPress={isEnrolled ? () => navigation.navigate('Lesson', { courseId, lessonId: course.lessons?.[0]?._id }) : handlePurchase}
@@ -273,9 +272,9 @@ export default function CourseDetailScreen({ route, navigation }) {
         </View>
 
         {/* What You'll Learn */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>What you'll learn</Text>
-          <View style={styles.learnCard}>
+        <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>What you'll learn</Text>
+          <View style={[styles.learnCard, { backgroundColor: theme.surface }]}>
             {(course.objectives || [
               'Understand core concepts thoroughly',
               'Apply knowledge in practical scenarios',
@@ -284,20 +283,20 @@ export default function CourseDetailScreen({ route, navigation }) {
             ]).slice(0, 4).map((item, index) => (
               <View key={index} style={styles.learnItem}>
                 <Ionicons name="checkmark" size={18} color={goldColor} />
-                <Text style={styles.learnText}>{item}</Text>
+                <Text style={[styles.learnText, { color: theme.text }]}>{item}</Text>
               </View>
             ))}
           </View>
         </View>
 
         {/* Course Content */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Course content</Text>
-          <Text style={styles.contentSummary}>
+        <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Course content</Text>
+          <Text style={[styles.contentSummary, { color: theme.textSecondary }]}>
             {totalLessons} lessons • {formatDuration(totalDuration)} total length
           </Text>
 
-          <View style={styles.lessonsCard}>
+          <View style={[styles.lessonsCard, { backgroundColor: theme.surface }]}>
             {course.lessons?.map((lesson, index) => {
               const isLocked = !isEnrolled && index !== 0;
 
@@ -311,13 +310,13 @@ export default function CourseDetailScreen({ route, navigation }) {
                   }}
                   style={[
                     styles.lessonItem,
-                    index !== (course.lessons?.length || 0) - 1 && styles.lessonBorder
+                    index !== (course.lessons?.length || 0) - 1 && { borderBottomColor: theme.border, borderBottomWidth: 1 }
                   ]}
                 >
                   <View style={styles.lessonLeft}>
                     {isLocked ? (
                       <View style={styles.lessonIconLocked}>
-                        <Ionicons name="lock-closed" size={16} color="#6a6f73" />
+                        <Ionicons name="lock-closed" size={16} color={theme.textMuted || '#aaa'} />
                       </View>
                     ) : (
                       <View style={styles.lessonIconPlay}>
@@ -325,13 +324,13 @@ export default function CourseDetailScreen({ route, navigation }) {
                       </View>
                     )}
                     <View style={styles.lessonInfo}>
-                      <Text style={[styles.lessonTitle, isLocked && styles.lessonTitleLocked]} numberOfLines={2}>
+                      <Text style={[styles.lessonTitle, { color: isLocked ? theme.textSecondary : theme.text }]} numberOfLines={2}>
                         {lesson.title}
                       </Text>
-                      <Text style={styles.lessonDuration}>{formatDuration(lesson.duration)}</Text>
+                      <Text style={[styles.lessonDuration, { color: theme.textSecondary }]}>{formatDuration(lesson.duration)}</Text>
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#6a6f73" />
+                  <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
                 </TouchableOpacity>
               );
             })}
@@ -339,9 +338,9 @@ export default function CourseDetailScreen({ route, navigation }) {
         </View>
 
         {/* Description */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.descriptionText}>
+        <View style={[styles.section, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Description</Text>
+          <Text style={[styles.descriptionText, { color: theme.textSecondary }]}>
             {course.description || 'No description available.'}
           </Text>
         </View>
@@ -350,10 +349,10 @@ export default function CourseDetailScreen({ route, navigation }) {
       </ScrollView>
 
       {/* Bottom Bar - Fixed */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
         <View style={styles.priceSection}>
-          <Text style={styles.priceLabel}>{isEnrolled ? (isCompleted ? 'Finished' : 'Progress') : 'Price'}</Text>
-          <Text style={styles.priceValue}>{isEnrolled ? (isCompleted ? '✓ Completed' : `${progressPercent}%`) : 'Free'}</Text>
+          <Text style={[styles.priceLabel, { color: theme.textSecondary }]}>{isEnrolled ? (isCompleted ? 'Finished' : 'Progress') : 'Price'}</Text>
+          <Text style={[styles.priceValue, { color: theme.text }]}>{isEnrolled ? (isCompleted ? '✓ Completed' : `${progressPercent}%`) : 'Free'}</Text>
         </View>
 
         {isCompleted ? (

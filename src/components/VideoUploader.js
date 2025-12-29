@@ -130,20 +130,20 @@ export default function VideoUploader({
             style={styles.removeButton}
             onPress={() => setSelectedVideo(null)}
           >
-            <Ionicons name="close-circle" size={28} color="#ef4444" />
+            <Ionicons name="close-circle" size={28} color={theme.error} />
           </TouchableOpacity>
         </View>
       ) : (
         <TouchableOpacity
-          style={[styles.uploadPicker, { borderColor: isDarkMode ? '#3c3c3e' : '#e5e7eb' }]}
+          style={[styles.uploadPicker, { borderColor: theme.border }]}
           onPress={pickVideo}
           activeOpacity={0.7}
         >
           <LinearGradient
-            colors={isDarkMode ? ['#2c2c2e', '#1c1c1e'] : ['#f8f9fa', '#f0f0f5']}
+            colors={[theme.surface, theme.background]}
             style={styles.uploadPickerGradient}
           >
-            <View style={[styles.uploadIcon, { backgroundColor: isDarkMode ? theme.surfaceAlt || '#3c3c3e' : theme.borderLight || '#e5e7eb' }]}>
+            <View style={[styles.uploadIcon, { backgroundColor: theme.surfaceAlt || theme.borderLight }]}>
               <Ionicons name="videocam" size={32} color={theme.primary} />
             </View>
             <Text style={[styles.uploadTitle, { color: theme.text }]}>
@@ -153,13 +153,13 @@ export default function VideoUploader({
               Tap to record or choose from gallery
             </Text>
             <View style={styles.formatTags}>
-              <View style={[styles.formatTag, { backgroundColor: isDarkMode ? theme.surfaceAlt || '#3c3c3e' : theme.borderLight || '#e5e7eb' }]}>
+              <View style={[styles.formatTag, { backgroundColor: theme.surfaceAlt || theme.borderLight }]}>
                 <Text style={[styles.formatTagText, { color: theme.textSecondary }]}>MP4</Text>
               </View>
-              <View style={[styles.formatTag, { backgroundColor: isDarkMode ? theme.surfaceAlt || '#3c3c3e' : theme.borderLight || '#e5e7eb' }]}>
+              <View style={[styles.formatTag, { backgroundColor: theme.surfaceAlt || theme.borderLight }]}>
                 <Text style={[styles.formatTagText, { color: theme.textSecondary }]}>MOV</Text>
               </View>
-              <View style={[styles.formatTag, { backgroundColor: isDarkMode ? theme.surfaceAlt || '#3c3c3e' : theme.borderLight || '#e5e7eb' }]}>
+              <View style={[styles.formatTag, { backgroundColor: theme.surfaceAlt || theme.borderLight }]}>
                 <Text style={[styles.formatTagText, { color: theme.textSecondary }]}>Max 5 min</Text>
               </View>
             </View>

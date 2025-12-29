@@ -145,7 +145,7 @@ export default function LearnerHomeScreen({ navigation }) {
 
     return (
         <View style={[styles.container, { backgroundColor: bgColor }]}>
-            <StatusBar barStyle="dark-content" />
+            <StatusBar style={isDarkMode ? 'light' : 'dark'} />
 
             <Animated.ScrollView
                 style={styles.scrollView}
@@ -214,7 +214,7 @@ export default function LearnerHomeScreen({ navigation }) {
                                 </View>
                             </View>
                             <View style={[styles.actionButton, { backgroundColor: navyColor }]}>
-                                <Text style={[styles.actionButtonText, { color: '#FFF' }]}>VIEW</Text>
+                                <Text style={[styles.actionButtonText, { color: theme.textOnPrimary }]}>VIEW</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -229,8 +229,8 @@ export default function LearnerHomeScreen({ navigation }) {
                                 style={[styles.miniCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
                                 onPress={() => navigation.navigate('WordOfTheDay')}
                             >
-                                <View style={[styles.iconCircle, { backgroundColor: '#FF950015' }]}>
-                                    <Ionicons name="book-sharp" size={20} color="#FF9500" />
+                                <View style={[styles.iconCircle, { backgroundColor: theme.warning + '15' }]}>
+                                    <Ionicons name="book-sharp" size={20} color={theme.warning} />
                                 </View>
                                 <Text style={[styles.miniCardTitle, { color: navyColor }]}>Word of Day</Text>
                                 <Text style={[styles.miniCardSubtitle, { color: mutedColor }]}>{dailyWord.french}</Text>
@@ -241,8 +241,8 @@ export default function LearnerHomeScreen({ navigation }) {
                                 style={[styles.miniCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
                                 onPress={() => navigation.navigate('Achievements')}
                             >
-                                <View style={[styles.iconCircle, { backgroundColor: '#34C75915' }]}>
-                                    <Ionicons name="stats-chart-sharp" size={20} color="#34C759" />
+                                <View style={[styles.iconCircle, { backgroundColor: theme.success + '15' }]}>
+                                    <Ionicons name="stats-chart-sharp" size={20} color={theme.success} />
                                 </View>
                                 <Text style={[styles.miniCardTitle, { color: navyColor }]}>My Progress</Text>
                                 <Text style={[styles.miniCardSubtitle, { color: mutedColor }]}>{gamificationStats.xp || 0} XP</Text>
@@ -253,8 +253,8 @@ export default function LearnerHomeScreen({ navigation }) {
                                 style={[styles.miniCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
                                 onPress={() => navigation.navigate('Flashcards')}
                             >
-                                <View style={[styles.iconCircle, { backgroundColor: '#5856D615' }]}>
-                                    <Ionicons name="documents-sharp" size={20} color="#5856D6" />
+                                <View style={[styles.iconCircle, { backgroundColor: theme.info + '15' }]}>
+                                    <Ionicons name="documents-sharp" size={20} color={theme.info} />
                                 </View>
                                 <Text style={[styles.miniCardTitle, { color: navyColor }]}>Review</Text>
                                 <Text style={[styles.miniCardSubtitle, { color: mutedColor }]}>Flashcards</Text>

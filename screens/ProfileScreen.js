@@ -16,8 +16,8 @@ import {
   KeyboardAvoidingView,
   Dimensions,
   Animated,
-  StatusBar,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,10 +27,10 @@ import { useGamification } from '../src/context/GamificationContext';
 import { usersAPI, progressAPI } from '../src/services/api';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import { showToast } from '../src/components/ToastNotification';
-import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
+import { themeShadows } from '../src/utils/organicTheme';
 import { getCourseImage } from '../src/utils/courseImages';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const BackgroundBlur = ({ style, color, size = 300 }) => (
   <View style={[style, {
@@ -70,7 +70,6 @@ export default function ProfileScreen({ navigation }) {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [notifications, setNotifications] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [myCourses, setMyCourses] = useState([]);
@@ -116,7 +115,6 @@ export default function ProfileScreen({ navigation }) {
         const profileData = profileResponse.data.data;
         setProfile(profileData);
         setMyCourses(profileData.enrolledCourses || []);
-        setNotifications(profileData.preferences?.notifications !== false);
         setEditFormData({
           name: profileData.name || '',
           phone: profileData.phone || '',
@@ -153,22 +151,6 @@ export default function ProfileScreen({ navigation }) {
   const onRefresh = () => {
     setRefreshing(true);
     loadProfile();
-  };
-
-  const handleUpdatePreference = async (key, value) => {
-    try {
-      // Optimistic update for instant feedback
-      if (key === 'theme') {
-        toggleTheme();
-      } else if (key === 'notifications') {
-        setNotifications(value);
-      }
-
-      // Persist to backend without blocking UI
-      await usersAPI.updateProfile({ preferences: { [key]: value } });
-    } catch (error) {
-      console.error('Failed to update preference:', error);
-    }
   };
 
   const handleAvatarPicker = () => {
@@ -256,13 +238,11 @@ export default function ProfileScreen({ navigation }) {
     ]);
   };
 
-  /* Animation disabled to fix crash
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 80, 120],
     outputRange: [0, 0, 1],
     extrapolate: 'clamp',
-  }); */
-  const headerOpacity = new Animated.Value(1); // Always showing for now
+  });
 
   if (loading && !refreshing) return <LoadingSpinner />;
 
@@ -273,7 +253,7 @@ export default function ProfileScreen({ navigation }) {
   if (!isAuthenticated) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <StatusBar style={isDarkMode ? 'light' : 'dark'} />
         <Ionicons name="person-circle-outline" size={80} color={theme.textSecondary} style={{ marginBottom: 20 }} />
         <Text style={[styles.profileName, { color: theme.text, textAlign: 'center', marginBottom: 10 }]}>Guest User</Text>
         <Text style={[styles.profileEmail, { color: theme.textSecondary, textAlign: 'center', marginBottom: 30 }]}>
@@ -293,7 +273,7 @@ export default function ProfileScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
 
       <BackgroundBlur style={{ top: -100, left: -50 }} color={theme.primary} size={400} />
       <BackgroundBlur style={{ bottom: 100, right: -100 }} color={theme.secondary} size={350} />
@@ -323,10 +303,10 @@ export default function ProfileScreen({ navigation }) {
       <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        // onScroll={Animated.event(
-        //   [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-        //   { useNativeDriver: true }
-        // )}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
         }
@@ -336,7 +316,7 @@ export default function ProfileScreen({ navigation }) {
         <Animated.View style={[styles.hero, { opacity: fadeAnim }]}>
           <View style={styles.heroLayout}>
             <Animated.View style={[styles.avatarWrapper, { transform: [{ scale: avatarScale }] }]}>
-              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+              <Image source={{ uri: avatarUrl }} style={[styles.avatar, { borderColor: surfaceColor }]} />
               <TouchableOpacity
                 style={[styles.editAvatarBtn, { backgroundColor: surfaceColor, borderColor: lightBlue }, themeShadows.sm]}
                 onPress={handleAvatarPicker}
@@ -375,10 +355,10 @@ export default function ProfileScreen({ navigation }) {
 
         {/* Stats Grid */}
         <Animated.View style={[styles.statsGrid, { opacity: cardAnims[0], transform: [{ translateY: cardAnims[0].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
-          <StatCard icon="book-sharp" value={stats.enrolledCourses} label="Courses" theme={theme} color={navyColor} surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
-          <StatCard icon="checkmark-circle-sharp" value={stats.completedLessons} label="Lessons" theme={theme} color="#2E7D5A" surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
-          <StatCard icon="time-sharp" value={stats.studyTime} label="Study Time" theme={theme} color={goldColor} surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
-          <StatCard icon="flash-sharp" value={`${stats.totalProgress}%`} label="Overall" theme={theme} color="#5856D6" surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
+          <StatCard icon="book-sharp" value={stats.enrolledCourses} label="Courses" color={navyColor} surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
+          <StatCard icon="checkmark-circle-sharp" value={stats.completedLessons} label="Lessons" color={theme.success} surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
+          <StatCard icon="time-sharp" value={stats.studyTime} label="Study Time" color={goldColor} surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
+          <StatCard icon="flash-sharp" value={`${stats.totalProgress}%`} label="Overall" color="#5856D6" surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
         </Animated.View>
 
         {/* Continue Learning */}
@@ -395,7 +375,7 @@ export default function ProfileScreen({ navigation }) {
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.enrolledScroll}>
               {myCourses.map((item, idx) => (
-                <CourseProgressCard key={idx} item={item} theme={theme} navigation={navigation} navyColor={navyColor} goldColor={goldColor} surfaceColor={surfaceColor} lightBlue={lightBlue} mutedColor={mutedColor} />
+                <CourseProgressCard key={idx} item={item} navigation={navigation} navyColor={navyColor} goldColor={goldColor} surfaceColor={surfaceColor} lightBlue={lightBlue} />
               ))}
             </ScrollView>
           </Animated.View>
@@ -414,15 +394,15 @@ export default function ProfileScreen({ navigation }) {
               onPress={() => navigation.navigate('Settings')}
               navyColor={navyColor}
               lightBlue={lightBlue}
-              mutedColor={mutedColor}
             />
             <SettingItem
-              icon="shield-checkmark-sharp"
-              title="Privacy & Security"
-              onPress={() => navigation.navigate('Settings')}
+              icon="moon-sharp"
+              title="Dark Mode"
+              isSwitch
+              value={isDarkMode}
+              onValueChange={toggleTheme}
               navyColor={navyColor}
               lightBlue={lightBlue}
-              mutedColor={mutedColor}
             />
             <SettingItem
               icon="help-circle-sharp"
@@ -430,7 +410,6 @@ export default function ProfileScreen({ navigation }) {
               onPress={() => navigation.navigate('Resources')}
               navyColor={navyColor}
               lightBlue={lightBlue}
-              mutedColor={mutedColor}
               isLast
             />
           </View>
@@ -493,7 +472,7 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-function StatCard({ icon, value, label, theme, color, surfaceColor, lightBlue, navyColor, mutedColor }) {
+function StatCard({ icon, value, label, color, surfaceColor, lightBlue, navyColor, mutedColor }) {
   return (
     <View style={[styles.statCard, { backgroundColor: surfaceColor, borderColor: lightBlue }, themeShadows.sm]}>
       <View style={[styles.statIcon, { backgroundColor: color + '15' }]}>
@@ -505,7 +484,7 @@ function StatCard({ icon, value, label, theme, color, surfaceColor, lightBlue, n
   );
 }
 
-function CourseProgressCard({ item, theme, navigation, navyColor, goldColor, surfaceColor, lightBlue, mutedColor }) {
+function CourseProgressCard({ item, navigation, navyColor, goldColor, surfaceColor, lightBlue }) {
   const course = item.course;
   if (!course) return null;
 
@@ -545,7 +524,7 @@ function CourseProgressCard({ item, theme, navigation, navyColor, goldColor, sur
   );
 }
 
-function SettingItem({ icon, title, isSwitch, value, onValueChange, onPress, navyColor, lightBlue, mutedColor, isLast }) {
+function SettingItem({ icon, title, isSwitch, value, onValueChange, onPress, navyColor, lightBlue, isLast }) {
   return (
     <TouchableOpacity
       style={[styles.settingItem, !isLast && { borderBottomWidth: 1, borderBottomColor: lightBlue }]}
@@ -559,7 +538,7 @@ function SettingItem({ icon, title, isSwitch, value, onValueChange, onPress, nav
       {isSwitch ? (
         <Switch value={value} onValueChange={onValueChange} trackColor={{ false: lightBlue, true: navyColor }} thumbColor="#FFF" />
       ) : (
-        <Ionicons name="chevron-forward-sharp" size={16} color={mutedColor} />
+        <Ionicons name="chevron-forward-sharp" size={16} color={navyColor + '80'} />
       )}
     </TouchableOpacity>
   );
@@ -594,7 +573,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: Platform.OS === 'ios' ? 120 : 100,
+    paddingTop: Platform.OS === 'ios' ? 110 : 90,
     paddingHorizontal: 22,
     paddingBottom: 40,
   },
@@ -616,7 +595,6 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: surfaceColor,
   },
   editAvatarBtn: {
     position: 'absolute',
@@ -764,7 +742,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   courseCard: {
-    width: width * 0.75, // Wider card
+    width: width * 0.75,
     borderRadius: 22,
     borderWidth: 1,
     overflow: 'hidden',
@@ -839,7 +817,6 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 2,
   },
-  // Removed old progress styles
   settingsCard: {
     borderRadius: 24,
     borderWidth: 1,

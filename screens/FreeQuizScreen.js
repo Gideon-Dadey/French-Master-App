@@ -412,8 +412,10 @@ export default function FreeQuizScreen({ navigation }) {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [startTime, setStartTime] = useState(null);
   const [headerInteractable, setHeaderInteractable] = useState(false);
+  const [xpEarned, setXpEarned] = useState(0);
 
   const scrollY = useRef(new Animated.Value(0)).current;
+  const resultCardAnims = useRef([...Array(10)].map(() => new Animated.Value(0))).current;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -426,6 +428,15 @@ export default function FreeQuizScreen({ navigation }) {
   const questions = selectedCategory ? QUIZ_QUESTIONS[selectedCategory] : [];
   const currentQuestion = questions[currentQuestionIndex];
   const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
+
+  useEffect(() => {
+    if (quizCompleted) {
+      resultCardAnims.forEach(anim => anim.setValue(0));
+      Animated.stagger(100, resultCardAnims.map(anim =>
+        Animated.spring(anim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true })
+      )).start();
+    }
+  }, [quizCompleted]);
 
   useEffect(() => {
     let timer;
@@ -542,15 +553,14 @@ export default function FreeQuizScreen({ navigation }) {
     setQuizCompleted(true);
     const percentage = (score / questions.length) * 100;
 
-    if (percentage >= 90) {
-      awardXP(100, 'Perfect quiz score! 🏆');
-    } else if (percentage >= 70) {
-      awardXP(50, 'Great quiz performance! ⭐');
-    } else if (percentage >= 50) {
-      awardXP(25, 'Good effort on the quiz!');
-    } else {
-      awardXP(10, 'Quiz completed!');
-    }
+    let xp = 0;
+    if (percentage >= 90) xp = 100;
+    else if (percentage >= 70) xp = 50;
+    else if (percentage >= 50) xp = 25;
+    else xp = 10;
+
+    setXpEarned(xp);
+    awardXP(xp, percentage >= 90 ? 'Perfect quiz score! 🏆' : 'Quiz completed!');
   };
 
   const formatTime = (seconds) => {
@@ -709,11 +719,17 @@ export default function FreeQuizScreen({ navigation }) {
         <StatusBar barStyle="light-content" />
 
         <LinearGradient
-          colors={percentage >= 70 ? [theme.success, theme.primary] : [theme.primary, theme.primaryLight]}
+          colors={percentage >= 70 ? [theme.primary, theme.primaryLight || theme.primary] : [theme.border, theme.background]}
           style={styles.resultHeader}
         >
           <View style={styles.resultDecor1} />
           <View style={styles.resultDecor2} />
+
+          {/* Static Confetti Effects */}
+          <Ionicons name="star" size={14} color="rgba(255,255,255,0.3)" style={{ position: 'absolute', top: 60, left: 40 }} />
+          <Ionicons name="flash" size={12} color="rgba(255,255,255,0.2)" style={{ position: 'absolute', top: 120, right: 60 }} />
+          <Ionicons name="ellipse" size={8} color="rgba(255,255,255,0.2)" style={{ position: 'absolute', bottom: 40, left: width * 0.2 }} />
+          <Ionicons name="star" size={10} color="rgba(255,255,255,0.2)" style={{ position: 'absolute', bottom: 80, right: width * 0.15 }} />
 
           <TouchableOpacity
             style={styles.closeBtn}
@@ -722,21 +738,21 @@ export default function FreeQuizScreen({ navigation }) {
             <Ionicons name="close" size={28} color="#FFFFFF" />
           </TouchableOpacity>
 
-          <View style={styles.resultIconContainer}>
+          <Animated.View style={[styles.resultIconContainer, { transform: [{ scale: resultCardAnims[0].interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }] }]}>
             <View style={styles.resultIconGlow} />
             <Ionicons
               name={percentage >= 70 ? 'trophy' : 'ribbon'}
-              size={60}
+              size={70}
               color="#FFFFFF"
             />
-          </View>
+          </Animated.View>
 
-          <Text style={styles.resultTitle}>
+          <Animated.Text style={[styles.resultTitle, { opacity: resultCardAnims[1] }]}>
             {percentage >= 90 ? 'Perfect!' : percentage >= 70 ? 'Excellent!' : percentage >= 50 ? 'Good Job!' : 'Keep Practicing!'}
-          </Text>
-          <Text style={styles.resultSubtitle}>
+          </Animated.Text>
+          <Animated.Text style={[styles.resultSubtitle, { opacity: resultCardAnims[2] }]}>
             {categoryInfo?.name} Quiz Completed
-          </Text>
+          </Animated.Text>
         </LinearGradient>
 
         <ScrollView
@@ -744,82 +760,138 @@ export default function FreeQuizScreen({ navigation }) {
           contentContainerStyle={styles.resultContent}
           showsVerticalScrollIndicator={false}
         >
-
-          <View style={[styles.scoreCard, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }, themeShadows.md]}>
-            <View style={styles.scoreRow}>
-              <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Score</Text>
-                <Text style={[styles.scoreValue, { color: theme.text }]}>{score}/{questions.length}</Text>
-              </View>
-              <View style={[styles.scoreDivider, { backgroundColor: theme.border }]} />
-              <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Accuracy</Text>
-                <Text style={[styles.scoreValue, { color: percentage >= 70 ? theme.success : theme.text }]}>
-                  {percentage.toFixed(0)}%
-                </Text>
-              </View>
-              <View style={[styles.scoreDivider, { backgroundColor: theme.border }]} />
-              <View style={styles.scoreItem}>
-                <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>Time</Text>
-                <Text style={[styles.scoreValue, { color: theme.text }]}>{formatTime(timeElapsed)}</Text>
-              </View>
+          {/* XP Rewards Card */}
+          <Animated.View style={[
+            styles.rewardsCard,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.secondary + '40',
+              borderWidth: 1,
+              transform: [{ translateY: resultCardAnims[3].interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
+              opacity: resultCardAnims[3],
+            },
+            themeShadows.md
+          ]}>
+            <LinearGradient
+              colors={[theme.secondary + '20', 'transparent']}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={[styles.rewardsIconWrap, { backgroundColor: theme.secondary + '15' }]}>
+              <Ionicons name="flash" size={24} color={theme.secondary} />
             </View>
+            <View style={styles.rewardsInfo}>
+              <Text style={[styles.rewardsLabel, { color: theme.textSecondary }]}>Rewards Earned</Text>
+              <Text style={[styles.rewardsValue, { color: theme.text }]}>+{xpEarned} XP <Text style={{ fontSize: 14, fontWeight: '400' }}>Points</Text></Text>
+            </View>
+            <View style={[styles.rewardBadge, { backgroundColor: theme.primary + '10' }]}>
+              <Text style={[styles.rewardBadgeText, { color: theme.primary }]}>NEW RECORD</Text>
+            </View>
+          </Animated.View>
+
+          <View style={styles.premiumStatRow}>
+            <StatCardSmall
+              icon="checkmark-circle"
+              value={`${score}/${questions.length}`}
+              label="Score"
+              anim={resultCardAnims[4]}
+              theme={theme}
+              color={theme.success}
+            />
+            <StatCardSmall
+              icon="trending-up"
+              value={`${percentage.toFixed(0)}%`}
+              label="Accuracy"
+              anim={resultCardAnims[5]}
+              theme={theme}
+              color={theme.primary}
+            />
+            <StatCardSmall
+              icon="time"
+              value={formatTime(timeElapsed)}
+              label="Time"
+              anim={resultCardAnims[6]}
+              theme={theme}
+              color={theme.secondary}
+            />
           </View>
 
-          <Text style={[styles.reviewTitle, { color: theme.text }]}>Review Answers</Text>
-
-          {questions.map((question, index) => {
-            const userAnswer = answers[index];
-            const isCorrect = userAnswer?.isCorrect;
-
-            return (
-              <View
-                key={question.id}
-                style={[
-                  styles.reviewCard,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    borderWidth: 1,
-                    borderLeftColor: isCorrect ? theme.success : theme.error,
-                    borderLeftWidth: 4,
-                  }
-                ]}
-              >
-                <View style={styles.reviewHeader}>
-                  <View style={[
-                    styles.reviewBadge,
-                    { backgroundColor: isCorrect ? '#10B98120' : '#F43F5E20' }
-                  ]}>
-                    <Ionicons
-                      name={isCorrect ? 'checkmark-circle' : 'close-circle'}
-                      size={20}
-                      color={isCorrect ? theme.success : theme.error}
-                    />
-                  </View>
-                  <Text style={[styles.reviewQuestion, { color: theme.text }]} numberOfLines={2}>
-                    {question.question}
-                  </Text>
-                </View>
-                <Text style={[styles.reviewAnswer, { color: theme.textSecondary }]}>
-                  Your answer: {question.options[userAnswer?.answer]}
-                </Text>
-                {!isCorrect && (
-                  <Text style={[styles.reviewCorrect, { color: theme.success }]}>
-                    Correct: {question.options[question.correct]}
-                  </Text>
-                )}
+          <Animated.View style={{ opacity: resultCardAnims[7], transform: [{ translateY: resultCardAnims[7].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>Review Answers</Text>
               </View>
-            );
-          })}
+            </View>
 
-          <View style={styles.resultActions}>
+            {questions.map((question, index) => {
+              const userAnswer = answers[index];
+              const isCorrect = userAnswer?.isCorrect;
+
+              return (
+                <View
+                  key={question.id}
+                  style={[
+                    styles.reviewCard,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      borderWidth: 1,
+                      borderLeftColor: isCorrect ? theme.success : theme.error,
+                      borderLeftWidth: 5,
+                    },
+                    themeShadows.sm
+                  ]}
+                >
+                  <View style={styles.reviewHeader}>
+                    <View style={[
+                      styles.reviewBadge,
+                      { backgroundColor: isCorrect ? theme.success + '15' : theme.error + '15' }
+                    ]}>
+                      <Ionicons
+                        name={isCorrect ? 'checkmark' : 'close'}
+                        size={18}
+                        color={isCorrect ? theme.success : theme.error}
+                      />
+                    </View>
+                    <Text style={[styles.reviewQuestion, { color: theme.text }]} numberOfLines={2}>
+                      {question.question}
+                    </Text>
+                  </View>
+
+                  <View style={styles.answerReviewRow}>
+                    <View style={styles.answerPoint} />
+                    <Text style={[styles.reviewAnswer, { color: theme.textSecondary }]}>
+                      Your answer: <Text style={{ color: isCorrect ? theme.success : theme.error, fontWeight: '700' }}>{question.options[userAnswer?.answer]}</Text>
+                    </Text>
+                  </View>
+
+                  {!isCorrect && (
+                    <View style={[styles.answerReviewRow, { marginTop: 4 }]}>
+                      <View style={[styles.answerPoint, { backgroundColor: theme.success }]} />
+                      <Text style={[styles.reviewCorrect, { color: theme.success }]}>
+                        Correct: <Text style={{ fontWeight: '700' }}>{question.options[question.correct]}</Text>
+                      </Text>
+                    </View>
+                  )}
+
+                  {question.explanation && (
+                    <View style={[styles.explanationBox, { backgroundColor: theme.surfaceAlt, borderLeftColor: theme.secondary }]}>
+                      <Ionicons name="bulb-outline" size={16} color={theme.secondary} style={{ marginTop: 2 }} />
+                      <Text style={[styles.explanationText, { color: theme.textSecondary }]}>{question.explanation}</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </Animated.View>
+
+          <Animated.View style={[styles.resultActions, { opacity: resultCardAnims[8] }]}>
             <TouchableOpacity
               style={[styles.retryBtn, { backgroundColor: theme.surfaceAlt, borderColor: theme.border, borderWidth: 1 }]}
               onPress={() => startQuiz(selectedCategory)}
             >
               <Ionicons name="refresh" size={22} color={theme.text} />
-              <Text style={[styles.retryBtnText, { color: theme.text }]}>Retry Quiz</Text>
+              <Text style={[styles.retryBtnText, { color: theme.text }]}>Try Again</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -827,20 +899,43 @@ export default function FreeQuizScreen({ navigation }) {
               onPress={() => setSelectedCategory(null)}
             >
               <LinearGradient
-                colors={[theme.primary, theme.primaryLight]}
+                colors={[theme.primary, theme.primaryLight || theme.primary]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.newQuizGradient}
               >
                 <Ionicons name="grid" size={22} color="#FFFFFF" />
-                <Text style={styles.newQuizBtnText}>New Category</Text>
+                <Text style={styles.newQuizBtnText}>Categories</Text>
               </LinearGradient>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
 
           <View style={{ height: 100 }} />
         </ScrollView>
       </View>
+    );
+  }
+
+  /* Helper Sub-component */
+  function StatCardSmall({ icon, value, label, anim, theme, color }) {
+    return (
+      <Animated.View style={[
+        styles.statCardSmall,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          borderWidth: 1,
+          opacity: anim,
+          transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }]
+        },
+        themeShadows.sm
+      ]}>
+        <View style={[styles.statIconWrapSmall, { backgroundColor: color + '10' }]}>
+          <Ionicons name={icon} size={18} color={color} />
+        </View>
+        <Text style={[styles.statValueSmall, { color: theme.text }]}>{value}</Text>
+        <Text style={[styles.statLabelSmall, { color: theme.textSecondary }]}>{label}</Text>
+      </Animated.View>
     );
   }
 
@@ -1565,5 +1660,101 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  /* Premium Results Styles */
+  rewardsCard: {
+    padding: 20,
+    borderRadius: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    overflow: 'hidden',
+  },
+  rewardsIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  rewardsInfo: {
+    flex: 1,
+  },
+  rewardsLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  rewardsValue: {
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  rewardBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  rewardBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  premiumStatRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 32,
+  },
+  statCardSmall: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 22,
+    alignItems: 'center',
+  },
+  statIconWrapSmall: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  statValueSmall: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  statLabelSmall: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  answerReviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 44,
+  },
+  answerPoint: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#8A94A6',
+    marginRight: 10,
+  },
+  explanationBox: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+    borderLeftWidth: 3,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  explanationText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
 });

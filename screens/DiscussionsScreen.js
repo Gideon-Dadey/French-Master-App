@@ -43,7 +43,7 @@ const SORT_OPTIONS = [
 
 export default function DiscussionsScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode, organicColors: theme } = useTheme();
 
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -61,6 +61,9 @@ export default function DiscussionsScreen({ navigation }) {
   const cardAnims = useRef([]).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Derived colors for category mapping if needed, or keeping static CATEGORIES if they are content-specific
+  // For now, we keep CATEGORIES static as they are distinct labels, but we ensure the rest of the UI uses theme.
 
   useEffect(() => {
     loadDiscussions();
@@ -195,9 +198,9 @@ export default function DiscussionsScreen({ navigation }) {
 
   if (loading && !refreshing) {
     return (
-      <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
-        <StatusBar barStyle="light-content" />
-        <LinearGradient colors={['#8B5CF6', '#7C3AED']} style={styles.loadingHeader}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+        <LinearGradient colors={[theme.primary, theme.primaryLight || theme.primary]} style={styles.loadingHeader}>
           <Text style={styles.loadingText}>Loading Discussions...</Text>
         </LinearGradient>
         <LoadingSpinner />
@@ -206,11 +209,11 @@ export default function DiscussionsScreen({ navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
-      <StatusBar barStyle="light-content" />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
 
       <LinearGradient
-        colors={isDarkMode ? ['#4C1D95', '#5B21B6'] : ['#8B5CF6', '#7C3AED']}
+        colors={[theme.primary, theme.primaryLight || theme.primary]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -224,7 +227,7 @@ export default function DiscussionsScreen({ navigation }) {
             style={styles.backBtn}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+            <Ionicons name="chevron-back" size={26} color={theme.textOnPrimary} />
           </TouchableOpacity>
 
           <Animated.View
@@ -233,8 +236,8 @@ export default function DiscussionsScreen({ navigation }) {
               { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
             ]}
           >
-            <Text style={styles.headerTitle}>Discussions</Text>
-            <Text style={styles.headerSubtitle}>
+            <Text style={[styles.headerTitle, { color: theme.textOnPrimary }]}>Discussions</Text>
+            <Text style={[styles.headerSubtitle, { color: 'rgba(255,255,255,0.8)' }]}>
               Connect with fellow learners
             </Text>
           </Animated.View>
@@ -243,7 +246,7 @@ export default function DiscussionsScreen({ navigation }) {
             style={styles.searchBtn}
             onPress={toggleSearch}
           >
-            <Ionicons name={showSearch ? 'close' : 'search'} size={24} color="#FFFFFF" />
+            <Ionicons name={showSearch ? 'close' : 'search'} size={24} color={theme.textOnPrimary} />
           </TouchableOpacity>
         </View>
 
@@ -303,7 +306,7 @@ export default function DiscussionsScreen({ navigation }) {
               colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']}
               style={styles.statCardGradient}
             >
-              <Ionicons name="flash" size={22} color="#FCD34D" />
+              <Ionicons name="flash" size={22} color={theme.warning} />
               <Text style={styles.statValue}>{stats.active}</Text>
               <Text style={styles.statLabel}>Today</Text>
             </LinearGradient>
@@ -313,7 +316,7 @@ export default function DiscussionsScreen({ navigation }) {
               colors={['rgba(255,255,255,0.25)', 'rgba(255,255,255,0.15)']}
               style={styles.statCardGradient}
             >
-              <Ionicons name="chatbox" size={22} color="#34D399" />
+              <Ionicons name="chatbox" size={22} color={theme.success} />
               <Text style={styles.statValue}>{stats.replies}</Text>
               <Text style={styles.statLabel}>Replies</Text>
             </LinearGradient>
@@ -335,7 +338,7 @@ export default function DiscussionsScreen({ navigation }) {
                 style={[
                   styles.categoryChip,
                   isActive && { backgroundColor: category.color },
-                  !isActive && { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }
+                  !isActive && { backgroundColor: theme.surface }
                 ]}
                 onPress={() => setSelectedCategory(category.id)}
                 activeOpacity={0.8}
@@ -347,7 +350,7 @@ export default function DiscussionsScreen({ navigation }) {
                 />
                 <Text style={[
                   styles.categoryChipText,
-                  { color: isActive ? '#FFFFFF' : colors.text }
+                  { color: isActive ? '#FFFFFF' : theme.text }
                 ]}>
                   {category.name}
                 </Text>
@@ -357,7 +360,7 @@ export default function DiscussionsScreen({ navigation }) {
         </ScrollView>
       </View>
 
-      <View style={[styles.sortSection, { backgroundColor: isDarkMode ? '#0F172A' : '#F1F5F9' }]}>
+      <View style={[styles.sortSection, { backgroundColor: theme.background }]}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -370,18 +373,18 @@ export default function DiscussionsScreen({ navigation }) {
                 key={option.id}
                 style={[
                   styles.sortChip,
-                  { backgroundColor: isActive ? '#8B5CF6' : 'transparent' }
+                  { backgroundColor: isActive ? theme.primary : 'transparent' }
                 ]}
                 onPress={() => setSelectedSort(option.id)}
               >
                 <Ionicons
                   name={option.icon}
                   size={14}
-                  color={isActive ? '#FFFFFF' : colors.secondaryText}
+                  color={isActive ? '#FFFFFF' : theme.textSecondary}
                 />
                 <Text style={[
                   styles.sortChipText,
-                  { color: isActive ? '#FFFFFF' : colors.secondaryText }
+                  { color: isActive ? '#FFFFFF' : theme.textSecondary }
                 ]}>
                   {option.name}
                 </Text>
@@ -398,8 +401,8 @@ export default function DiscussionsScreen({ navigation }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#8B5CF6"
-            colors={['#8B5CF6']}
+            tintColor={theme.primary}
+            colors={[theme.primary]}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -410,7 +413,7 @@ export default function DiscussionsScreen({ navigation }) {
         scrollEventThrottle={16}
       >
         {discussions.length === 0 ? (
-          <EmptyState onCreateDiscussion={handleCreateDiscussion} colors={colors} isDarkMode={isDarkMode} />
+          <EmptyState onCreateDiscussion={handleCreateDiscussion} theme={theme} isDarkMode={isDarkMode} />
         ) : (
           discussions.map((discussion, index) => (
             <Animated.View
@@ -427,7 +430,7 @@ export default function DiscussionsScreen({ navigation }) {
             >
               <DiscussionCard
                 discussion={discussion}
-                colors={colors}
+                theme={theme}
                 isDarkMode={isDarkMode}
                 onPress={() => navigation.navigate('DiscussionDetail', { discussionId: discussion._id })}
                 formatTimeAgo={formatTimeAgo}
@@ -441,12 +444,12 @@ export default function DiscussionsScreen({ navigation }) {
 
       <Animated.View style={[styles.fabContainer, { transform: [{ scale: pulseAnim }] }]}>
         <TouchableOpacity
-          style={styles.fab}
+          style={[styles.fab, { shadowColor: theme.secondary }]}
           onPress={handleCreateDiscussion}
           activeOpacity={0.9}
         >
           <LinearGradient
-            colors={['#8B5CF6', '#7C3AED']}
+            colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
             style={styles.fabGradient}
           >
             <Ionicons name="create" size={26} color="#FFFFFF" />
@@ -457,19 +460,19 @@ export default function DiscussionsScreen({ navigation }) {
   );
 }
 
-function EmptyState({ onCreateDiscussion, colors, isDarkMode }) {
+function EmptyState({ onCreateDiscussion, theme, isDarkMode }) {
   return (
     <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIcon, { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9' }]}>
-        <Ionicons name="chatbubbles-outline" size={60} color="#8B5CF6" />
+      <View style={[styles.emptyIcon, { backgroundColor: theme.surface }]}>
+        <Ionicons name="chatbubbles-outline" size={60} color={theme.primary} />
       </View>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>Start the Conversation</Text>
-      <Text style={[styles.emptySubtitle, { color: colors.secondaryText }]}>
+      <Text style={[styles.emptyTitle, { color: theme.text }]}>Start the Conversation</Text>
+      <Text style={[styles.emptySubtitle, { color: theme.textSecondary }]}>
         No discussions yet in this category.{'\n'}Share your thoughts with the community!
       </Text>
-      <TouchableOpacity style={styles.emptyBtn} onPress={onCreateDiscussion}>
+      <TouchableOpacity style={[styles.emptyBtn, { shadowColor: theme.primary }]} onPress={onCreateDiscussion}>
         <LinearGradient
-          colors={['#8B5CF6', '#7C3AED']}
+          colors={[theme.primary, theme.primaryLight || theme.primary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.emptyBtnGradient}
@@ -482,7 +485,7 @@ function EmptyState({ onCreateDiscussion, colors, isDarkMode }) {
   );
 }
 
-function DiscussionCard({ discussion, colors, isDarkMode, onPress, formatTimeAgo, getCategoryInfo }) {
+function DiscussionCard({ discussion, theme, isDarkMode, onPress, formatTimeAgo, getCategoryInfo }) {
   const author = typeof discussion.author === 'object' ? discussion.author : null;
   const replyCount = discussion.replies?.length || 0;
   const likeCount = discussion.likes?.length || 0;
@@ -494,7 +497,7 @@ function DiscussionCard({ discussion, colors, isDarkMode, onPress, formatTimeAgo
       style={[
         styles.discussionCard,
         {
-          backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
+          backgroundColor: theme.surface,
           borderLeftColor: categoryInfo.color,
         }
       ]}
@@ -505,15 +508,15 @@ function DiscussionCard({ discussion, colors, isDarkMode, onPress, formatTimeAgo
       {(discussion.isPinned || isHot) && (
         <View style={styles.badgesRow}>
           {discussion.isPinned && (
-            <View style={[styles.pinnedBadge, { backgroundColor: '#F59E0B15' }]}>
-              <Ionicons name="pin" size={12} color="#F59E0B" />
-              <Text style={[styles.badgeText, { color: '#F59E0B' }]}>Pinned</Text>
+            <View style={[styles.pinnedBadge, { backgroundColor: theme.warning + '15' }]}>
+              <Ionicons name="pin" size={12} color={theme.warning} />
+              <Text style={[styles.badgeText, { color: theme.warning }]}>Pinned</Text>
             </View>
           )}
           {isHot && (
-            <View style={[styles.hotBadge, { backgroundColor: '#EF444415' }]}>
-              <Ionicons name="flame" size={12} color="#EF4444" />
-              <Text style={[styles.badgeText, { color: '#EF4444' }]}>Hot</Text>
+            <View style={[styles.hotBadge, { backgroundColor: theme.error + '15' }]}>
+              <Ionicons name="flame" size={12} color={theme.error} />
+              <Text style={[styles.badgeText, { color: theme.error }]}>Hot</Text>
             </View>
           )}
         </View>
@@ -526,15 +529,15 @@ function DiscussionCard({ discussion, colors, isDarkMode, onPress, formatTimeAgo
             {categoryInfo.name}
           </Text>
         </View>
-        <Text style={[styles.timeAgo, { color: colors.secondaryText }]}>
+        <Text style={[styles.timeAgo, { color: theme.textSecondary }]}>
           {formatTimeAgo(discussion.createdAt)}
         </Text>
       </View>
 
-      <Text style={[styles.discussionTitle, { color: colors.text }]} numberOfLines={2}>
+      <Text style={[styles.discussionTitle, { color: theme.text }]} numberOfLines={2}>
         {discussion.title}
       </Text>
-      <Text style={[styles.discussionExcerpt, { color: colors.secondaryText }]} numberOfLines={2}>
+      <Text style={[styles.discussionExcerpt, { color: theme.textSecondary }]} numberOfLines={2}>
         {discussion.content?.replace(/<[^>]*>/g, '').substring(0, 150)}
       </Text>
 
@@ -543,20 +546,20 @@ function DiscussionCard({ discussion, colors, isDarkMode, onPress, formatTimeAgo
           {discussion.tags.slice(0, 3).map((tag, idx) => (
             <View
               key={idx}
-              style={[styles.tag, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' }]}
+              style={[styles.tag, { backgroundColor: theme.background }]}
             >
-              <Text style={[styles.tagText, { color: colors.secondaryText }]}>#{tag}</Text>
+              <Text style={[styles.tagText, { color: theme.textSecondary }]}>#{tag}</Text>
             </View>
           ))}
           {discussion.tags.length > 3 && (
-            <Text style={[styles.moreTags, { color: colors.secondaryText }]}>
+            <Text style={[styles.moreTags, { color: theme.textSecondary }]}>
               +{discussion.tags.length - 3}
             </Text>
           )}
         </View>
       )}
 
-      <View style={[styles.cardFooter, { borderTopColor: isDarkMode ? '#334155' : '#F1F5F9' }]}>
+      <View style={[styles.cardFooter, { borderTopColor: theme.border }]}>
         <View style={styles.footerLeft}>
           <View style={[styles.authorAvatar, { backgroundColor: categoryInfo.color + '25' }]}>
             <Text style={[styles.authorInitial, { color: categoryInfo.color }]}>
@@ -564,12 +567,12 @@ function DiscussionCard({ discussion, colors, isDarkMode, onPress, formatTimeAgo
             </Text>
           </View>
           <View style={styles.authorInfo}>
-            <Text style={[styles.authorName, { color: colors.text }]} numberOfLines={1}>
+            <Text style={[styles.authorName, { color: theme.text }]} numberOfLines={1}>
               {author?.name || 'Anonymous'}
             </Text>
             {author?.role === 'instructor' && (
-              <View style={styles.instructorBadge}>
-                <Ionicons name="shield-checkmark" size={10} color="#8B5CF6" />
+              <View style={[styles.instructorBadge, { backgroundColor: theme.secondary + '20' }]}>
+                <Ionicons name="shield-checkmark" size={10} color={theme.secondary} />
               </View>
             )}
           </View>
@@ -580,11 +583,11 @@ function DiscussionCard({ discussion, colors, isDarkMode, onPress, formatTimeAgo
             <Ionicons
               name={likeCount > 0 ? 'heart' : 'heart-outline'}
               size={16}
-              color={likeCount > 0 ? '#EC4899' : colors.secondaryText}
+              color={likeCount > 0 ? theme.error : theme.textSecondary}
             />
             <Text style={[
               styles.footerStatText,
-              { color: likeCount > 0 ? '#EC4899' : colors.secondaryText }
+              { color: likeCount > 0 ? theme.error : theme.textSecondary }
             ]}>
               {likeCount}
             </Text>
@@ -593,18 +596,18 @@ function DiscussionCard({ discussion, colors, isDarkMode, onPress, formatTimeAgo
             <Ionicons
               name="chatbubble"
               size={15}
-              color={replyCount > 0 ? '#8B5CF6' : colors.secondaryText}
+              color={replyCount > 0 ? theme.primary : theme.textSecondary}
             />
             <Text style={[
               styles.footerStatText,
-              { color: replyCount > 0 ? '#8B5CF6' : colors.secondaryText }
+              { color: replyCount > 0 ? theme.primary : theme.textSecondary }
             ]}>
               {replyCount}
             </Text>
           </View>
           <View style={styles.footerStat}>
-            <Ionicons name="eye-outline" size={15} color={colors.secondaryText} />
-            <Text style={[styles.footerStatText, { color: colors.secondaryText }]}>
+            <Ionicons name="eye-outline" size={15} color={theme.textSecondary} />
+            <Text style={[styles.footerStatText, { color: theme.textSecondary }]}>
               {discussion.views || 0}
             </Text>
           </View>
