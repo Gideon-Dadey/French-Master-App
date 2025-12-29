@@ -8,7 +8,7 @@ export default function AppSplashScreen() {
         <View style={styles.container}>
             <View style={styles.logoContainer}>
                 <Image
-                    source={require('../../assets/logo.jpeg')}
+                    source={require('../../assets/logo.png')}
                     style={styles.logo}
                     resizeMode="contain"
                 />

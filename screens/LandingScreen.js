@@ -57,7 +57,7 @@ export default function LandingScreen({ navigation }) {
           {/* Logo & Brand */}
           <View style={styles.brandWrapper}>
             <View style={styles.logoContainer}>
-              <Image source={require('../assets/logo.jpeg')} style={styles.logo} />
+              <Image source={require('../assets/logo.png')} style={styles.logo} />
             </View>
             <Text style={styles.appName}>L'ALLIANCE</Text>
           </View>
@@ -117,29 +117,28 @@ const styles = StyleSheet.create({
   },
   brandWrapper: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 60, // Increased spacing for grandeur
   },
   logoContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
-    backgroundColor: '#FFF',
-    ...themeShadows.sm,
-    marginBottom: 16,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
+    // Removed specific dimensions/bg to let the new logo breathe
+    marginBottom: 24,
+    shadowColor: '#C9A227', // Golden glow
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   logo: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
+    width: 120, // Much larger to showcase the "Masterpiece"
+    height: 120,
+    borderRadius: 30, // Softer curves matching the icon shape
   },
   appName: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '800',
     color: '#1A355E',
-    letterSpacing: 4,
+    letterSpacing: 6, // Wider tracking for luxury feel
+    textTransform: 'uppercase',
   },
   heroWrapper: {
     width: 240,

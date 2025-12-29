@@ -2,12 +2,12 @@
   "expo": {
     "name": "L'Alliance",
     "slug": "l-alliance-app",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/logo.jpeg",
+    "icon": "./assets/logo.png",
     "splash": {
-      "image": "./assets/logo.jpeg",
+      "image": "./assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#FFFFFF"
     },
@@ -17,7 +17,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.lalliance.app",
-      "icon": "./assets/logo.jpeg",
+      "icon": "./assets/logo.png",
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to your camera to take profile photos.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile photos.",
@@ -27,7 +27,7 @@
     "android": {
       "package": "com.lalliance.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.jpeg",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [

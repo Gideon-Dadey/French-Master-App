@@ -35,6 +35,7 @@ A comprehensive, production-ready mobile application for learning French and Eng
 ### 🎓 Learning Features
 - **Premium Course Catalog** - Extensive French & English courses with video lessons
 - **Interactive Lessons** - Video-based lessons with progress tracking
+- **Immersion Mode** - Real-time "Conversation Simulator" for lifelike verbal practice
 - **Word of the Day** - Daily vocabulary with pronunciation, phonetics, examples, and streaks
 - **Practice Exercises** - Multiple practice modes:
   - 📝 **Quick Quiz** - 8 categories, 48 questions with explanations
@@ -48,14 +49,14 @@ A comprehensive, production-ready mobile application for learning French and Eng
 
 ### 🎨 Premium iOS-Style Design
 - **Beautiful UI/UX** - Professional native interface inspired by iOS
-- **Unified Primary Color Theme** - Consistent primary color throughout all screens
+- **Unified "L'Alliance" Theme** - Sophisticated Navy, Gold, and Cream palette (`organicTheme`)
 - **Time-Based Greetings** - Dynamic French greetings in LearnScreen (Bonjour, Bon après-midi, Bonsoir)
 - **Dark/Light Mode** - Full theme support with smooth transitions
 - **Premium Animations** - Smooth entrance animations, staggered reveals, parallax effects
 - **Responsive Design** - Optimized for all screen sizes
-- **Gradient Backgrounds** - Premium visual effects with floating orbs
+- **Glassmorphism** - Modern transparency effects in headers and cards
 - **Custom Tab Bar** - iOS-style navigation with haptic feedback
-- **Redesigned Screens** - Modern, clean CourseDetailScreen and BlogDetailScreen
+- **Redesigned Screens** - Clean, minimal cards with consistent rounded corners (radius: 20)
 
 ### 🎯 Advanced Gamification
 - **Achievements System** - Unlock badges and achievements
@@ -94,9 +95,9 @@ A comprehensive, production-ready mobile application for learning French and Eng
 
 ## 📱 Screenshots
 
-| Home Screen | Learn Screen | Practice Screen |
-|-------------|--------------|-----------------|
-| Premium header with stats | Course catalog | Training center |
+| Home Screen | Immersion Mode | Course Detail |
+|-------------|----------------|---------------|
+| Premium header with new layout | Conversation Simulator | Redesigned video player |
 
 | Community Hub | Study Groups | Group Chat |
 |---------------|--------------|------------|
@@ -104,7 +105,7 @@ A comprehensive, production-ready mobile application for learning French and Eng
 
 | Profile | Leaderboard | Word of the Day |
 |---------|-------------|-----------------|
-| Premium profile with XP | Golden rankings | Daily vocabulary |
+| Modern profile with stats | Golden rankings | Daily vocabulary |
 
 ---
 
@@ -122,7 +123,7 @@ A comprehensive, production-ready mobile application for learning French and Eng
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/yourusername/french-master-gh.git
+git clone https://github.com/Gideon-Dadey/French-Master-App.git
 cd "FRENCH MASTER"
 
 # 2. Install all dependencies
@@ -175,7 +176,7 @@ FRENCH MASTER/
 ├── babel.config.js                 # Babel configuration
 │
 ├── assets/                         # Static assets
-│   ├── logo.jpeg                   # App logo
+│   ├── logo.png                    # App logo
 │   ├── french/                     # French course images
 │   └── english/                    # English course images
 │
@@ -346,7 +347,7 @@ FRENCH MASTER/
 
 ---
 
-## 📱 Screens Overview (49 Screens)
+## 📱 Screens Overview (~50 Screens)
 
 ### Authentication (2)
 - `LoginScreen` - Premium login with social options
@@ -367,7 +368,7 @@ FRENCH MASTER/
 - `LessonScreen` - Lesson player
 - `ResourcesScreen` - Learning resources
 
-### Practice (7)
+### Practice (8)
 - `FreeQuizScreen` - Quick quizzes
 - `FlashcardsScreen` - Vocabulary cards
 - `GrammarDrillsScreen` - Grammar exercises
@@ -375,6 +376,7 @@ FRENCH MASTER/
 - `ListeningPracticeScreen` - Listening exercises
 - `WritingPracticeScreen` - Writing practice
 - `WordOfTheDayScreen` - Daily vocabulary
+- `ConversationSimulatorScreen` - **New** Immersion Mode
 
 ### Community (10)
 - `StudyGroupsScreen` - Group listing
@@ -575,11 +577,12 @@ See detailed changes in: **[FIX_SUMMARY.md](./FIX_SUMMARY.md)**
 
 | Metric | Count |
 |--------|-------|
-| Screens | 49 |
-| Components | 40 |
-| API Routes | 24 |
-| Database Models | 20 |
+| Screens | ~50 |
+| Components | 40+ |
+| API Routes | 25 |
+| Database Models | 22 |
 | Context Providers | 7 |
+| Lines of Code | ~72,275 |
 
 ---
 

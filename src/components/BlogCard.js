@@ -46,7 +46,7 @@ export default function BlogCard({ post, onPress, layout = 'vertical' }) {
         activeOpacity={0.7}
       >
         <Image
-          source={post.image ? { uri: post.image } : require('../../assets/logo.jpeg')}
+          source={post.image ? { uri: post.image } : require('../../assets/logo.png')}
           style={styles.horizontalImage}
         />
         <View style={styles.horizontalContent}>
@@ -79,7 +79,7 @@ export default function BlogCard({ post, onPress, layout = 'vertical' }) {
     >
       <View style={styles.imageContainer}>
         <Image
-          source={post.image ? { uri: post.image } : require('../../assets/logo.jpeg')}
+          source={post.image ? { uri: post.image } : require('../../assets/logo.png')}
           style={styles.image}
         />
         <View style={[styles.floatingBadge, { backgroundColor: categoryColor }]}>

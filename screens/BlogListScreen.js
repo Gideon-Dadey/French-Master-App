@@ -648,7 +648,7 @@ const FeaturedCard = ({ item, index, onPress, onSave, isSaved, colors, isDarkMod
         activeOpacity={1}
       >
         <Image
-          source={item.image ? { uri: item.image } : require('../assets/logo.jpeg')}
+          source={item.image ? { uri: item.image } : require('../assets/logo.png')}
           style={styles.featuredImage}
         />
         <LinearGradient
@@ -732,7 +732,7 @@ const ArticleCard = ({ post, index, onPress, onSave, isSaved, colors, isDarkMode
 
         <View style={styles.articleImageContainer}>
           <Image
-            source={post.image ? { uri: post.image } : require('../assets/logo.jpeg')}
+            source={post.image ? { uri: post.image } : require('../assets/logo.png')}
             style={styles.articleImage}
           />
 
