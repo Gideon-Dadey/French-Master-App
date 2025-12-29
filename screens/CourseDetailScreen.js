@@ -92,6 +92,38 @@ export default function CourseDetailScreen({ route, navigation }) {
     }
   };
 
+  const handleUnenrollConfirm = () => {
+    Alert.alert(
+      'Leave Course',
+      'Are you sure you want to unenroll? You can always enroll again later.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unenroll',
+          style: 'destructive',
+          onPress: handleUnenroll
+        }
+      ]
+    );
+  };
+
+  const handleUnenroll = async () => {
+    try {
+      setLoading(true);
+      await paymentsAPI.unenroll({ courseId });
+      await loadUser();
+      const updatedCourse = await coursesAPI.getById(courseId);
+      if (updatedCourse?.data?.data) {
+        setCourse(updatedCourse.data.data); // Update to reflect unenrolled status
+      }
+      Alert.alert("Success", "You have successfully unenrolled from the course.");
+    } catch (error) {
+      Alert.alert('Error', 'Failed to unenroll. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatDuration = (seconds) => {
     if (!seconds) return '0m';
     const hours = Math.floor(seconds / 3600);
@@ -139,15 +171,7 @@ export default function CourseDetailScreen({ route, navigation }) {
           style={styles.heroOverlay}
         />
 
-        {/* Safe Area Back Button */}
-        <View style={[styles.headerNav, { paddingTop: Platform.OS === 'ios' ? 50 : 30 }]}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+
 
         {/* Hero Content */}
         <View style={styles.heroContent}>
@@ -170,6 +194,25 @@ export default function CourseDetailScreen({ route, navigation }) {
           </View>
         </View>
       </Animated.View>
+
+      {/* Header Nav - Fixed Position */}
+      <View style={[styles.headerNav, { paddingTop: Platform.OS === 'ios' ? 50 : 30 }]}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        </TouchableOpacity>
+
+        {isEnrolled && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleUnenrollConfirm}
+          >
+            <Ionicons name="ellipsis-horizontal" size={24} color="#FFF" />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Content Scroll */}
       <Animated.ScrollView
@@ -303,8 +346,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     left: 0,
+    right: 0,
     zIndex: 10,
     paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   backButton: {
     width: 40,

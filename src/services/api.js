@@ -128,6 +128,7 @@ export const paymentsAPI = {
   confirmCourse: (data) => api.post('/payments/confirm', data),
   enrollFree: (data) => api.post('/payments/enroll-free', data),
   getHistory: () => api.get('/payments/history'),
+  unenroll: (data) => api.post('/payments/unenroll', data),
 };
 
 export const progressAPI = {

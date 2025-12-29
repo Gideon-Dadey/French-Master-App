@@ -435,5 +435,40 @@ router.get('/history', protect, async (req, res) => {
   }
 });
 
+
+router.post('/unenroll', protect, async (req, res) => {
+  try {
+    const { courseId } = req.body;
+
+    const user = await User.findById(req.user._id);
+    const initialLength = user.enrolledCourses.length;
+
+    user.enrolledCourses = user.enrolledCourses.filter(
+      ec => ec.course.toString() !== courseId
+    );
+
+    if (user.enrolledCourses.length < initialLength) {
+      await user.save();
+
+      // Decrement student count, ensuring it doesn't go below 0
+      await Course.findOneAndUpdate(
+        { _id: courseId, studentsEnrolled: { $gt: 0 } },
+        { $inc: { studentsEnrolled: -1 } }
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Successfully unenrolled'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 
