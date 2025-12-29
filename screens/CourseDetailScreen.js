@@ -33,13 +33,13 @@ export default function CourseDetailScreen({ route, navigation }) {
   const { isDarkMode } = useTheme();
   const theme = getThemeColors(isDarkMode);
 
-  // L'Alliance Theme Colors
-  const bgColor = '#0D1B2A';        // Deep Navy background
-  const cardColor = '#1B2838';      // Navy cards
-  const textColor = '#F0EBE3';      // Warm Cream text
-  const subTextColor = '#A8B4C4';   // Muted Blue-Grey
-  const accentColor = '#1E3A5F';    // Deep Midnight Blue (primary)
-  const goldColor = '#C9A227';      // Warm Gold (accent)
+  // L'Alliance Theme Colors - derived from Organic Theme
+  const bgColor = theme.background;
+  const cardColor = theme.surface;
+  const textColor = theme.text;
+  const subTextColor = theme.textSecondary;
+  const accentColor = theme.primary;
+  const goldColor = theme.secondary;
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);

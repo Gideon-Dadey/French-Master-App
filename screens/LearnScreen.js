@@ -39,8 +39,7 @@ const BackgroundBlur = ({ style, color, size = 300 }) => (
 
 export default function LearnScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
-  const { isDarkMode } = useTheme();
-  const theme = getThemeColors(isDarkMode);
+  const { isDarkMode, organicColors: theme } = useTheme();
   const gamificationContext = useGamification();
   const gamificationStats = gamificationContext?.stats || {};
 

@@ -133,7 +133,7 @@ export default function DailyGoalCard({
       >
         <LinearGradient
           colors={isComplete
-            ? [theme.success, '#4CAF50']
+            ? [theme.success, theme.successLight || '#4CAF50']
             : [theme.primary, theme.primaryLight || theme.primary]
           }
           start={{ x: 0, y: 0 }}
@@ -161,8 +161,8 @@ export default function DailyGoalCard({
                 size={80}
                 strokeWidth={8}
                 colors={isComplete
-                  ? ['#FFFFFF', '#E8F5E9']
-                  : [theme.secondary, '#FFD700']
+                  ? ['#FFFFFF', theme.successLight || 'rgba(255,255,255,0.7)']
+                  : [theme.secondary, theme.secondaryLight || '#FFD700']
                 }
                 backgroundColor="rgba(255,255,255,0.2)"
                 showPercentage={false}

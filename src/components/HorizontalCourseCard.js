@@ -9,7 +9,7 @@ import Spacer from './Spacer';
 import Rating from './Rating';
 
 export default function HorizontalCourseCard({ course, onPress, index = 0 }) {
-  const { colors } = useTheme();
+  const { isDarkMode, organicColors: theme } = useTheme();
 
   let imageSource;
   if (course.thumbnail) {
@@ -26,13 +26,13 @@ export default function HorizontalCourseCard({ course, onPress, index = 0 }) {
   const getLevelColor = (level) => {
     switch (level?.toLowerCase()) {
       case 'beginner':
-        return '#4CAF50';
+        return theme.success;
       case 'intermediate':
-        return '#FF9800';
+        return theme.warning || '#FF9800';
       case 'advanced':
-        return '#F44336';
+        return theme.error;
       default:
-        return colors.primary;
+        return theme.primary;
     }
   };
 
@@ -43,8 +43,8 @@ export default function HorizontalCourseCard({ course, onPress, index = 0 }) {
       style={[
         styles.container,
         {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
         },
       ]}
     >
@@ -52,7 +52,7 @@ export default function HorizontalCourseCard({ course, onPress, index = 0 }) {
         source={imageSource}
         style={[
           styles.cover,
-          { backgroundColor: colors.tertiaryBackground || colors.border },
+          { backgroundColor: theme.borderLight || theme.border },
         ]}
         resizeMode="cover"
       />
@@ -62,7 +62,7 @@ export default function HorizontalCourseCard({ course, onPress, index = 0 }) {
             <Text
               style={[
                 styles.category,
-                { color: colors.primary },
+                { color: theme.primary },
               ]}
             >
               {course.category.name || course.category}
@@ -74,7 +74,7 @@ export default function HorizontalCourseCard({ course, onPress, index = 0 }) {
           numberOfLines={2}
           style={[
             styles.title,
-            { color: colors.text },
+            { color: theme.text },
           ]}
         >
           {course.title}
@@ -91,7 +91,7 @@ export default function HorizontalCourseCard({ course, onPress, index = 0 }) {
               size={14}
             />
             {(course.rating?.count || course.meta?.enrolledCount) && (
-              <Text style={[styles.footerText, { color: colors.secondaryText, marginLeft: 4 }]}>
+              <Text style={[styles.footerText, { color: theme.textSecondary, marginLeft: 4 }]}>
                 ({course.rating?.count || course.meta?.enrolledCount})
               </Text>
             )}
@@ -101,7 +101,7 @@ export default function HorizontalCourseCard({ course, onPress, index = 0 }) {
               <Ionicons
                 name="trending-up-outline"
                 size={16}
-                color={colors.secondaryText}
+                color={theme.textSecondary}
               />
               <Text style={[styles.footerText, { color: getLevelColor(course.level) }]}>
                 {course.level.charAt(0).toUpperCase() + course.level.slice(1)}

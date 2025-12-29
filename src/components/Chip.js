@@ -10,20 +10,20 @@ export default function Chip({
   onPress,
   style
 }) {
-  const { colors } = useTheme();
+  const { organicColors: theme } = useTheme();
 
   const { color, backgroundColor } = useMemo(() => {
     if (variant === 'primary') {
       return {
-        color: '#FFFFFF',
-        backgroundColor: colors.primary,
+        color: theme.surface,
+        backgroundColor: theme.primary,
       };
     }
     return {
-      color: colors.text,
-      backgroundColor: colors.tertiaryBackground || colors.border,
+      color: theme.text,
+      backgroundColor: theme.borderLight || theme.border,
     };
-  }, [variant, colors]);
+  }, [variant, theme]);
 
   const ChipContent = (
     <View

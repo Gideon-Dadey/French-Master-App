@@ -19,8 +19,7 @@ import { getThemeColors, themeShadows } from '../src/utils/organicTheme';
 
 export default function SettingsScreen({ navigation }) {
     const { user, logout, updateUser } = useAuth();
-    const { isDarkMode, toggleTheme } = useTheme();
-    const theme = getThemeColors(isDarkMode);
+    const { isDarkMode, toggleTheme, organicColors: theme } = useTheme();
 
     const [notifications, setNotifications] = useState(true);
     const [soundEffects, setSoundEffects] = useState(true);

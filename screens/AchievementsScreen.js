@@ -22,7 +22,7 @@ const ALL_ACHIEVEMENTS = [
 ];
 
 export default function AchievementsScreen({ navigation }) {
-  const { colors } = useTheme();
+  const { organicColors: theme } = useTheme();
   const { isAuthenticated } = useAuth();
   const [achievements, setAchievements] = useState({});
   const [refreshing, setRefreshing] = useState(false);
@@ -50,13 +50,13 @@ export default function AchievementsScreen({ navigation }) {
 
   if (!isAuthenticated) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.emptyContainer}>
-          <Ionicons name="trophy-outline" size={80} color={colors.secondaryText} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+          <Ionicons name="trophy-outline" size={80} color={theme.textSecondary} />
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>
             Unlock Your Achievements
           </Text>
-          <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
+          <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
             Log in to track your learning achievements and unlock badges!
           </Text>
         </View>
@@ -69,30 +69,30 @@ export default function AchievementsScreen({ navigation }) {
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      style={[styles.container, { backgroundColor: theme.background }]}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
       showsVerticalScrollIndicator={false}
     >
-
-      <View style={[styles.header, { backgroundColor: colors.card }]}>
+      <View style={[styles.header, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}>
         <View style={styles.headerContent}>
-          <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-            <Ionicons name="trophy" size={32} color={colors.primary} />
+          <View style={[styles.iconContainer, { backgroundColor: theme.primary + '15' }]}>
+            <Ionicons name="trophy" size={32} color={theme.primary} />
           </View>
           <View style={styles.headerText}>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Achievements</Text>
-            <Text style={[styles.headerSubtitle, { color: colors.secondaryText }]}>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>Achievements</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>
               {unlockedCount} of {totalCount} unlocked
             </Text>
           </View>
         </View>
-        <View style={[styles.progressBar, { backgroundColor: colors.secondaryBackground }]}>
+
+        <View style={[styles.progressBar, { backgroundColor: theme.border }]}>
           <View
             style={[
               styles.progressFill,
               {
                 width: `${(unlockedCount / totalCount) * 100}%`,
-                backgroundColor: colors.primary,
+                backgroundColor: theme.primary,
               },
             ]}
           />
@@ -105,32 +105,32 @@ export default function AchievementsScreen({ navigation }) {
             key={achievementId}
             achievementId={achievementId}
             unlocked={achievements[achievementId] || false}
-            onPress={() => {}}
+            onPress={() => { }}
           />
         ))}
       </View>
 
-      <View style={[styles.statsContainer, { backgroundColor: colors.card }]}>
-        <Text style={[styles.statsTitle, { color: colors.text }]}>Your Progress</Text>
+      <View style={[styles.statsContainer, { backgroundColor: theme.surface }]}>
+        <Text style={[styles.statsTitle, { color: theme.text }]}>Your Progress</Text>
         <View style={styles.statsRow}>
           <View style={styles.stat}>
-            <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
-            <Text style={[styles.statNumber, { color: colors.text }]}>{unlockedCount}</Text>
-            <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Unlocked</Text>
+            <Ionicons name="checkmark-circle" size={24} color={theme.success || theme.primary} />
+            <Text style={[styles.statNumber, { color: theme.text }]}>{unlockedCount}</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Unlocked</Text>
           </View>
           <View style={styles.stat}>
-            <Ionicons name="lock-closed" size={24} color={colors.secondaryText} />
-            <Text style={[styles.statNumber, { color: colors.text }]}>
+            <Ionicons name="lock-closed" size={24} color={theme.textSecondary} />
+            <Text style={[styles.statNumber, { color: theme.text }]}>
               {totalCount - unlockedCount}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Locked</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Locked</Text>
           </View>
           <View style={styles.stat}>
-            <Ionicons name="trophy" size={24} color="#FFD700" />
-            <Text style={[styles.statNumber, { color: colors.text }]}>
+            <Ionicons name="trophy" size={24} color={theme.secondary} />
+            <Text style={[styles.statNumber, { color: theme.text }]}>
               {Math.round((unlockedCount / totalCount) * 100)}%
             </Text>
-            <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Complete</Text>
+            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Complete</Text>
           </View>
         </View>
       </View>

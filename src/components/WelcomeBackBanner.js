@@ -164,7 +164,7 @@ export default function WelcomeBackBanner({
                 <Ionicons
                   name="flame"
                   size={20}
-                  color={streak > 0 ? '#FF6B35' : 'rgba(255,255,255,0.4)'}
+                  color={streak > 0 ? theme.secondary : 'rgba(255,255,255,0.4)'}
                 />
               </Animated.View>
               <Text style={[

@@ -159,45 +159,45 @@ const ToastContainer = () => {
     switch (toast.type) {
       case 'success':
         return {
-          colors: [theme.success, '#4CAF50'],
+          colors: [theme.success, theme.successLight || '#4CAF50'],
           icon: 'checkmark-circle',
           accentColor: theme.success,
         };
       case 'error':
         return {
-          colors: [theme.error, '#E53935'],
+          colors: [theme.error, theme.errorLight || '#E53935'],
           icon: 'close-circle',
           accentColor: theme.error,
         };
       case 'warning':
         return {
-          colors: [theme.warning || '#FFA726', '#FF9800'],
+          colors: [theme.warning || '#D4A84B', theme.warningLight || '#FFA726'],
           icon: 'warning',
-          accentColor: theme.warning || '#FFA726',
+          accentColor: theme.warning || '#D4A84B',
         };
       case 'info':
         return {
-          colors: [theme.info, '#2196F3'],
+          colors: [theme.info, theme.infoLight || '#2196F3'],
           icon: 'information-circle',
           accentColor: theme.info,
         };
       case 'achievement':
         return {
-          colors: [theme.secondary, '#FFD700'],
+          colors: [theme.gold || theme.secondary, theme.secondaryLight || '#FFD700'],
           icon: 'trophy',
-          accentColor: theme.secondary,
+          accentColor: theme.gold || theme.secondary,
         };
       case 'xp':
         return {
-          colors: [theme.secondary, '#FFD700'],
+          colors: [theme.gold || theme.secondary, theme.secondaryLight || '#FFD700'],
           icon: 'star',
-          accentColor: theme.secondary,
+          accentColor: theme.gold || theme.secondary,
         };
       case 'streak':
         return {
-          colors: ['#FF6B35', '#FF8C42'],
+          colors: [theme.secondary || '#FF6B35', theme.secondaryLight || '#FF8C42'],
           icon: 'flame',
-          accentColor: '#FF6B35',
+          accentColor: theme.secondary || '#FF6B35',
         };
       default:
         return {

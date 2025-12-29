@@ -285,5 +285,68 @@ router.post('/bookmarks/toggle', protect, async (req, res) => {
   }
 });
 
+router.post('/activity', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const lastActive = user.streak.lastActiveDate ? new Date(user.streak.lastActiveDate) : null;
+    if (lastActive) {
+      lastActive.setHours(0, 0, 0, 0);
+    }
+
+    // If already active today, just return
+    if (lastActive && lastActive.getTime() === today.getTime()) {
+      return res.json({
+        success: true,
+        data: user.streak
+      });
+    }
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (lastActive && lastActive.getTime() === yesterday.getTime()) {
+      // Continued streak
+      user.streak.current += 1;
+    } else {
+      // New streak
+      user.streak.current = 1;
+    }
+
+    // Update longest streak
+    if (user.streak.current > user.streak.longest) {
+      user.streak.longest = user.streak.current;
+    }
+
+    user.streak.lastActiveDate = today;
+
+    // Add to activeDates if not present
+    const dateExists = user.streak.activeDates.some(d => {
+      const activeDate = new Date(d);
+      activeDate.setHours(0, 0, 0, 0);
+      return activeDate.getTime() === today.getTime();
+    });
+
+    if (!dateExists) {
+      user.streak.activeDates.push(today);
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      data: user.streak
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;
 

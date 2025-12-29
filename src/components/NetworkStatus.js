@@ -2,9 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNetwork } from '../hooks/useNetwork';
+import { useTheme } from '../context/ThemeContext';
 
 export default function NetworkStatus() {
   const { isConnected, isInternetReachable } = useNetwork();
+  const { isDarkMode, organicColors: theme } = useTheme();
   const [show, setShow] = React.useState(false);
   const slideAnim = React.useRef(new Animated.Value(-100)).current;
 
@@ -32,6 +34,7 @@ export default function NetworkStatus() {
         styles.container,
         {
           transform: [{ translateY: slideAnim }],
+          backgroundColor: theme.error,
         },
       ]}
     >

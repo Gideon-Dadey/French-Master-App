@@ -86,7 +86,7 @@ function AuthStack() {
 }
 
 function MainTabs() {
-  const { colors, isDarkMode } = useTheme();
+  const { organicColors: colors, isDarkMode } = useTheme();
 
   return (
     <Tab.Navigator
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({});
 
 function AppNavigator() {
   const { isAuthenticated, loading } = useAuth();
-  const { colors } = useTheme();
+  const { organicColors: colors } = useTheme();
   const navigationRef = React.useRef(null);
 
   useEffect(() => {
@@ -185,16 +185,16 @@ function AppNavigator() {
             title: 'Lesson',
             headerStyle: {
               backgroundColor: colors.primary,
-              elevation: 4,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
+              elevation: 0, // Flat design for Immersion Mastery
+              shadowOpacity: 0,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
             },
-            headerTintColor: '#fff',
+            headerTintColor: colors.text, // Better visibility than fixed #fff
             headerTitleStyle: {
-              fontWeight: '600',
+              fontWeight: '700',
               fontSize: 18,
+              fontFamily: Platform.OS === 'ios' ? 'system font' : 'serif',
             },
           }}
         />
@@ -206,15 +206,14 @@ function AppNavigator() {
             title: 'Learning Resources',
             headerStyle: {
               backgroundColor: colors.primary,
-              elevation: 4,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
             },
-            headerTintColor: '#fff',
+            headerTintColor: colors.text,
             headerTitleStyle: {
-              fontWeight: '600',
+              fontWeight: '700',
               fontSize: 18,
             },
           }}
@@ -227,15 +226,14 @@ function AppNavigator() {
             title: 'Notifications',
             headerStyle: {
               backgroundColor: colors.primary,
-              elevation: 4,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
             },
-            headerTintColor: '#fff',
+            headerTintColor: colors.text,
             headerTitleStyle: {
-              fontWeight: '600',
+              fontWeight: '700',
               fontSize: 18,
             },
           }}
@@ -248,15 +246,14 @@ function AppNavigator() {
             title: 'My Wishlist',
             headerStyle: {
               backgroundColor: colors.primary,
-              elevation: 4,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
             },
-            headerTintColor: '#fff',
+            headerTintColor: colors.text,
             headerTitleStyle: {
-              fontWeight: '600',
+              fontWeight: '700',
               fontSize: 18,
             },
           }}
@@ -276,15 +273,14 @@ function AppNavigator() {
             title: 'Article',
             headerStyle: {
               backgroundColor: colors.primary,
-              elevation: 4,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
             },
-            headerTintColor: '#fff',
+            headerTintColor: colors.text,
             headerTitleStyle: {
-              fontWeight: '600',
+              fontWeight: '700',
               fontSize: 18,
             },
           }}
@@ -304,15 +300,14 @@ function AppNavigator() {
             title: 'My Courses',
             headerStyle: {
               backgroundColor: colors.primary,
-              elevation: 4,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 1,
+              borderBottomColor: colors.border,
             },
-            headerTintColor: '#fff',
+            headerTintColor: colors.text,
             headerTitleStyle: {
-              fontWeight: '600',
+              fontWeight: '700',
               fontSize: 18,
             },
           }}

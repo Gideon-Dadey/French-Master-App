@@ -118,7 +118,8 @@ const userSchema = new mongoose.Schema({
       type: Number,
       default: 0
     },
-    lastActiveDate: Date
+    lastActiveDate: Date,
+    activeDates: [Date]
   },
   badges: [{
     id: String,

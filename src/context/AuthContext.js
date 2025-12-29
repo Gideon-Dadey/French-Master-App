@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { authAPI } from '../services/api';
+import { authAPI, usersAPI } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -28,12 +28,33 @@ export const AuthProvider = ({ children }) => {
         const response = await authAPI.getMe();
         setUser(response.data.user);
         setIsAuthenticated(true);
+        // Report activity to update streak
+        reportActivity();
       }
     } catch (error) {
       console.error('Auth check failed:', error);
       await logout();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const reportActivity = async () => {
+    try {
+      const response = await usersAPI.reportActivity();
+      if (response.data.success) {
+        // Update local user state with new streak data
+        const streakData = response.data.data;
+        setUser(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            streak: streakData
+          };
+        });
+      }
+    } catch (error) {
+      console.error('Failed to report activity:', error);
     }
   };
 
@@ -49,10 +70,11 @@ export const AuthProvider = ({ children }) => {
 
       setUser(user);
       setIsAuthenticated(true);
+      reportActivity();
       return { success: true };
     } catch (error) {
       let message = 'Login failed';
-      
+
       if (error.message?.includes('Network') || error.isNetworkError) {
         message = 'Network connection failed. Please check your internet connection.';
       } else if (error.response?.data?.message) {
@@ -60,7 +82,7 @@ export const AuthProvider = ({ children }) => {
       } else if (error.message) {
         message = error.message;
       }
-      
+
       return {
         success: false,
         message
@@ -80,10 +102,11 @@ export const AuthProvider = ({ children }) => {
 
       setUser(user);
       setIsAuthenticated(true);
+      reportActivity();
       return { success: true };
     } catch (error) {
       let message = 'Registration failed';
-      
+
       if (error.message?.includes('Network') || error.isNetworkError) {
         message = 'Network connection failed. Please check your internet connection.';
       } else if (error.response?.data?.message) {
@@ -91,7 +114,7 @@ export const AuthProvider = ({ children }) => {
       } else if (error.message) {
         message = error.message;
       }
-      
+
       return {
         success: false,
         message
@@ -159,7 +182,8 @@ export const AuthProvider = ({ children }) => {
     checkAuth,
     updateUser,
     setUser,
-    loadUser
+    loadUser,
+    reportActivity
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

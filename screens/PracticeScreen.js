@@ -37,8 +37,7 @@ const BackgroundBlur = ({ style, color, size = 300 }) => (
 
 export default function PracticeScreen({ navigation }) {
   const { user, isAuthenticated } = useAuth();
-  const { isDarkMode } = useTheme();
-  const theme = getThemeColors(isDarkMode);
+  const { isDarkMode, organicColors: theme } = useTheme();
   const gamification = useGamification();
   const gamificationStats = gamification?.stats || {};
 

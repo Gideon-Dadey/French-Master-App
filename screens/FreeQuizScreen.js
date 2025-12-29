@@ -398,8 +398,7 @@ const QUIZ_QUESTIONS = {
 };
 
 export default function FreeQuizScreen({ navigation }) {
-  const { isDarkMode, toggleTheme } = useTheme();
-  const theme = getThemeColors(isDarkMode);
+  const { isDarkMode, toggleTheme, organicColors: theme } = useTheme();
   const { awardXP } = useGamification();
 
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -767,7 +766,7 @@ export default function FreeQuizScreen({ navigation }) {
             </View>
           </View>
 
-          <Text style={[styles.reviewTitle, { color: colors.text }]}>Review Answers</Text>
+          <Text style={[styles.reviewTitle, { color: theme.text }]}>Review Answers</Text>
 
           {questions.map((question, index) => {
             const userAnswer = answers[index];

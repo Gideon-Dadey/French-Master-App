@@ -21,31 +21,26 @@ const getTabConfig = (theme) => ({
     icon: 'home-sharp',
     iconOutline: 'home-outline',
     label: 'Home',
-    activeColor: '#1A2332',
   },
   Learn: {
     icon: 'school-sharp',
     iconOutline: 'school-outline',
     label: 'Learn',
-    activeColor: '#1A2332',
   },
   Practice: {
     icon: 'extension-puzzle-sharp',
     iconOutline: 'extension-puzzle-outline',
     label: 'Practice',
-    activeColor: '#1A2332',
   },
   Community: {
     icon: 'chatbubbles-sharp',
     iconOutline: 'chatbubbles-outline',
     label: 'Chats',
-    activeColor: '#1A2332',
   },
   Profile: {
     icon: 'person-circle-sharp',
     iconOutline: 'person-circle-outline',
     label: 'Profile',
-    activeColor: '#1A2332',
   },
 });
 
@@ -56,7 +51,6 @@ function TabBarItem({ route, focused, onPress, onLongPress, theme }) {
     icon: 'ellipse',
     iconOutline: 'ellipse-outline',
     label: route.name,
-    activeColor: '#1A2332',
   };
 
   const inactiveColor = theme.textSecondary;
@@ -98,8 +92,7 @@ function TabBarItem({ route, focused, onPress, onLongPress, theme }) {
 }
 
 export default function CustomTabBar({ state, descriptors, navigation }) {
-  const { isDarkMode } = useTheme();
-  const theme = getThemeColors(isDarkMode);
+  const { isDarkMode, organicColors: theme } = useTheme();
   const insets = useSafeAreaInsets();
 
   // Smart bottom padding for all device types

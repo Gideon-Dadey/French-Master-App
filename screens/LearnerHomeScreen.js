@@ -47,10 +47,17 @@ const IMMERSION_IMAGES = [
 
 export default function LearnerHomeScreen({ navigation }) {
     const { user, isAuthenticated, loadUser } = useAuth();
-    const { isDarkMode } = useTheme(); // Removed toggleTheme for cleaner UI
+    const { isDarkMode, organicColors: theme } = useTheme();
     const gamification = useGamification();
     const gamificationStats = gamification?.stats || {};
-    const theme = getThemeColors(isDarkMode);
+
+    // L'Alliance Premium Theme - derived from Organic Theme
+    const navyColor = theme.primary;
+    const goldColor = theme.secondary;
+    const bgColor = theme.background;
+    const surfaceColor = theme.surface;
+    const mutedColor = theme.textSecondary;
+    const lightBlue = theme.borderLight || theme.border;
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -137,8 +144,8 @@ export default function LearnerHomeScreen({ navigation }) {
     if (loading && !refreshing) return <LoadingSpinner />;
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <View style={[styles.container, { backgroundColor: bgColor }]}>
+            <StatusBar barStyle="dark-content" />
 
             <Animated.ScrollView
                 style={styles.scrollView}
@@ -150,19 +157,17 @@ export default function LearnerHomeScreen({ navigation }) {
             >
                 {/* Header Section */}
                 <View style={styles.headerContainer}>
-                    <Text style={[styles.headerDate, { color: theme.textSecondary }]}>{dateInfo.weekday}, {dateInfo.day}</Text>
+                    <Text style={[styles.headerDate, { color: mutedColor }]}>{dateInfo.weekday}, {dateInfo.day}</Text>
                     <View style={styles.headerRow}>
-                        <Text style={[styles.headerTitle, { color: theme.text }]}>L'Alliance</Text>
+                        <Text style={[styles.headerTitle, { color: navyColor }]}>L'Alliance</Text>
                         <TouchableOpacity
-                            style={[styles.profileButton, { backgroundColor: theme.surfaceAlt, overflow: 'hidden' }]}
+                            style={[styles.profileButton, { backgroundColor: lightBlue, overflow: 'hidden' }]}
                             onPress={() => navigation.navigate('Profile')}
                         >
                             {user?.avatar || user?.profilePicture ? (
                                 <Image source={{ uri: user.avatar || user.profilePicture }} style={{ width: '100%', height: '100%' }} />
                             ) : (
-                                <Text style={{ fontSize: 18, fontWeight: '700', color: theme.primary }}>
-                                    {user?.name ? user.name.charAt(0).toUpperCase() : '👤'}
-                                </Text>
+                                <Ionicons name="person-sharp" size={20} color={navyColor} />
                             )}
                         </TouchableOpacity>
                     </View>
@@ -193,66 +198,66 @@ export default function LearnerHomeScreen({ navigation }) {
                     {/* 2. DAILY FOCUS - Combined Goal & Streak */}
                     <View style={styles.sectionContainer}>
                         <TouchableOpacity
-                            style={[styles.focusCard, { backgroundColor: theme.surface }, themeShadows.sm]}
+                            style={[styles.focusCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.md]}
                             onPress={() => navigation.navigate('Streaks')}
                             activeOpacity={0.92}
                         >
                             <View style={styles.focusLeft}>
-                                <View style={[styles.ringContainer, { borderColor: theme.primary }]}>
-                                    <Ionicons name="flame" size={24} color={theme.primary} />
+                                <View style={[styles.ringContainer, { borderColor: goldColor, backgroundColor: goldColor + '10' }]}>
+                                    <Ionicons name="flash-sharp" size={24} color={goldColor} />
                                 </View>
                                 <View>
-                                    <Text style={[styles.focusLabel, { color: theme.textSecondary }]}>DAILY STREAK</Text>
-                                    <Text style={[styles.focusValue, { color: theme.text }]}>
+                                    <Text style={[styles.focusLabel, { color: mutedColor }]}>DAILY STREAK</Text>
+                                    <Text style={[styles.focusValue, { color: navyColor }]}>
                                         {user?.streak?.current || 0} Days Active
                                     </Text>
                                 </View>
                             </View>
-                            <View style={[styles.actionButton, { backgroundColor: theme.surfaceAlt }]}>
-                                <Text style={[styles.actionButtonText, { color: theme.primary }]}>VIEW</Text>
+                            <View style={[styles.actionButton, { backgroundColor: navyColor }]}>
+                                <Text style={[styles.actionButtonText, { color: '#FFF' }]}>VIEW</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
 
                     {/* 3. QUICK BITES - Word of Day & Missions */}
                     <View style={styles.sectionContainer}>
-                        <Text style={[styles.sectionHeading, { color: theme.text }]}>Quick Practice</Text>
+                        <Text style={[styles.sectionHeading, { color: navyColor }]}>Quick Practice</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
 
                             {/* Word Card */}
                             <TouchableOpacity
-                                style={[styles.miniCard, { backgroundColor: theme.surface }, themeShadows.sm]}
+                                style={[styles.miniCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
                                 onPress={() => navigation.navigate('WordOfTheDay')}
                             >
-                                <View style={[styles.iconCircle, { backgroundColor: '#FF950020' }]}>
-                                    <Ionicons name="book" size={20} color="#FF9500" />
+                                <View style={[styles.iconCircle, { backgroundColor: '#FF950015' }]}>
+                                    <Ionicons name="book-sharp" size={20} color="#FF9500" />
                                 </View>
-                                <Text style={[styles.miniCardTitle, { color: theme.text }]}>Word of the Day</Text>
-                                <Text style={[styles.miniCardSubtitle, { color: theme.textSecondary }]}>{dailyWord.french}</Text>
+                                <Text style={[styles.miniCardTitle, { color: navyColor }]}>Word of Day</Text>
+                                <Text style={[styles.miniCardSubtitle, { color: mutedColor }]}>{dailyWord.french}</Text>
                             </TouchableOpacity>
 
                             {/* Stats Card */}
                             <TouchableOpacity
-                                style={[styles.miniCard, { backgroundColor: theme.surface }, themeShadows.sm]}
+                                style={[styles.miniCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
                                 onPress={() => navigation.navigate('Achievements')}
                             >
-                                <View style={[styles.iconCircle, { backgroundColor: '#34C75920' }]}>
-                                    <Ionicons name="stats-chart" size={20} color="#34C759" />
+                                <View style={[styles.iconCircle, { backgroundColor: '#34C75915' }]}>
+                                    <Ionicons name="stats-chart-sharp" size={20} color="#34C759" />
                                 </View>
-                                <Text style={[styles.miniCardTitle, { color: theme.text }]}>My Progress</Text>
-                                <Text style={[styles.miniCardSubtitle, { color: theme.textSecondary }]}>{gamificationStats.xp || 0} XP Earned</Text>
+                                <Text style={[styles.miniCardTitle, { color: navyColor }]}>My Progress</Text>
+                                <Text style={[styles.miniCardSubtitle, { color: mutedColor }]}>{gamificationStats.xp || 0} XP</Text>
                             </TouchableOpacity>
 
                             {/* Review Card */}
                             <TouchableOpacity
-                                style={[styles.miniCard, { backgroundColor: theme.surface }, themeShadows.sm]}
+                                style={[styles.miniCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
                                 onPress={() => navigation.navigate('Flashcards')}
                             >
-                                <View style={[styles.iconCircle, { backgroundColor: '#5856D620' }]}>
-                                    <Ionicons name="documents" size={20} color="#5856D6" />
+                                <View style={[styles.iconCircle, { backgroundColor: '#5856D615' }]}>
+                                    <Ionicons name="documents-sharp" size={20} color="#5856D6" />
                                 </View>
-                                <Text style={[styles.miniCardTitle, { color: theme.text }]}>Review</Text>
-                                <Text style={[styles.miniCardSubtitle, { color: theme.textSecondary }]}>Flashcards</Text>
+                                <Text style={[styles.miniCardTitle, { color: navyColor }]}>Review</Text>
+                                <Text style={[styles.miniCardSubtitle, { color: mutedColor }]}>Flashcards</Text>
                             </TouchableOpacity>
                         </ScrollView>
                     </View>
@@ -260,9 +265,9 @@ export default function LearnerHomeScreen({ navigation }) {
                     {/* 4. DISCOVERY - Featured Courses */}
                     <View style={styles.sectionContainer}>
                         <View style={styles.sectionHeaderRow}>
-                            <Text style={[styles.sectionHeading, { color: theme.text }]}>Mastery Path</Text>
+                            <Text style={[styles.sectionHeading, { color: navyColor }]}>Mastery Path</Text>
                             <TouchableOpacity onPress={() => navigation.navigate('Courses')}>
-                                <Text style={{ color: theme.primary, fontWeight: '600' }}>See All</Text>
+                                <Text style={{ color: goldColor, fontWeight: '700' }}>See All</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -270,7 +275,7 @@ export default function LearnerHomeScreen({ navigation }) {
                             {topCourses.map((course, index) => (
                                 <TouchableOpacity
                                     key={course._id || index}
-                                    style={[styles.courseCard, { backgroundColor: theme.surface }, themeShadows.md]}
+                                    style={[styles.courseCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.md]}
                                     onPress={() => navigation.navigate('CourseDetail', { courseId: course._id })}
                                     activeOpacity={0.9}
                                 >
@@ -284,8 +289,8 @@ export default function LearnerHomeScreen({ navigation }) {
                                         </View>
                                     </View>
                                     <View style={styles.courseContent}>
-                                        <Text style={[styles.courseTitle, { color: theme.text }]} numberOfLines={2}>{course.title}</Text>
-                                        <Text style={[styles.courseMeta, { color: theme.textSecondary }]}>{course.level} • {course.rating?.average?.toFixed(1) || 4.8} ★</Text>
+                                        <Text style={[styles.courseTitle, { color: navyColor }]} numberOfLines={2}>{course.title}</Text>
+                                        <Text style={[styles.courseMeta, { color: mutedColor }]}>{course.level} • {course.rating?.average?.toFixed(1) || 4.8} ★</Text>
                                     </View>
                                 </TouchableOpacity>
                             ))}
@@ -295,11 +300,11 @@ export default function LearnerHomeScreen({ navigation }) {
                     {/* 5. WATCH & LEARN - Video Masterclasses */}
                     {videoMasterclasses.length > 0 && (
                         <View style={styles.sectionContainer}>
-                            <Text style={[styles.sectionHeading, { color: theme.text }]}>Watch & Learn</Text>
+                            <Text style={[styles.sectionHeading, { color: navyColor }]}>Watch & Learn</Text>
                             {videoMasterclasses.slice(0, 3).map((video, index) => (
                                 <TouchableOpacity
                                     key={index}
-                                    style={[styles.videoRow, { borderBottomColor: theme.border }]}
+                                    style={[styles.videoRow, { borderBottomColor: lightBlue }]}
                                     onPress={() => navigation.navigate('CourseDetail', { courseId: video._id })}
                                 >
                                     <Image
@@ -307,10 +312,10 @@ export default function LearnerHomeScreen({ navigation }) {
                                         style={styles.videoThumb}
                                     />
                                     <View style={styles.videoInfo}>
-                                        <Text style={[styles.videoTitle, { color: theme.text }]} numberOfLines={2}>{video.title}</Text>
-                                        <Text style={[styles.videoDuration, { color: theme.textSecondary }]}>Video Masterclass • {video.duration || '15'}m</Text>
+                                        <Text style={[styles.videoTitle, { color: navyColor }]} numberOfLines={2}>{video.title}</Text>
+                                        <Text style={[styles.videoDuration, { color: mutedColor }]}>Video Masterclass • {video.duration || '15'}m</Text>
                                     </View>
-                                    <Ionicons name="play-circle" size={32} color={theme.primary} />
+                                    <Ionicons name="play-circle-sharp" size={32} color={goldColor} />
                                 </TouchableOpacity>
                             ))}
                         </View>

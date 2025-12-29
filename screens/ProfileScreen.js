@@ -46,10 +46,17 @@ const BackgroundBlur = ({ style, color, size = 300 }) => (
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout, isAuthenticated, updateUser } = useAuth();
-  const { isDarkMode, toggleTheme } = useTheme();
-  const theme = getThemeColors(isDarkMode);
+  const { isDarkMode, toggleTheme, organicColors: theme } = useTheme();
   const gamification = useGamification();
   const gamificationStats = gamification?.stats || {};
+
+  // L'Alliance Premium Theme - Linked to organicTheme for Dark Mode support
+  const navyColor = theme.primary;
+  const goldColor = theme.secondary;
+  const bgColor = theme.background;
+  const surfaceColor = theme.surface;
+  const mutedColor = theme.textSecondary;
+  const lightBlue = theme.border;
 
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState({
@@ -261,13 +268,13 @@ export default function ProfileScreen({ navigation }) {
 
   const displayName = profile?.name || user?.name || 'Explorer';
   const displayEmail = profile?.email || user?.email || '';
-  const avatarUrl = profile?.avatar || user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1E3A5F&color=fff&size=200`;
+  const avatarUrl = profile?.avatar || user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=${theme.primary.replace('#', '')}&color=fff&size=200`;
 
   if (!isAuthenticated) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        <Ionicons name="person-circle-outline" size={80} color={theme.textMuted} style={{ marginBottom: 20 }} />
+        <Ionicons name="person-circle-outline" size={80} color={theme.textSecondary} style={{ marginBottom: 20 }} />
         <Text style={[styles.profileName, { color: theme.text, textAlign: 'center', marginBottom: 10 }]}>Guest User</Text>
         <Text style={[styles.profileEmail, { color: theme.textSecondary, textAlign: 'center', marginBottom: 30 }]}>
           Log in to track your progress and manage your profile.
@@ -285,8 +292,8 @@ export default function ProfileScreen({ navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       <BackgroundBlur style={{ top: -100, left: -50 }} color={theme.primary} size={400} />
       <BackgroundBlur style={{ bottom: 100, right: -100 }} color={theme.secondary} size={350} />
@@ -296,19 +303,19 @@ export default function ProfileScreen({ navigation }) {
         style={[
           styles.floatingNavBar,
           {
-            backgroundColor: theme.surface + 'F8',
+            backgroundColor: surfaceColor + 'F8',
             opacity: headerOpacity,
-            borderBottomColor: theme.border,
+            borderBottomColor: lightBlue,
           }
         ]}
       >
         <View style={styles.navBarContent}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color={theme.text} />
+            <Ionicons name="chevron-back-sharp" size={24} color={navyColor} />
           </TouchableOpacity>
-          <Text style={[styles.navTitle, { color: theme.text }]}>Profile</Text>
+          <Text style={[styles.navTitle, { color: navyColor }]}>Profile</Text>
           <TouchableOpacity onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={22} color={theme.error} />
+            <Ionicons name="log-out-sharp" size={22} color={theme.error} />
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -331,50 +338,47 @@ export default function ProfileScreen({ navigation }) {
             <Animated.View style={[styles.avatarWrapper, { transform: [{ scale: avatarScale }] }]}>
               <Image source={{ uri: avatarUrl }} style={styles.avatar} />
               <TouchableOpacity
-                style={[styles.editAvatarBtn, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}
+                style={[styles.editAvatarBtn, { backgroundColor: surfaceColor, borderColor: lightBlue }, themeShadows.sm]}
                 onPress={handleAvatarPicker}
               >
-                {uploadingAvatar ? <ActivityIndicator size="small" color={theme.primary} /> : <Ionicons name="camera" size={16} color={theme.primary} />}
+                {uploadingAvatar ? <ActivityIndicator size="small" color={navyColor} /> : <Ionicons name="camera-sharp" size={16} color={navyColor} />}
               </TouchableOpacity>
-              <View style={[styles.levelBadge, { backgroundColor: theme.secondary }]}>
+              <View style={[styles.levelBadge, { backgroundColor: goldColor }]}>
                 <Text style={styles.levelText}>Lvl {stats.level}</Text>
               </View>
             </Animated.View>
 
             <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, { color: theme.text }]}>{displayName}</Text>
-              <Text style={[styles.profileEmail, { color: theme.textSecondary }]}>{displayEmail}</Text>
+              <Text style={[styles.profileName, { color: navyColor }]}>{displayName}</Text>
+              <Text style={[styles.profileEmail, { color: mutedColor }]}>{displayEmail}</Text>
               <TouchableOpacity style={styles.editLink} onPress={handleOpenEditModal}>
-                <Text style={[styles.editLinkText, { color: theme.primary }]}>Edit Profile</Text>
-                <Ionicons name="chevron-forward" size={12} color={theme.primary} />
+                <Text style={[styles.editLinkText, { color: goldColor }]}>Edit Profile</Text>
+                <Ionicons name="chevron-forward-sharp" size={12} color={goldColor} />
               </TouchableOpacity>
             </View>
           </View>
 
           {/* XP Progress Bar */}
-          <View style={[styles.xpBarContainer, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.xs]}>
+          <View style={[styles.xpBarContainer, { backgroundColor: surfaceColor, borderColor: lightBlue }, themeShadows.sm]}>
             <View style={styles.xpHeader}>
-              <Text style={[styles.xpLabel, { color: theme.textSecondary }]}>Experience</Text>
-              <Text style={[styles.xpValue, { color: theme.text }]}>{stats.xp.toLocaleString()} XP</Text>
+              <Text style={[styles.xpLabel, { color: mutedColor }]}>Experience</Text>
+              <Text style={[styles.xpValue, { color: navyColor }]}>{stats.xp.toLocaleString()} XP</Text>
             </View>
-            <View style={[styles.xpTrack, { backgroundColor: theme.border }]}>
-              <LinearGradient
-                colors={[theme.secondary, theme.secondaryLight || theme.secondary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.xpFill, { width: `${(stats.xp % 1000) / 10}%` }]}
+            <View style={[styles.xpTrack, { backgroundColor: lightBlue }]}>
+              <View
+                style={[styles.xpFill, { width: `${(stats.xp % 1000) / 10}%`, backgroundColor: goldColor }]}
               />
             </View>
-            <Text style={[styles.xpFooter, { color: theme.textMuted }]}>{1000 - (stats.xp % 1000)} XP to Next Level</Text>
+            <Text style={[styles.xpFooter, { color: mutedColor }]}>{1000 - (stats.xp % 1000)} XP to Next Level</Text>
           </View>
         </Animated.View>
 
         {/* Stats Grid */}
         <Animated.View style={[styles.statsGrid, { opacity: cardAnims[0], transform: [{ translateY: cardAnims[0].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
-          <StatCard icon="book-outline" value={stats.enrolledCourses} label="Courses" theme={theme} color={theme.primary} />
-          <StatCard icon="checkmark-circle-outline" value={stats.completedLessons} label="Lessons" theme={theme} color={theme.success} />
-          <StatCard icon="time-outline" value={stats.studyTime} label="Study Time" theme={theme} color={theme.secondary} />
-          <StatCard icon="flash-outline" value={`${stats.totalProgress}%`} label="Overall" theme={theme} color={theme.accent} />
+          <StatCard icon="book-sharp" value={stats.enrolledCourses} label="Courses" theme={theme} color={navyColor} surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
+          <StatCard icon="checkmark-circle-sharp" value={stats.completedLessons} label="Lessons" theme={theme} color="#2E7D5A" surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
+          <StatCard icon="time-sharp" value={stats.studyTime} label="Study Time" theme={theme} color={goldColor} surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
+          <StatCard icon="flash-sharp" value={`${stats.totalProgress}%`} label="Overall" theme={theme} color="#5856D6" surfaceColor={surfaceColor} lightBlue={lightBlue} navyColor={navyColor} mutedColor={mutedColor} />
         </Animated.View>
 
         {/* Continue Learning */}
@@ -382,16 +386,16 @@ export default function ProfileScreen({ navigation }) {
           <Animated.View style={[styles.section, { opacity: cardAnims[1], transform: [{ translateY: cardAnims[1].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleRow}>
-                <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>Continue Learning</Text>
+                <View style={[styles.titleAccent, { backgroundColor: navyColor }]} />
+                <Text style={[styles.sectionTitle, { color: navyColor }]}>Continue Learning</Text>
               </View>
               <TouchableOpacity onPress={() => navigation.navigate('MyCourses')}>
-                <Text style={[styles.seeAll, { color: theme.primary }]}>View All</Text>
+                <Text style={[styles.seeAll, { color: goldColor }]}>View All</Text>
               </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.enrolledScroll}>
               {myCourses.map((item, idx) => (
-                <CourseProgressCard key={idx} item={item} theme={theme} navigation={navigation} />
+                <CourseProgressCard key={idx} item={item} theme={theme} navigation={navigation} navyColor={navyColor} goldColor={goldColor} surfaceColor={surfaceColor} lightBlue={lightBlue} mutedColor={mutedColor} />
               ))}
             </ScrollView>
           </Animated.View>
@@ -400,27 +404,33 @@ export default function ProfileScreen({ navigation }) {
         {/* Settings & Preferences */}
         <Animated.View style={[styles.section, { opacity: cardAnims[2], transform: [{ translateY: cardAnims[2].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
           <View style={styles.sectionTitleRow}>
-            <View style={[styles.titleAccent, { backgroundColor: theme.accent }]} />
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Account & Settings</Text>
+            <View style={[styles.titleAccent, { backgroundColor: goldColor }]} />
+            <Text style={[styles.sectionTitle, { color: navyColor }]}>Account & Settings</Text>
           </View>
-          <View style={[styles.settingsCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}>
+          <View style={[styles.settingsCard, { backgroundColor: surfaceColor, borderColor: lightBlue }, themeShadows.sm]}>
             <SettingItem
-              icon="settings-outline"
+              icon="settings-sharp"
               title="Full App Settings"
               onPress={() => navigation.navigate('Settings')}
-              theme={theme}
+              navyColor={navyColor}
+              lightBlue={lightBlue}
+              mutedColor={mutedColor}
             />
             <SettingItem
-              icon="shield-checkmark-outline"
+              icon="shield-checkmark-sharp"
               title="Privacy & Security"
               onPress={() => navigation.navigate('Settings')}
-              theme={theme}
+              navyColor={navyColor}
+              lightBlue={lightBlue}
+              mutedColor={mutedColor}
             />
             <SettingItem
-              icon="help-circle-outline"
+              icon="help-circle-sharp"
               title="Help & Support"
               onPress={() => navigation.navigate('Resources')}
-              theme={theme}
+              navyColor={navyColor}
+              lightBlue={lightBlue}
+              mutedColor={mutedColor}
               isLast
             />
           </View>
@@ -428,11 +438,11 @@ export default function ProfileScreen({ navigation }) {
 
         {/* Account Actions */}
         <Animated.View style={[styles.section, { opacity: cardAnims[3], transform: [{ translateY: cardAnims[3].interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }]}>
-          <TouchableOpacity style={[styles.logoutBtn, { borderColor: theme.error + '40' }]} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={20} color={theme.error} />
+          <TouchableOpacity style={[styles.logoutBtn, { borderColor: theme.error + '20' }]} onPress={handleLogout}>
+            <Ionicons name="log-out-sharp" size={20} color={theme.error} />
             <Text style={[styles.logoutText, { color: theme.error }]}>Sign Out</Text>
           </TouchableOpacity>
-          <Text style={[styles.version, { color: theme.textMuted }]}>Version 1.2.0 • L'Alliance Royale</Text>
+          <Text style={[styles.version, { color: mutedColor }]}>Version 1.2.0 • L'Alliance Royale</Text>
         </Animated.View>
 
         <View style={{ height: 100 }} />
@@ -441,39 +451,39 @@ export default function ProfileScreen({ navigation }) {
       {/* Edit Profile Modal */}
       <Modal visible={editModalVisible} animationType="fade" transparent onRequestClose={() => setEditModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.modalContent, { backgroundColor: theme.surface }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Edit Profile</Text>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.modalContent, { backgroundColor: surfaceColor }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: lightBlue }]}>
+              <Text style={[styles.modalTitle, { color: navyColor }]}>Edit Profile</Text>
               <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Ionicons name="close" size={24} color={theme.text} />
+                <Ionicons name="close-sharp" size={24} color={navyColor} />
               </TouchableOpacity>
             </View>
             <View style={styles.modalBody}>
               <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Full Name</Text>
+                <Text style={[styles.inputLabel, { color: mutedColor }]}>Full Name</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  style={[styles.input, { backgroundColor: bgColor, color: navyColor, borderColor: lightBlue }]}
                   value={editFormData.name}
                   onChangeText={(t) => setEditFormData({ ...editFormData, name: t })}
                   placeholder="Enter your name"
-                  placeholderTextColor={theme.textMuted}
+                  placeholderTextColor={mutedColor}
                 />
               </View>
               <View style={styles.inputGroup}>
-                <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Phone Number</Text>
+                <Text style={[styles.inputLabel, { color: mutedColor }]}>Phone Number</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+                  style={[styles.input, { backgroundColor: bgColor, color: navyColor, borderColor: lightBlue }]}
                   value={editFormData.phone}
                   onChangeText={(t) => setEditFormData({ ...editFormData, phone: t })}
                   placeholder="Optional"
-                  placeholderTextColor={theme.textMuted}
+                  placeholderTextColor={mutedColor}
                   keyboardType="phone-pad"
                 />
               </View>
               <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} disabled={editingProfile}>
-                <LinearGradient colors={[theme.primary, theme.primaryLight || theme.primary]} style={styles.saveBtnGradient}>
+                <View style={[styles.saveBtnGradient, { backgroundColor: navyColor }]}>
                   {editingProfile ? <ActivityIndicator size="small" color="#FFF" /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
@@ -483,19 +493,19 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-function StatCard({ icon, value, label, theme, color }) {
+function StatCard({ icon, value, label, theme, color, surfaceColor, lightBlue, navyColor, mutedColor }) {
   return (
-    <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}>
+    <View style={[styles.statCard, { backgroundColor: surfaceColor, borderColor: lightBlue }, themeShadows.sm]}>
       <View style={[styles.statIcon, { backgroundColor: color + '15' }]}>
         <Ionicons name={icon} size={20} color={color} />
       </View>
-      <Text style={[styles.statVal, { color: theme.text }]}>{value}</Text>
-      <Text style={[styles.statLab, { color: theme.textSecondary }]}>{label}</Text>
+      <Text style={[styles.statVal, { color: navyColor }]}>{value}</Text>
+      <Text style={[styles.statLab, { color: mutedColor }]}>{label}</Text>
     </View>
   );
 }
 
-function CourseProgressCard({ item, theme, navigation }) {
+function CourseProgressCard({ item, theme, navigation, navyColor, goldColor, surfaceColor, lightBlue, mutedColor }) {
   const course = item.course;
   if (!course) return null;
 
@@ -505,7 +515,7 @@ function CourseProgressCard({ item, theme, navigation }) {
 
   return (
     <TouchableOpacity
-      style={[styles.courseCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}
+      style={[styles.courseCard, { backgroundColor: surfaceColor, borderColor: lightBlue }, themeShadows.md]}
       onPress={() => navigation.navigate('CourseDetail', { courseId: course._id })}
       activeOpacity={0.9}
     >
@@ -515,8 +525,8 @@ function CourseProgressCard({ item, theme, navigation }) {
           colors={['transparent', 'rgba(0,0,0,0.6)']}
           style={styles.cardGradient}
         />
-        <View style={[styles.playButton, { backgroundColor: theme.primary }]}>
-          <Ionicons name="play" size={18} color="#FFF" />
+        <View style={[styles.playButton, { backgroundColor: goldColor }]}>
+          <Ionicons name="play-sharp" size={18} color="#FFF" />
         </View>
         <View style={styles.progressObj}>
           <Text style={styles.progressText}>{item.progress || 0}%</Text>
@@ -524,32 +534,32 @@ function CourseProgressCard({ item, theme, navigation }) {
       </View>
 
       <View style={styles.courseInfo}>
-        <Text style={[styles.courseCategory, { color: theme.primary }]}>{(course.category || 'Course').toUpperCase()}</Text>
-        <Text style={[styles.courseTitle, { color: theme.text }]} numberOfLines={2}>{course.title}</Text>
+        <Text style={[styles.courseCategory, { color: goldColor }]}>{(course.category || 'Course').toUpperCase()}</Text>
+        <Text style={[styles.courseTitle, { color: navyColor }]} numberOfLines={2}>{course.title}</Text>
 
-        <View style={[styles.progressBarContainer, { backgroundColor: theme.border }]}>
-          <View style={[styles.progressBarFill, { width: `${item.progress || 0}%`, backgroundColor: theme.success }]} />
+        <View style={[styles.progressBarContainer, { backgroundColor: lightBlue }]}>
+          <View style={[styles.progressBarFill, { width: `${item.progress || 0}%`, backgroundColor: goldColor }]} />
         </View>
       </View>
     </TouchableOpacity>
   );
 }
 
-function SettingItem({ icon, title, isSwitch, value, onValueChange, onPress, theme, isLast }) {
+function SettingItem({ icon, title, isSwitch, value, onValueChange, onPress, navyColor, lightBlue, mutedColor, isLast }) {
   return (
     <TouchableOpacity
-      style={[styles.settingItem, !isLast && { borderBottomWidth: 1, borderBottomColor: theme.border }]}
+      style={[styles.settingItem, !isLast && { borderBottomWidth: 1, borderBottomColor: lightBlue }]}
       onPress={onPress}
       disabled={isSwitch}
     >
-      <View style={[styles.settingIconWrap, { backgroundColor: theme.primary + '10' }]}>
-        <Ionicons name={icon} size={20} color={theme.primary} />
+      <View style={[styles.settingIconWrap, { backgroundColor: navyColor + '10' }]}>
+        <Ionicons name={icon} size={20} color={navyColor} />
       </View>
-      <Text style={[styles.settingTitle, { color: theme.text }]}>{title}</Text>
+      <Text style={[styles.settingTitle, { color: navyColor }]}>{title}</Text>
       {isSwitch ? (
-        <Switch value={value} onValueChange={onValueChange} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFF" />
+        <Switch value={value} onValueChange={onValueChange} trackColor={{ false: lightBlue, true: navyColor }} thumbColor="#FFF" />
       ) : (
-        <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+        <Ionicons name="chevron-forward-sharp" size={16} color={mutedColor} />
       )}
     </TouchableOpacity>
   );
@@ -606,7 +616,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: surfaceColor,
   },
   editAvatarBtn: {
     position: 'absolute',

@@ -18,28 +18,20 @@ import { useAuth } from '../src/context/AuthContext';
 const { width } = Dimensions.get('window');
 
 export default function StreaksScreen({ navigation }) {
-    const { isDarkMode } = useTheme();
-    const theme = getThemeColors(isDarkMode);
+    const { isDarkMode, organicColors: theme } = useTheme();
     const { user } = useAuth();
 
+    // L'Alliance Premium Theme - derived from Organic Theme
+    const navyColor = theme.primary;
+    const goldColor = theme.secondary;
+    const bgColor = theme.background;
+    const surfaceColor = theme.surface;
+    const mutedColor = theme.textSecondary;
+    const lightBlue = theme.borderLight || theme.border;
+
     const [activeDays, setActiveDays] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [currentMonth, setCurrentMonth] = useState(new Date());
-
-    useEffect(() => {
-        loadActivity();
-    }, []);
-
-    const loadActivity = async () => {
-        try {
-            const res = await progressAPI.getActivity();
-            setActiveDays(res.data.data);
-        } catch (error) {
-            console.error('Failed to load activity:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const renderCalendar = () => {
         const year = currentMonth.getFullYear();
@@ -59,24 +51,30 @@ export default function StreaksScreen({ navigation }) {
 
         // Add actual days
         for (let d = 1; d <= daysInMonth; d++) {
-            const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-            const isActive = activeDays.includes(dateStr);
+            const dateToCheck = new Date(year, month, d);
+            dateToCheck.setHours(0, 0, 0, 0);
+
+            const isActive = user?.streak?.activeDates?.some(activeDate => {
+                const date = new Date(activeDate);
+                date.setHours(0, 0, 0, 0);
+                return date.getTime() === dateToCheck.getTime();
+            });
 
             days.push(
                 <View key={d} style={styles.calendarDay}>
                     <View style={[
                         styles.dayCircle,
-                        { backgroundColor: isActive ? theme.primary : 'transparent', borderColor: theme.border },
+                        { backgroundColor: isActive ? goldColor : 'transparent', borderColor: isActive ? goldColor : lightBlue },
                         isActive && themeShadows.sm
                     ]}>
                         <Text style={[
                             styles.dayText,
-                            { color: isActive ? '#FFF' : theme.text }
+                            { color: isActive ? '#FFF' : navyColor }
                         ]}>
                             {d}
                         </Text>
                     </View>
-                    {isActive && <View style={[styles.activeDot, { backgroundColor: theme.primary }]} />}
+                    {isActive && <View style={[styles.activeDot, { backgroundColor: goldColor }]} />}
                 </View>
             );
         }
@@ -85,7 +83,7 @@ export default function StreaksScreen({ navigation }) {
             <View style={styles.calendarContainer}>
                 <View style={styles.dayLabelsRow}>
                     {dayLabels.map((l, i) => (
-                        <Text key={i} style={[styles.dayLabel, { color: theme.textMuted }]}>{l}</Text>
+                        <Text key={i} style={[styles.dayLabel, { color: mutedColor }]}>{l}</Text>
                     ))}
                 </View>
                 <View style={styles.daysGrid}>
@@ -98,48 +96,64 @@ export default function StreaksScreen({ navigation }) {
     const monthName = currentMonth.toLocaleString('default', { month: 'long' });
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={[styles.container, { backgroundColor: bgColor }]}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={24} color={theme.text} />
+                    <Ionicons name="chevron-back-sharp" size={24} color={navyColor} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Learning Streaks</Text>
+                <Text style={[styles.headerTitle, { color: navyColor }]}>Learning Streaks</Text>
                 <View style={{ width: 40 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 {/* Streak Stats Card */}
-                <View style={[styles.statsCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}>
+                <View style={[styles.statsCard, { backgroundColor: surfaceColor, borderColor: lightBlue }, themeShadows.md]}>
                     <View style={styles.statItem}>
-                        <Text style={[styles.statValue, { color: theme.primary }]}>{user?.streak?.current || 0}</Text>
-                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Current Streak</Text>
-                        <Ionicons name="flame" size={32} color={theme.primary} style={styles.statIcon} />
+                        <Text style={[styles.statValue, { color: goldColor }]}>{user?.streak?.current || 0}</Text>
+                        <Text style={[styles.statLabel, { color: mutedColor }]}>Current Streak</Text>
+                        <Ionicons name="flash-sharp" size={32} color={goldColor} style={styles.statIcon} />
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={[styles.statValue, { color: theme.text }]}>{user?.streak?.longest || 0}</Text>
-                        <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Best Streak</Text>
-                        <Ionicons name="trophy-outline" size={32} color={theme.textMuted} style={styles.statIcon} />
+                        <Text style={[styles.statValue, { color: navyColor }]}>{user?.streak?.longest || 0}</Text>
+                        <Text style={[styles.statLabel, { color: mutedColor }]}>Best Streak</Text>
+                        <Ionicons name="trophy-sharp" size={32} color={mutedColor} style={styles.statIcon} />
                     </View>
                 </View>
 
                 {/* Calendar Section */}
                 <View style={styles.section}>
                     <View style={styles.monthHeader}>
-                        <Text style={[styles.monthTitle, { color: theme.text }]}>{monthName} {currentMonth.getFullYear()}</Text>
+                        <TouchableOpacity
+                            onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+                            style={styles.navBtn}
+                        >
+                            <Ionicons name="chevron-back-sharp" size={24} color={navyColor} />
+                        </TouchableOpacity>
+
+                        <Text style={[styles.monthTitle, { color: navyColor }]}>
+                            {monthName} {currentMonth.getFullYear()}
+                        </Text>
+
+                        <TouchableOpacity
+                            onPress={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+                            style={styles.navBtn}
+                        >
+                            <Ionicons name="chevron-forward-sharp" size={24} color={navyColor} />
+                        </TouchableOpacity>
                     </View>
 
                     {loading ? (
-                        <ActivityIndicator size="large" color={theme.primary} style={{ marginVertical: 40 }} />
+                        <ActivityIndicator size="large" color={goldColor} style={{ marginVertical: 40 }} />
                     ) : (
                         renderCalendar()
                     )}
                 </View>
 
                 {/* Info Section */}
-                <View style={[styles.infoCard, { backgroundColor: theme.primary + '10' }]}>
-                    <Ionicons name="information-circle-outline" size={24} color={theme.primary} />
-                    <Text style={[styles.infoText, { color: theme.textSecondary }]}>
+                <View style={[styles.infoCard, { backgroundColor: goldColor + '10' }]}>
+                    <Ionicons name="information-circle-sharp" size={24} color={goldColor} />
+                    <Text style={[styles.infoText, { color: mutedColor }]}>
                         Practice every day to maintain your streak and earn extra XP! A streak is updated whenever you complete a lesson or quiz.
                     </Text>
                 </View>
@@ -207,12 +221,17 @@ const styles = StyleSheet.create({
         marginBottom: 32,
     },
     monthHeader: {
-        marginBottom: 20,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
     },
     monthTitle: {
         fontSize: 18,
         fontWeight: '700',
+    },
+    navBtn: {
+        padding: 5,
     },
     calendarContainer: {
         width: '100%',

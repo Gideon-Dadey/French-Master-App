@@ -144,6 +144,7 @@ export const usersAPI = {
   updatePushToken: (pushToken) => api.put('/users/push-token', { pushToken }),
   getBookmarks: () => api.get('/users/bookmarks'),
   toggleBookmarkLesson: (lessonId) => api.post('/users/bookmarks/toggle', { lessonId }),
+  reportActivity: () => api.post('/users/activity'),
 };
 
 export const reviewsAPI = {

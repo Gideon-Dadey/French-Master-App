@@ -10,6 +10,8 @@ import {
     StatusBar,
     Platform,
     Image,
+    ActivityIndicator,
+    ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,28 +23,26 @@ import LoadingSpinner from '../src/components/LoadingSpinner';
 
 const { width, height } = Dimensions.get('window');
 
-const TICK_SIZE = 40;
-
 const ONBOARDING_DATA = [
     {
         id: '1',
         title: 'Immersion Mastery',
         description: 'Learn French naturally through real-world simulations and organic conversations.',
-        icon: 'chatbubbles-outline',
-        color: '#1E3A5F',
+        icon: 'chatbubbles-sharp',
+        color: '#1A355E',
     },
     {
         id: '2',
         title: 'Certified Path',
         description: 'Follow a curriculum designed by experts to take you from A1 to C2 fluency.',
-        icon: 'ribbon-outline',
+        icon: 'ribbon-sharp',
         color: '#C9A227',
     },
     {
         id: '3',
         title: 'Gamified Experience',
         description: 'Earn XP, maintain streaks, and climb the leaderboard while mastering a new language.',
-        icon: 'game-controller-outline',
+        icon: 'flash-sharp',
         color: '#2E7D5A',
     },
 ];
@@ -113,7 +113,7 @@ export default function OnboardingScreen({ navigation }) {
     if (saving) return <LoadingSpinner />;
 
     const renderTutorial = () => (
-        <View style={styles.stepContainer}>
+        <View style={styles.fullScreen}>
             <FlatList
                 data={ONBOARDING_DATA}
                 horizontal
@@ -122,171 +122,186 @@ export default function OnboardingScreen({ navigation }) {
                 onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
                 renderItem={({ item }) => (
                     <View style={[styles.slide, { width }]}>
-                        <View style={[styles.iconCircle, { backgroundColor: item.color + '15' }]}>
-                            <Ionicons name={item.icon} size={80} color={item.color} />
+                        <View style={styles.imageWrapper}>
+                            <View style={styles.circleBg} />
+                            <Ionicons name={item.icon} size={80} color="#1A355E" />
                         </View>
-                        <Text style={[styles.slideTitle, { color: theme.text }]}>{item.title}</Text>
-                        <Text style={[styles.slideDesc, { color: theme.textSecondary }]}>{item.description}</Text>
+                        <View style={styles.textWrapper}>
+                            <Text style={[styles.slideTitle, { color: '#1A355E' }]}>{item.title}</Text>
+                            <Text style={[styles.slideDesc, { color: '#6A7E91' }]}>{item.description}</Text>
+                        </View>
                     </View>
                 )}
                 keyExtractor={(item) => item.id}
             />
 
-            <View style={styles.pagination}>
-                {ONBOARDING_DATA.map((_, i) => {
-                    const opacity = scrollX.interpolate({
-                        inputRange: [(i - 1) * width, i * width, (i + 1) * width],
-                        outputRange: [0.3, 1, 0.3],
-                        extrapolate: 'clamp',
-                    });
-                    const scale = scrollX.interpolate({
-                        inputRange: [(i - 1) * width, i * width, (i + 1) * width],
-                        outputRange: [0.8, 1.2, 0.8],
-                        extrapolate: 'clamp',
-                    });
-                    return <Animated.View key={i} style={[styles.dot, { backgroundColor: theme.primary, opacity, transform: [{ scale }] }]} />;
-                })}
-            </View>
+            <View style={styles.footer}>
+                <View style={styles.paginationDots}>
+                    {ONBOARDING_DATA.map((_, i) => {
+                        const widthAnim = scrollX.interpolate({
+                            inputRange: [(i - 1) * width, i * width, (i + 1) * width],
+                            outputRange: [8, 12, 8],
+                            extrapolate: 'clamp',
+                        });
+                        const opacity = scrollX.interpolate({
+                            inputRange: [(i - 1) * width, i * width, (i + 1) * width],
+                            outputRange: [0.3, 1, 0.3],
+                            extrapolate: 'clamp',
+                        });
+                        return (
+                            <Animated.View
+                                key={i}
+                                style={[
+                                    styles.dot,
+                                    { backgroundColor: '#1A355E', opacity, width: widthAnim }
+                                ]}
+                            />
+                        );
+                    })}
+                </View>
 
-            <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: theme.primary, marginTop: 40 }, themeShadows.md]}
-                onPress={() => setCurrentStep(1)}
-            >
-                <Text style={styles.primaryBtnText}>Continue</Text>
-                <Ionicons name="arrow-forward" size={20} color="#FFF" />
-            </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.continueBtn, { backgroundColor: '#1A355E' }]}
+                    onPress={() => setCurrentStep(1)}
+                >
+                    <Text style={styles.continueBtnText}>Continue</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                </TouchableOpacity>
+            </View>
         </View>
     );
 
     const renderLevelSelection = () => (
         <View style={styles.stepContainer}>
-            <Text style={[styles.stepTitle, { color: theme.text }]}>What is your French level?</Text>
-            <Text style={[styles.stepSub, { color: theme.textSecondary }]}>We'll adapt the lessons to match your skills.</Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                <Text style={[styles.stepTitle, { color: '#1A355E' }]}>What is your French level?</Text>
+                <Text style={[styles.stepSub, { color: '#6A7E91' }]}>We'll adapt the lessons to match your skills.</Text>
 
-            <View style={styles.optionsGrid}>
-                {SKILL_LEVELS.map((level) => (
-                    <TouchableOpacity
-                        key={level.id}
-                        style={[
-                            styles.optionCard,
-                            { backgroundColor: theme.surface, borderColor: selectedLevel === level.id ? theme.primary : theme.border },
-                            selectedLevel === level.id && themeShadows.sm,
-                        ]}
-                        onPress={() => setSelectedLevel(level.id)}
-                    >
-                        <View style={styles.optionInfo}>
-                            <Text style={[styles.optionLabel, { color: theme.text }]}>{level.id}: {level.label}</Text>
-                            <Text style={[styles.optionSub, { color: theme.textSecondary }]}>{level.sub}</Text>
-                        </View>
-                        {selectedLevel === level.id && (
-                            <Ionicons name="checkmark-circle" size={24} color={theme.primary} />
-                        )}
-                    </TouchableOpacity>
-                ))}
-            </View>
+                <View style={styles.optionsGrid}>
+                    {SKILL_LEVELS.map((level) => (
+                        <TouchableOpacity
+                            key={level.id}
+                            style={[
+                                styles.optionCard,
+                                { backgroundColor: '#F8F9FA', borderColor: selectedLevel === level.id ? '#1A355E' : 'transparent' },
+                                selectedLevel === level.id && themeShadows.sm,
+                            ]}
+                            onPress={() => setSelectedLevel(level.id)}
+                        >
+                            <View style={styles.optionInfo}>
+                                <Text style={[styles.optionLabel, { color: '#1A355E' }]}>{level.id}: {level.label}</Text>
+                                <Text style={[styles.optionSub, { color: '#6A7E91' }]}>{level.sub}</Text>
+                            </View>
+                            {selectedLevel === level.id && (
+                                <Ionicons name="checkmark-circle" size={24} color="#1A355E" />
+                            )}
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </ScrollView>
 
             <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: selectedLevel ? theme.primary : theme.textMuted }, themeShadows.md]}
+                style={[styles.continueBtn, { backgroundColor: selectedLevel ? '#1A355E' : '#D1D9E0', marginTop: 10 }]}
                 onPress={handleNext}
                 disabled={!selectedLevel}
             >
-                <Text style={styles.primaryBtnText}>Select Level</Text>
+                <Text style={styles.continueBtnText}>Next Step</Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFF" />
             </TouchableOpacity>
         </View>
     );
 
     const renderGoalSelection = () => (
         <View style={styles.stepContainer}>
-            <Text style={[styles.stepTitle, { color: theme.text }]}>Set your learning goal</Text>
-            <Text style={[styles.stepSub, { color: theme.textSecondary }]}>How many minutes a day do you want to practice?</Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                <Text style={[styles.stepTitle, { color: '#1A355E' }]}>Set your learning goal</Text>
+                <Text style={[styles.stepSub, { color: '#6A7E91' }]}>How many minutes a day do you want to practice?</Text>
 
-            <View style={styles.optionsGrid}>
-                {GOALS.map((goal) => (
-                    <TouchableOpacity
-                        key={goal.id}
-                        style={[
-                            styles.optionCard,
-                            { backgroundColor: theme.surface, borderColor: selectedGoal === goal.id ? theme.primary : theme.border },
-                            selectedGoal === goal.id && themeShadows.sm,
-                        ]}
-                        onPress={() => setSelectedGoal(goal.id)}
-                    >
-                        <View style={[styles.optionIcon, { backgroundColor: theme.primary + '10' }]}>
-                            <Ionicons name={goal.icon} size={24} color={theme.primary} />
-                        </View>
-                        <View style={styles.optionInfo}>
-                            <Text style={[styles.optionLabel, { color: theme.text }]}>{goal.label}</Text>
-                            <Text style={[styles.optionSub, { color: theme.textSecondary }]}>{goal.sub}</Text>
-                        </View>
-                        {selectedGoal === goal.id && (
-                            <Ionicons name="checkmark-circle" size={24} color={theme.primary} />
-                        )}
-                    </TouchableOpacity>
-                ))}
-            </View>
+                <View style={styles.optionsGrid}>
+                    {GOALS.map((goal) => (
+                        <TouchableOpacity
+                            key={goal.id}
+                            style={[
+                                styles.optionCard,
+                                { backgroundColor: '#F8F9FA', borderColor: selectedGoal === goal.id ? '#1A355E' : 'transparent' },
+                                selectedGoal === goal.id && themeShadows.sm,
+                            ]}
+                            onPress={() => setSelectedGoal(goal.id)}
+                        >
+                            <View style={[styles.optionIcon, { backgroundColor: '#1A355E10' }]}>
+                                <Ionicons name={goal.icon} size={24} color="#1A355E" />
+                            </View>
+                            <View style={styles.optionInfo}>
+                                <Text style={[styles.optionLabel, { color: '#1A355E' }]}>{goal.label}</Text>
+                                <Text style={[styles.optionSub, { color: '#6A7E91' }]}>{goal.sub}</Text>
+                            </View>
+                            {selectedGoal === goal.id && (
+                                <Ionicons name="checkmark-circle" size={24} color="#1A355E" />
+                            )}
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </ScrollView>
 
             <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: selectedGoal ? theme.primary : theme.textMuted }, themeShadows.md]}
+                style={[styles.continueBtn, { backgroundColor: selectedGoal ? '#1A355E' : '#D1D9E0', marginTop: 10 }]}
                 onPress={handleNext}
                 disabled={!selectedGoal}
             >
-                <Text style={styles.primaryBtnText}>Set Goal</Text>
+                <Text style={styles.continueBtnText}>Set Goal</Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFF" />
             </TouchableOpacity>
         </View>
     );
 
     const renderFinalStep = () => (
         <View style={styles.stepContainer}>
-            <View style={[styles.successIcon, { backgroundColor: theme.success + '15' }]}>
-                <Ionicons name="sparkles" size={60} color={theme.success} />
-            </View>
-            <Text style={[styles.stepTitle, { color: theme.text, textAlign: 'center' }]}>You're all set!</Text>
-            <Text style={[styles.stepSub, { color: theme.textSecondary, textAlign: 'center' }]}>
-                Your personalized path for {selectedLevel} level is ready. Let's start your journey to fluency.
-            </Text>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                <View style={[styles.successIcon, { backgroundColor: '#2E7D5A15' }]}>
+                    <Ionicons name="sparkles" size={60} color="#2E7D5A" />
+                </View>
+                <Text style={[styles.stepTitle, { color: '#1A355E', textAlign: 'center' }]}>You're all set!</Text>
+                <Text style={[styles.stepSub, { color: '#6A7E91', textAlign: 'center' }]}>
+                    Your personalized path for {selectedLevel} level is ready. Let's start your journey to fluency.
+                </Text>
 
-            <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                <View style={styles.summaryItem}>
-                    <Ionicons name="school-outline" size={20} color={theme.primary} />
-                    <Text style={[styles.summaryText, { color: theme.text }]}>Level: {selectedLevel}</Text>
+                <View style={[styles.summaryCard, { backgroundColor: '#F8F9FA' }]}>
+                    <View style={styles.summaryItem}>
+                        <Ionicons name="school-outline" size={20} color="#1A355E" />
+                        <Text style={[styles.summaryText, { color: '#1A355E' }]}>Level: {selectedLevel}</Text>
+                    </View>
+                    <View style={styles.summaryItem}>
+                        <Ionicons name="timer-outline" size={20} color="#1A355E" />
+                        <Text style={[styles.summaryText, { color: '#1A355E' }]}>Goal: {GOALS.find(g => g.id === selectedGoal)?.sub}</Text>
+                    </View>
                 </View>
-                <View style={styles.summaryItem}>
-                    <Ionicons name="timer-outline" size={20} color={theme.primary} />
-                    <Text style={[styles.summaryText, { color: theme.text }]}>Goal: {GOALS.find(g => g.id === selectedGoal)?.sub}</Text>
-                </View>
-            </View>
+            </ScrollView>
 
             <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: theme.primary, width: '100%' }, themeShadows.md]}
+                style={[styles.continueBtn, { backgroundColor: '#1A355E', width: '100%', marginTop: 10 }]}
                 onPress={() => navigation.replace('Main')}
             >
-                <Text style={styles.primaryBtnText}>Start Learning</Text>
+                <Text style={styles.continueBtnText}>Start Learning</Text>
+                <Ionicons name="rocket-sharp" size={20} color="#FFF" />
             </TouchableOpacity>
         </View>
     );
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.background }]}>
-            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <View style={styles.container}>
+            <StatusBar barStyle="dark-content" />
 
-            {/* Progress Header */}
-            <View style={styles.header}>
-                <View style={styles.progressBar}>
-                    {[0, 1, 2, 3].map((step) => (
-                        <View
-                            key={step}
-                            style={[
-                                styles.progressDot,
-                                { backgroundColor: step <= currentStep ? theme.primary : theme.border }
-                            ]}
-                        />
-                    ))}
-                </View>
-                {currentStep > 0 && currentStep < 3 && (
-                    <TouchableOpacity onPress={() => setCurrentStep(currentStep - 1)} style={styles.backBtn}>
-                        <Ionicons name="chevron-back" size={24} color={theme.text} />
-                    </TouchableOpacity>
-                )}
+            {/* Progress Bar Header */}
+            <View style={styles.progressHeader}>
+                {[0, 1, 2, 3].map((step) => (
+                    <View
+                        key={step}
+                        style={[
+                            styles.progressItem,
+                            { backgroundColor: step === currentStep ? '#1A355E' : '#E8EDF1' }
+                        ]}
+                    />
+                ))}
             </View>
 
             <Animated.View style={[
@@ -308,103 +323,124 @@ export default function OnboardingScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#FCFCFC',
     },
-    header: {
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
-        paddingHorizontal: 20,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        height: 100,
+    fullScreen: {
+        flex: 1,
     },
-    progressBar: {
+    progressHeader: {
         flexDirection: 'row',
+        paddingHorizontal: 60,
         gap: 8,
+        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+        justifyContent: 'center',
+        marginBottom: 20,
     },
-    progressDot: {
-        width: 20,
+    progressItem: {
+        flex: 1,
         height: 4,
         borderRadius: 2,
-    },
-    backBtn: {
-        position: 'absolute',
-        left: 20,
-        top: Platform.OS === 'ios' ? 50 : 30,
-        width: 40,
-        height: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     mainContent: {
         flex: 1,
     },
     stepContainer: {
         flex: 1,
-        paddingHorizontal: 28,
+        paddingHorizontal: 30,
+        paddingTop: 40,
         paddingBottom: 40,
-        justifyContent: 'center',
     },
     slide: {
-        paddingHorizontal: 40,
         alignItems: 'center',
-        justifyContent: 'center',
-        height: height * 0.5,
+        paddingTop: height * 0.08,
     },
-    iconCircle: {
-        width: 160,
-        height: 160,
-        borderRadius: 80,
+    imageWrapper: {
+        width: 260,
+        height: 260,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 40,
+        marginBottom: 60,
+    },
+    circleBg: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: '#E8EDF1',
+        borderRadius: 130,
+        opacity: 0.8,
+    },
+    textWrapper: {
+        paddingHorizontal: 40,
     },
     slideTitle: {
-        fontSize: 28,
+        fontSize: 32,
         fontWeight: '800',
         textAlign: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
     slideDesc: {
-        fontSize: 16,
+        fontSize: 17,
         textAlign: 'center',
-        lineHeight: 24,
+        lineHeight: 26,
     },
-    pagination: {
+    footer: {
+        paddingHorizontal: 30,
+        paddingBottom: 50,
+        alignItems: 'center',
+    },
+    paginationDots: {
         flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 12,
-        marginTop: 20,
+        gap: 10,
+        marginBottom: 40,
     },
     dot: {
-        width: 8,
         height: 8,
         borderRadius: 4,
     },
+    continueBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        paddingVertical: 18,
+        borderRadius: 18,
+        gap: 12,
+        shadowColor: '#1A355E',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 15,
+        elevation: 10,
+    },
+    continueBtnText: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: '700',
+    },
     stepTitle: {
-        fontSize: 26,
+        fontSize: 28,
         fontWeight: '800',
         marginBottom: 12,
+        textAlign: 'center',
     },
     stepSub: {
         fontSize: 16,
         lineHeight: 24,
-        marginBottom: 32,
+        marginBottom: 40,
+        textAlign: 'center',
     },
     optionsGrid: {
-        gap: 12,
+        gap: 16,
     },
     optionCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
-        borderRadius: 16,
+        padding: 20,
+        borderRadius: 20,
         borderWidth: 2,
         gap: 16,
     },
     optionIcon: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
+        width: 48,
+        height: 48,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -412,27 +448,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     optionLabel: {
-        fontSize: 17,
+        fontSize: 18,
         fontWeight: '700',
     },
     optionSub: {
-        fontSize: 13,
+        fontSize: 14,
         marginTop: 2,
-    },
-    primaryBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 18,
-        borderRadius: 16,
-        gap: 10,
-        width: '100%',
-        marginTop: 32,
-    },
-    primaryBtnText: {
-        color: '#FFF',
-        fontSize: 18,
-        fontWeight: '700',
     },
     successIcon: {
         width: 120,
@@ -441,22 +462,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         alignSelf: 'center',
-        marginBottom: 32,
+        marginVertical: 40,
     },
     summaryCard: {
         padding: 24,
-        borderRadius: 20,
-        borderWidth: 1,
-        gap: 16,
-        marginVertical: 32,
+        borderRadius: 24,
+        gap: 20,
+        marginVertical: 10,
     },
     summaryItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 15,
     },
     summaryText: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 17,
+        fontWeight: '700',
     },
 });

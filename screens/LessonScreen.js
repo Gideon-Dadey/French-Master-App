@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,17 +24,17 @@ const VIDEO_HEIGHT = width * 0.56;
 export default function LessonScreen({ route, navigation }) {
   const lessonId = route?.params?.lessonId;
   const courseId = route?.params?.courseId;
-  const { isDarkMode } = useTheme();
+  const { isDarkMode, organicColors: theme } = useTheme();
   const { user, updateUser } = useAuth();
 
-  // L'Alliance Theme Colors
-  const bgColor = '#0D1B2A';
-  const cardColor = '#1B2838';
-  const textColor = '#F0EBE3';
-  const subTextColor = '#A8B4C4';
-  const accentColor = '#1E3A5F';
-  const goldColor = '#C9A227';
-  const borderColor = '#2D3E50';
+  // L'Alliance Theme Colors - derived from Organic Theme
+  const bgColor = theme.background;
+  const cardColor = theme.surface;
+  const textColor = theme.text;
+  const subTextColor = theme.textSecondary;
+  const accentColor = theme.primary;
+  const goldColor = theme.secondary;
+  const borderColor = theme.border;
 
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +48,7 @@ export default function LessonScreen({ route, navigation }) {
   const [newNote, setNewNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [lastSavedProgress, setLastSavedProgress] = useState(0);
+  const videoPlayerRef = useRef(null);
 
   const isBookmarked = user?.bookmarkedLessons?.includes(lessonId);
 
@@ -198,6 +199,7 @@ export default function LessonScreen({ route, navigation }) {
       {/* Video Player - Full Width */}
       <View style={styles.videoContainer}>
         <VideoPlayer
+          ref={videoPlayerRef}
           source={{ uri: lesson.videoUrl }}
           thumbnail={lesson.thumbnail}
           style={styles.videoPlayer}
@@ -419,10 +421,7 @@ export default function LessonScreen({ route, navigation }) {
                         <View style={styles.noteHeader}>
                           <TouchableOpacity
                             style={[styles.noteTimestamp, { backgroundColor: accentColor }]}
-                            onPress={() => {
-                              // Seek video to this timestamp logic? 
-                              // For now just show it
-                            }}
+                            onPress={() => videoPlayerRef.current?.seekTo(note.timestamp)}
                           >
                             <Text style={styles.noteTimestampText}>{formatDuration(note.timestamp)}</Text>
                           </TouchableOpacity>

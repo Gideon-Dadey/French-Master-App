@@ -17,14 +17,14 @@ import { spacing, fontSize } from '../utils/responsive';
 const { width } = Dimensions.get('window');
 
 export default function CertificateView({ course, userName, completionDate, onClose }) {
-  const { isDarkMode } = useTheme();
+  const { isDarkMode, organicColors: theme } = useTheme();
 
-  // L'Alliance Theme
-  const bgColor = '#0D1B2A';
-  const textColor = '#F0EBE3';
-  const subTextColor = '#A8B4C4';
-  const goldColor = '#C9A227';
-  const accentColor = '#1E3A5F';
+  // L'Alliance Theme - derived from Organic Theme
+  const bgColor = theme.background;
+  const textColor = theme.text;
+  const subTextColor = theme.textSecondary;
+  const goldColor = theme.secondary;
+  const accentColor = theme.primary;
 
   const certificateRef = React.useRef();
 

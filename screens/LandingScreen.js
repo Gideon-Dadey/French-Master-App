@@ -11,28 +11,11 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
 import { getThemeColors, themeShadows } from '../src/utils/organicTheme';
 
-const { width } = Dimensions.get('window');
-
-// Organic Background Blob
-const Blob = ({ color, style }) => (
-  <View style={[
-    {
-      position: 'absolute',
-      width: 300,
-      height: 300,
-      borderRadius: 150,
-      backgroundColor: color,
-      opacity: 0.08,
-      transform: [{ scale: 1.5 }],
-    },
-    style
-  ]} />
-);
+const { width, height } = Dimensions.get('window');
 
 export default function LandingScreen({ navigation }) {
   const { isDarkMode } = useTheme();
@@ -40,58 +23,64 @@ export default function LandingScreen({ navigation }) {
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(40)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
-      Animated.spring(slideAnim, { toValue: 0, tension: 30, friction: 8, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 40, friction: 10, useNativeDriver: true }),
+      Animated.spring(scaleAnim, { toValue: 1, tension: 40, friction: 10, useNativeDriver: true }),
     ]).start();
   }, []);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-
-      {/* Organic Background Elements */}
-      <Blob color={theme.secondary} style={{ top: -100, right: -120 }} />
-      <Blob color={theme.primary} style={{ bottom: 100, left: -150, width: 400, height: 400, borderRadius: 200 }} />
+    <View style={[styles.container, { backgroundColor: '#FCFCFC' }]}>
+      <StatusBar barStyle="dark-content" />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        bounces={false}
       >
-        {/* Header Logo - Centered */}
-        <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
-          <View style={[styles.logoContainer, themeShadows.md]}>
-            <Image source={require('../assets/logo.jpeg')} style={styles.headerLogo} resizeMode="contain" />
+        {/* Main Content Area */}
+        <Animated.View style={[
+          styles.content,
+          {
+            opacity: fadeAnim,
+            transform: [
+              { translateY: slideAnim },
+              { scale: scaleAnim }
+            ]
+          }
+        ]}>
+          {/* Logo & Brand */}
+          <View style={styles.brandWrapper}>
+            <View style={styles.logoContainer}>
+              <Image source={require('../assets/logo.jpeg')} style={styles.logo} />
+            </View>
+            <Text style={styles.appName}>L'ALLIANCE</Text>
           </View>
-          <Text style={[styles.headerAppName, { color: theme.text }]}>L'Alliance</Text>
-        </Animated.View>
 
-        {/* Hero Section */}
-        <Animated.View style={[styles.hero, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <Text style={[styles.heroTitle, { color: theme.text }]}>
-            Master French.
-          </Text>
-          <Text style={[styles.heroSubtitle, { color: theme.textSecondary }]}>
-            The most immersive, organic way to learn languages. Join a global community of learners today.
-          </Text>
-        </Animated.View>
+          {/* Hero Image / Illustration Placeholder */}
+          <View style={styles.heroWrapper}>
+            <View style={styles.circleBg} />
+            <Ionicons name="language-sharp" size={100} color="#1A355E" />
+          </View>
 
-        {/* Features / Value Props */}
-        <Animated.View style={[styles.featuresSection, { opacity: fadeAnim }]}>
-          <FeatureRow icon="chatbubbles-outline" text="Real-time conversations" theme={theme} />
-          <FeatureRow icon="ribbon-outline" text="Certified curriculum" theme={theme} />
-          <FeatureRow icon="game-controller-outline" text="Gamified learning path" theme={theme} />
+          {/* Hero Text */}
+          <View style={styles.textWrapper}>
+            <Text style={styles.title}>Immersion Mastery</Text>
+            <Text style={styles.subtitle}>
+              Learn French naturally through real-world simulations and organic conversations.
+            </Text>
+          </View>
         </Animated.View>
-
-        <View style={{ flex: 1 }} />
 
         {/* Bottom Actions */}
-        <Animated.View style={[styles.bottomActions, { opacity: fadeAnim }]}>
+        <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
           <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: theme.primary }, themeShadows.md]}
+            style={styles.primaryBtn}
             onPress={() => navigation.replace('Onboarding')}
             activeOpacity={0.9}
           >
@@ -103,21 +92,10 @@ export default function LandingScreen({ navigation }) {
             style={styles.secondaryBtn}
             onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
           >
-            <Text style={[styles.secondaryBtnText, { color: theme.textSecondary }]}>I already have an account</Text>
+            <Text style={styles.secondaryBtnText}>Sign In to your account</Text>
           </TouchableOpacity>
         </Animated.View>
       </ScrollView>
-    </View>
-  );
-}
-
-function FeatureRow({ icon, text, theme }) {
-  return (
-    <View style={styles.featureRow}>
-      <View style={[styles.featureIcon, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}>
-        <Ionicons name={icon} size={18} color={theme.primary} />
-      </View>
-      <Text style={[styles.featureText, { color: theme.textSecondary }]}>{text}</Text>
     </View>
   );
 }
@@ -128,108 +106,104 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingTop: Platform.OS === 'ios' ? 80 : 60,
-    paddingHorizontal: 28,
+    paddingHorizontal: 30,
+    paddingTop: Platform.OS === 'ios' ? 70 : 50,
     paddingBottom: 50,
-    alignItems: 'center', // Center everything by default
   },
-  header: {
+  content: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: 60,
+    justifyContent: 'center',
+  },
+  brandWrapper: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
   logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 18,
     backgroundColor: '#FFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    overflow: 'hidden',
-  },
-  headerLogo: {
-    width: 90,
-    height: 90,
-    borderRadius: 20,
-  },
-  headerAppName: {
-    fontSize: 26,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  hero: {
-    marginBottom: 60,
-    alignItems: 'center',
-    width: '100%',
-  },
-  heroTitle: {
-    fontSize: 42, // Slightly smaller since "Unleash Potential" is gone, but still big
-    fontWeight: '800',
-    lineHeight: 50,
-    letterSpacing: -1,
+    ...themeShadows.sm,
     marginBottom: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    textAlign: 'center',
-  },
-  heroSubtitle: {
-    fontSize: 18,
-    lineHeight: 28,
-    maxWidth: '90%',
-    fontWeight: '400',
-    textAlign: 'center',
-  },
-  featuresSection: {
-    gap: 20,
-    marginBottom: 60,
-    width: '100%',
-    alignItems: 'center', // Center the rows? Or left align them?
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    width: '100%',
-    maxWidth: 320, // Constrain width for nice centering
-  },
-  featureIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
   },
-  featureText: {
-    fontSize: 16,
-    fontWeight: '500',
+  logo: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
   },
-  bottomActions: {
-    gap: 20,
+  appName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1A355E',
+    letterSpacing: 4,
+  },
+  heroWrapper: {
+    width: 240,
+    height: 240,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 50,
+  },
+  circleBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#E8EDF1',
+    borderRadius: 120,
+    opacity: 0.8,
+  },
+  textWrapper: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 60,
+  },
+  title: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#1A355E',
+    textAlign: 'center',
+    marginBottom: 16,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 17,
+    color: '#6A7E91',
+    textAlign: 'center',
+    lineHeight: 26,
+    fontWeight: '400',
+  },
+  footer: {
     width: '100%',
     alignItems: 'center',
+    gap: 20,
   },
   primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 20,
-    borderRadius: 99,
-    gap: 10,
+    backgroundColor: '#1A355E',
     width: '100%',
-    maxWidth: 320,
+    paddingVertical: 18,
+    borderRadius: 18,
+    gap: 12,
+    shadowColor: '#1A355E',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+    elevation: 8,
   },
   primaryBtnText: {
-    color: '#FFFFFF',
+    color: '#FFF',
     fontSize: 18,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
   secondaryBtn: {
-    alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   secondaryBtnText: {
+    color: '#6A7E91',
     fontSize: 16,
     fontWeight: '600',
   },

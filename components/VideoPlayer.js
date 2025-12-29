@@ -12,10 +12,11 @@ import {
 import { Video, ResizeMode } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
+import { useTheme } from '../src/context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
-export default function VideoPlayer({
+const VideoPlayer = React.forwardRef(({
   source,
   thumbnail,
   style,
@@ -23,12 +24,25 @@ export default function VideoPlayer({
   downloadable = false,
   autoPlay = false,
   initialTime = 0,
-}) {
+}, ref) => {
   const videoRef = useRef(null);
+  const { organicColors: theme } = useTheme();
   const [status, setStatus] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showThumbnail, setShowThumbnail] = useState(!autoPlay && thumbnail);
+
+  React.useImperativeHandle(ref, () => ({
+    seekTo: async (seconds) => {
+      if (videoRef.current) {
+        setShowThumbnail(false);
+        await videoRef.current.setPositionAsync(seconds * 1000);
+        await videoRef.current.playAsync();
+      }
+    },
+    play: () => videoRef.current?.playAsync(),
+    pause: () => videoRef.current?.pauseAsync(),
+  }));
 
   const handlePlaybackStatusUpdate = (playbackStatus) => {
     setStatus(playbackStatus);
@@ -88,7 +102,7 @@ export default function VideoPlayer({
         <Ionicons name="alert-circle" size={48} color="#ef4444" />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity
-          style={styles.retryButton}
+          style={[styles.retryButton, { backgroundColor: theme.primary }]}
           onPress={() => {
             setError(null);
             setLoading(true);
@@ -114,7 +128,7 @@ export default function VideoPlayer({
             style={styles.thumbnail}
           />
           <View style={styles.playOverlay}>
-            <View style={styles.playButton}>
+            <View style={[styles.playButton, { backgroundColor: theme.primary + 'E6', shadowColor: theme.primary }]}>
               <Ionicons name="play" size={36} color="#fff" />
             </View>
           </View>
@@ -165,7 +179,9 @@ export default function VideoPlayer({
       )}
     </View>
   );
-}
+});
+
+export default VideoPlayer;
 
 const styles = StyleSheet.create({
   container: {
@@ -198,11 +214,9 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: 'rgba(99, 102, 241, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingLeft: 4,
-    shadowColor: '#6366f1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -233,7 +247,6 @@ const styles = StyleSheet.create({
   retryButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#6366f1',
     borderRadius: 8,
   },
   retryText: {

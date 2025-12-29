@@ -18,7 +18,7 @@ import { getCourseThumbnail } from '../src/utils/courseThumbnailMap';
 
 export default function MyCoursesScreen({ navigation }) {
   const { isAuthenticated } = useAuth();
-  const { colors } = useTheme();
+  const { organicColors: theme } = useTheme();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,118 +68,128 @@ export default function MyCoursesScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
+        <Ionicons name="lock-closed-outline" size={60} color={theme.textSecondary} />
+        <Text style={[styles.message, { color: theme.text }]}>Log in to see your courses</Text>
+        <TouchableOpacity
+          style={[styles.loginBtn, { backgroundColor: theme.primary }]}
+          onPress={() => navigation.navigate('Auth')}
+        >
+          <Text style={styles.loginBtnText}>Go to Login</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-      }
-    >
-      {stats && (
-        <View style={styles.statsContainer}>
-          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.statNumber, { color: colors.primary }]}>{stats.totalCourses}</Text>
-            <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Courses</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.statNumber, { color: colors.primary }]}>{stats.completedCourses}</Text>
-            <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Completed</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.statNumber, { color: colors.primary }]}>{stats.totalLessonsCompleted}</Text>
-            <Text style={[styles.statLabel, { color: colors.secondaryText }]}>Lessons</Text>
-          </View>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+        }
+      >
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: theme.text }]}>My Learning</Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+            {courses.length} Courses in progress
+          </Text>
         </View>
-      )}
 
-      <View style={styles.coursesContainer}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>My Courses</Text>
-        {!isAuthenticated ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="lock-closed-outline" size={64} color={colors.secondaryText} />
-            <Text style={[styles.emptyText, { color: colors.secondaryText }]}>Please login to view your courses</Text>
-            <TouchableOpacity
-              style={[styles.browseButton, { backgroundColor: colors.primary }]}
-              onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
-            >
-              <Text style={styles.browseButtonText}>Login</Text>
-            </TouchableOpacity>
+        {stats && (
+          <View style={styles.statsContainer}>
+            <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.statNumber, { color: theme.primary }]}>{stats.totalCourses || 0}</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Courses</Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.statNumber, { color: theme.primary }]}>{stats.completedCourses || 0}</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Completed</Text>
+            </View>
+            <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Text style={[styles.statNumber, { color: theme.primary }]}>{stats.totalLessonsCompleted || 0}</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Lessons</Text>
+            </View>
           </View>
-        ) : courses.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="book-outline" size={64} color={colors.secondaryText} />
-            <Text style={[styles.emptyText, { color: colors.secondaryText }]}>No courses enrolled yet</Text>
-            <TouchableOpacity
-              style={[styles.browseButton, { backgroundColor: colors.primary }]}
-              onPress={() => navigation.navigate('Courses')}
-            >
-              <Text style={styles.browseButtonText}>Browse Courses</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          courses.map((enrollment) => {
-            const course = enrollment.course;
-            const progress = getProgressPercentage(enrollment);
-
-            return (
-              <TouchableOpacity
-                key={enrollment._id}
-                style={[styles.courseCard, { backgroundColor: colors.card }]}
-                onPress={() => navigation.navigate('CourseDetail', { courseId: course._id })}
-              >
-                <Image
-                  source={
-                    (() => {
-                      if (course.thumbnail && (course.thumbnail.startsWith('http://') || course.thumbnail.startsWith('https://'))) {
-                        return { uri: course.thumbnail };
-                      } else if (course.thumbnail) {
-                        const mappedImage = getCourseThumbnail(course.thumbnail);
-                        if (mappedImage) return mappedImage;
-                      }
-                      return getCourseImage(course._id || course.id, courses.indexOf(enrollment), course.category || course.language, course.title);
-                    })()
-                  }
-                  style={[styles.thumbnail, { backgroundColor: colors.tertiaryBackground || colors.border }]}
-                />
-                <View style={styles.courseInfo}>
-                  <Text style={[styles.courseTitle, { color: colors.text }]} numberOfLines={2}>
-                    {course.title}
-                  </Text>
-                  <View style={styles.progressContainer}>
-                    <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          { width: `${progress}%`, backgroundColor: colors.primary },
-                        ]}
-                      />
-                    </View>
-                    <Text style={[styles.progressText, { color: colors.secondaryText }]}>{progress}%</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.continueButton, { backgroundColor: colors.primary }]}
-                    onPress={() => {
-
-                      navigation.navigate('CourseDetail', { courseId: course._id });
-                    }}
-                  >
-                    <Text style={styles.continueButtonText}>
-                      {progress > 0 ? 'Continue Learning' : 'Start Learning'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            );
-          })
         )}
-      </View>
-    </ScrollView>
+
+        <View style={styles.coursesContainer}>
+          {courses.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="book-outline" size={64} color={theme.textSecondary} />
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>No courses enrolled yet</Text>
+              <TouchableOpacity
+                style={[styles.browseButton, { backgroundColor: theme.primary }]}
+                onPress={() => navigation.navigate('Learn')}
+              >
+                <Text style={styles.browseButtonText}>Browse Courses</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            courses.map((enrollment, index) => {
+              const course = enrollment.course;
+              if (!course) return null;
+
+              const progress = getProgressPercentage(enrollment);
+
+              return (
+                <TouchableOpacity
+                  key={enrollment._id || index}
+                  style={[styles.courseCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                  onPress={() => navigation.navigate('CourseDetail', { courseId: course._id })}
+                >
+                  <Image
+                    source={
+                      (() => {
+                        if (course.thumbnail && (course.thumbnail.startsWith('http://') || course.thumbnail.startsWith('https://'))) {
+                          return { uri: course.thumbnail };
+                        } else if (course.thumbnail) {
+                          const mappedImage = getCourseThumbnail(course.thumbnail);
+                          if (mappedImage) return mappedImage;
+                        }
+                        return getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
+                      })()
+                    }
+                    style={[styles.thumbnail, { backgroundColor: theme.borderLight || theme.border }]}
+                  />
+                  <View style={styles.courseInfo}>
+                    <Text style={[styles.courseTitle, { color: theme.text }]} numberOfLines={2}>
+                      {course.title}
+                    </Text>
+                    <Text style={[styles.courseInstructor, { color: theme.textSecondary }]}>
+                      {course.instructor?.name || 'L\'Alliance Instructor'}
+                    </Text>
+
+                    <View style={styles.progressArea}>
+                      <View style={[styles.progressTrack, { backgroundColor: theme.border }]}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            { width: `${progress}%`, backgroundColor: theme.primary }
+                          ]}
+                        />
+                      </View>
+                      <Text style={[styles.progressText, { color: theme.textSecondary }]}>
+                        {Math.round(progress)}% complete
+                      </Text>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 

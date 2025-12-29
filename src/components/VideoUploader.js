@@ -26,7 +26,10 @@ export default function VideoUploader({
   maxDuration = 300,
   style,
 }) {
-  const { colors, isDarkMode } = useTheme();
+  const { organicColors: theme, isDarkMode } = useTheme();
+  // The instruction implies using 'theme' for organicColors and replacing hardcoded values.
+  // The original code had `const colors = theme;` for compatibility, which is now redundant if 'theme' is used directly.
+  // I will remove the redundant `colors` declaration and use `theme` directly.
   const [selectedVideo, setSelectedVideo] = useState(currentVideo || null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -113,7 +116,7 @@ export default function VideoUploader({
 
   return (
     <View style={[styles.container, style]}>
-      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      <Text style={[styles.label, { color: theme.text }]}>{label}</Text>
       {selectedVideo ? (
         <View style={styles.videoPreviewContainer}>
           <Video
@@ -140,24 +143,24 @@ export default function VideoUploader({
             colors={isDarkMode ? ['#2c2c2e', '#1c1c1e'] : ['#f8f9fa', '#f0f0f5']}
             style={styles.uploadPickerGradient}
           >
-            <View style={[styles.uploadIcon, { backgroundColor: isDarkMode ? '#3c3c3e' : '#e5e7eb' }]}>
-              <Ionicons name="videocam" size={32} color="#6366f1" />
+            <View style={[styles.uploadIcon, { backgroundColor: isDarkMode ? theme.surfaceAlt || '#3c3c3e' : theme.borderLight || '#e5e7eb' }]}>
+              <Ionicons name="videocam" size={32} color={theme.primary} />
             </View>
-            <Text style={[styles.uploadTitle, { color: colors.text }]}>
+            <Text style={[styles.uploadTitle, { color: theme.text }]}>
               Add Sample Video
             </Text>
-            <Text style={[styles.uploadSubtitle, { color: colors.secondaryText }]}>
+            <Text style={[styles.uploadSubtitle, { color: theme.textSecondary }]}>
               Tap to record or choose from gallery
             </Text>
             <View style={styles.formatTags}>
-              <View style={[styles.formatTag, { backgroundColor: isDarkMode ? '#3c3c3e' : '#e5e7eb' }]}>
-                <Text style={[styles.formatTagText, { color: colors.secondaryText }]}>MP4</Text>
+              <View style={[styles.formatTag, { backgroundColor: isDarkMode ? theme.surfaceAlt || '#3c3c3e' : theme.borderLight || '#e5e7eb' }]}>
+                <Text style={[styles.formatTagText, { color: theme.textSecondary }]}>MP4</Text>
               </View>
-              <View style={[styles.formatTag, { backgroundColor: isDarkMode ? '#3c3c3e' : '#e5e7eb' }]}>
-                <Text style={[styles.formatTagText, { color: colors.secondaryText }]}>MOV</Text>
+              <View style={[styles.formatTag, { backgroundColor: isDarkMode ? theme.surfaceAlt || '#3c3c3e' : theme.borderLight || '#e5e7eb' }]}>
+                <Text style={[styles.formatTagText, { color: theme.textSecondary }]}>MOV</Text>
               </View>
-              <View style={[styles.formatTag, { backgroundColor: isDarkMode ? '#3c3c3e' : '#e5e7eb' }]}>
-                <Text style={[styles.formatTagText, { color: colors.secondaryText }]}>Max 5 min</Text>
+              <View style={[styles.formatTag, { backgroundColor: isDarkMode ? theme.surfaceAlt || '#3c3c3e' : theme.borderLight || '#e5e7eb' }]}>
+                <Text style={[styles.formatTagText, { color: theme.textSecondary }]}>Max 5 min</Text>
               </View>
             </View>
           </LinearGradient>
