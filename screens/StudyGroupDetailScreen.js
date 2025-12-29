@@ -2348,7 +2348,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               style={styles.chatScrollView}
               contentContainerStyle={styles.whatsappChatContent}
               refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25D366" />
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={premiumColors.primary.main} />
               }
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
@@ -2888,330 +2888,330 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 </View>
               )}
             </ScrollView>
-          </View>
 
-          {isMember() ? (
-            <>
-              {replyingTo && (
-                <View style={[styles.replyingToContainer, {
-                  backgroundColor: isDarkMode ? 'rgba(30, 30, 40, 0.98)' : 'rgba(255, 255, 255, 0.98)',
-                  borderTopColor: isDarkMode ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
-                }]}>
-                  <View style={[styles.replyingToBar, {
-                    backgroundColor: '#10B981',
-                    shadowColor: '#10B981',
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 0.5,
-                    shadowRadius: 4,
-                  }]} />
-                  <View style={styles.replyingToContent}>
-                    <Text style={[styles.replyingToLabel, { color: '#10B981' }]}>
-                      Replying to {replyingTo.user?.name || 'Member'}
-                    </Text>
-                    <Text style={[styles.replyingToText, { color: colors.secondaryText }]} numberOfLines={1}>
-                      {(() => {
-                        try {
-                          const parsed = JSON.parse(replyingTo.message);
-                          return parsed.message || replyingTo.message;
-                        } catch {
-                          return replyingTo.message;
-                        }
-                      })()}
-                    </Text>
+            {isMember() ? (
+              <>
+                {replyingTo && (
+                  <View style={[styles.replyingToContainer, {
+                    backgroundColor: isDarkMode ? 'rgba(30, 30, 40, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+                    borderTopColor: isDarkMode ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
+                  }]}>
+                    <View style={[styles.replyingToBar, {
+                      backgroundColor: '#10B981',
+                      shadowColor: '#10B981',
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.5,
+                      shadowRadius: 4,
+                    }]} />
+                    <View style={styles.replyingToContent}>
+                      <Text style={[styles.replyingToLabel, { color: '#10B981' }]}>
+                        Replying to {replyingTo.user?.name || 'Member'}
+                      </Text>
+                      <Text style={[styles.replyingToText, { color: colors.secondaryText }]} numberOfLines={1}>
+                        {(() => {
+                          try {
+                            const parsed = JSON.parse(replyingTo.message);
+                            return parsed.message || replyingTo.message;
+                          } catch {
+                            return replyingTo.message;
+                          }
+                        })()}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={cancelReply}
+                      style={[styles.cancelReplyButton, {
+                        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
+                      }]}
+                    >
+                      <Ionicons name="close" size={18} color={colors.secondaryText} />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    onPress={cancelReply}
-                    style={[styles.cancelReplyButton, {
-                      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
-                    }]}
-                  >
-                    <Ionicons name="close" size={18} color={colors.secondaryText} />
-                  </TouchableOpacity>
-                </View>
-              )}
+                )}
 
-              {(selectedImage || selectedDocument) && (
-                <View style={[styles.attachmentPreview, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                  {selectedImage && (
-                    <View style={styles.imagePreviewContainer}>
-                      <Image source={{ uri: selectedImage.uri }} style={styles.previewThumbnail} />
-                      <View style={styles.previewInfo}>
-                        <Text style={[styles.previewName, { color: colors.text }]}>Photo attached</Text>
-                        <Text style={[styles.previewSize, { color: colors.secondaryText }]}>Ready to send</Text>
+                {(selectedImage || selectedDocument) && (
+                  <View style={[styles.attachmentPreview, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+                    {selectedImage && (
+                      <View style={styles.imagePreviewContainer}>
+                        <Image source={{ uri: selectedImage.uri }} style={styles.previewThumbnail} />
+                        <View style={styles.previewInfo}>
+                          <Text style={[styles.previewName, { color: colors.text }]}>Photo attached</Text>
+                          <Text style={[styles.previewSize, { color: colors.secondaryText }]}>Ready to send</Text>
+                        </View>
                       </View>
-                    </View>
-                  )}
-                  {selectedDocument && (
-                    <View style={styles.documentPreviewContainer}>
-                      <View style={[styles.documentPreviewIcon, { backgroundColor: getFileIcon(selectedDocument.name).color + '20' }]}>
-                        <Ionicons
-                          name={getFileIcon(selectedDocument.name).icon}
-                          size={24}
-                          color={getFileIcon(selectedDocument.name).color}
-                        />
+                    )}
+                    {selectedDocument && (
+                      <View style={styles.documentPreviewContainer}>
+                        <View style={[styles.documentPreviewIcon, { backgroundColor: getFileIcon(selectedDocument.name).color + '20' }]}>
+                          <Ionicons
+                            name={getFileIcon(selectedDocument.name).icon}
+                            size={24}
+                            color={getFileIcon(selectedDocument.name).color}
+                          />
+                        </View>
+                        <View style={styles.previewInfo}>
+                          <Text style={[styles.previewName, { color: colors.text }]} numberOfLines={1}>
+                            {selectedDocument.name}
+                          </Text>
+                          <Text style={[styles.previewSize, { color: colors.secondaryText }]}>
+                            {selectedDocument.size ? `${(selectedDocument.size / 1024).toFixed(1)} KB` : 'Document'}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.previewInfo}>
-                        <Text style={[styles.previewName, { color: colors.text }]} numberOfLines={1}>
-                          {selectedDocument.name}
-                        </Text>
-                        <Text style={[styles.previewSize, { color: colors.secondaryText }]}>
-                          {selectedDocument.size ? `${(selectedDocument.size / 1024).toFixed(1)} KB` : 'Document'}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-                  <TouchableOpacity onPress={cancelAttachment} style={styles.cancelAttachmentButton}>
-                    <Ionicons name="close-circle" size={24} color={colors.error || '#FF3B30'} />
-                  </TouchableOpacity>
-                </View>
-              )}
+                    )}
+                    <TouchableOpacity onPress={cancelAttachment} style={styles.cancelAttachmentButton}>
+                      <Ionicons name="close-circle" size={24} color={colors.error || '#FF3B30'} />
+                    </TouchableOpacity>
+                  </View>
+                )}
 
-              <View style={[
-                styles.whatsappInputContainer,
-                {
-                  backgroundColor: 'transparent',
-                  paddingBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 8),
-                }
-              ]}>
-                {/* Plus/Add Button */}
-                <TouchableOpacity
-                  style={styles.whatsappAddBtn}
-                  onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                >
-                  <Ionicons
-                    name={showAttachmentMenu ? 'close' : 'add'}
-                    size={28}
-                    color={isDarkMode ? '#8696A0' : '#54656F'}
-                  />
-                </TouchableOpacity>
-
-                {/* Message Input with Emoji */}
                 <View style={[
-                  styles.whatsappInputWrapper,
+                  styles.whatsappInputContainer,
                   {
-                    backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF',
-                    borderWidth: isDarkMode ? 0 : 1,
-                    borderColor: isDarkMode ? 'transparent' : '#E4E6EB',
+                    backgroundColor: 'transparent',
+                    paddingBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 8),
                   }
                 ]}>
-                  <TextInput
-                    style={[styles.whatsappInput, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}
-                    placeholder="Message..."
-                    placeholderTextColor={isDarkMode ? '#8696A0' : '#667781'}
-                    value={discussionMessage}
-                    onChangeText={setDiscussionMessage}
-                    multiline
-                    maxLength={1000}
-                    selectionColor={isDarkMode ? '#00A884' : '#075E54'}
-                  />
+                  {/* Plus/Add Button */}
                   <TouchableOpacity
-                    style={styles.whatsappEmojiBtn}
-                    onPress={() => setShowEmojiPicker(!showEmojiPicker)}
+                    style={styles.whatsappAddBtn}
+                    onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
                   >
                     <Ionicons
-                      name={showEmojiPicker ? "happy" : "happy-outline"}
-                      size={24}
+                      name={showAttachmentMenu ? 'close' : 'add'}
+                      size={28}
                       color={isDarkMode ? '#8696A0' : '#54656F'}
                     />
                   </TouchableOpacity>
+
+                  {/* Message Input with Emoji */}
+                  <View style={[
+                    styles.whatsappInputWrapper,
+                    {
+                      backgroundColor: isDarkMode ? 'rgba(31, 44, 52, 0.92)' : 'rgba(255, 255, 255, 0.92)',
+                      borderWidth: isDarkMode ? 0 : 1,
+                      borderColor: isDarkMode ? 'transparent' : 'rgba(228, 230, 235, 0.5)',
+                    }
+                  ]}>
+                    <TextInput
+                      style={[styles.whatsappInput, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}
+                      placeholder="Message..."
+                      placeholderTextColor={isDarkMode ? '#8696A0' : '#667781'}
+                      value={discussionMessage}
+                      onChangeText={setDiscussionMessage}
+                      multiline
+                      maxLength={1000}
+                      selectionColor={premiumColors.primary.main}
+                    />
+                    <TouchableOpacity
+                      style={styles.whatsappEmojiBtn}
+                      onPress={() => setShowEmojiPicker(!showEmojiPicker)}
+                    >
+                      <Ionicons
+                        name={showEmojiPicker ? "happy" : "happy-outline"}
+                        size={24}
+                        color={isDarkMode ? '#8696A0' : '#54656F'}
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Mic/Send Button */}
+                  {discussionMessage.trim() || selectedImage || selectedDocument ? (
+                    <TouchableOpacity
+                      style={[styles.whatsappMicBtn, { backgroundColor: premiumColors.primary.main }]}
+                      onPress={handleSendMessage}
+                      disabled={sendingMessage}
+                    >
+                      {sendingMessage ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Ionicons name="send" size={22} color="#FFFFFF" />
+                      )}
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.whatsappMicBtn, { backgroundColor: isRecording ? '#FF3B30' : premiumColors.primary.main }]}
+                      onPress={isRecording ? sendVoiceMessage : startRecording}
+                      onLongPress={startRecording}
+                    >
+                      <Animated.View style={{ transform: [{ scale: isRecording ? recordingAnimRef : 1 }] }}>
+                        <Ionicons
+                          name={isRecording ? "stop" : "mic"}
+                          size={22}
+                          color="#FFFFFF"
+                        />
+                      </Animated.View>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
-                {/* Mic/Send Button */}
-                {discussionMessage.trim() || selectedImage || selectedDocument ? (
-                  <TouchableOpacity
-                    style={[styles.whatsappMicBtn, { backgroundColor: '#00A884' }]}
-                    onPress={handleSendMessage}
-                    disabled={sendingMessage}
-                  >
-                    {sendingMessage ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Ionicons name="send" size={22} color="#FFFFFF" />
-                    )}
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    style={[styles.whatsappMicBtn, { backgroundColor: isRecording ? '#FF3B30' : '#00A884' }]}
-                    onPress={isRecording ? sendVoiceMessage : startRecording}
-                    onLongPress={startRecording}
-                  >
-                    <Animated.View style={{ transform: [{ scale: isRecording ? recordingAnimRef : 1 }] }}>
-                      <Ionicons
-                        name={isRecording ? "stop" : "mic"}
-                        size={22}
-                        color="#FFFFFF"
-                      />
-                    </Animated.View>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {isRecording && (
-                <View style={styles.recordingOverlay}>
-                  <LinearGradient
-                    colors={['rgba(255,59,48,0.95)', 'rgba(255,45,85,0.95)']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.recordingOverlayGradient}
-                  >
-
-                    <TouchableOpacity
-                      style={styles.recordingCancelBtn}
-                      onPress={cancelRecording}
+                {isRecording && (
+                  <View style={styles.recordingOverlay}>
+                    <LinearGradient
+                      colors={['rgba(255,59,48,0.95)', 'rgba(255,45,85,0.95)']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.recordingOverlayGradient}
                     >
-                      <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
-                    </TouchableOpacity>
 
-                    <View style={styles.recordingCenter}>
+                      <TouchableOpacity
+                        style={styles.recordingCancelBtn}
+                        onPress={cancelRecording}
+                      >
+                        <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+                      </TouchableOpacity>
 
-                      <View style={styles.recordingWaveform}>
-                        {[...Array(12)].map((_, i) => (
-                          <Animated.View
-                            key={i}
-                            style={[
-                              styles.recordingWaveBar,
-                              {
-                                height: Math.sin((i + recordingDuration) * 0.5) * 12 + 8,
-                                opacity: 0.6 + Math.sin((i + recordingDuration * 2) * 0.3) * 0.4,
-                              }
-                            ]}
-                          />
-                        ))}
-                      </View>
+                      <View style={styles.recordingCenter}>
 
-                      <View style={styles.recordingTimerContainer}>
-                        <Animated.View style={[
-                          styles.recordingPulseDot,
-                          { transform: [{ scale: recordingAnimRef }] }
-                        ]} />
-                        <Text style={styles.recordingTimer}>
-                          {formatDuration(recordingDuration)}
+                        <View style={styles.recordingWaveform}>
+                          {[...Array(12)].map((_, i) => (
+                            <Animated.View
+                              key={i}
+                              style={[
+                                styles.recordingWaveBar,
+                                {
+                                  height: Math.sin((i + recordingDuration) * 0.5) * 12 + 8,
+                                  opacity: 0.6 + Math.sin((i + recordingDuration * 2) * 0.3) * 0.4,
+                                }
+                              ]}
+                            />
+                          ))}
+                        </View>
+
+                        <View style={styles.recordingTimerContainer}>
+                          <Animated.View style={[
+                            styles.recordingPulseDot,
+                            { transform: [{ scale: recordingAnimRef }] }
+                          ]} />
+                          <Text style={styles.recordingTimer}>
+                            {formatDuration(recordingDuration)}
+                          </Text>
+                        </View>
+
+                        <Text style={styles.recordingHint}>
+                          Tap send to finish
                         </Text>
                       </View>
 
-                      <Text style={styles.recordingHint}>
-                        Tap send to finish
-                      </Text>
-                    </View>
+                      <TouchableOpacity
+                        style={styles.recordingSendBtn}
+                        onPress={sendVoiceMessage}
+                      >
+                        <View style={styles.recordingSendBtnInner}>
+                          <Ionicons name="arrow-up" size={22} color="#FF3B30" />
+                        </View>
+                      </TouchableOpacity>
+                    </LinearGradient>
+                  </View>
+                )}
 
-                    <TouchableOpacity
-                      style={styles.recordingSendBtn}
-                      onPress={sendVoiceMessage}
-                    >
-                      <View style={styles.recordingSendBtnInner}>
-                        <Ionicons name="arrow-up" size={22} color="#FF3B30" />
-                      </View>
+                {showAttachmentMenu && (
+                  <Animated.View
+                    style={[
+                      styles.attachmentMenu,
+                      {
+                        backgroundColor: colors.card,
+                        borderTopColor: colors.border,
+                        opacity: attachmentMenuAnim,
+                        transform: [{
+                          translateY: attachmentMenuAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [50, 0],
+                          }),
+                        }],
+                      },
+                    ]}
+                  >
+                    <TouchableOpacity style={styles.attachmentOption} onPress={pickImage}>
+                      <LinearGradient
+                        colors={['#9C27B0', '#7B1FA2']}
+                        style={styles.attachmentIconGradient}
+                      >
+                        <Ionicons name="images" size={24} color="#FFFFFF" />
+                      </LinearGradient>
+                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Gallery</Text>
                     </TouchableOpacity>
-                  </LinearGradient>
-                </View>
-              )}
 
-              {showAttachmentMenu && (
-                <Animated.View
-                  style={[
-                    styles.attachmentMenu,
-                    {
-                      backgroundColor: colors.card,
-                      borderTopColor: colors.border,
-                      opacity: attachmentMenuAnim,
-                      transform: [{
-                        translateY: attachmentMenuAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [50, 0],
-                        }),
-                      }],
-                    },
-                  ]}
+                    <TouchableOpacity style={styles.attachmentOption} onPress={takePhoto}>
+                      <LinearGradient
+                        colors={['#E91E63', '#C2185B']}
+                        style={styles.attachmentIconGradient}
+                      >
+                        <Ionicons name="camera" size={24} color="#FFFFFF" />
+                      </LinearGradient>
+                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Camera</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.attachmentOption} onPress={pickDocument}>
+                      <LinearGradient
+                        colors={['#3F51B5', '#303F9F']}
+                        style={styles.attachmentIconGradient}
+                      >
+                        <Ionicons name="document" size={24} color="#FFFFFF" />
+                      </LinearGradient>
+                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Document</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.attachmentOption}>
+                      <LinearGradient
+                        colors={['#00BCD4', '#0097A7']}
+                        style={styles.attachmentIconGradient}
+                      >
+                        <Ionicons name="link" size={24} color="#FFFFFF" />
+                      </LinearGradient>
+                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Link</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.attachmentOption} onPress={() => { setShowAttachmentMenu(false); startRecording(); }}>
+                      <LinearGradient
+                        colors={['#FF5722', '#E64A19']}
+                        style={styles.attachmentIconGradient}
+                      >
+                        <Ionicons name="mic" size={24} color="#FFFFFF" />
+                      </LinearGradient>
+                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Voice</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.attachmentOption}>
+                      <LinearGradient
+                        colors={['#4CAF50', '#388E3C']}
+                        style={styles.attachmentIconGradient}
+                      >
+                        <Ionicons name="location" size={24} color="#FFFFFF" />
+                      </LinearGradient>
+                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Location</Text>
+                    </TouchableOpacity>
+                  </Animated.View>
+                )}
+
+                {showEmojiPicker && (
+                  <EmojiPicker
+                    colors={colors}
+                    onSelectEmoji={insertEmoji}
+                    onClose={() => setShowEmojiPicker(false)}
+                  />
+                )}
+              </>
+            ) : (
+              <View style={[
+                styles.whatsappJoinPrompt,
+                {
+                  backgroundColor: isDarkMode ? '#182229' : '#FFFFFF',
+                  paddingBottom: Math.max(insets.bottom, 8) + 16,
+                }
+              ]}>
+                <Text style={[styles.whatsappJoinText, { color: isDarkMode ? '#8696A0' : '#667781' }]}>
+                  Join this group to participate in the discussion
+                </Text>
+                <TouchableOpacity
+                  style={styles.whatsappJoinBtn}
+                  onPress={handleJoin}
                 >
-                  <TouchableOpacity style={styles.attachmentOption} onPress={pickImage}>
-                    <LinearGradient
-                      colors={['#9C27B0', '#7B1FA2']}
-                      style={styles.attachmentIconGradient}
-                    >
-                      <Ionicons name="images" size={24} color="#FFFFFF" />
-                    </LinearGradient>
-                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Gallery</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.attachmentOption} onPress={takePhoto}>
-                    <LinearGradient
-                      colors={['#E91E63', '#C2185B']}
-                      style={styles.attachmentIconGradient}
-                    >
-                      <Ionicons name="camera" size={24} color="#FFFFFF" />
-                    </LinearGradient>
-                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Camera</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.attachmentOption} onPress={pickDocument}>
-                    <LinearGradient
-                      colors={['#3F51B5', '#303F9F']}
-                      style={styles.attachmentIconGradient}
-                    >
-                      <Ionicons name="document" size={24} color="#FFFFFF" />
-                    </LinearGradient>
-                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Document</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.attachmentOption}>
-                    <LinearGradient
-                      colors={['#00BCD4', '#0097A7']}
-                      style={styles.attachmentIconGradient}
-                    >
-                      <Ionicons name="link" size={24} color="#FFFFFF" />
-                    </LinearGradient>
-                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Link</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.attachmentOption} onPress={() => { setShowAttachmentMenu(false); startRecording(); }}>
-                    <LinearGradient
-                      colors={['#FF5722', '#E64A19']}
-                      style={styles.attachmentIconGradient}
-                    >
-                      <Ionicons name="mic" size={24} color="#FFFFFF" />
-                    </LinearGradient>
-                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Voice</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.attachmentOption}>
-                    <LinearGradient
-                      colors={['#4CAF50', '#388E3C']}
-                      style={styles.attachmentIconGradient}
-                    >
-                      <Ionicons name="location" size={24} color="#FFFFFF" />
-                    </LinearGradient>
-                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Location</Text>
-                  </TouchableOpacity>
-                </Animated.View>
-              )}
-
-              {showEmojiPicker && (
-                <EmojiPicker
-                  colors={colors}
-                  onSelectEmoji={insertEmoji}
-                  onClose={() => setShowEmojiPicker(false)}
-                />
-              )}
-            </>
-          ) : (
-            <View style={[
-              styles.whatsappJoinPrompt,
-              {
-                backgroundColor: isDarkMode ? '#182229' : '#FFFFFF',
-                paddingBottom: Math.max(insets.bottom, 8) + 16,
-              }
-            ]}>
-              <Text style={[styles.whatsappJoinText, { color: isDarkMode ? '#8696A0' : '#667781' }]}>
-                Join this group to participate in the discussion
-              </Text>
-              <TouchableOpacity
-                style={styles.whatsappJoinBtn}
-                onPress={handleJoin}
-              >
-                <Text style={styles.whatsappJoinBtnText}>Join Group</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+                  <Text style={styles.whatsappJoinBtnText}>Join Group</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </KeyboardAvoidingView>
 
         <Modal
@@ -6543,7 +6543,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   whatsappJoinBtn: {
-    backgroundColor: '#00A884',
+    backgroundColor: premiumColors.primary.main,
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 20,
