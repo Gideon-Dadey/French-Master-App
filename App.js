@@ -68,6 +68,7 @@ import CoursePaymentScreen from './screens/CoursePaymentScreen';
 import ManageSampleVideosScreen from './screens/ManageSampleVideosScreen';
 import CreatePostScreen from './screens/CreatePostScreen';
 import WordOfTheDayScreen from './screens/WordOfTheDayScreen';
+import ConversationSimulatorScreen from './screens/ConversationSimulatorScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -357,6 +358,13 @@ function AppNavigator() {
         <Stack.Screen
           name="WordOfTheDay"
           component={WordOfTheDayScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="ConversationSimulator"
+          component={ConversationSimulatorScreen}
           options={{
             headerShown: false,
           }}

@@ -371,6 +371,46 @@ export default function LearnerHomeScreen({ navigation }) {
                         </TouchableOpacity>
                     </Animated.View>
 
+                    {/* Immersion Mode Feature Card */}
+                    <Animated.View style={[
+                        styles.section,
+                        {
+                            opacity: cardAnims[2], // Using index 2, ensure cardAnims is large enough (it is 8)
+                            transform: [{ translateY: cardAnims[2].interpolate({ inputRange: [0, 1], outputRange: [30, 0] }) }],
+                        },
+                    ]}>
+                        <TouchableOpacity
+                            style={[styles.immersionCard, themeShadows.md]}
+                            onPress={() => navigation.navigate('ConversationSimulator')}
+                            activeOpacity={0.9}
+                        >
+                            <LinearGradient
+                                colors={['#6366F1', '#8B5CF6']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 1 }}
+                                style={styles.immersionGradient}
+                            >
+                                <View style={styles.immersionContent}>
+                                    <View style={styles.immersionIconContainer}>
+                                        <Ionicons name="chatbubbles" size={32} color="#FFF" />
+                                    </View>
+                                    <View style={styles.immersionTextContainer}>
+                                        <View style={styles.immersionHeaderRow}>
+                                            <Text style={styles.immersionTitle}>Immersion Mode</Text>
+                                            <View style={styles.newBadge}>
+                                                <Text style={styles.newBadgeText}>NEW</Text>
+                                            </View>
+                                        </View>
+                                        <Text style={styles.immersionDesc}>Practice real-world conversations in simulated scenarios.</Text>
+                                    </View>
+                                    <View style={styles.immersionArrowInfo}>
+                                        <Ionicons name="chevron-forward-circle" size={32} color="rgba(255,255,255,0.9)" />
+                                    </View>
+                                </View>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </Animated.View>
+
                     {/* Daily Missions */}
                     <Animated.View style={[
                         styles.section,
@@ -795,6 +835,62 @@ const styles = StyleSheet.create({
         padding: 2,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    // Immersion Card Styles
+    immersionCard: {
+        borderRadius: 20,
+        overflow: 'hidden',
+        minHeight: 110,
+    },
+    immersionGradient: {
+        flex: 1,
+        padding: 20,
+    },
+    immersionContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+    },
+    immersionIconContainer: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    immersionTextContainer: {
+        flex: 1,
+    },
+    immersionHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4,
+    },
+    immersionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#FFF',
+    },
+    newBadge: {
+        backgroundColor: '#FFD700',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+    },
+    newBadgeText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#000',
+    },
+    immersionDesc: {
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.85)',
+        lineHeight: 18,
+    },
+    immersionArrowInfo: {
+        justifyContent: 'center',
     },
     logoInner: {
         width: 50,

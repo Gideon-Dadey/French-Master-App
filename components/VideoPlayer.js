@@ -15,11 +15,11 @@ import * as FileSystem from 'expo-file-system';
 
 const { width } = Dimensions.get('window');
 
-export default function VideoPlayer({ 
-  source, 
-  thumbnail, 
-  style, 
-  onProgress, 
+export default function VideoPlayer({
+  source,
+  thumbnail,
+  style,
+  onProgress,
   downloadable = false,
   autoPlay = false,
 }) {
@@ -31,14 +31,14 @@ export default function VideoPlayer({
 
   const handlePlaybackStatusUpdate = (playbackStatus) => {
     setStatus(playbackStatus);
-    
+
     if (playbackStatus.isLoaded) {
       setLoading(false);
       if (onProgress && playbackStatus.positionMillis) {
         onProgress(playbackStatus.positionMillis / 1000);
       }
     }
-    
+
     if (playbackStatus.error) {
       setError('Failed to load video');
       setLoading(false);
@@ -54,13 +54,13 @@ export default function VideoPlayer({
 
   const handleDownload = async () => {
     if (!downloadable || !source?.uri) return;
-    
+
     try {
       const fileName = source.uri.split('/').pop() || 'video.mp4';
       const fileUri = FileSystem.documentDirectory + fileName;
-      
+
       Alert.alert('Download', 'Video download started');
-      
+
       const downloadResumable = FileSystem.createDownloadResumable(
         source.uri,
         fileUri,
@@ -70,7 +70,7 @@ export default function VideoPlayer({
           console.log('Download progress:', Math.round(progress * 100) + '%');
         }
       );
-      
+
       const result = await downloadResumable.downloadAsync();
       if (result?.uri) {
         Alert.alert('Success', 'Video downloaded successfully!');
@@ -86,7 +86,7 @@ export default function VideoPlayer({
       <View style={[styles.container, styles.errorContainer, style]}>
         <Ionicons name="alert-circle" size={48} color="#ef4444" />
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.retryButton}
           onPress={() => {
             setError(null);
@@ -103,12 +103,12 @@ export default function VideoPlayer({
     <View style={[styles.container, style]}>
       {/* Thumbnail overlay */}
       {showThumbnail && thumbnail && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.thumbnailContainer}
           onPress={handlePlay}
           activeOpacity={0.9}
         >
-          <Image 
+          <Image
             source={typeof thumbnail === 'string' ? { uri: thumbnail } : thumbnail}
             style={styles.thumbnail}
           />
