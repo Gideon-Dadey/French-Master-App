@@ -2976,84 +2976,89 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </View>
                 )}
 
+                {/* Telegram-style Input Container */}
                 <View style={[
-                  styles.whatsappInputContainer,
+                  styles.telegramInputContainer,
                   {
                     backgroundColor: 'transparent',
-                    paddingBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 8),
+                    paddingBottom: keyboardVisible ? 4 : Math.max(insets.bottom, 8),
                   }
                 ]}>
-                  {/* Plus/Add Button */}
-                  <TouchableOpacity
-                    style={styles.whatsappAddBtn}
-                    onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                  >
-                    <Ionicons
-                      name={showAttachmentMenu ? 'close' : 'add'}
-                      size={28}
-                      color={isDarkMode ? '#8696A0' : '#54656F'}
-                    />
-                  </TouchableOpacity>
-
-                  {/* Message Input with Emoji */}
+                  {/* Main Input Pill */}
                   <View style={[
-                    styles.whatsappInputWrapper,
+                    styles.telegramInputPill,
                     {
-                      backgroundColor: isDarkMode ? 'rgba(31, 44, 52, 0.92)' : 'rgba(255, 255, 255, 0.92)',
-                      borderWidth: isDarkMode ? 0 : 1,
-                      borderColor: isDarkMode ? 'transparent' : 'rgba(228, 230, 235, 0.5)',
+                      backgroundColor: isDarkMode ? '#17212B' : '#FFFFFF',
+                      borderWidth: 1,
+                      borderColor: isDarkMode ? '#2B3945' : '#E8E8E8',
                     }
                   ]}>
-                    <TextInput
-                      style={[styles.whatsappInput, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}
-                      placeholder="Message..."
-                      placeholderTextColor={isDarkMode ? '#8696A0' : '#667781'}
-                      value={discussionMessage}
-                      onChangeText={setDiscussionMessage}
-                      multiline
-                      maxLength={1000}
-                      selectionColor={premiumColors.primary.main}
-                    />
+                    {/* Emoji Button - Left Side */}
                     <TouchableOpacity
-                      style={styles.whatsappEmojiBtn}
+                      style={styles.telegramEmojiBtn}
                       onPress={() => setShowEmojiPicker(!showEmojiPicker)}
                     >
                       <Ionicons
                         name={showEmojiPicker ? "happy" : "happy-outline"}
-                        size={24}
-                        color={isDarkMode ? '#8696A0' : '#54656F'}
+                        size={26}
+                        color={isDarkMode ? '#6C7883' : '#8E8E93'}
                       />
                     </TouchableOpacity>
-                  </View>
 
-                  {/* Mic/Send Button */}
-                  {discussionMessage.trim() || selectedImage || selectedDocument ? (
+                    {/* Text Input */}
+                    <TextInput
+                      style={[styles.telegramInput, { color: isDarkMode ? '#F5F5F5' : '#000000' }]}
+                      placeholder="Message"
+                      placeholderTextColor={isDarkMode ? '#6C7883' : '#8E8E93'}
+                      value={discussionMessage}
+                      onChangeText={setDiscussionMessage}
+                      multiline
+                      maxLength={1000}
+                      selectionColor="#3390EC"
+                    />
+
+                    {/* Attachment Button */}
                     <TouchableOpacity
-                      style={[styles.whatsappMicBtn, { backgroundColor: premiumColors.primary.main }]}
-                      onPress={handleSendMessage}
-                      disabled={sendingMessage}
+                      style={styles.telegramAttachBtn}
+                      onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
                     >
-                      {sendingMessage ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Ionicons name="send" size={22} color="#FFFFFF" />
-                      )}
+                      <Ionicons
+                        name="attach"
+                        size={26}
+                        color={isDarkMode ? '#6C7883' : '#8E8E93'}
+                        style={{ transform: [{ rotate: '-45deg' }] }}
+                      />
                     </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[styles.whatsappMicBtn, { backgroundColor: isRecording ? '#FF3B30' : premiumColors.primary.main }]}
-                      onPress={isRecording ? sendVoiceMessage : startRecording}
-                      onLongPress={startRecording}
-                    >
-                      <Animated.View style={{ transform: [{ scale: isRecording ? recordingAnimRef : 1 }] }}>
-                        <Ionicons
-                          name={isRecording ? "stop" : "mic"}
-                          size={22}
-                          color="#FFFFFF"
-                        />
-                      </Animated.View>
-                    </TouchableOpacity>
-                  )}
+
+                    {/* Mic/Send Button - Inside Pill */}
+                    {discussionMessage.trim() || selectedImage || selectedDocument ? (
+                      <TouchableOpacity
+                        style={styles.telegramSendBtn}
+                        onPress={handleSendMessage}
+                        disabled={sendingMessage}
+                      >
+                        {sendingMessage ? (
+                          <ActivityIndicator size="small" color="#3390EC" />
+                        ) : (
+                          <Ionicons name="send" size={24} color="#3390EC" />
+                        )}
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.telegramMicBtn}
+                        onPress={isRecording ? sendVoiceMessage : startRecording}
+                        onLongPress={startRecording}
+                      >
+                        <Animated.View style={{ transform: [{ scale: isRecording ? recordingAnimRef : 1 }] }}>
+                          <Ionicons
+                            name={isRecording ? "stop" : "mic-outline"}
+                            size={26}
+                            color={isRecording ? '#FF3B30' : (isDarkMode ? '#6C7883' : '#8E8E93')}
+                          />
+                        </Animated.View>
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
 
                 {isRecording && (
@@ -6496,7 +6501,59 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // WhatsApp Input Container
+  // Telegram-style Input Container
+  telegramInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  telegramInputPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 22,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    minHeight: 44,
+    maxHeight: 120,
+  },
+  telegramEmojiBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  telegramInput: {
+    flex: 1,
+    fontSize: 17,
+    lineHeight: 22,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    maxHeight: 100,
+    textAlignVertical: 'center',
+  },
+  telegramAttachBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  telegramMicBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  telegramSendBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Legacy WhatsApp styles (kept for compatibility)
   whatsappInputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
