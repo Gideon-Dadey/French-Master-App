@@ -10,8 +10,8 @@ import {
   Animated,
   Image,
   Platform,
-  StatusBar,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
@@ -90,6 +90,14 @@ export default function PracticeScreen({ navigation }) {
       icon: 'headset-outline',
       color: theme.accent,
       onPress: () => navigation.navigate('ListeningPractice'),
+    },
+    {
+      id: 'writing',
+      title: 'Writing',
+      subtitle: 'Expression',
+      icon: 'create-outline',
+      color: theme.secondary,
+      onPress: () => navigation.navigate('WritingPractice'),
     },
   ];
 
@@ -183,7 +191,7 @@ export default function PracticeScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
 
       <BackgroundBlur style={{ top: -100, left: -50 }} color={theme.secondary} size={400} />
       <BackgroundBlur style={{ bottom: 100, right: -100 }} color={theme.primary} size={350} />

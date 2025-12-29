@@ -8,10 +8,10 @@ import {
   Animated,
   Dimensions,
   Platform,
-  StatusBar,
   Easing,
   Vibration,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
@@ -723,7 +723,7 @@ export default function GrammarDrillsScreen({ navigation }) {
   if (!selectedCategory) {
     return (
       <View style={[styles.container, { backgroundColor: isDarkMode ? '#0A0A0F' : '#F0F9FF' }]}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar style="light" />
 
         <LinearGradient
           colors={isDarkMode ? ['#0C4A6E', '#0F172A', '#020617'] : ['#0EA5E9', '#0284C7', '#0369A1']}
@@ -1096,7 +1096,7 @@ export default function GrammarDrillsScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar style="light" />
 
       <LinearGradient
         colors={categoryInfo?.gradient || ['#0EA5E9', '#0284C7']}
@@ -1128,10 +1128,12 @@ export default function GrammarDrillsScreen({ navigation }) {
             <Animated.View
               style={[
                 styles.progressBarFill,
-                { width: progressAnim.interpolate({
-                  inputRange: [0, 100],
-                  outputRange: ['0%', '100%'],
-                }) }
+                {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 100],
+                    outputRange: ['0%', '100%'],
+                  })
+                }
               ]}
             />
           </View>

@@ -11,14 +11,26 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
-import { spacing, fontSize } from '../src/utils/responsive';
-import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
+import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+const BackgroundBlur = ({ style, color, size = 300 }) => (
+  <View style={[style, {
+    position: 'absolute',
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor: color,
+    opacity: 0.05,
+    transform: [{ scale: 1.5 }],
+  }]} />
+);
 
 const WRITING_EXERCISES = [
   {
@@ -124,7 +136,8 @@ const WRITING_EXERCISES = [
 ];
 
 export default function WritingPracticeScreen({ navigation }) {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode } = useTheme();
+  const theme = getThemeColors(isDarkMode);
   const { awardXP } = useGamification();
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [userWriting, setUserWriting] = useState('');
@@ -227,9 +240,11 @@ export default function WritingPracticeScreen({ navigation }) {
     const completionRate = (submissions.length / WRITING_EXERCISES.length) * 100;
 
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <BackgroundBlur style={{ top: -100, left: -50 }} color={theme.secondary} size={400} />
+
         <LinearGradient
-          colors={[premiumColors.accent.gold, premiumColors.accent.gold + 'DD']}
+          colors={[theme.primary, theme.primaryLight]}
           style={styles.resultHeader}
         >
           <View style={styles.resultIconContainer}>
@@ -250,41 +265,41 @@ export default function WritingPracticeScreen({ navigation }) {
           <View
             style={[
               styles.statsCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-              premiumShadows.lg,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              themeShadows.lg,
             ]}
           >
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
-                <View style={[styles.statIcon, { backgroundColor: premiumColors.accent.gold + '20' }]}>
-                  <Ionicons name="create" size={24} color={premiumColors.accent.gold} />
+                <View style={[styles.statIcon, { backgroundColor: theme.secondary + '20' }]}>
+                  <Ionicons name="create" size={24} color={theme.secondary} />
                 </View>
-                <Text style={[styles.statValue, { color: colors.text }]}>
+                <Text style={[styles.statValue, { color: theme.text }]}>
                   {submissions.length}
                 </Text>
-                <Text style={[styles.statLabel, { color: colors.secondaryText }]}>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
                   Completed
                 </Text>
               </View>
               <View style={styles.statItem}>
-                <View style={[styles.statIcon, { backgroundColor: premiumColors.accent.emerald + '20' }]}>
-                  <Ionicons name="checkmark-circle" size={24} color={premiumColors.accent.emerald} />
+                <View style={[styles.statIcon, { backgroundColor: theme.success + '20' }]}>
+                  <Ionicons name="checkmark-circle" size={24} color={theme.success} />
                 </View>
-                <Text style={[styles.statValue, { color: colors.text }]}>
+                <Text style={[styles.statValue, { color: theme.text }]}>
                   {completionRate.toFixed(0)}%
                 </Text>
-                <Text style={[styles.statLabel, { color: colors.secondaryText }]}>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
                   Completion
                 </Text>
               </View>
               <View style={styles.statItem}>
-                <View style={[styles.statIcon, { backgroundColor: premiumColors.info + '20' }]}>
-                  <Ionicons name="time" size={24} color={premiumColors.info} />
+                <View style={[styles.statIcon, { backgroundColor: theme.info + '20' }]}>
+                  <Ionicons name="time" size={24} color={theme.info} />
                 </View>
-                <Text style={[styles.statValue, { color: colors.text }]}>
+                <Text style={[styles.statValue, { color: theme.text }]}>
                   {formatTime(timeElapsed)}
                 </Text>
-                <Text style={[styles.statLabel, { color: colors.secondaryText }]}>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
                   Time
                 </Text>
               </View>
@@ -294,8 +309,8 @@ export default function WritingPracticeScreen({ navigation }) {
           <View
             style={[
               styles.performanceCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-              premiumShadows.md,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              themeShadows.md,
             ]}
           >
             <View
@@ -304,10 +319,10 @@ export default function WritingPracticeScreen({ navigation }) {
                 {
                   backgroundColor:
                     completionRate >= 80
-                      ? premiumColors.accent.emerald + '20'
+                      ? theme.success + '20'
                       : completionRate >= 60
-                      ? premiumColors.accent.gold + '20'
-                      : premiumColors.accent.rose + '20',
+                        ? theme.secondary + '20'
+                        : theme.error + '20',
                 },
               ]}
             >
@@ -316,37 +331,37 @@ export default function WritingPracticeScreen({ navigation }) {
                   completionRate >= 80
                     ? 'star'
                     : completionRate >= 60
-                    ? 'checkmark-circle'
-                    : 'alert-circle'
+                      ? 'checkmark-circle'
+                      : 'alert-circle'
                 }
                 size={32}
                 color={
                   completionRate >= 80
-                    ? premiumColors.accent.emerald
+                    ? theme.success
                     : completionRate >= 60
-                    ? premiumColors.accent.gold
-                    : premiumColors.accent.rose
+                      ? theme.secondary
+                      : theme.error
                 }
               />
             </View>
-            <Text style={[styles.performanceTitle, { color: colors.text }]}>
+            <Text style={[styles.performanceTitle, { color: theme.text }]}>
               {completionRate >= 80
                 ? 'Writing Expert!'
                 : completionRate >= 60
-                ? 'Well Done!'
-                : 'Keep Practicing!'}
+                  ? 'Well Done!'
+                  : 'Keep Practicing!'}
             </Text>
-            <Text style={[styles.performanceText, { color: colors.secondaryText }]}>
+            <Text style={[styles.performanceText, { color: theme.textSecondary }]}>
               {completionRate >= 80
                 ? 'You\'ve completed most writing exercises! Keep practicing to improve.'
                 : completionRate >= 60
-                ? 'You\'re making good progress with French writing.'
-                : 'Continue practicing to improve your writing skills.'}
+                  ? 'You\'re making good progress with French writing.'
+                  : 'Continue practicing to improve your writing skills.'}
             </Text>
           </View>
 
           <View style={styles.reviewSection}>
-            <Text style={[styles.reviewTitle, { color: colors.text }]}>
+            <Text style={[styles.reviewTitle, { color: theme.text }]}>
               Your Writing Exercises
             </Text>
             {WRITING_EXERCISES.map((exercise, index) => {
@@ -358,12 +373,12 @@ export default function WritingPracticeScreen({ navigation }) {
                   style={[
                     styles.reviewItem,
                     {
-                      backgroundColor: colors.card,
+                      backgroundColor: theme.surface,
                       borderColor: submission
-                        ? premiumColors.accent.emerald
-                        : colors.border,
+                        ? theme.success
+                        : theme.border,
                     },
-                    premiumShadows.sm,
+                    themeShadows.sm,
                   ]}
                 >
                   <View style={styles.reviewItemHeader}>
@@ -372,32 +387,32 @@ export default function WritingPracticeScreen({ navigation }) {
                         styles.reviewIcon,
                         {
                           backgroundColor: submission
-                            ? premiumColors.accent.emerald + '20'
-                            : colors.border + '20',
+                            ? theme.success + '20'
+                            : theme.border + '20',
                         },
                       ]}
                     >
                       <Ionicons
                         name={submission ? 'checkmark-circle' : 'ellipse-outline'}
                         size={24}
-                        color={submission ? premiumColors.accent.emerald : colors.secondaryText}
+                        color={submission ? theme.success : theme.textSecondary}
                       />
                     </View>
                     <View style={styles.reviewQuestionContainer}>
-                      <Text style={[styles.reviewCategory, { color: premiumColors.accent.gold }]}>
+                      <Text style={[styles.reviewCategory, { color: theme.secondary }]}>
                         {exercise.category}
                       </Text>
-                      <Text style={[styles.reviewQuestion, { color: colors.text }]}>
+                      <Text style={[styles.reviewQuestion, { color: theme.text }]}>
                         {exercise.prompt}
                       </Text>
                     </View>
                   </View>
                   {submission && (
-                    <View style={styles.submissionContainer}>
-                      <Text style={[styles.submissionLabel, { color: colors.secondaryText }]}>
+                    <View style={[styles.submissionContainer, { borderTopColor: theme.border }]}>
+                      <Text style={[styles.submissionLabel, { color: theme.textSecondary }]}>
                         Your writing ({submission.wordCount} words):
                       </Text>
-                      <Text style={[styles.submissionText, { color: colors.text }]}>
+                      <Text style={[styles.submissionText, { color: theme.text }]}>
                         {submission.text}
                       </Text>
                     </View>
@@ -409,16 +424,16 @@ export default function WritingPracticeScreen({ navigation }) {
 
           <View style={styles.actionButtons}>
             <TouchableOpacity
-              style={[styles.actionButton, styles.restartButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+              style={[styles.actionButton, styles.restartButton, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={handleRestart}
             >
-              <Ionicons name="refresh" size={20} color={premiumColors.accent.gold} />
-              <Text style={[styles.actionButtonText, { color: premiumColors.accent.gold }]}>
+              <Ionicons name="refresh" size={20} color={theme.secondary} />
+              <Text style={[styles.actionButtonText, { color: theme.secondary }]}>
                 Practice Again
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.actionButton, styles.continueButton, { backgroundColor: premiumColors.accent.gold }]}
+              style={[styles.actionButton, styles.continueButton, { backgroundColor: theme.primary }]}
               onPress={() => navigation.goBack()}
             >
               <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
@@ -434,17 +449,15 @@ export default function WritingPracticeScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
+      style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+      <BackgroundBlur style={{ top: -50, right: -100 }} color={theme.primary} size={300} />
 
       <LinearGradient
-        colors={
-          isDarkMode
-            ? ['#1a0a2e', '#16213e', '#0f3460']
-            : ['#E8EAF6', '#F3E5F5', '#E1BEE7']
-        }
+        colors={[theme.primary, theme.primaryDark]}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -452,19 +465,19 @@ export default function WritingPracticeScreen({ navigation }) {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#BB86FC' : '#9C27B0'} />
+            <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={[styles.headerTitle, { color: isDarkMode ? '#BB86FC' : '#9C27B0' }]}>
+            <Text style={styles.headerTitle}>
               Writing Practice
             </Text>
-            <Text style={[styles.headerSubtitle, { color: isDarkMode ? '#FFFFFF' : '#424242' }]}>
-              Improve your French writing
+            <Text style={styles.headerSubtitle}>
+              Improve your French expression
             </Text>
           </View>
           <View style={styles.timerContainer}>
-            <Ionicons name="time-outline" size={20} color={isDarkMode ? '#BB86FC' : '#9C27B0'} />
-            <Text style={[styles.timerText, { color: isDarkMode ? '#FFFFFF' : '#424242' }]}>
+            <Ionicons name="time-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.timerText}>
               {formatTime(timeElapsed)}
             </Text>
           </View>
@@ -472,18 +485,18 @@ export default function WritingPracticeScreen({ navigation }) {
       </LinearGradient>
 
       <View style={styles.progressContainer}>
-        <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
+        <View style={[styles.progressBar, { backgroundColor: theme.border }]}>
           <Animated.View
             style={[
               styles.progressFill,
               {
                 width: `${progress}%`,
-                backgroundColor: premiumColors.accent.gold,
+                backgroundColor: theme.secondary,
               },
             ]}
           />
         </View>
-        <Text style={[styles.progressText, { color: colors.secondaryText }]}>
+        <Text style={[styles.progressText, { color: theme.textSecondary }]}>
           Exercise {currentExerciseIndex + 1} of {WRITING_EXERCISES.length}
         </Text>
       </View>
@@ -497,8 +510,8 @@ export default function WritingPracticeScreen({ navigation }) {
         <Animated.View
           style={[
             styles.exerciseCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
-            premiumShadows.lg,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+            themeShadows.lg,
             { transform: [{ scale: scaleAnim }] },
           ]}
         >
@@ -506,11 +519,11 @@ export default function WritingPracticeScreen({ navigation }) {
             <View
               style={[
                 styles.categoryBadge,
-                { backgroundColor: premiumColors.accent.gold + '20' },
+                { backgroundColor: theme.secondary + '15' },
               ]}
             >
-              <Ionicons name="create" size={16} color={premiumColors.accent.gold} />
-              <Text style={[styles.categoryText, { color: premiumColors.accent.gold }]}>
+              <Ionicons name="create" size={16} color={theme.secondary} />
+              <Text style={[styles.categoryText, { color: theme.secondary }]}>
                 {currentExercise.category}
               </Text>
             </View>
@@ -520,10 +533,10 @@ export default function WritingPracticeScreen({ navigation }) {
                 {
                   backgroundColor:
                     currentExercise.difficulty === 'beginner'
-                      ? premiumColors.accent.emerald + '20'
+                      ? theme.success + '15'
                       : currentExercise.difficulty === 'intermediate'
-                      ? premiumColors.accent.gold + '20'
-                      : premiumColors.accent.rose + '20',
+                        ? theme.secondary + '15'
+                        : theme.error + '15',
                 },
               ]}
             >
@@ -533,10 +546,10 @@ export default function WritingPracticeScreen({ navigation }) {
                   {
                     color:
                       currentExercise.difficulty === 'beginner'
-                        ? premiumColors.accent.emerald
+                        ? theme.success
                         : currentExercise.difficulty === 'intermediate'
-                        ? premiumColors.accent.gold
-                        : premiumColors.accent.rose,
+                          ? theme.secondary
+                          : theme.error,
                   },
                 ]}
               >
@@ -545,15 +558,15 @@ export default function WritingPracticeScreen({ navigation }) {
             </View>
           </View>
 
-          <View style={styles.promptContainer}>
-            <Text style={[styles.prompt, { color: colors.text }]}>
+          <View style={[styles.promptContainer, { backgroundColor: theme.primary + '08' }]}>
+            <Text style={[styles.prompt, { color: theme.text }]}>
               {currentExercise.prompt}
             </Text>
           </View>
 
-          <View style={styles.requirementContainer}>
-            <Ionicons name="information-circle" size={16} color={premiumColors.accent.gold} />
-            <Text style={[styles.requirementText, { color: colors.secondaryText }]}>
+          <View style={[styles.requirementContainer, { backgroundColor: theme.secondary + '10' }]}>
+            <Ionicons name="information-circle" size={16} color={theme.secondary} />
+            <Text style={[styles.requirementText, { color: theme.textSecondary }]}>
               Minimum {currentExercise.minWords} words required
             </Text>
           </View>
@@ -563,15 +576,15 @@ export default function WritingPracticeScreen({ navigation }) {
               style={[
                 styles.writingInput,
                 {
-                  backgroundColor: colors.background,
-                  color: colors.text,
+                  backgroundColor: theme.background,
+                  color: theme.text,
                   borderColor: meetsWordCount && wordCount > 0
-                    ? premiumColors.accent.emerald
-                    : colors.border,
+                    ? theme.success
+                    : theme.border,
                 },
               ]}
               placeholder="Write your response in French here..."
-              placeholderTextColor={colors.secondaryText}
+              placeholderTextColor={theme.textMuted}
               value={userWriting}
               onChangeText={setUserWriting}
               multiline
@@ -585,10 +598,10 @@ export default function WritingPracticeScreen({ navigation }) {
                   styles.wordCount,
                   {
                     color: meetsWordCount
-                      ? premiumColors.accent.emerald
+                      ? theme.success
                       : wordCount > 0
-                      ? premiumColors.accent.gold
-                      : colors.secondaryText,
+                        ? theme.secondary
+                        : theme.textMuted,
                   },
                 ]}
               >
@@ -598,7 +611,7 @@ export default function WritingPracticeScreen({ navigation }) {
                 <Ionicons
                   name="checkmark-circle"
                   size={16}
-                  color={premiumColors.accent.emerald}
+                  color={theme.success}
                 />
               )}
             </View>
@@ -611,9 +624,9 @@ export default function WritingPracticeScreen({ navigation }) {
             <Ionicons
               name={showExample ? 'chevron-up' : 'chevron-down'}
               size={20}
-              color={premiumColors.accent.gold}
+              color={theme.secondary}
             />
-            <Text style={[styles.exampleToggleText, { color: premiumColors.accent.gold }]}>
+            <Text style={[styles.exampleToggleText, { color: theme.secondary }]}>
               {showExample ? 'Hide Example' : 'Show Example'}
             </Text>
           </TouchableOpacity>
@@ -623,21 +636,21 @@ export default function WritingPracticeScreen({ navigation }) {
               style={[
                 styles.exampleCard,
                 {
-                  backgroundColor: premiumColors.accent.gold + '10',
-                  borderColor: premiumColors.accent.gold,
+                  backgroundColor: theme.secondary + '05',
+                  borderColor: theme.secondary + '40',
                 },
               ]}
             >
               <View style={styles.exampleHeader}>
-                <Ionicons name="bulb" size={20} color={premiumColors.accent.gold} />
-                <Text style={[styles.exampleTitle, { color: premiumColors.accent.gold }]}>
+                <Ionicons name="bulb" size={20} color={theme.secondary} />
+                <Text style={[styles.exampleTitle, { color: theme.secondary }]}>
                   Example Response
                 </Text>
               </View>
-              <Text style={[styles.exampleText, { color: colors.text }]}>
+              <Text style={[styles.exampleText, { color: theme.text }]}>
                 {currentExercise.example}
               </Text>
-              <Text style={[styles.exampleTranslation, { color: colors.secondaryText }]}>
+              <Text style={[styles.exampleTranslation, { color: theme.textSecondary }]}>
                 Translation: {currentExercise.translation}
               </Text>
             </View>
@@ -647,18 +660,18 @@ export default function WritingPracticeScreen({ navigation }) {
             style={[
               styles.tipsCard,
               {
-                backgroundColor: premiumColors.info + '10',
-                borderColor: premiumColors.info,
+                backgroundColor: theme.info + '10',
+                borderColor: theme.info + '40',
               },
             ]}
           >
             <View style={styles.tipsHeader}>
-              <Ionicons name="bulb" size={20} color={premiumColors.info} />
-              <Text style={[styles.tipsTitle, { color: premiumColors.info }]}>
+              <Ionicons name="bulb" size={20} color={theme.info} />
+              <Text style={[styles.tipsTitle, { color: theme.info }]}>
                 Writing Tips
               </Text>
             </View>
-            <Text style={[styles.tipsText, { color: colors.text }]}>
+            <Text style={[styles.tipsText, { color: theme.text }]}>
               {currentExercise.tips}
             </Text>
           </View>
@@ -670,9 +683,9 @@ export default function WritingPracticeScreen({ navigation }) {
                   styles.submitButton,
                   {
                     backgroundColor: meetsWordCount
-                      ? premiumColors.accent.gold
-                      : colors.border,
-                    opacity: meetsWordCount ? 1 : 0.5,
+                      ? theme.primary
+                      : theme.border,
+                    opacity: meetsWordCount ? 1 : 0.7,
                   },
                 ]}
                 onPress={handleSubmit}
@@ -684,13 +697,13 @@ export default function WritingPracticeScreen({ navigation }) {
             ) : (
               <View style={styles.submittedContainer}>
                 <View style={styles.submittedBadge}>
-                  <Ionicons name="checkmark-circle" size={20} color={premiumColors.accent.emerald} />
-                  <Text style={[styles.submittedText, { color: premiumColors.accent.emerald }]}>
+                  <Ionicons name="checkmark-circle" size={20} color={theme.success} />
+                  <Text style={[styles.submittedText, { color: theme.success }]}>
                     Writing Submitted!
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={[styles.nextButton, { backgroundColor: premiumColors.accent.gold }]}
+                  style={[styles.nextButton, { backgroundColor: theme.secondary }]}
                   onPress={handleNext}
                 >
                   <Text style={styles.nextButtonText}>
@@ -698,7 +711,7 @@ export default function WritingPracticeScreen({ navigation }) {
                       ? 'Next Exercise'
                       : 'Finish Practice'}
                   </Text>
-                  <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                  <Ionicons name="arrow-forward" size={20} color={theme.textOnSecondary} />
                 </TouchableOpacity>
               </View>
             )}
@@ -715,10 +728,10 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 50,
-    paddingBottom: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: themeRadius.xxl,
+    borderBottomRightRadius: themeRadius.xxl,
   },
   headerContent: {
     flexDirection: 'row',
@@ -733,37 +746,40 @@ const styles = StyleSheet.create({
   },
   headerInfo: {
     flex: 1,
-    marginLeft: spacing.md,
+    marginLeft: 12,
   },
   headerTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-    marginBottom: spacing.xs / 2,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   headerSubtitle: {
-    fontSize: fontSize.sm,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: premiumBorderRadius.lg,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   timerText: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   progressContainer: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingHorizontal: 22,
+    paddingVertical: 16,
   },
   progressBar: {
     height: 8,
     borderRadius: 4,
-    marginBottom: spacing.xs,
+    marginBottom: 6,
     overflow: 'hidden',
   },
   progressFill: {
@@ -771,236 +787,247 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   progressText: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     textAlign: 'center',
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
+    padding: 22,
+    paddingBottom: 40,
   },
   exerciseCard: {
-    borderRadius: premiumBorderRadius.xl,
-    padding: spacing.lg,
+    borderRadius: themeRadius.xl,
+    padding: 22,
     borderWidth: 1,
   },
   exerciseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: 20,
   },
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: premiumBorderRadius.base,
-    gap: spacing.xs / 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
   },
   categoryText: {
-    fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   difficultyBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: premiumBorderRadius.base,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   difficultyText: {
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-    textTransform: 'capitalize',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   promptContainer: {
-    marginBottom: spacing.lg,
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    backgroundColor: 'rgba(156, 39, 176, 0.1)',
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 16,
   },
   prompt: {
-    fontSize: fontSize.lg,
+    fontSize: 18,
     fontWeight: '700',
-    lineHeight: 28,
+    lineHeight: 26,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   requirementContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-    padding: spacing.sm,
-    borderRadius: premiumBorderRadius.base,
-    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+    gap: 8,
+    marginBottom: 16,
+    padding: 10,
+    borderRadius: 10,
   },
   requirementText: {
-    fontSize: fontSize.sm,
+    fontSize: 13,
     fontWeight: '600',
   },
   writingContainer: {
-    marginBottom: spacing.lg,
+    marginBottom: 20,
   },
   writingInput: {
     minHeight: 200,
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    borderWidth: 2,
-    fontSize: fontSize.md,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    fontSize: 15,
     lineHeight: 24,
-    marginBottom: spacing.sm,
+    marginBottom: 8,
+    textAlignVertical: 'top',
   },
   wordCountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: spacing.xs,
+    gap: 6,
   },
   wordCount: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
   },
   exampleToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
-    marginBottom: spacing.md,
+    paddingVertical: 8,
+    gap: 6,
+    marginBottom: 12,
   },
   exampleToggleText: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
   exampleCard: {
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
+    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    marginBottom: spacing.lg,
+    marginBottom: 20,
   },
   exampleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
+    gap: 8,
+    marginBottom: 8,
   },
   exampleTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
   },
   exampleText: {
-    fontSize: fontSize.md,
+    fontSize: 15,
     lineHeight: 24,
-    marginBottom: spacing.sm,
+    marginBottom: 8,
     fontStyle: 'italic',
   },
   exampleTranslation: {
-    fontSize: fontSize.sm,
+    fontSize: 13,
     fontStyle: 'italic',
+    opacity: 0.8,
   },
   tipsCard: {
-    padding: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
+    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    marginBottom: spacing.lg,
+    marginBottom: 24,
   },
   tipsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
+    gap: 8,
+    marginBottom: 8,
   },
   tipsTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
   },
   tipsText: {
-    fontSize: fontSize.sm,
+    fontSize: 13,
     lineHeight: 20,
   },
   actionButtons: {
-    gap: spacing.md,
+    gap: 12,
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: premiumBorderRadius.lg,
-    gap: spacing.sm,
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   submitButtonText: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
   submittedContainer: {
-    gap: spacing.md,
+    gap: 12,
   },
   submittedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
+    gap: 6,
+    paddingVertical: 4,
   },
   submittedText: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
   },
   nextButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: premiumBorderRadius.lg,
-    gap: spacing.sm,
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
   },
   nextButtonText: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
   },
 
   resultHeader: {
     paddingTop: 60,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    paddingBottom: 32,
+    paddingHorizontal: 22,
     alignItems: 'center',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
   resultIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: 16,
   },
   resultTitle: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: '#FFFFFF',
-    marginBottom: spacing.xs,
+    marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   resultSubtitle: {
-    fontSize: fontSize.md,
-    color: '#FFFFFF',
-    opacity: 0.9,
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
   resultContent: {
-    padding: spacing.lg,
+    padding: 22,
   },
   statsCard: {
-    borderRadius: premiumBorderRadius.xl,
-    padding: spacing.lg,
+    borderRadius: themeRadius.xl,
+    padding: 20,
     borderWidth: 1,
-    marginBottom: spacing.lg,
+    marginBottom: 20,
   },
   statsRow: {
     flexDirection: 'row',
@@ -1012,119 +1039,138 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: 8,
   },
   statValue: {
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: fontSize.xs,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   performanceCard: {
-    borderRadius: premiumBorderRadius.xl,
-    padding: spacing.lg,
+    borderRadius: themeRadius.xl,
+    padding: 24,
     borderWidth: 1,
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: 28,
   },
   performanceBadge: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   performanceTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 6,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   performanceText: {
-    fontSize: fontSize.sm,
+    fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
+    opacity: 0.8,
   },
   reviewSection: {
-    marginBottom: spacing.xl,
+    marginBottom: 24,
   },
   reviewTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    marginBottom: spacing.md,
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   reviewItem: {
-    borderRadius: premiumBorderRadius.lg,
-    padding: spacing.md,
-    borderWidth: 2,
-    marginBottom: spacing.md,
+    borderRadius: themeRadius.lg,
+    padding: 16,
+    borderWidth: 1,
+    marginBottom: 16,
   },
   reviewItemHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: spacing.xs,
+    marginBottom: 4,
   },
   reviewIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: spacing.sm,
+    marginRight: 10,
+    marginTop: 2,
   },
   reviewQuestionContainer: {
     flex: 1,
   },
   reviewCategory: {
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-    marginBottom: spacing.xs / 2,
+    fontSize: 10,
+    fontWeight: '800',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   reviewQuestion: {
-    fontSize: fontSize.md,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 22,
   },
   submissionContainer: {
-    marginTop: spacing.sm,
-    paddingTop: spacing.sm,
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
   },
   submissionLabel: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
+    fontSize: 11,
+    fontWeight: '800',
+    marginBottom: 6,
+    textTransform: 'uppercase',
   },
   submissionText: {
-    fontSize: fontSize.sm,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 22,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: premiumBorderRadius.lg,
-    gap: spacing.sm,
-    borderWidth: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    gap: 10,
+    borderWidth: 1.5,
   },
-  restartButton: {},
-  continueButton: {},
+  restartButton: {
+    marginBottom: 8,
+  },
+  continueButton: {
+    borderWidth: 0,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
   actionButtonText: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
   },
   actionButtonTextWhite: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
 });
