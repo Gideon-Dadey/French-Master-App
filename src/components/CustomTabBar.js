@@ -18,60 +18,49 @@ const { width } = Dimensions.get('window');
 // Tab configuration with unified theme colors
 const getTabConfig = (theme) => ({
   Home: {
-    icon: 'home',
+    icon: 'home-sharp',
     iconOutline: 'home-outline',
     label: 'Home',
-    activeColor: theme.primary,
+    activeColor: '#1A2332',
   },
   Learn: {
-    icon: 'school',
+    icon: 'school-sharp',
     iconOutline: 'school-outline',
     label: 'Learn',
-    activeColor: theme.primary,
+    activeColor: '#1A2332',
   },
   Practice: {
-    icon: 'create',
-    iconOutline: 'create-outline',
+    icon: 'extension-puzzle-sharp',
+    iconOutline: 'extension-puzzle-outline',
     label: 'Practice',
-    activeColor: theme.primary,
+    activeColor: '#1A2332',
   },
   Community: {
-    icon: 'chatbubbles',
+    icon: 'chatbubbles-sharp',
     iconOutline: 'chatbubbles-outline',
-    label: 'Social',
-    activeColor: theme.primary,
+    label: 'Chats',
+    activeColor: '#1A2332',
   },
   Profile: {
-    icon: 'person',
-    iconOutline: 'person-outline',
+    icon: 'person-circle-sharp',
+    iconOutline: 'person-circle-outline',
     label: 'Profile',
-    activeColor: theme.primary,
+    activeColor: '#1A2332',
   },
 });
 
 // Tab item component
 function TabBarItem({ route, focused, onPress, onLongPress, theme }) {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
   const tabConfig = getTabConfig(theme);
   const config = tabConfig[route.name] || {
     icon: 'ellipse',
     iconOutline: 'ellipse-outline',
     label: route.name,
-    activeColor: theme.primary,
+    activeColor: '#1A2332',
   };
 
-  useEffect(() => {
-    Animated.spring(scaleAnim, {
-      toValue: focused ? 1.08 : 1,
-      useNativeDriver: true,
-      tension: 300,
-      friction: 15,
-    }).start();
-  }, [focused]);
-
-  const inactiveColor = theme.textMuted;
-  const activeColor = theme.secondary; // Gold color for active state
+  const inactiveColor = '#B0B0B0'; // Light grey like the image
+  const activeColor = '#1A2332'; // Dark charcoal like the image
 
   return (
     <TouchableOpacity
@@ -83,17 +72,7 @@ function TabBarItem({ route, focused, onPress, onLongPress, theme }) {
       style={styles.tabItem}
       activeOpacity={0.7}
     >
-      <Animated.View
-        style={[
-          styles.tabContent,
-          { transform: [{ scale: scaleAnim }] }
-        ]}
-      >
-        {/* Active indicator */}
-        {focused && (
-          <View style={[styles.activeIndicator, { backgroundColor: activeColor }]} />
-        )}
-
+      <View style={styles.tabContent}>
         {/* Icon */}
         <Ionicons
           name={focused ? config.icon : config.iconOutline}
@@ -107,13 +86,13 @@ function TabBarItem({ route, focused, onPress, onLongPress, theme }) {
             styles.label,
             {
               color: focused ? activeColor : inactiveColor,
-              fontWeight: focused ? '700' : '500',
+              fontWeight: focused ? '700' : '400',
             }
           ]}
         >
           {config.label}
         </Text>
-      </Animated.View>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -126,15 +105,9 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
   // Smart bottom padding for all device types
   const getBottomPadding = () => {
     if (Platform.OS === 'ios') {
-      return insets.bottom > 20 ? insets.bottom - 16 : 8;
+      return insets.bottom > 20 ? insets.bottom - 5 : 15;
     } else {
-      if (insets.bottom > 40) {
-        return 4;
-      } else if (insets.bottom > 0) {
-        return insets.bottom;
-      } else {
-        return 10;
-      }
+      return Math.max(insets.bottom, 15);
     }
   };
 
@@ -142,17 +115,10 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
     <View style={[
       styles.container,
       {
-        backgroundColor: theme.surface,
+        backgroundColor: '#FFFFFF',
         paddingBottom: getBottomPadding(),
-        borderTopColor: theme.border,
       }
     ]}>
-      {/* Subtle top border */}
-      <View style={[
-        styles.topBorder,
-        { backgroundColor: theme.border }
-      ]} />
-
       {/* Tab items */}
       <View style={styles.tabsContainer}>
         {state.routes.map((route, index) => {
@@ -199,45 +165,28 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 20,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-  },
-  topBorder: {
-    height: 0,
-    width: '100%',
+    borderTopColor: '#F0F0F0',
+    paddingTop: 10,
   },
   tabsContainer: {
     flexDirection: 'row',
-    paddingTop: 8,
-    paddingBottom: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 15,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 10,
   },
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    position: 'relative',
-  },
-  activeIndicator: {
-    position: 'absolute',
-    top: -8,
-    width: 24,
-    height: 3,
-    borderRadius: 2,
   },
   label: {
-    fontSize: 10,
-    marginTop: 2,
-    letterSpacing: 0.3,
+    fontSize: 12,
+    marginTop: 4,
     fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
   },
 });
