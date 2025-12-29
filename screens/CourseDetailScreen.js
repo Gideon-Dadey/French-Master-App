@@ -12,21 +12,17 @@ import {
   Animated,
   Platform,
   Modal,
+  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { coursesAPI, paymentsAPI, reviewsAPI } from '../src/services/api';
+import { coursesAPI, paymentsAPI } from '../src/services/api';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import ErrorMessage from '../src/components/ErrorMessage';
-import CertificateView from '../src/components/CertificateView';
-import { formatCurrency } from '../src/utils/helpers';
-import { spacing, fontSize } from '../src/utils/responsive';
 import { getCourseImage } from '../src/utils/courseImages';
-import Rating from '../src/components/Rating';
-import { useCurrency } from '../src/context/CurrencyContext';
-import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
+import { getThemeColors, themeShadows } from '../src/utils/organicTheme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -35,118 +31,39 @@ export default function CourseDetailScreen({ route, navigation }) {
   const { isAuthenticated, user, loadUser } = useAuth();
   const { isDarkMode } = useTheme();
   const theme = getThemeColors(isDarkMode);
-  const { formatPrice } = useCurrency();
+
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [reviews, setReviews] = useState([]);
   const [purchasing, setPurchasing] = useState(false);
   const [error, setError] = useState(null);
-  const [showCertificate, setShowCertificate] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [showStickyCard, setShowStickyCard] = useState(false);
-  const [instructorCourseCount, setInstructorCourseCount] = useState(0);
+  const [enrolledSuccessfully, setEnrolledSuccessfully] = useState(false);
 
   const scrollY = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadCourse();
-    Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
   }, [courseId]);
-
-  useEffect(() => {
-    const listener = scrollY.addListener(({ value }) => {
-      setShowStickyCard(value > 400);
-    });
-    return () => scrollY.removeListener(listener);
-  }, []);
 
   const loadCourse = async () => {
     try {
       setLoading(true);
       setError(null);
       const response = await coursesAPI.getById(courseId);
-
       if (response.data.data) {
-        const courseData = response.data.data;
-        setCourse(courseData);
-        await Promise.all([
-          loadReviews(),
-          loadInstructorCourseCount(courseData.instructor?._id || courseData.instructor)
-        ]);
-        return courseData;
+        setCourse(response.data.data);
       } else {
         setError('Course not found');
-        return null;
       }
     } catch (error) {
-      console.error('Failed to load course:', error);
-      const errorMessage = error.message || 'Failed to load course';
-
-      if (errorMessage.includes('Network') || errorMessage.includes('network')) {
-        setError('Connection Error - Please check your internet and try again.');
-      } else if (error.status === 404) {
-        setError('Course not found');
-      } else {
-        setError(errorMessage || 'Failed to load course. Please try again.');
-      }
-      return null;
+      setError('Failed to load course details.');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadInstructorCourseCount = async (instructorId) => {
-    if (!instructorId) {
-      setInstructorCourseCount(0);
-      return;
-    }
-
-    try {
-      // Get instructor ID (handle both object and string formats)
-      const id = instructorId._id || instructorId;
-      if (!id) {
-        setInstructorCourseCount(0);
-        return;
-      }
-
-      // Fetch all courses (with a reasonable limit) and count instructor's courses
-      // Note: This is a workaround since backend doesn't support instructor filter
-      // Ideally, backend should support ?instructor=id query parameter
-      const allCoursesResponse = await coursesAPI.getAll({ limit: 1000 });
-      const allCourses = allCoursesResponse.data.data || [];
-
-      // Count courses by this instructor
-      const instructorCourses = allCourses.filter(c => {
-        const courseInstructorId = c.instructor?._id || c.instructor;
-        return courseInstructorId && (
-          courseInstructorId.toString() === id.toString() ||
-          courseInstructorId === id
-        );
-      });
-
-      setInstructorCourseCount(instructorCourses.length || 0);
-    } catch (error) {
-      console.warn('Failed to load instructor course count:', error);
-      setInstructorCourseCount(0);
-    }
-  };
-
-  const loadReviews = async () => {
-    try {
-      const response = await reviewsAPI.getByCourse(courseId);
-      setReviews(response.data.data || []);
-    } catch (error) {
-      console.warn('Failed to load reviews:', error);
-      setReviews([]);
-    }
-  };
-
-  const [enrolledSuccessfully, setEnrolledSuccessfully] = useState(false);
-
   const handlePurchase = async () => {
     if (!isAuthenticated) {
-      Alert.alert('Login Required', 'Please login to enroll in this course', [
+      Alert.alert('Login Required', 'Please login to enroll.', [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Login', onPress: () => navigation.navigate('Auth', { screen: 'Login' }) },
       ]);
@@ -155,62 +72,50 @@ export default function CourseDetailScreen({ route, navigation }) {
 
     try {
       setPurchasing(true);
-      await paymentsAPI.enrollFree({
-        courseId,
-      });
-
+      await paymentsAPI.enrollFree({ courseId });
       setEnrolledSuccessfully(true);
+      await loadUser(); // Refresh user state
 
-      // Load course to update UI and get fresh lesson IDs
-      const updatedCourse = await loadCourse();
+      const updatedCourse = await coursesAPI.getById(courseId);
+      if (updatedCourse?.data?.data) {
+        setCourse(updatedCourse.data.data);
+      }
 
-      // Refresh Auth state to show enrollment in Profile/Home
-      await loadUser();
-
-      // Auto-navigate after a delay
       setTimeout(() => {
         setEnrolledSuccessfully(false);
-        const targetCourse = updatedCourse || course;
-        if (targetCourse?.lessons && targetCourse.lessons.length > 0) {
-          navigation.navigate('Lesson', {
-            courseId: targetCourse._id,
-            lessonId: targetCourse.lessons[0]._id,
-          });
-        }
-      }, 2000);
+      }, 2500);
 
     } catch (error) {
-      console.error('Enrollment error:', error);
-      Alert.alert('Error', error.response?.data?.message || 'Enrollment failed');
+      Alert.alert('Enrollment Failed', 'Please try again later.');
     } finally {
       setPurchasing(false);
     }
   };
 
   const formatDuration = (seconds) => {
-    if (!seconds) return '0 min';
+    if (!seconds) return '0m';
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes} min`;
+    return `${minutes}m`;
   };
 
-  if (loading) {
-    return <LoadingSpinner message="Loading course..." />;
-  }
+  if (loading) return <LoadingSpinner />;
+  if (error || !course) return <ErrorMessage message={error || 'Course not found'} onRetry={loadCourse} />;
 
-  if (error || !course) {
-    return <ErrorMessage message={error || 'Course not found'} onRetry={loadCourse} />;
-  }
-
-  const isEnrolled = course.isEnrolled || user?.enrolledCourses?.some(ec =>
-    (ec.course?._id || ec.course) === (course._id || courseId)
-  );
+  const isEnrolled = course.isEnrolled || user?.enrolledCourses?.some(ec => (ec.course?._id || ec.course) === (course._id || courseId));
   const totalLessons = course.lessons?.length || 0;
   const totalDuration = course.lessons?.reduce((acc, l) => acc + (l.duration || 0), 0) || 0;
+
   const imageSource = course.thumbnail?.startsWith('http')
     ? { uri: course.thumbnail }
     : getCourseImage(course._id, 0, course.category, course.title);
+
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, 200],
+    outputRange: [height * 0.45, height * 0.3],
+    extrapolate: 'clamp',
+  });
 
   const imageScale = scrollY.interpolate({
     inputRange: [-100, 0],
@@ -220,645 +125,158 @@ export default function CourseDetailScreen({ route, navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Hero Image / Animated Header */}
+      <Animated.View style={[styles.hero, { height: headerHeight }]}>
+        <Animated.Image
+          source={imageSource}
+          style={[styles.heroImage, { transform: [{ scale: imageScale }] }]}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
+          style={styles.heroOverlay}
+        />
+
+        {/* Safe Area Back Button */}
+        <View style={[styles.headerNav, { paddingTop: Platform.OS === 'ios' ? 50 : 30 }]}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Hero Content */}
+        <View style={styles.heroContent}>
+          <View style={styles.badgeRow}>
+            <View style={[styles.badge, { backgroundColor: theme.primary }]}>
+              <Text style={styles.badgeText}>{(course.category || 'Course').toUpperCase()}</Text>
+            </View>
+            <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+              <Text style={styles.badgeText}>{course.level || 'All Levels'}</Text>
+            </View>
+          </View>
+          <Text style={styles.heroTitle} numberOfLines={2}>{course.title}</Text>
+          <View style={styles.heroMeta}>
+            <Ionicons name="star" size={16} color="#FFD700" />
+            <Text style={styles.heroMetaText}>{course.rating?.average?.toFixed(1) || '4.8'}</Text>
+            <Text style={[styles.heroMetaText, { opacity: 0.7 }]}>•</Text>
+            <Text style={styles.heroMetaText}>{totalLessons} Lessons</Text>
+            <Text style={[styles.heroMetaText, { opacity: 0.7 }]}>•</Text>
+            <Text style={styles.heroMetaText}>{formatDuration(totalDuration)}</Text>
+          </View>
+        </View>
+      </Animated.View>
+
+      {/* Content Scroll */}
       <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
+          { useNativeDriver: false }
         )}
         scrollEventThrottle={16}
       >
-        {/* Hero Image Section */}
-        <Animated.View
-          style={[
-            styles.heroSection,
-            {
-              transform: [{ scale: imageScale }],
-            },
-          ]}
-        >
-          <Image source={imageSource} style={styles.heroImage} resizeMode="cover" />
-          <LinearGradient
-            colors={[theme.primary + 'E6', theme.primary + 'B3', 'transparent']}
-            style={styles.heroGradient}
-          />
-        </Animated.View>
+        <View style={[styles.contentCard, { backgroundColor: theme.background }]}>
 
-        {/* Main Content */}
-        <View style={[styles.contentWrapper, { backgroundColor: theme.background }]}>
-          {/* Course Title & Meta */}
-          <Animated.View style={[styles.titleSection, { opacity: fadeAnim }]}>
-            <View style={styles.badgeRow}>
-              <View style={[styles.categoryBadge, { backgroundColor: theme.primary }]}>
-                <Text style={styles.categoryBadgeText}>
-                  {(course.category || 'COURSE').toUpperCase()}
-                </Text>
-              </View>
-              <View style={[styles.levelBadge, { backgroundColor: theme.primary + '20' }]}>
-                <Text style={[styles.levelBadgeText, { color: theme.primary }]}>
-                  {course.level || 'All Levels'}
-                </Text>
-              </View>
-              {course.featured && (
-                <View style={[styles.featuredBadge, { backgroundColor: theme.secondary + '20' }]}>
-                  <Ionicons name="star" size={14} color={theme.secondary} />
-                  <Text style={[styles.featuredText, { color: theme.secondary }]}>Featured</Text>
-                </View>
-              )}
-            </View>
-
-            <Text style={[styles.courseTitle, { color: theme.text }]}>{course.title}</Text>
-
-            <View style={styles.metaRow}>
-              <View style={styles.metaItem}>
-                <Rating rating={course.rating?.average || 0} size={16} showRating={true} />
-                <Text style={[styles.metaText, { color: theme.textSecondary }]}>
-                  ({course.rating?.count || 0})
-                </Text>
-              </View>
-              <View style={[styles.metaDivider, { backgroundColor: theme.border }]} />
-              <View style={styles.metaItem}>
-                <Ionicons name="people" size={16} color={theme.textSecondary} />
-                <Text style={[styles.metaText, { color: theme.textSecondary }]}>
-                  {course.studentsEnrolled || 0} students
-                </Text>
-              </View>
-              <View style={[styles.metaDivider, { backgroundColor: theme.border }]} />
-              <View style={styles.metaItem}>
-                <Ionicons name="time-outline" size={16} color={theme.textSecondary} />
-                <Text style={[styles.metaText, { color: theme.textSecondary }]}>
-                  {formatDuration(totalDuration)}
-                </Text>
-              </View>
-            </View>
-          </Animated.View>
-
-          {/* Quick Stats */}
-          <Animated.View
-            style={[styles.statsCard, { backgroundColor: theme.surface }, themeShadows.md, { opacity: fadeAnim }]}
-          >
-            <View style={styles.statsGrid}>
-              <View style={styles.statItem}>
-                <View style={[styles.statIcon, { backgroundColor: theme.primary + '15' }]}>
-                  <Ionicons name="book" size={20} color={theme.primary} />
-                </View>
-                <Text style={[styles.statValue, { color: theme.text }]}>{totalLessons}</Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Lessons</Text>
-              </View>
-              <View style={styles.statItem}>
-                <View style={[styles.statIcon, { backgroundColor: theme.primary + '15' }]}>
-                  <Ionicons name="time" size={20} color={theme.primary} />
-                </View>
-                <Text style={[styles.statValue, { color: theme.text }]}>
-                  {formatDuration(totalDuration)}
-                </Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Duration</Text>
-              </View>
-              <View style={styles.statItem}>
-                <View style={[styles.statIcon, { backgroundColor: theme.primary + '15' }]}>
-                  <Ionicons name="language" size={20} color={theme.primary} />
-                </View>
-                <Text style={[styles.statValue, { color: theme.text }]}>
-                  {course.language?.toUpperCase() || 'EN'}
-                </Text>
-                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Language</Text>
-              </View>
-              {course.certificate?.enabled && (
-                <View style={styles.statItem}>
-                  <View style={[styles.statIcon, { backgroundColor: theme.primary + '15' }]}>
-                    <Ionicons name="ribbon" size={20} color={theme.primary} />
-                  </View>
-                  <Text style={[styles.statValue, { color: theme.text }]}>Yes</Text>
-                  <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Certificate</Text>
-                </View>
-              )}
-            </View>
-          </Animated.View>
-
-          {/* Enrollment Card */}
-          <Animated.View
-            style={[
-              styles.enrollmentCard,
-              { backgroundColor: theme.surface },
-              themeShadows.lg,
-              { opacity: fadeAnim },
-            ]}
-          >
-            <View style={styles.priceSection}>
+          {/* Instructor Row */}
+          {course.instructor && (
+            <View style={[styles.instructorRow, { borderBottomColor: theme.border }]}>
+              <Image
+                source={course.instructor.avatar ? { uri: course.instructor.avatar } : require('../assets/logo.jpeg')}
+                style={styles.instructorAvatar}
+              />
               <View>
-                <Text style={[styles.priceText, { color: theme.primary }]}>GET ACCESS</Text>
-                <Text style={[styles.priceSubtext, { color: theme.textSecondary }]}>
-                  Lifetime access included
-                </Text>
+                <Text style={[styles.instructorLabel, { color: theme.textSecondary }]}>Instructor</Text>
+                <Text style={[styles.instructorName, { color: theme.text }]}>{course.instructor.name || 'L\'Alliance Team'}</Text>
               </View>
             </View>
+          )}
 
-            {isEnrolled ? (
-              <TouchableOpacity
-                style={styles.enrollButton}
-                onPress={() => navigation.navigate('Lesson', {
-                  courseId: course._id,
-                  lessonId: course.lessons?.[0]?._id
-                })}
-                activeOpacity={0.9}
-              >
-                <LinearGradient
-                  colors={[theme.primary, theme.primaryLight || theme.primary]}
-                  style={styles.enrollButtonGradient}
-                >
-                  <Ionicons name="play-circle" size={22} color="#FFFFFF" />
-                  <Text style={styles.enrollButtonText}>Continue Learning</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.enrollButton}
-                onPress={handlePurchase}
-                disabled={purchasing}
-                activeOpacity={0.9}
-              >
-                <LinearGradient
-                  colors={[theme.primary, theme.primaryLight || theme.primary]}
-                  style={styles.enrollButtonGradient}
-                >
-                  {purchasing ? (
-                    <ActivityIndicator color="#FFFFFF" size="small" />
-                  ) : (
-                    <>
-                      <Ionicons name="school" size={22} color="#FFFFFF" />
-                      <Text style={styles.enrollButtonText}>Enroll Now</Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-
-            {!isEnrolled && (
-              <View style={styles.trustBadges}>
-                <View style={[styles.trustBadge, { backgroundColor: theme.primary + '10' }]}>
-                  <Ionicons name="shield-checkmark" size={16} color={theme.primary} />
-                  <Text style={[styles.trustBadgeText, { color: theme.text }]}>
-                    30-Day Guarantee
-                  </Text>
-                </View>
-                <View style={[styles.trustBadge, { backgroundColor: theme.primary + '10' }]}>
-                  <Ionicons name="infinite" size={16} color={theme.primary} />
-                  <Text style={[styles.trustBadgeText, { color: theme.text }]}>
-                    Lifetime Access
-                  </Text>
-                </View>
-              </View>
-            )}
-          </Animated.View>
-
-          {/* Tabs Navigation */}
-          <View style={[styles.tabsContainer, { backgroundColor: theme.surface }, themeShadows.sm]}>
-            {[
-              { id: 'overview', label: 'Overview', icon: 'information-circle-outline' },
-              { id: 'curriculum', label: 'Curriculum', icon: 'book-outline' },
-              { id: 'reviews', label: 'Reviews', icon: 'star-outline' },
-            ].map((tab) => (
-              <TouchableOpacity
-                key={tab.id}
-                style={[
-                  styles.tab,
-                  activeTab === tab.id && [styles.activeTab, { backgroundColor: theme.primary + '15' }],
-                ]}
-                onPress={() => setActiveTab(tab.id)}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={tab.icon}
-                  size={18}
-                  color={activeTab === tab.id ? theme.primary : theme.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.tabText,
-                    { color: activeTab === tab.id ? theme.primary : theme.textSecondary },
-                  ]}
-                >
-                  {tab.label}
-                </Text>
-                {activeTab === tab.id && (
-                  <View style={[styles.tabIndicator, { backgroundColor: theme.primary }]} />
-                )}
-              </TouchableOpacity>
-            ))}
+          {/* Description */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>About</Text>
+            <Text style={[styles.descriptionText, { color: theme.textSecondary }]}>
+              {course.description || 'Join this course to master French efficiently.'}
+            </Text>
           </View>
 
-          {/* Tab Content */}
-          {activeTab === 'overview' && (
-            <Animated.View style={[styles.tabContent, { opacity: fadeAnim }]}>
-              {/* Description */}
-              <View style={[styles.section, { backgroundColor: theme.surface }, themeShadows.sm]}>
-                <Text style={[styles.sectionTitle, { color: theme.text }]}>About This Course</Text>
-                <Text style={[styles.description, { color: theme.textSecondary }]}>
-                  {course.description || 'No description available.'}
-                </Text>
-              </View>
+          {/* Curriculum */}
+          <View style={styles.section}>
+            <View style={styles.curriculumHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Curriculum</Text>
+              <Text style={[styles.lessonCount, { color: theme.textSecondary }]}>{totalLessons} videos</Text>
+            </View>
 
-              {/* What You'll Learn */}
-              {course.whatYouWillLearn?.length > 0 && (
-                <View style={[styles.section, { backgroundColor: theme.surface }, themeShadows.sm]}>
-                  <View style={styles.sectionHeader}>
-                    <View style={[styles.sectionIcon, { backgroundColor: theme.primary + '15' }]}>
-                      <Ionicons name="checkmark-circle" size={24} color={theme.primary} />
-                    </View>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                      What You'll Learn
-                    </Text>
+            {course.lessons?.map((lesson, index) => {
+              const isLocked = !isEnrolled && index !== 0;
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[styles.lessonItem, { borderBottomColor: theme.border }]}
+                  onPress={() => {
+                    if (!isLocked) {
+                      navigation.navigate('Lesson', { courseId: course._id, lessonId: lesson._id });
+                    } else {
+                      handlePurchase();
+                    }
+                  }}
+                >
+                  <View style={[styles.lessonIndex, { backgroundColor: theme.surfaceAlt }]}>
+                    <Text style={[styles.lessonIndexText, { color: theme.textSecondary }]}>{index + 1}</Text>
                   </View>
-                  <View style={styles.learnList}>
-                    {course.whatYouWillLearn.map((item, index) => (
-                      <View key={index} style={styles.learnItem}>
-                        <View style={[styles.learnIcon, { backgroundColor: theme.primary + '15' }]}>
-                          <Ionicons name="checkmark" size={16} color={theme.primary} />
-                        </View>
-                        <Text style={[styles.learnText, { color: theme.text }]}>{item}</Text>
-                      </View>
-                    ))}
+                  <View style={styles.lessonInfo}>
+                    <Text style={[styles.lessonTitle, { color: isLocked ? theme.textSecondary : theme.text }]}>{lesson.title}</Text>
+                    <Text style={[styles.lessonDuration, { color: theme.textMuted }]}>{formatDuration(lesson.duration)}</Text>
                   </View>
-                </View>
-              )}
-
-              {/* Requirements */}
-              <View style={[styles.section, { backgroundColor: theme.surface }, themeShadows.sm]}>
-                <View style={styles.sectionHeader}>
-                  <View style={[styles.sectionIcon, { backgroundColor: theme.primary + '15' }]}>
-                    <Ionicons name="list" size={24} color={theme.primary} />
-                  </View>
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Requirements</Text>
-                </View>
-                <View style={styles.requirementsList}>
-                  {(course.requirements || [
-                    'No prior knowledge needed',
-                    'A device with internet connection',
-                    'Willingness to learn and practice',
-                  ]).map((req, index) => (
-                    <View key={index} style={styles.requirementItem}>
-                      <View style={[styles.requirementDot, { backgroundColor: theme.primary }]} />
-                      <Text style={[styles.requirementText, { color: theme.text }]}>{req}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              {/* Course Includes */}
-              <View style={[styles.section, { backgroundColor: theme.surface }, themeShadows.sm]}>
-                <View style={styles.sectionHeader}>
-                  <View style={[styles.sectionIcon, { backgroundColor: theme.primary + '15' }]}>
-                    <Ionicons name="gift" size={24} color={theme.primary} />
-                  </View>
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                    This Course Includes
-                  </Text>
-                </View>
-                <View style={styles.includesList}>
-                  {[
-                    { icon: 'play-circle', label: `${totalLessons} video lessons` },
-                    { icon: 'time-outline', label: `${formatDuration(totalDuration)} of content` },
-                    { icon: 'ribbon-outline', label: 'Certificate of completion' },
-                    { icon: 'infinite-outline', label: 'Full lifetime access' },
-                    { icon: 'phone-portrait-outline', label: 'Access on mobile & desktop' },
-                    { icon: 'cloud-download-outline', label: 'Downloadable resources' },
-                  ].map((item, index, array) => (
-                    <View
-                      key={index}
-                      style={[
-                        styles.includeRow,
-                        index < array.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.border },
-                      ]}
-                    >
-                      <View style={[styles.includeIcon, { backgroundColor: theme.primary + '15' }]}>
-                        <Ionicons name={item.icon} size={20} color={theme.primary} />
-                      </View>
-                      <Text style={[styles.includeLabel, { color: theme.text }]}>{item.label}</Text>
-                      <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              {/* Instructor */}
-              {course.instructor && (
-                <View style={[styles.section, { backgroundColor: theme.surface }, themeShadows.sm]}>
-                  <View style={styles.sectionHeader}>
-                    <View style={[styles.sectionIcon, { backgroundColor: theme.primary + '15' }]}>
-                      <Ionicons name="person" size={24} color={theme.primary} />
-                    </View>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Your Instructor</Text>
-                  </View>
-                  <View style={[styles.instructorCard, { backgroundColor: theme.background }]}>
-                    <View style={styles.instructorAvatar}>
-                      {course.instructor.avatar ? (
-                        <Image source={{ uri: course.instructor.avatar }} style={styles.avatarImage} />
-                      ) : (
-                        <LinearGradient
-                          colors={[theme.primary, theme.primaryLight || theme.primary]}
-                          style={styles.avatarPlaceholder}
-                        >
-                          <Text style={styles.avatarText}>
-                            {course.instructor.name?.charAt(0) || 'T'}
-                          </Text>
-                        </LinearGradient>
-                      )}
-                    </View>
-                    <View style={styles.instructorInfo}>
-                      <Text style={[styles.instructorName, { color: theme.text }]}>
-                        {course.instructor.name}
-                      </Text>
-                      <Text style={[styles.instructorTitle, { color: theme.textSecondary }]}>
-                        {course.instructor.title || 'Professional Instructor'}
-                      </Text>
-                      <View style={styles.instructorStats}>
-                        <View style={styles.instructorStat}>
-                          <Ionicons name="star" size={14} color={theme.secondary} />
-                          <Text style={[styles.instructorStatText, { color: theme.textSecondary }]}>
-                            4.8 Rating
-                          </Text>
-                        </View>
-                        <View style={styles.instructorStat}>
-                          <Ionicons name="people" size={14} color={theme.textSecondary} />
-                          <Text style={[styles.instructorStatText, { color: theme.textSecondary }]}>
-                            10K+ Students
-                          </Text>
-                        </View>
-                        <View style={styles.instructorStat}>
-                          <Ionicons name="book" size={14} color={theme.textSecondary} />
-                          <Text style={[styles.instructorStatText, { color: theme.textSecondary }]}>
-                            {instructorCourseCount || 0} {instructorCourseCount === 1 ? 'Course' : 'Courses'}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              )}
-            </Animated.View>
-          )}
-
-          {activeTab === 'curriculum' && (
-            <Animated.View style={[styles.tabContent, { opacity: fadeAnim }]}>
-              <View style={[styles.section, { backgroundColor: theme.surface }, themeShadows.sm]}>
-                <View style={styles.curriculumHeader}>
-                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Course Curriculum</Text>
-                  <Text style={[styles.lessonCount, { color: theme.textSecondary }]}>
-                    {totalLessons} lessons • {formatDuration(totalDuration)} total
-                  </Text>
-                </View>
-                {course.lessons?.length > 0 ? (
-                  <View style={styles.lessonsContainer}>
-                    {course.lessons.map((lesson, index) => (
-                      <TouchableOpacity
-                        key={lesson._id || index}
-                        style={[
-                          styles.lessonCard,
-                          { borderBottomColor: theme.border },
-                          (isEnrolled || index === 0) && styles.lessonCardActive,
-                        ]}
-                        onPress={() => {
-                          if (isEnrolled || index === 0) {
-                            navigation.navigate('Lesson', {
-                              courseId: course._id,
-                              lessonId: lesson._id,
-                            });
-                          } else {
-                            Alert.alert('Lesson Locked', 'Enroll in this course to unlock all lessons.', [
-                              { text: 'Cancel', style: 'cancel' },
-                              { text: 'Enroll Now', onPress: handlePurchase },
-                            ]);
-                          }
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.lessonLeft}>
-                          <View
-                            style={[
-                              styles.lessonNumber,
-                              {
-                                backgroundColor:
-                                  isEnrolled || index === 0 ? theme.primary : theme.border,
-                              },
-                            ]}
-                          >
-                            {index === 0 && !isEnrolled ? (
-                              <Ionicons name="play" size={14} color="#FFFFFF" />
-                            ) : (
-                              <Text
-                                style={[
-                                  styles.lessonNumberText,
-                                  {
-                                    color: isEnrolled || index === 0 ? '#FFFFFF' : theme.textSecondary,
-                                  },
-                                ]}
-                              >
-                                {index + 1}
-                              </Text>
-                            )}
-                          </View>
-                          <View style={styles.lessonInfo}>
-                            <View style={styles.lessonTitleRow}>
-                              <Text style={[styles.lessonTitle, { color: theme.text }]} numberOfLines={1}>
-                                {lesson.title}
-                              </Text>
-                              {index === 0 && !isEnrolled && (
-                                <View style={[styles.freeBadge, { backgroundColor: theme.primary }]}>
-                                  <Text style={styles.freeBadgeText}>FREE</Text>
-                                </View>
-                              )}
-                            </View>
-                            <View style={styles.lessonMeta}>
-                              <Ionicons name="time-outline" size={12} color={theme.textSecondary} />
-                              <Text style={[styles.lessonDuration, { color: theme.textSecondary }]}>
-                                {formatDuration(lesson.duration || 0)}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                        {isEnrolled ? (
-                          <Ionicons name="play-circle" size={28} color={theme.primary} />
-                        ) : index === 0 ? (
-                          <Ionicons name="play-circle" size={28} color={theme.primary} />
-                        ) : (
-                          <Ionicons name="lock-closed" size={20} color={theme.textSecondary} />
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ) : (
-                  <View style={styles.emptyState}>
-                    <Ionicons name="document-text-outline" size={48} color={theme.textMuted} />
-                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                      No lessons available
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </Animated.View>
-          )}
-
-          {activeTab === 'reviews' && (
-            <Animated.View style={[styles.tabContent, { opacity: fadeAnim }]}>
-              <View style={[styles.section, { backgroundColor: theme.surface }, themeShadows.sm]}>
-                <View style={styles.reviewsHeader}>
-                  <View>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Student Reviews</Text>
-                    <Text style={[styles.reviewsSubtitle, { color: theme.textSecondary }]}>
-                      What students are saying
-                    </Text>
-                  </View>
-                  <View style={styles.ratingOverview}>
-                    <View style={[styles.ratingCircle, { backgroundColor: theme.primary + '15' }]}>
-                      <Text style={[styles.ratingBig, { color: theme.text }]}>
-                        {course.rating?.average?.toFixed(1) || '4.5'}
-                      </Text>
-                    </View>
-                    <View style={styles.ratingDetails}>
-                      <Rating rating={course.rating?.average || 0} size={16} showRating={false} />
-                      <Text style={[styles.ratingCount, { color: theme.textSecondary }]}>
-                        {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                {reviews.length > 0 ? (
-                  <View style={styles.reviewsList}>
-                    {reviews.slice(0, 10).map((review, index) => (
-                      <View
-                        key={review._id || index}
-                        style={[styles.reviewCard, { borderBottomColor: theme.border }]}
-                      >
-                        <View style={styles.reviewHeader}>
-                          <View style={styles.reviewerInfo}>
-                            <View
-                              style={[styles.reviewerAvatar, { backgroundColor: theme.primary }]}
-                            >
-                              <Text style={styles.reviewerInitial}>
-                                {review.user?.name?.charAt(0) || 'U'}
-                              </Text>
-                            </View>
-                            <View style={styles.reviewerDetails}>
-                              <Text style={[styles.reviewerName, { color: theme.text }]}>
-                                {review.user?.name || 'Anonymous'}
-                              </Text>
-                              <View style={styles.reviewStars}>
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Ionicons
-                                    key={star}
-                                    name={star <= review.rating ? 'star' : 'star-outline'}
-                                    size={14}
-                                    color={theme.secondary}
-                                  />
-                                ))}
-                              </View>
-                            </View>
-                          </View>
-                          <Text style={[styles.reviewDate, { color: theme.textSecondary }]}>
-                            {new Date(review.createdAt).toLocaleDateString()}
-                          </Text>
-                        </View>
-                        <Text style={[styles.reviewText, { color: theme.textSecondary }]}>
-                          {review.comment}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <View style={styles.emptyState}>
-                    <Ionicons name="chatbubbles-outline" size={48} color={theme.textMuted} />
-                    <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-                      No reviews yet
-                    </Text>
-                    <Text style={[styles.emptySubtext, { color: theme.textSecondary }]}>
-                      Be the first to review this course!
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </Animated.View>
-          )}
+                  <Ionicons
+                    name={isLocked ? "lock-closed" : "play-circle"}
+                    size={24}
+                    color={isLocked ? theme.textMuted : theme.primary}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
           <View style={{ height: 100 }} />
         </View>
       </Animated.ScrollView>
 
-      {/* Sticky Enrollment Card */}
-      {showStickyCard && (
-        <Animated.View
-          style={[
-            styles.stickyCard,
-            { backgroundColor: theme.surface, borderTopColor: theme.border },
-            themeShadows.xl,
-          ]}
+      {/* Sticky Action Bar */}
+      <View style={[styles.actionBar, { backgroundColor: theme.surface, borderTopColor: theme.border }, themeShadows.lg]}>
+        <View>
+          <Text style={[styles.actionPrice, { color: theme.text }]}>Free</Text>
+          <Text style={[styles.actionSub, { color: theme.textSecondary }]}>Lifetime access</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: isEnrolled ? theme.success : theme.primary }]}
+          onPress={isEnrolled ? () => navigation.navigate('Lesson', {
+            courseId: course._id,
+            lessonId: course.lessons?.[0]?._id
+          }) : handlePurchase}
         >
-          <View style={styles.stickyContent}>
-            <Image source={imageSource} style={styles.stickyImage} />
-            <View style={styles.stickyInfo}>
-              <Text style={[styles.stickyTitle, { color: theme.text }]} numberOfLines={1}>
-                {course.title}
-              </Text>
+          <Text style={styles.actionBtnText}>
+            {isEnrolled ? 'Continue Learning' : 'Enroll Now'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-            </View>
-            <TouchableOpacity
-              style={styles.stickyButton}
-              onPress={
-                isEnrolled
-                  ? () =>
-                    navigation.navigate('Lesson', {
-                      courseId: course._id,
-                      lessonId: course.lessons?.[0]?._id,
-                    })
-                  : handlePurchase
-              }
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={[theme.primary, theme.primaryLight || theme.primary]}
-                style={styles.stickyButtonGradient}
-              >
-                <Text style={styles.stickyButtonText}>
-                  {isEnrolled ? 'Continue' : 'Enroll Now'}
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      )}
-
-      {showCertificate && (
-        <CertificateView
-          visible={showCertificate}
-          onClose={() => setShowCertificate(false)}
-          course={course}
-          user={user}
-        />
-      )}
-
-      {/* Success Enrollment Overlay */}
-      <Modal
-        visible={enrolledSuccessfully}
-        transparent={true}
-        animationType="fade"
-      >
-        <View style={styles.successOverlay}>
-          <View style={[styles.successContent, { backgroundColor: theme.surface }]}>
-            <LinearGradient
-              colors={[theme.primary, theme.secondary]}
-              style={styles.successIconContainer}
-            >
-              <Ionicons name="checkmark-circle" size={60} color="#FFFFFF" />
-            </LinearGradient>
+      {/* Success Modal */}
+      <Modal visible={enrolledSuccessfully} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.successCard, { backgroundColor: theme.surface }]}>
+            <Ionicons name="checkmark-circle" size={50} color={theme.success} />
             <Text style={[styles.successTitle, { color: theme.text }]}>Enrolled!</Text>
-            <Text style={[styles.successMessage, { color: theme.textSecondary }]}>
-              Welcome to the course. Let's start learning!
-            </Text>
-            <ActivityIndicator color={theme.primary} style={{ marginTop: 20 }} />
           </View>
         </View>
       </Modal>
+
     </View>
   );
 }
@@ -867,614 +285,207 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  heroSection: {
-    height: height * 0.45,
-    position: 'relative',
+  hero: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1,
   },
   heroImage: {
     width: '100%',
     height: '100%',
   },
-  heroGradient: {
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  headerNav: {
     position: 'absolute',
     top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  contentWrapper: {
-    marginTop: -30,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    paddingTop: 30,
-  },
-  titleSection: {
+    zIndex: 10,
     paddingHorizontal: 20,
-    marginBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroContent: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
   },
   badgeRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
     marginBottom: 12,
   },
-  categoryBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
-  categoryBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
-  },
-  levelBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  levelBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'capitalize',
-  },
-  featuredBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
-  },
-  featuredText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  courseTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    lineHeight: 36,
-    marginBottom: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  metaText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  metaDivider: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginHorizontal: 12,
-  },
-  statsCard: {
-    marginHorizontal: 20,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 20,
-  },
-  statItem: {
-    flex: 1,
-    minWidth: '45%',
-    alignItems: 'center',
-  },
-  statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  statLabel: {
+  badgeText: {
+    color: '#FFF',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '700',
   },
-  enrollmentCard: {
-    marginHorizontal: 20,
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 20,
-  },
-  priceSection: {
-    marginBottom: 20,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  priceText: {
+  heroTitle: {
     fontSize: 32,
     fontWeight: '800',
+    color: '#FFF',
+    marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  originalPrice: {
-    fontSize: 20,
-    textDecorationLine: 'line-through',
-  },
-  priceSubtext: {
-    fontSize: 14,
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  discountText: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  enrollButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  enrollButtonGradient: {
+  heroMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 10,
+    gap: 8,
   },
-  enrollButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  heroMetaText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
-  trustBadges: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  trustBadge: {
+  scrollView: {
     flex: 1,
+    zIndex: 2,
+  },
+  scrollContent: {
+    paddingTop: height * 0.4, // Push content down to reveal hero initially
+  },
+  contentCard: {
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 24,
+    paddingTop: 30,
+    minHeight: height * 0.7,
+  },
+  instructorRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    gap: 6,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    marginBottom: 24,
   },
-  trustBadgeText: {
+  instructorAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  instructorLabel: {
     fontSize: 12,
     fontWeight: '600',
+    textTransform: 'uppercase',
   },
-  tabsContainer: {
-    flexDirection: 'row',
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 4,
-    marginBottom: 20,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    gap: 6,
-    position: 'relative',
-  },
-  activeTab: {},
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  tabIndicator: {
-    position: 'absolute',
-    bottom: 4,
-    left: '20%',
-    right: '20%',
-    height: 3,
-    borderRadius: 2,
-  },
-  tabContent: {
-    paddingHorizontal: 20,
+  instructorName: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   section: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 12,
-  },
-  sectionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
+    marginBottom: 12,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
-  description: {
+  descriptionText: {
     fontSize: 16,
     lineHeight: 24,
   },
-  learnList: {
-    gap: 12,
-  },
-  learnItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  learnIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  learnText: {
-    flex: 1,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  requirementsList: {
-    gap: 12,
-  },
-  requirementItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  requirementDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  requirementText: {
-    flex: 1,
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  includesList: {
-    gap: 0,
-  },
-  includeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    gap: 12,
-  },
-  includeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  includeLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  instructorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-  },
-  instructorAvatar: {
-    marginRight: 16,
-  },
-  avatarImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-  },
-  avatarPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  instructorInfo: {
-    flex: 1,
-  },
-  instructorName: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  instructorTitle: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  instructorStats: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  instructorStat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  instructorStatText: {
-    fontSize: 12,
-  },
   curriculumHeader: {
-    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 16,
   },
   lessonCount: {
     fontSize: 14,
-    marginTop: 4,
-    fontWeight: '500',
   },
-  lessonsContainer: {
-    gap: 0,
-  },
-  lessonCard: {
+  lessonItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: 16,
     borderBottomWidth: 1,
   },
-  lessonCardActive: {},
-  lessonLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  lessonNumber: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  lessonIndex: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  lessonNumberText: {
-    fontSize: 16,
+  lessonIndexText: {
     fontWeight: '700',
+    fontSize: 12,
   },
   lessonInfo: {
     flex: 1,
   },
-  lessonTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
   lessonTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    flex: 1,
-  },
-  freeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  freeBadgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  lessonMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    marginBottom: 2,
   },
   lessonDuration: {
     fontSize: 12,
   },
-  reviewsHeader: {
-    marginBottom: 20,
-  },
-  reviewsSubtitle: {
-    fontSize: 14,
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  ratingOverview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    marginTop: 16,
-  },
-  ratingCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  ratingBig: {
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  ratingDetails: {
-    flex: 1,
-  },
-  ratingCount: {
-    fontSize: 14,
-    marginTop: 4,
-    fontWeight: '500',
-  },
-  reviewsList: {
-    gap: 0,
-  },
-  reviewCard: {
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  reviewerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  reviewerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  reviewerInitial: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  reviewerDetails: {
-    flex: 1,
-  },
-  reviewerName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  reviewStars: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  reviewDate: {
-    fontSize: 12,
-  },
-  reviewText: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 16,
-    marginTop: 16,
-    fontWeight: '600',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    marginTop: 4,
-  },
-  stickyCard: {
+  actionBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 16,
-    borderTopWidth: 1,
-  },
-  stickyContent: {
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
+    borderTopWidth: 1,
+    zIndex: 100,
   },
-  stickyImage: {
-    width: 60,
-    height: 40,
-    borderRadius: 12,
+  actionPrice: {
+    fontSize: 20,
+    fontWeight: '800',
   },
-  stickyInfo: {
-    flex: 1,
+  actionSub: {
+    fontSize: 12,
   },
-  stickyTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
+  actionBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 16,
   },
-  stickyPrice: {
+  actionBtnText: {
+    color: '#FFF',
+    fontWeight: '700',
     fontSize: 16,
-    fontWeight: '700',
   },
-  stickyButton: {
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  stickyButtonGradient: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-  },
-  stickyButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  successOverlay: {
+  modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  successContent: {
-    width: width * 0.8,
+  successCard: {
     padding: 30,
-    borderRadius: 24,
+    borderRadius: 20,
     alignItems: 'center',
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-  },
-  successIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
+    gap: 16,
   },
   successTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '800',
-    marginBottom: 10,
-  },
-  successMessage: {
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 22,
   },
 });

@@ -28,6 +28,7 @@ import { usersAPI, progressAPI } from '../src/services/api';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import { showToast } from '../src/components/ToastNotification';
 import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
+import { getCourseImage } from '../src/utils/courseImages';
 
 const { width, height } = Dimensions.get('window');
 
@@ -248,11 +249,13 @@ export default function ProfileScreen({ navigation }) {
     ]);
   };
 
+  /* Animation disabled to fix crash
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 80, 120],
     outputRange: [0, 0, 1],
     extrapolate: 'clamp',
-  });
+  }); */
+  const headerOpacity = new Animated.Value(1); // Always showing for now
 
   if (loading && !refreshing) return <LoadingSpinner />;
 
@@ -313,10 +316,10 @@ export default function ProfileScreen({ navigation }) {
       <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
+        // onScroll={Animated.event(
+        //   [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        //   { useNativeDriver: true }
+        // )}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
         }
@@ -505,19 +508,37 @@ function StatCard({ icon, value, label, theme, color }) {
 function CourseProgressCard({ item, theme, navigation }) {
   const course = item.course;
   if (!course) return null;
+
+  const imageSource = course.thumbnail && course.thumbnail.startsWith('http')
+    ? { uri: course.thumbnail }
+    : getCourseImage(course._id, 0, course.category, course.title);
+
   return (
     <TouchableOpacity
-      style={[styles.courseCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}
+      style={[styles.courseCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}
       onPress={() => navigation.navigate('CourseDetail', { courseId: course._id })}
+      activeOpacity={0.9}
     >
-      <Image source={course.thumbnail ? { uri: course.thumbnail } : require('../assets/logo.jpeg')} style={styles.courseImage} />
+      <View style={styles.courseImageContainer}>
+        <Image source={imageSource} style={styles.courseImage} resizeMode="cover" />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.6)']}
+          style={styles.cardGradient}
+        />
+        <View style={[styles.playButton, { backgroundColor: theme.primary }]}>
+          <Ionicons name="play" size={18} color="#FFF" />
+        </View>
+        <View style={styles.progressObj}>
+          <Text style={styles.progressText}>{item.progress || 0}%</Text>
+        </View>
+      </View>
+
       <View style={styles.courseInfo}>
-        <Text style={[styles.courseTitle, { color: theme.text }]} numberOfLines={1}>{course.title}</Text>
-        <View style={styles.progRow}>
-          <View style={[styles.progTrack, { backgroundColor: theme.border }]}>
-            <View style={[styles.progFill, { width: `${item.progress || 0}%`, backgroundColor: theme.primary }]} />
-          </View>
-          <Text style={[styles.progPerc, { color: theme.primary }]}>{item.progress || 0}%</Text>
+        <Text style={[styles.courseCategory, { color: theme.primary }]}>{(course.category || 'Course').toUpperCase()}</Text>
+        <Text style={[styles.courseTitle, { color: theme.text }]} numberOfLines={2}>{course.title}</Text>
+
+        <View style={[styles.progressBarContainer, { backgroundColor: theme.border }]}>
+          <View style={[styles.progressBarFill, { width: `${item.progress || 0}%`, backgroundColor: theme.success }]} />
         </View>
       </View>
     </TouchableOpacity>
@@ -573,8 +594,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingTop: Platform.OS === 'ios' ? 120 : 100,
     paddingHorizontal: 22,
+    paddingBottom: 40,
   },
   hero: {
     marginTop: 20,
@@ -742,46 +764,82 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   courseCard: {
-    width: width * 0.7,
-    flexDirection: 'row',
-    padding: 12,
-    borderRadius: 20,
+    width: width * 0.75, // Wider card
+    borderRadius: 22,
     borderWidth: 1,
-    alignItems: 'center',
-    gap: 12,
+    overflow: 'hidden',
+    marginRight: 8,
+    flexDirection: 'column',
+  },
+  courseImageContainer: {
+    height: 120,
+    width: '100%',
+    position: 'relative',
   },
   courseImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 12,
+    width: '100%',
+    height: '100%',
+  },
+  cardGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  playButton: {
+    position: 'absolute',
+    right: 12,
+    bottom: -20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
+    zIndex: 10,
+  },
+  progressObj: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  progressText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   courseInfo: {
-    flex: 1,
+    padding: 16,
+    paddingTop: 24,
+  },
+  courseCategory: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginBottom: 4,
+    opacity: 0.8,
   },
   courseTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 12,
+    lineHeight: 22,
   },
-  progRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  progTrack: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
+  progressBarContainer: {
+    height: 4,
+    borderRadius: 2,
+    width: '100%',
     overflow: 'hidden',
   },
-  progFill: {
+  progressBarFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 2,
   },
-  progPerc: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
+  // Removed old progress styles
   settingsCard: {
     borderRadius: 24,
     borderWidth: 1,

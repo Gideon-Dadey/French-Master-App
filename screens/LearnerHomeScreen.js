@@ -117,8 +117,6 @@ export default function LearnerHomeScreen({ navigation }) {
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
                 }
                 showsVerticalScrollIndicator={false}
-                onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
-                scrollEventThrottle={16}
             >
                 {/* Header Section */}
                 <View style={styles.headerContainer}>
