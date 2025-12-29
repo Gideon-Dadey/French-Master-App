@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
+import { themeShadows } from '../src/utils/organicTheme';
 import { useAuth } from '../src/context/AuthContext';
 import AchievementBadge from '../src/components/AchievementBadge';
 import { spacing, fontSize } from '../src/utils/responsive';

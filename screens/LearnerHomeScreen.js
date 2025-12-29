@@ -23,7 +23,7 @@ import LoadingSpinner from '../src/components/LoadingSpinner';
 import { getCourseImage } from '../src/utils/courseImages';
 import PremiumErrorState from '../src/components/PremiumErrorState';
 import { gamificationService } from '../src/services/gamificationService';
-import { getThemeColors, themeShadows } from '../src/utils/organicTheme';
+import { themeShadows } from '../src/utils/organicTheme';
 
 const { width } = Dimensions.get('window');
 
@@ -370,9 +370,9 @@ const styles = StyleSheet.create({
     },
     // Hero Card
     heroCard: {
-        marginHorizontal: 22,
+        marginHorizontal: 10,
         height: 420,
-        borderRadius: 28, // Apple style large radius
+        borderRadius: 20, // Apple style large radius
         overflow: 'hidden',
         marginBottom: 32,
         backgroundColor: '#000', // fallback
@@ -417,9 +417,9 @@ const styles = StyleSheet.create({
         marginBottom: 32,
     },
     focusCard: {
-        marginHorizontal: 22,
+        marginHorizontal: 10,
         padding: 20,
-        borderRadius: 22,
+        borderRadius: 20,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     courseCard: {
         width: 260,
         height: 280,
-        borderRadius: 22,
+        borderRadius: 20,
         overflow: 'hidden',
     },
     courseImageWrapper: {
