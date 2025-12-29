@@ -15,10 +15,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
+import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
 import { speakText, stopSpeech } from '../src/utils/textToSpeech';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
+
+const BackgroundBlur = ({ style, color, size = 300 }) => (
+  <View style={[style, {
+    position: 'absolute',
+    width: size,
+    height: size,
+    borderRadius: size / 2,
+    backgroundColor: color,
+    opacity: 0.05,
+    transform: [{ scale: 1.5 }],
+  }]} />
+);
 
 const WORDS_COLLECTION = [
   {
@@ -35,7 +48,7 @@ const WORDS_COLLECTION = [
     difficulty: 'Advanced',
     category: 'Personal Growth',
     funFact: 'Comes from "s\'épanouir" meaning to bloom or open up, like a flower.',
-    gradient: ['#10B981', '#059669'],
+    gradient: ['#1E3A5F', '#2D4A6F'],
   },
   {
     id: 2,
@@ -51,7 +64,7 @@ const WORDS_COLLECTION = [
     difficulty: 'Intermediate',
     category: 'Emotions',
     funFact: 'One of those beautiful French words with no direct English translation!',
-    gradient: ['#F59E0B', '#D97706'],
+    gradient: ['#C9A227', '#D4B445'],
   },
   {
     id: 3,
@@ -67,7 +80,7 @@ const WORDS_COLLECTION = [
     difficulty: 'Advanced',
     category: 'Travel',
     funFact: 'From "pays" (country) - literally means "un-countrying" yourself!',
-    gradient: ['#3B82F6', '#2563EB'],
+    gradient: ['#5B8FB9', '#7AA8D4'],
   },
   {
     id: 4,
@@ -99,7 +112,7 @@ const WORDS_COLLECTION = [
     difficulty: 'Intermediate',
     category: 'Food & Wine',
     funFact: 'This word is now used worldwide in English, especially by wine enthusiasts!',
-    gradient: ['#EF4444', '#DC2626'],
+    gradient: ['#C94C4C', '#E57373'],
   },
   {
     id: 6,
@@ -131,7 +144,7 @@ const WORDS_COLLECTION = [
     difficulty: 'Beginner',
     category: 'Emotions',
     funFact: 'This phrase is used in English worldwide as a symbol of French culture!',
-    gradient: ['#06B6D4', '#0891B2'],
+    gradient: ['#2E7D5A', '#3A6BA7'],
   },
   {
     id: 8,
@@ -149,118 +162,6 @@ const WORDS_COLLECTION = [
     funFact: 'Literally means "knowing how to do" - it\'s all about practical wisdom!',
     gradient: ['#14B8A6', '#0D9488'],
   },
-  {
-    id: 9,
-    word: 'L\'appel du vide',
-    pronunciation: 'lah-PEL doo VEED',
-    partOfSpeech: 'expression',
-    translation: 'The call of the void',
-    definition: 'The inexplicable urge to jump from high places; the intrusive thought to do something dangerous.',
-    example: 'Au bord de la falaise, j\'ai ressenti l\'appel du vide.',
-    exampleEn: 'At the edge of the cliff, I felt the call of the void.',
-    usage: 'Describes that strange urge when standing at heights or other dangerous situations.',
-    synonyms: ['vertige', 'tentation'],
-    difficulty: 'Advanced',
-    category: 'Psychology',
-    funFact: 'A concept unique to French - psychologists worldwide now use this term!',
-    gradient: ['#6366F1', '#4F46E5'],
-  },
-  {
-    id: 10,
-    word: 'Bricoleur',
-    pronunciation: 'bree-koh-LUHR',
-    partOfSpeech: 'noun (m)',
-    translation: 'DIY enthusiast / Handyman',
-    definition: 'Someone who enjoys making or fixing things themselves; a tinkerer or maker.',
-    example: 'Mon père est un bricoleur extraordinaire.',
-    exampleEn: 'My father is an extraordinary handyman.',
-    usage: 'For anyone who loves DIY projects and fixing things around the house.',
-    synonyms: ['amateur', 'artisan', 'réparateur'],
-    difficulty: 'Intermediate',
-    category: 'Hobbies',
-    funFact: 'The verb "bricoler" literally means to fiddle around or tinker!',
-    gradient: ['#F97316', '#EA580C'],
-  },
-  {
-    id: 11,
-    word: 'Chez-soi',
-    pronunciation: 'shay-SWA',
-    partOfSpeech: 'noun (m)',
-    translation: 'Home / One\'s place',
-    definition: 'The feeling of being at home; your personal space and sanctuary.',
-    example: 'Il n\'y a rien de mieux que son chez-soi.',
-    exampleEn: 'There\'s nothing better than one\'s own home.',
-    usage: 'Expresses the comfort and security of being in your own space.',
-    synonyms: ['maison', 'foyer', 'domicile'],
-    difficulty: 'Beginner',
-    category: 'Home & Life',
-    funFact: 'Literally "at one\'s own place" - captures that cozy feeling of home!',
-    gradient: ['#84CC16', '#65A30D'],
-  },
-  {
-    id: 12,
-    word: 'Pétillant',
-    pronunciation: 'pay-tee-YAHN',
-    partOfSpeech: 'adjective',
-    translation: 'Sparkling / Bubbly',
-    definition: 'Describes something sparkling like champagne, or a personality that\'s lively and effervescent.',
-    example: 'Elle a une personnalité pétillante.',
-    exampleEn: 'She has a sparkling personality.',
-    usage: 'For drinks with bubbles or people with vibrant, energetic personalities.',
-    synonyms: ['vif', 'brillant', 'effervescent'],
-    difficulty: 'Intermediate',
-    category: 'Personality',
-    funFact: 'The same word for sparkling water (eau pétillante) and a bubbly person!',
-    gradient: ['#A855F7', '#9333EA'],
-  },
-  {
-    id: 13,
-    word: 'Ennui',
-    pronunciation: 'ahn-NWEE',
-    partOfSpeech: 'noun (m)',
-    translation: 'Boredom / Listlessness',
-    definition: 'A feeling of weariness and dissatisfaction from lack of occupation or interest.',
-    example: 'L\'ennui s\'est installé pendant le long voyage.',
-    exampleEn: 'Boredom set in during the long journey.',
-    usage: 'Describes existential boredom or a lack of stimulation.',
-    synonyms: ['lassitude', 'désœuvrement', 'monotonie'],
-    difficulty: 'Beginner',
-    category: 'Emotions',
-    funFact: 'Used in English to describe a deeper, more philosophical boredom!',
-    gradient: ['#64748B', '#475569'],
-  },
-  {
-    id: 14,
-    word: 'Gourmand',
-    pronunciation: 'goor-MAHN',
-    partOfSpeech: 'noun/adjective',
-    translation: 'Food lover / Greedy eater',
-    definition: 'Someone who loves food and enjoys eating large quantities; can be positive or slightly negative.',
-    example: 'Je suis gourmand de chocolat.',
-    exampleEn: 'I\'m a chocolate lover.',
-    usage: 'Use carefully - can mean food lover or someone who overeats!',
-    synonyms: ['gourmet', 'amateur de bonne chère'],
-    difficulty: 'Beginner',
-    category: 'Food & Wine',
-    funFact: 'Different from "gourmet" which means someone with refined taste!',
-    gradient: ['#B45309', '#92400E'],
-  },
-  {
-    id: 15,
-    word: 'Rayonnant',
-    pronunciation: 'ray-yo-NAHN',
-    partOfSpeech: 'adjective',
-    translation: 'Radiant / Beaming',
-    definition: 'Shining with light, health, or happiness; someone who glows with joy.',
-    example: 'Elle était rayonnante le jour de son mariage.',
-    exampleEn: 'She was radiant on her wedding day.',
-    usage: 'Perfect for describing someone who looks genuinely happy and glowing.',
-    synonyms: ['radieux', 'brillant', 'resplendissant'],
-    difficulty: 'Intermediate',
-    category: 'Appearance',
-    funFact: 'From "rayon" (ray of light) - someone who radiates happiness!',
-    gradient: ['#FBBF24', '#F59E0B'],
-  },
 ];
 
 const RELATED_WORDS = {
@@ -272,17 +173,11 @@ const RELATED_WORDS = {
   6: ['amour', 'passion', 'cœur', 'romantique'],
   7: ['bonheur', 'plaisir', 'enthousiasme', 'vie'],
   8: ['compétence', 'talent', 'expertise', 'habileté'],
-  9: ['peur', 'vertige', 'hauteur', 'danger'],
-  10: ['créer', 'réparer', 'construire', 'fabriquer'],
-  11: ['maison', 'confort', 'refuge', 'intimité'],
-  12: ['joyeux', 'vivant', 'énergique', 'champagne'],
-  13: ['fatigue', 'monotonie', 'langueur', 'désintérêt'],
-  14: ['manger', 'cuisine', 'délicieux', 'appétit'],
-  15: ['lumineux', 'heureux', 'éclatant', 'joyeux'],
 };
 
 export default function WordOfTheDayScreen({ navigation }) {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode, toggleTheme } = useTheme();
+  const theme = getThemeColors(isDarkMode);
   const { awardXP } = useGamification();
 
   const [todayWord, setTodayWord] = useState(null);
@@ -291,27 +186,45 @@ export default function WordOfTheDayScreen({ navigation }) {
   const [streak, setStreak] = useState(0);
   const [showMore, setShowMore] = useState(false);
   const [previousWords, setPreviousWords] = useState([]);
+  const [headerInteractable, setHeaderInteractable] = useState(false);
 
+  const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
-  const cardFlip = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const streakAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    navigation.setOptions({ headerShown: false });
     loadWordOfTheDay();
 
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 8, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, tension: 50, friction: 8, useNativeDriver: true }),
     ]).start();
   }, []);
 
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: true,
+      listener: (event) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        setHeaderInteractable(offsetY > 100);
+      }
+    }
+  );
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 80, 120],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
+
   const loadWordOfTheDay = async () => {
     try {
-
       const today = new Date();
       const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
       const wordIndex = dayOfYear % WORDS_COLLECTION.length;
@@ -416,7 +329,7 @@ export default function WordOfTheDayScreen({ navigation }) {
 
   if (!todayWord) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       </View>
     );
@@ -425,76 +338,46 @@ export default function WordOfTheDayScreen({ navigation }) {
   const relatedWords = RELATED_WORDS[todayWord.id] || [];
 
   return (
-    <View style={[styles.container, { backgroundColor: isDarkMode ? '#000000' : '#F8FAFC' }]}>
-      <StatusBar barStyle="light-content" />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
-      <LinearGradient
-        colors={todayWord.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
+      {/* Floating Navigation Bar */}
+      <Animated.View
+        pointerEvents={headerInteractable ? 'auto' : 'none'}
+        style={[
+          styles.floatingNavBar,
+          {
+            backgroundColor: theme.surface + 'F8',
+            opacity: headerOpacity,
+            borderBottomColor: theme.border,
+          }
+        ]}
       >
-        <View style={styles.headerDecor1} />
-        <View style={styles.headerDecor2} />
-        <View style={styles.headerDecor3} />
-
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-
-          <View style={styles.headerBadges}>
+        <View style={styles.navBarContent}>
+          <View style={styles.navBarLeft}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.navBackBtn}>
+              <Ionicons name="arrow-back" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={[styles.navTitle, { color: theme.text }]}>Word of the Day</Text>
+          </View>
+          <View style={styles.navBarRight}>
             {streak > 0 && (
-              <View style={styles.streakBadge}>
-                <Ionicons name="flame" size={16} color="#FFFFFF" />
-                <Text style={styles.streakText}>{streak}</Text>
+              <View style={[styles.navStreakBadge, { backgroundColor: theme.secondary + '20' }]}>
+                <Ionicons name="flame" size={16} color={theme.secondary} />
+                <Text style={[styles.navStreakText, { color: theme.secondary }]}>{streak}</Text>
               </View>
             )}
-            <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
-              <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+            <TouchableOpacity
+              style={[styles.navIconBtn, { backgroundColor: theme.primary + '15' }]}
+              onPress={toggleTheme}
+            >
+              <Ionicons name={isDarkMode ? "sunny" : "moon"} size={18} color={theme.primary} />
             </TouchableOpacity>
           </View>
         </View>
+      </Animated.View>
 
-        <Animated.View
-          style={[
-            styles.headerContent,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
-        >
-          <View style={styles.dateContainer}>
-            <Ionicons name="calendar" size={16} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.dateText}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-            </Text>
-          </View>
-
-          <Text style={styles.headerLabel}>Word of the Day</Text>
-
-          <View style={styles.wordRow}>
-            <Text style={styles.mainWord}>{todayWord.word}</Text>
-            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <TouchableOpacity
-                style={styles.audioBtn}
-                onPress={handlePlayAudio}
-                activeOpacity={0.8}
-              >
-                <Ionicons name={isPlaying ? 'pause' : 'volume-high'} size={26} color="#FFFFFF" />
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-
-          <Text style={styles.pronunciation}>[{todayWord.pronunciation}]</Text>
-          <Text style={styles.partOfSpeech}>{todayWord.partOfSpeech}</Text>
-        </Animated.View>
-      </LinearGradient>
-
+      {/* Streak Celebration */}
       <Animated.View
         style={[
           styles.streakCelebration,
@@ -513,178 +396,257 @@ export default function WordOfTheDayScreen({ navigation }) {
         <Text style={styles.streakCelebrationText}>🔥 {streak} Day Streak!</Text>
       </Animated.View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
+      <Animated.ScrollView
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
+        {/* Hero Section */}
+        <View style={styles.heroSection}>
+          <View style={[styles.heroContent, { backgroundColor: theme.background }]}>
+            <BackgroundBlur style={styles.blurTop} color={theme.primary} />
+            <BackgroundBlur style={styles.blurBottom} color={theme.secondary} size={200} />
 
-        <Animated.View
-          style={[
-            styles.translationCard,
-            {
-              backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }]
-            }
-          ]}
-        >
-          <View style={styles.translationHeader}>
-            <View style={[styles.categoryBadge, { backgroundColor: todayWord.gradient[0] + '20' }]}>
-              <Text style={[styles.categoryText, { color: todayWord.gradient[0] }]}>{todayWord.category}</Text>
+            <View style={styles.heroHeader}>
+              <TouchableOpacity
+                style={[styles.backCircle, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
+                onPress={() => navigation.goBack()}
+              >
+                <Ionicons name="chevron-back" size={24} color={theme.text} />
+              </TouchableOpacity>
+              <View style={styles.heroHeaderRight}>
+                {streak > 0 && (
+                  <View style={[styles.streakBadge, { backgroundColor: theme.secondary + '20' }]}>
+                    <Ionicons name="flame" size={18} color={theme.secondary} />
+                    <Text style={[styles.streakText, { color: theme.secondary }]}>{streak}</Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={[styles.themeToggle, { backgroundColor: theme.surface, borderColor: theme.border, borderWidth: 1 }]}
+                  onPress={toggleTheme}
+                >
+                  <Ionicons name={isDarkMode ? "sunny" : "moon"} size={20} color={theme.text} />
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={[styles.difficultyBadge, {
-              backgroundColor: todayWord.difficulty === 'Beginner' ? '#10B98120' :
-                             todayWord.difficulty === 'Intermediate' ? '#F59E0B20' : '#EF444420'
-            }]}>
-              <Text style={[styles.difficultyText, {
-                color: todayWord.difficulty === 'Beginner' ? '#10B981' :
-                       todayWord.difficulty === 'Intermediate' ? '#F59E0B' : '#EF4444'
-              }]}>{todayWord.difficulty}</Text>
+
+            <View style={styles.greetingSection}>
+              <View style={styles.dateRow}>
+                <Ionicons name="calendar-outline" size={16} color={theme.primary} />
+                <Text style={[styles.dateText, { color: theme.primary }]}>
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </Text>
+              </View>
+              <Text style={[styles.greetingSubtitle, { color: theme.primary }]}>WORD OF THE DAY</Text>
+              <Text style={[styles.greetingTitle, { color: theme.text }]}>{todayWord.word}</Text>
+
+              <View style={styles.pronunciationRow}>
+                <Text style={[styles.pronunciation, { color: theme.textSecondary }]}>
+                  [{todayWord.pronunciation}]
+                </Text>
+                <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                  <TouchableOpacity
+                    style={[styles.audioBtn, { backgroundColor: theme.primary }]}
+                    onPress={handlePlayAudio}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name={isPlaying ? 'pause' : 'volume-high'} size={20} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
+
+              <Text style={[styles.partOfSpeech, { color: theme.textMuted }]}>{todayWord.partOfSpeech}</Text>
             </View>
           </View>
-
-          <Text style={[styles.translation, { color: colors.text }]}>
-            {todayWord.translation}
-          </Text>
-          <Text style={[styles.definition, { color: colors.secondaryText }]}>
-            {todayWord.definition}
-          </Text>
-        </Animated.View>
-
-        <View style={[styles.exampleCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
-          <View style={styles.exampleHeader}>
-            <Ionicons name="chatbubble-outline" size={20} color={todayWord.gradient[0]} />
-            <Text style={[styles.exampleTitle, { color: colors.text }]}>Example</Text>
-          </View>
-          <Text style={[styles.exampleFrench, { color: colors.text }]}>
-            "{todayWord.example}"
-          </Text>
-          <Text style={[styles.exampleEnglish, { color: colors.secondaryText }]}>
-            "{todayWord.exampleEn}"
-          </Text>
         </View>
 
-        <View style={[styles.tipCard, { backgroundColor: todayWord.gradient[0] + '15' }]}>
-          <Ionicons name="bulb" size={22} color={todayWord.gradient[0]} />
-          <View style={styles.tipContent}>
-            <Text style={[styles.tipTitle, { color: todayWord.gradient[0] }]}>Usage Tip</Text>
-            <Text style={[styles.tipText, { color: colors.text }]}>{todayWord.usage}</Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.funFactCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}
-          onPress={() => setShowMore(!showMore)}
-          activeOpacity={0.8}
-        >
-          <View style={styles.funFactHeader}>
-            <View style={styles.funFactLeft}>
-              <Ionicons name="sparkles" size={20} color="#F59E0B" />
-              <Text style={[styles.funFactTitle, { color: colors.text }]}>Fun Fact</Text>
+        {/* Content Body */}
+        <View style={styles.contentBody}>
+          {/* Stats Overview */}
+          <View style={[styles.statsOverview, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}>
+            <View style={styles.overviewItem}>
+              <Text style={[styles.overviewValue, { color: theme.text }]}>{todayWord.difficulty}</Text>
+              <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Level</Text>
             </View>
-            <Ionicons
-              name={showMore ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color={colors.secondaryText}
-            />
+            <View style={[styles.overviewDivider, { backgroundColor: theme.border }]} />
+            <View style={styles.overviewItem}>
+              <Text style={[styles.overviewValue, { color: theme.text }]}>{todayWord.category}</Text>
+              <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Category</Text>
+            </View>
+            <View style={[styles.overviewDivider, { backgroundColor: theme.border }]} />
+            <View style={styles.overviewItem}>
+              <TouchableOpacity onPress={handleShare}>
+                <Ionicons name="share-social" size={24} color={theme.primary} />
+              </TouchableOpacity>
+              <Text style={[styles.overviewLabel, { color: theme.textSecondary }]}>Share</Text>
+            </View>
           </View>
-          {showMore && (
-            <Text style={[styles.funFactText, { color: colors.secondaryText }]}>
-              {todayWord.funFact}
-            </Text>
-          )}
-        </TouchableOpacity>
 
-        <View style={[styles.synonymsCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
-          <Text style={[styles.synonymsTitle, { color: colors.text }]}>Similar Words</Text>
+          {/* Translation Card */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={[styles.titleAccent, { backgroundColor: theme.primary }]} />
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Translation</Text>
+            </View>
+          </View>
+
+          <View style={[styles.translationCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}>
+            <Text style={[styles.translation, { color: theme.text }]}>{todayWord.translation}</Text>
+            <Text style={[styles.definition, { color: theme.textSecondary }]}>{todayWord.definition}</Text>
+          </View>
+
+          {/* Example Card */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={[styles.titleAccent, { backgroundColor: theme.secondary }]} />
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Example</Text>
+            </View>
+          </View>
+
+          <View style={[styles.exampleCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}>
+            <View style={styles.exampleRow}>
+              <Ionicons name="chatbubble-outline" size={20} color={theme.primary} />
+              <Text style={[styles.exampleFrench, { color: theme.text }]}>"{todayWord.example}"</Text>
+            </View>
+            <Text style={[styles.exampleEnglish, { color: theme.textSecondary }]}>"{todayWord.exampleEn}"</Text>
+          </View>
+
+          {/* Usage Tip */}
+          <View style={[styles.tipCard, { backgroundColor: theme.secondary + '15', borderColor: theme.secondary + '30' }]}>
+            <Ionicons name="bulb" size={22} color={theme.secondary} />
+            <View style={styles.tipContent}>
+              <Text style={[styles.tipTitle, { color: theme.secondary }]}>Usage Tip</Text>
+              <Text style={[styles.tipText, { color: theme.text }]}>{todayWord.usage}</Text>
+            </View>
+          </View>
+
+          {/* Fun Fact */}
+          <TouchableOpacity
+            style={[styles.funFactCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}
+            onPress={() => setShowMore(!showMore)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.funFactHeader}>
+              <View style={styles.funFactLeft}>
+                <Ionicons name="sparkles" size={20} color={theme.gold} />
+                <Text style={[styles.funFactTitle, { color: theme.text }]}>Fun Fact</Text>
+              </View>
+              <Ionicons
+                name={showMore ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={theme.textSecondary}
+              />
+            </View>
+            {showMore && (
+              <Text style={[styles.funFactText, { color: theme.textSecondary }]}>
+                {todayWord.funFact}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Synonyms */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={[styles.titleAccent, { backgroundColor: theme.info }]} />
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Similar Words</Text>
+            </View>
+          </View>
+
           <View style={styles.synonymsRow}>
             {todayWord.synonyms.map((synonym, index) => (
               <View
                 key={index}
-                style={[styles.synonymBadge, { backgroundColor: isDarkMode ? '#334155' : '#F1F5F9' }]}
+                style={[styles.synonymBadge, { backgroundColor: theme.surface, borderColor: theme.border }]}
               >
-                <Text style={[styles.synonymText, { color: colors.text }]}>{synonym}</Text>
+                <Text style={[styles.synonymText, { color: theme.text }]}>{synonym}</Text>
               </View>
             ))}
           </View>
-        </View>
 
-        <View style={[styles.relatedCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
-          <Text style={[styles.relatedTitle, { color: colors.text }]}>Related Vocabulary</Text>
+          {/* Related Vocabulary */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleRow}>
+              <View style={[styles.titleAccent, { backgroundColor: theme.success }]} />
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Related Vocabulary</Text>
+            </View>
+          </View>
+
           <View style={styles.relatedGrid}>
             {relatedWords.map((word, index) => (
               <View
                 key={index}
-                style={[styles.relatedWord, { borderColor: isDarkMode ? '#334155' : '#E2E8F0' }]}
+                style={[styles.relatedWord, { backgroundColor: theme.surface, borderColor: theme.border }]}
               >
-                <Text style={[styles.relatedWordText, { color: colors.text }]}>{word}</Text>
+                <Text style={[styles.relatedWordText, { color: theme.text }]}>{word}</Text>
               </View>
             ))}
           </View>
-        </View>
 
-        <TouchableOpacity
-          style={[
-            styles.learnedBtn,
-            learned && styles.learnedBtnDone
-          ]}
-          onPress={handleLearnWord}
-          activeOpacity={0.9}
-          disabled={learned}
-        >
-          <LinearGradient
-            colors={learned ? ['#10B981', '#059669'] : todayWord.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.learnedBtnGradient}
+          {/* Learn Button */}
+          <TouchableOpacity
+            style={[styles.learnedBtn, learned && styles.learnedBtnDone]}
+            onPress={handleLearnWord}
+            activeOpacity={0.9}
+            disabled={learned}
           >
-            <Ionicons
-              name={learned ? 'checkmark-circle' : 'bookmark'}
-              size={24}
-              color="#FFFFFF"
-            />
-            <Text style={styles.learnedBtnText}>
-              {learned ? 'Word Learned!' : 'Mark as Learned'}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        {previousWords.length > 0 && (
-          <View style={styles.previousSection}>
-            <Text style={[styles.previousTitle, { color: colors.text }]}>
-              Recent Words
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.previousScroll}
+            <LinearGradient
+              colors={learned ? [theme.success, '#059669'] : [theme.primary, theme.primaryLight]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.learnedBtnGradient}
             >
-              {previousWords.slice(0, 5).map((wordId, index) => {
-                const word = WORDS_COLLECTION.find(w => w.id === wordId);
-                if (!word || word.id === todayWord.id) return null;
-                return (
-                  <View
-                    key={index}
-                    style={[styles.previousCard, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}
-                  >
-                    <LinearGradient
-                      colors={word.gradient}
-                      style={styles.previousCardAccent}
-                    />
-                    <Text style={[styles.previousWord, { color: colors.text }]}>{word.word}</Text>
-                    <Text style={[styles.previousTranslation, { color: colors.secondaryText }]} numberOfLines={1}>
-                      {word.translation}
-                    </Text>
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
+              <Ionicons
+                name={learned ? 'checkmark-circle' : 'bookmark'}
+                size={24}
+                color="#FFFFFF"
+              />
+              <Text style={styles.learnedBtnText}>
+                {learned ? 'Word Learned!' : 'Mark as Learned'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
+          {/* Previous Words */}
+          {previousWords.length > 0 && (
+            <View style={styles.previousSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleRow}>
+                  <View style={[styles.titleAccent, { backgroundColor: theme.textMuted }]} />
+                  <Text style={[styles.sectionTitle, { color: theme.text }]}>Recent Words</Text>
+                </View>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.previousScroll}
+              >
+                {previousWords.slice(0, 5).map((wordId, index) => {
+                  const word = WORDS_COLLECTION.find(w => w.id === wordId);
+                  if (!word || word.id === todayWord.id) return null;
+                  return (
+                    <View
+                      key={index}
+                      style={[styles.previousCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                    >
+                      <LinearGradient
+                        colors={word.gradient}
+                        style={styles.previousCardAccent}
+                      />
+                      <Text style={[styles.previousWord, { color: theme.text }]}>{word.word}</Text>
+                      <Text style={[styles.previousTranslation, { color: theme.textSecondary }]} numberOfLines={1}>
+                        {word.translation}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          <View style={{ height: 100 }} />
+        </View>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -693,196 +655,226 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : 50,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
-    overflow: 'hidden',
+  scrollView: {
+    flex: 1,
   },
-  headerDecor1: {
+  // Floating Nav Bar
+  floatingNavBar: {
     position: 'absolute',
-    top: -80,
-    right: -80,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight + 10,
+    paddingBottom: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
   },
-  headerDecor2: {
-    position: 'absolute',
-    bottom: -60,
-    left: -60,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  headerDecor3: {
-    position: 'absolute',
-    top: 100,
-    left: 80,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  headerTop: {
+  navBarContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
   },
-  backBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerBadges: {
+  navBarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  streakText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  shareBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerContent: {
-    alignItems: 'center',
-  },
-  dateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-  },
-  dateText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  headerLabel: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    fontWeight: '600',
-    marginBottom: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  wordRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  mainWord: {
-    fontSize: 38,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-  },
-  audioBtn: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pronunciation: {
-    fontSize: 17,
-    color: 'rgba(255,255,255,0.9)',
-    marginTop: 10,
-    fontStyle: 'italic',
-  },
-  partOfSpeech: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 6,
-  },
-  streakCelebration: {
-    position: 'absolute',
-    top: height * 0.35,
-    alignSelf: 'center',
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 24,
-    zIndex: 100,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  streakCelebrationText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-    paddingTop: 24,
-  },
-  translationCard: {
-    padding: 22,
-    borderRadius: 24,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  translationHeader: {
+  navBarRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 14,
   },
-  categoryBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 10,
+  navBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  categoryText: {
-    fontSize: 12,
+  navTitle: {
+    fontSize: 18,
     fontWeight: '700',
   },
-  difficultyBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 10,
+  navStreakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
   },
-  difficultyText: {
-    fontSize: 12,
+  navStreakText: {
+    fontSize: 14,
     fontWeight: '700',
+  },
+  navIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Hero Section
+  heroSection: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+  },
+  heroContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  blurTop: {
+    top: -100,
+    right: -100,
+  },
+  blurBottom: {
+    bottom: -50,
+    left: -50,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+  },
+  heroHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themeToggle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    gap: 6,
+  },
+  streakText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  greetingSection: {
+    alignItems: 'flex-start',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  dateText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  greetingSubtitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  greetingTitle: {
+    fontSize: 38,
+    fontWeight: '800',
+    letterSpacing: -1,
+    marginBottom: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  pronunciationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 8,
+  },
+  pronunciation: {
+    fontSize: 17,
+    fontStyle: 'italic',
+  },
+  audioBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  partOfSpeech: {
+    fontSize: 14,
+  },
+  // Content Body
+  contentBody: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  // Stats Overview
+  statsOverview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 28,
+  },
+  overviewItem: {
+    alignItems: 'center',
+  },
+  overviewValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  overviewLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  overviewDivider: {
+    width: 1,
+    height: 40,
+  },
+  // Section Headers
+  sectionHeader: {
+    marginBottom: 16,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  titleAccent: {
+    width: 4,
+    height: 20,
+    borderRadius: 2,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  // Translation Card
+  translationCard: {
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 24,
   },
   translation: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
     marginBottom: 10,
     letterSpacing: -0.3,
@@ -891,43 +883,39 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 24,
   },
+  // Example Card
   exampleCard: {
     padding: 20,
     borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    borderWidth: 1,
+    marginBottom: 24,
   },
-  exampleHeader: {
+  exampleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  exampleTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 10,
   },
   exampleFrench: {
+    flex: 1,
     fontSize: 17,
     fontWeight: '600',
     fontStyle: 'italic',
-    marginBottom: 8,
     lineHeight: 26,
   },
   exampleEnglish: {
     fontSize: 15,
     lineHeight: 24,
+    marginLeft: 32,
   },
+  // Tip Card
   tipCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     padding: 18,
     borderRadius: 18,
-    marginBottom: 16,
+    borderWidth: 1,
+    marginBottom: 24,
     gap: 14,
   },
   tipContent: {
@@ -942,15 +930,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
   },
+  // Fun Fact Card
   funFactCard: {
     padding: 18,
     borderRadius: 18,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    borderWidth: 1,
+    marginBottom: 24,
   },
   funFactHeader: {
     flexDirection: 'row',
@@ -971,78 +956,47 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 12,
   },
-  synonymsCard: {
-    padding: 18,
-    borderRadius: 18,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  synonymsTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
+  // Synonyms
   synonymsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+    marginBottom: 24,
   },
   synonymBadge: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 12,
+    borderWidth: 1,
   },
   synonymText: {
     fontSize: 14,
     fontWeight: '600',
   },
-  relatedCard: {
-    padding: 18,
-    borderRadius: 18,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  relatedTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 14,
-  },
+  // Related Words
   relatedGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
+    marginBottom: 32,
   },
   relatedWord: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
     borderWidth: 1.5,
   },
   relatedWordText: {
     fontSize: 14,
     fontWeight: '600',
   },
+  // Learn Button
   learnedBtn: {
     borderRadius: 20,
     overflow: 'hidden',
-    marginBottom: 28,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    elevation: 8,
+    marginBottom: 32,
   },
-  learnedBtnDone: {
-    shadowColor: '#10B981',
-  },
+  learnedBtnDone: {},
   learnedBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1055,27 +1009,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
+  // Previous Section
   previousSection: {
     marginBottom: 24,
   },
-  previousTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 14,
-  },
   previousScroll: {
     gap: 14,
+    paddingRight: 24,
   },
   previousCard: {
-    width: 140,
-    padding: 14,
+    width: 150,
+    padding: 16,
     borderRadius: 16,
+    borderWidth: 1,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4,
   },
   previousCardAccent: {
     position: 'absolute',
@@ -1093,5 +1040,25 @@ const styles = StyleSheet.create({
   previousTranslation: {
     fontSize: 12,
   },
+  // Streak Celebration
+  streakCelebration: {
+    position: 'absolute',
+    top: height * 0.35,
+    alignSelf: 'center',
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 24,
+    zIndex: 100,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  streakCelebrationText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
 });
-

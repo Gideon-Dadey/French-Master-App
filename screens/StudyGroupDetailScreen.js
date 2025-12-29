@@ -778,7 +778,19 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     }
   };
 
-  const startCall = (type) => {
+  const startCall = async (type) => {
+    // Request camera permission for video calls
+    if (type === 'video' && !cameraPermission?.granted) {
+      const result = await requestCameraPermission();
+      if (!result.granted) {
+        Alert.alert(
+          'Camera Permission Required',
+          'Please allow camera access to make video calls.',
+          [{ text: 'OK' }]
+        );
+      }
+    }
+
     setCallType(type);
     setIsInCall(true);
     setCallDuration(0);
@@ -3311,128 +3323,132 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           onRequestClose={endCall}
           statusBarTranslucent
         >
-          <View style={styles.callModal}>
+          <View style={styles.telegramCallContainer}>
             {callType === 'video' ? (
-              <View style={styles.faceTimeContainer}>
-                <View style={styles.faceTimeMain}>
-                  {isVideoOn ? (
-                    <View style={styles.faceTimeGroupView}>
-                      <LinearGradient colors={['#1c1c1e', '#2c2c2e', '#1c1c1e']} style={styles.faceTimeGroupGradient}>
-                        <View style={styles.faceTimeGroupAvatars}>
-                          {group?.members?.slice(0, 4).map((member, index) => {
-                            const memberUser = typeof member.user === 'object' ? member.user : null;
-                            return (
-                              <View key={index} style={styles.faceTimeParticipant}>
-                                {memberUser?.avatar ? (
-                                  <Image source={{ uri: memberUser.avatar }} style={styles.faceTimeParticipantAvatar} />
-                                ) : (
-                                  <View style={styles.faceTimeParticipantPlaceholder}>
-                                    <Ionicons name="person" size={40} color="rgba(255,255,255,0.6)" />
-                                  </View>
-                                )}
-                                <Text style={styles.faceTimeParticipantName} numberOfLines={1}>
-                                  {memberUser?.name || 'Member'}
-                                </Text>
-                              </View>
-                            );
-                          })}
-                        </View>
-                        {memberCount > 4 && (
-                          <Text style={styles.faceTimeMoreParticipants}>+{memberCount - 4} more</Text>
-                        )}
-                      </LinearGradient>
-                    </View>
+              <>
+                {/* Full Screen Camera Background */}
+                <View style={styles.telegramVideoBackground}>
+                  {cameraPermission?.granted ? (
+                    <CameraView
+                      style={styles.telegramFullCamera}
+                      facing={isFrontCamera ? 'front' : 'back'}
+                    />
                   ) : (
-                    <View style={styles.faceTimeVideoOff}>
-                      <View style={styles.faceTimeVideoOffIcon}>
-                        <Ionicons name="videocam-off" size={50} color="#FFFFFF" />
+                    <LinearGradient
+                      colors={['#1A1A2E', '#16213E', '#0F3460']}
+                      style={styles.telegramNoCameraGradient}
+                    >
+                      <View style={styles.telegramNoCameraIcon}>
+                        <Ionicons name="videocam-off" size={60} color="rgba(255,255,255,0.3)" />
                       </View>
-                      <Text style={styles.faceTimeVideoOffText}>Camera Off</Text>
-                    </View>
+                      <Text style={styles.telegramNoCameraText}>Camera access required</Text>
+                    </LinearGradient>
                   )}
                 </View>
 
-                <View style={styles.faceTimeSelfContainer}>
+                {/* Floating Self View - Draggable */}
+                <View style={styles.telegramSelfView}>
                   {isVideoOn && cameraPermission?.granted ? (
-                    <CameraView style={styles.faceTimeSelfCamera} facing={isFrontCamera ? 'front' : 'back'} />
+                    <CameraView style={styles.telegramSelfCamera} facing={isFrontCamera ? 'front' : 'back'} />
                   ) : (
-                    <View style={styles.faceTimeSelfPlaceholder}>
-                      <Ionicons name="person" size={30} color="rgba(255,255,255,0.5)" />
+                    <View style={styles.telegramSelfPlaceholder}>
+                      <Ionicons name="person" size={32} color="rgba(255,255,255,0.5)" />
                     </View>
                   )}
                 </View>
 
-                <View style={styles.faceTimeTopBar}>
-                  <View style={styles.faceTimeInfo}>
-                    <Text style={styles.faceTimeGroupName}>{group?.name}</Text>
-                    <View style={styles.faceTimeStatusRow}>
-                      <View style={styles.faceTimeLiveIndicator} />
-                      <Text style={styles.faceTimeDuration}>
+                {/* Top Info Bar */}
+                <View style={styles.telegramCallTopBar}>
+                  <View style={styles.telegramCallInfo}>
+                    <Text style={styles.telegramCallGroupName}>{group?.name}</Text>
+                    <View style={styles.telegramCallStatusRow}>
+                      <View style={styles.telegramCallLiveIndicator} />
+                      <Text style={styles.telegramCallDuration}>
                         {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
                       </Text>
+                      <Text style={styles.telegramCallParticipantCount}>• {memberCount} participants</Text>
                     </View>
                   </View>
                 </View>
 
-                <View style={styles.faceTimeControls}>
-                  <View style={styles.faceTimeControlsRow}>
-                    <TouchableOpacity style={[styles.faceTimeControlBtn, isMuted && styles.faceTimeControlBtnActive]} onPress={toggleMute}>
-                      <Ionicons name={isMuted ? "mic-off" : "mic"} size={24} color="#FFFFFF" />
+                {/* Bottom Controls - Telegram Style */}
+                <View style={styles.telegramCallControls}>
+                  <View style={styles.telegramControlsMain}>
+                    {/* Flip Camera */}
+                    <TouchableOpacity style={styles.telegramControlBtn} onPress={toggleCamera}>
+                      <Ionicons name="camera-reverse" size={26} color="#FFFFFF" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.faceTimeEndCall} onPress={endCall}>
-                      <Ionicons name="close" size={28} color="#FFFFFF" />
+
+                    {/* Mute */}
+                    <TouchableOpacity
+                      style={[styles.telegramControlBtn, isMuted && styles.telegramControlBtnActive]}
+                      onPress={toggleMute}
+                    >
+                      <Ionicons name={isMuted ? "mic-off" : "mic"} size={26} color="#FFFFFF" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.faceTimeControlBtn, !isVideoOn && styles.faceTimeControlBtnActive]} onPress={toggleVideo}>
-                      <Ionicons name={isVideoOn ? "videocam" : "videocam-off"} size={24} color="#FFFFFF" />
+
+                    {/* End Call - Red Button */}
+                    <TouchableOpacity style={styles.telegramEndCallBtn} onPress={endCall}>
+                      <Ionicons name="call" size={32} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
                     </TouchableOpacity>
-                  </View>
-                  <View style={styles.faceTimeSecondaryRow}>
-                    <TouchableOpacity style={styles.faceTimeSecondaryBtn} onPress={toggleCamera}>
-                      <Ionicons name="camera-reverse-outline" size={22} color="#FFFFFF" />
-                      <Text style={styles.faceTimeSecondaryLabel}>Flip</Text>
+
+                    {/* Video Toggle */}
+                    <TouchableOpacity
+                      style={[styles.telegramControlBtn, !isVideoOn && styles.telegramControlBtnActive]}
+                      onPress={toggleVideo}
+                    >
+                      <Ionicons name={isVideoOn ? "videocam" : "videocam-off"} size={26} color="#FFFFFF" />
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.faceTimeSecondaryBtn, isSpeakerOn && styles.faceTimeSecondaryBtnActive]} onPress={toggleSpeaker}>
-                      <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium-outline"} size={22} color="#FFFFFF" />
-                      <Text style={styles.faceTimeSecondaryLabel}>Speaker</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.faceTimeSecondaryBtn}>
-                      <Ionicons name="apps-outline" size={22} color="#FFFFFF" />
-                      <Text style={styles.faceTimeSecondaryLabel}>Effects</Text>
+
+                    {/* Speaker */}
+                    <TouchableOpacity
+                      style={[styles.telegramControlBtn, isSpeakerOn && styles.telegramControlBtnActive]}
+                      onPress={toggleSpeaker}
+                    >
+                      <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={26} color="#FFFFFF" />
                     </TouchableOpacity>
                   </View>
                 </View>
-              </View>
+              </>
             ) : (
-              <LinearGradient colors={['#667eea', '#764ba2', '#6B8DD6']} style={styles.callBackground}>
-                <View style={styles.voiceCallContainer}>
-                  <Animated.View style={[styles.callAvatarContainer, { transform: [{ scale: callPulseAnim }] }]}>
-                    <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']} style={styles.callAvatarRing}>
-                      <View style={styles.callAvatar}>
+              /* Voice Call - Telegram Style */
+              <LinearGradient colors={['#1A1A2E', '#16213E', '#0F3460']} style={styles.telegramVoiceCallBg}>
+                <View style={styles.telegramVoiceCallContent}>
+                  <Animated.View style={[styles.telegramVoiceAvatar, { transform: [{ scale: callPulseAnim }] }]}>
+                    {group?.image ? (
+                      <Image source={{ uri: group.image }} style={styles.telegramVoiceAvatarImage} />
+                    ) : (
+                      <View style={styles.telegramVoiceAvatarPlaceholder}>
                         <Ionicons name="people" size={50} color="#FFFFFF" />
                       </View>
-                    </LinearGradient>
+                    )}
                   </Animated.View>
-                  <Text style={styles.callGroupName}>{group?.name}</Text>
-                  <Text style={styles.callStatus}>{callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}</Text>
-                  <View style={styles.callParticipants}>
-                    <Text style={styles.callParticipantsText}>{memberCount} participants</Text>
-                  </View>
+                  <Text style={styles.telegramVoiceGroupName}>{group?.name}</Text>
+                  <Text style={styles.telegramVoiceStatus}>
+                    {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
+                  </Text>
+                  <Text style={styles.telegramVoiceParticipants}>{memberCount} participants</Text>
                 </View>
-                <View style={styles.callControls}>
-                  <View style={styles.callControlsRow}>
-                    <TouchableOpacity style={[styles.callControlBtn, isMuted && styles.callControlBtnActive]} onPress={toggleMute}>
-                      <Ionicons name={isMuted ? "mic-off" : "mic"} size={26} color="#FFFFFF" />
-                      <Text style={styles.callControlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.callControlBtn, isSpeakerOn && styles.callControlBtnActive]} onPress={toggleSpeaker}>
-                      <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={26} color="#FFFFFF" />
-                      <Text style={styles.callControlLabel}>{isSpeakerOn ? 'Speaker' : 'Phone'}</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <TouchableOpacity style={styles.endCallBtn} onPress={endCall}>
-                    <LinearGradient colors={['#FF3B30', '#FF453A']} style={styles.endCallBtnGradient}>
-                      <Ionicons name="call" size={30} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
-                    </LinearGradient>
+
+                <View style={styles.telegramVoiceControls}>
+                  <TouchableOpacity
+                    style={[styles.telegramVoiceControlBtn, isMuted && styles.telegramControlBtnActive]}
+                    onPress={toggleMute}
+                  >
+                    <Ionicons name={isMuted ? "mic-off" : "mic"} size={28} color="#FFFFFF" />
+                    <Text style={styles.telegramVoiceControlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.telegramVoiceEndBtn} onPress={endCall}>
+                    <Ionicons name="call" size={36} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.telegramVoiceControlBtn, isSpeakerOn && styles.telegramControlBtnActive]}
+                    onPress={toggleSpeaker}
+                  >
+                    <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={28} color="#FFFFFF" />
+                    <Text style={styles.telegramVoiceControlLabel}>Speaker</Text>
                   </TouchableOpacity>
                 </View>
               </LinearGradient>
@@ -4829,183 +4845,205 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
 
+  // Telegram-style Video Call
+  telegramCallContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  telegramVideoBackground: {
+    flex: 1,
+    backgroundColor: '#1A1A2E',
+  },
+  telegramFullCamera: {
+    flex: 1,
+  },
+  telegramNoCameraGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  telegramNoCameraIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  telegramNoCameraText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 16,
+  },
+  telegramSelfView: {
+    position: 'absolute',
+    top: 100,
+    right: 16,
+    width: 110,
+    height: 150,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#2C2C2E',
+  },
+  telegramSelfCamera: {
+    flex: 1,
+  },
+  telegramSelfPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#2C2C2E',
+  },
+  telegramCallTopBar: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    right: 140,
+  },
+  telegramCallInfo: {
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  telegramCallGroupName: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  telegramCallStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  telegramCallLiveIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#34C759',
+    marginRight: 8,
+  },
+  telegramCallDuration: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+  },
+  telegramCallParticipantCount: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  telegramCallControls: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: 50,
+    paddingTop: 24,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  telegramControlsMain: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+  telegramControlBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  telegramControlBtnActive: {
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  telegramEndCallBtn: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 10,
+  },
+  // Telegram Voice Call Styles
+  telegramVoiceCallBg: {
+    flex: 1,
+  },
+  telegramVoiceCallContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 100,
+  },
+  telegramVoiceAvatar: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    marginBottom: 24,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.2)',
+    overflow: 'hidden',
+  },
+  telegramVoiceAvatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  telegramVoiceAvatarPlaceholder: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  telegramVoiceGroupName: {
+    color: '#FFFFFF',
+    fontSize: 26,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  telegramVoiceStatus: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  telegramVoiceParticipants: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 15,
+  },
+  telegramVoiceControls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 60,
+    gap: 40,
+  },
+  telegramVoiceControlBtn: {
+    alignItems: 'center',
+  },
+  telegramVoiceControlLabel: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    marginTop: 8,
+  },
+  telegramVoiceEndBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Legacy FaceTime styles (kept for compatibility)
   faceTimeContainer: {
     flex: 1,
     backgroundColor: '#000000',
   },
   faceTimeMain: {
     flex: 1,
-  },
-  faceTimeGroupView: {
-    flex: 1,
-  },
-  faceTimeGroupGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  faceTimeGroupAvatars: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 20,
-    paddingHorizontal: 40,
-  },
-  faceTimeParticipant: {
-    alignItems: 'center',
-    width: (width - 120) / 2,
-  },
-  faceTimeParticipantAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 8,
-  },
-  faceTimeParticipantPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  faceTimeParticipantName: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  faceTimeMoreParticipants: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
-    marginTop: 20,
-  },
-  faceTimeVideoOff: {
-    flex: 1,
-    backgroundColor: '#1c1c1e',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  faceTimeVideoOffIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  faceTimeVideoOffText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 16,
-  },
-  faceTimeSelfContainer: {
-    position: 'absolute',
-    top: 60,
-    right: 16,
-    width: 120,
-    height: 160,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: '#2c2c2e',
-  },
-  faceTimeSelfCamera: {
-    flex: 1,
-  },
-  faceTimeSelfPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#2c2c2e',
-  },
-  faceTimeTopBar: {
-    position: 'absolute',
-    top: 60,
-    left: 16,
-    right: 150,
-  },
-  faceTimeInfo: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  faceTimeGroupName: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  faceTimeStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  faceTimeLiveIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#30D158',
-    marginRight: 8,
-  },
-  faceTimeDuration: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-  },
-  faceTimeControls: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingBottom: 50,
-    paddingTop: 20,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  faceTimeControlsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 40,
-    marginBottom: 24,
-  },
-  faceTimeControlBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  faceTimeControlBtnActive: {
-    backgroundColor: 'rgba(255,255,255,0.4)',
-  },
-  faceTimeEndCall: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#FF3B30',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  faceTimeSecondaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 50,
-  },
-  faceTimeSecondaryBtn: {
-    alignItems: 'center',
-    opacity: 0.9,
-  },
-  faceTimeSecondaryBtnActive: {
-    opacity: 1,
-  },
-  faceTimeSecondaryLabel: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    marginTop: 4,
   },
 
   imagePreviewModal: {
