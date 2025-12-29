@@ -2570,24 +2570,26 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
                               <View style={[
                                 styles.messageBubble,
-                                isOwnMessage ?
-                                  [styles.ownMessageBubble, { backgroundColor: isDarkMode ? '#005C4B' : '#D9FDD3' }] :
-                                  [styles.otherMessageBubble, { backgroundColor: isDarkMode ? '#202C33' : '#FFFFFF' }],
+                                isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble,
                                 messageData.type === MESSAGE_TYPES.IMAGE && styles.imageBubble,
                                 messageData.type === MESSAGE_TYPES.IMAGE && (isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble),
                               ]}>
+                                {isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
+                                  <LinearGradient
+                                    colors={[premiumColors.primary.main, premiumColors.primary.dark]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={StyleSheet.absoluteFill}
+                                  />
+                                )}
 
-                                {messageData.type !== MESSAGE_TYPES.IMAGE && (
+                                {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
                                   <View style={[
-                                    isOwnMessage ? styles.ownBubbleTail : styles.otherBubbleTail,
-                                    { backgroundColor: isOwnMessage ? (isDarkMode ? '#005C4B' : '#D9FDD3') : (isDarkMode ? '#202C33' : '#FFFFFF') }
-                                  ]}>
-                                    <View style={[
-                                      styles.bubbleTailCover,
-                                      { backgroundColor: chatBackground?.type === 'color' ? chatBackground.value : (isDarkMode ? '#0B141A' : '#E4DDD6') },
-                                      isOwnMessage ? styles.ownTailCover : styles.otherTailCover
-                                    ]} />
-                                  </View>
+                                    StyleSheet.absoluteFill,
+                                    {
+                                      backgroundColor: isDarkMode ? 'rgba(42, 57, 66, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+                                    }
+                                  ]} />
                                 )}
 
                                 {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
@@ -4064,27 +4066,21 @@ const styles = StyleSheet.create({
     maxWidth: width * 0.75,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 18,
+    borderRadius: 0.5,
     position: 'relative',
+    overflow: 'hidden',
+    ...premiumShadows.sm,
   },
   imageBubble: {
     padding: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
     backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   ownMessageBubble: {
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 4,
+    borderRadius: 0.5,
   },
   otherMessageBubble: {
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 18,
+    borderRadius: 0.5,
   },
 
   ownBubbleTail: {
@@ -4176,16 +4172,10 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   ownImageBubble: {
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 6,
+    borderRadius: 0.5,
   },
   otherImageBubble: {
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 6,
-    borderBottomRightRadius: 18,
+    borderRadius: 0.5,
   },
   imageOverlay: {
     position: 'absolute',
