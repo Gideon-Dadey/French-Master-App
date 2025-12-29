@@ -1,0 +1,26 @@
+FAIL __tests__/courses.test.js
+  Backend Courses API
+    × should return all courses (42 ms)
+
+  ● Backend Courses API › should return all courses
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: 200
+    Received: 500
+
+    [0m [90m 66 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m request(app)[33m.[39m[36mget[39m([32m'/api/courses'[39m)[33m;[39m
+     [90m 67 |[39m
+    [31m[1m>[22m[39m[90m 68 |[39m         expect(res[33m.[39mstatusCode)[33m.[39mtoEqual([35m200[39m)[33m;[39m
+     [90m    |[39m                                [31m[1m^[22m[39m
+     [90m 69 |[39m         expect(res[33m.[39mbody[33m.[39msuccess)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 70 |[39m         expect([33mArray[39m[33m.[39misArray(res[33m.[39mbody[33m.[39mdata))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 71 |[39m         expect(res[33m.[39mbody[33m.[39mdata[33m.[39mlength)[33m.[39mtoBe([35m2[39m)[33m;[39m[0m
+
+      at Object.toEqual (__tests__/courses.test.js:68:32)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        1.465 s, estimated 3 s
+Ran all test suites matching /__tests__\\courses.test.js/i.
