@@ -260,7 +260,26 @@ export default function ProfileScreen({ navigation }) {
   const displayEmail = profile?.email || user?.email || '';
   const avatarUrl = profile?.avatar || user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=1E3A5F&color=fff&size=200`;
 
-  if (!isAuthenticated) return null; // Should be handled by navigation usually
+  if (!isAuthenticated) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <Ionicons name="person-circle-outline" size={80} color={theme.textMuted} style={{ marginBottom: 20 }} />
+        <Text style={[styles.profileName, { color: theme.text, textAlign: 'center', marginBottom: 10 }]}>Guest User</Text>
+        <Text style={[styles.profileEmail, { color: theme.textSecondary, textAlign: 'center', marginBottom: 30 }]}>
+          Log in to track your progress and manage your profile.
+        </Text>
+        <TouchableOpacity
+          style={{ width: '100%', borderRadius: 16, overflow: 'hidden' }}
+          onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+        >
+          <LinearGradient colors={[theme.primary, theme.primaryLight || theme.primary]} style={{ paddingVertical: 16, alignItems: 'center' }}>
+            <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '700' }}>Log In / Sign Up</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>

@@ -124,7 +124,7 @@ export default function LearnerHomeScreen({ navigation }) {
                 <View style={styles.headerContainer}>
                     <Text style={[styles.headerDate, { color: theme.textSecondary }]}>{dateInfo.weekday}, {dateInfo.day}</Text>
                     <View style={styles.headerRow}>
-                        <Text style={[styles.headerTitle, { color: theme.text }]}>Today</Text>
+                        <Text style={[styles.headerTitle, { color: theme.text }]}>L'Alliance</Text>
                         <TouchableOpacity
                             style={[styles.profileButton, { backgroundColor: theme.surfaceAlt, overflow: 'hidden' }]}
                             onPress={() => navigation.navigate('Profile')}

@@ -299,9 +299,10 @@ export default function ConversationSimulatorScreen({ navigation }) {
                             )}
                             <View style={[
                                 styles.bubble,
+                                themeShadows.sm,
                                 msg.type === 'outgoing'
                                     ? { backgroundColor: theme.primary, borderBottomRightRadius: 2 }
-                                    : { backgroundColor: theme.surface, borderBottomLeftRadius: 2, borderWidth: 1, borderColor: theme.border }
+                                    : { backgroundColor: theme.surface, borderBottomLeftRadius: 2 }
                             ]}>
                                 <Text style={[
                                     styles.bubbleText,
@@ -331,7 +332,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
                         {selectedScenario.steps.find(s => s.id === currentStepId)?.options.map((opt, i) => (
                             <TouchableOpacity
                                 key={i}
-                                style={[styles.optionBtn, { backgroundColor: theme.background, borderColor: theme.border }]}
+                                style={[styles.optionBtn, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.sm]}
                                 onPress={() => handleOptionSelect(opt)}
                             >
                                 <Text style={[styles.optionText, { color: theme.text }]}>{opt.text}</Text>

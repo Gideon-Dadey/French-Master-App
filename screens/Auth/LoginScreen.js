@@ -22,6 +22,7 @@ import Svg, { Path, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
 import { getThemeColors, themeShadows } from '../../src/utils/organicTheme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -74,6 +75,7 @@ export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
   const { login } = useAuth();
@@ -85,7 +87,9 @@ export default function LoginScreen({ navigation }) {
   const headerSlide = useRef(new Animated.Value(-30)).current;
   const inputAnims = useRef([new Animated.Value(0), new Animated.Value(0)]).current;
 
+
   useEffect(() => {
+    loadRememberedUser();
     Animated.sequence([
       Animated.parallel([
         Animated.spring(fadeAnim, { toValue: 1, tension: 20, friction: 8, useNativeDriver: true }),
@@ -101,6 +105,18 @@ export default function LoginScreen({ navigation }) {
     ]).start();
   }, []);
 
+  const loadRememberedUser = async () => {
+    try {
+      const savedEmail = await AsyncStorage.getItem('rememberedEmail');
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setRememberMe(true);
+      }
+    } catch (e) {
+      console.error('Failed to load remembered user', e);
+    }
+  };
+
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Missing Info', 'Please enter both your email and password.');
@@ -111,6 +127,11 @@ export default function LoginScreen({ navigation }) {
     try {
       const result = await login(email, password);
       if (result.success) {
+        if (rememberMe) {
+          await AsyncStorage.setItem('rememberedEmail', email);
+        } else {
+          await AsyncStorage.removeItem('rememberedEmail');
+        }
         const parent = navigation.getParent();
         if (parent) {
           parent.dispatch(
@@ -319,6 +340,16 @@ export default function LoginScreen({ navigation }) {
                 </TouchableOpacity>
               </View>
             </Animated.View>
+
+            {/* Remember Me Toggle */}
+            <View style={styles.rememberMeContainer}>
+              <TouchableOpacity onPress={() => setRememberMe(!rememberMe)} style={styles.rememberMeRow}>
+                <View style={[styles.checkbox, { borderColor: theme.primary, backgroundColor: rememberMe ? theme.primary : 'transparent' }]}>
+                  {rememberMe && <Ionicons name="checkmark" size={14} color="#FFF" />}
+                </View>
+                <Text style={[styles.rememberMeText, { color: theme.textSecondary }]}>Remember me</Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Login Button */}
             <TouchableOpacity
@@ -652,5 +683,26 @@ const styles = StyleSheet.create({
   decorLine: {
     width: 40,
     height: 1,
+  },
+  rememberMeContainer: {
+    marginLeft: 4,
+    marginBottom: 4,
+  },
+  rememberMeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rememberMeText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
