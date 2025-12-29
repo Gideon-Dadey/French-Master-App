@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -33,6 +34,7 @@ app.use(cors({
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 // Logging
 if (process.env.NODE_ENV === 'development') {
@@ -89,6 +91,7 @@ app.use('/api/questions', require('./routes/questions'));
 app.use('/api/progress-share', require('./routes/progressShare'));
 app.use('/api/discussions', require('./routes/discussions'));
 app.use('/api/topics', require('./routes/topics'));
+app.use('/api/uploads', require('./routes/uploads'));
 
 // Health check
 app.get('/health', (req, res) => {

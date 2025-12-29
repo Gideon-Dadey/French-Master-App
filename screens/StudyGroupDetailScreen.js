@@ -36,7 +36,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { spacing, fontSize } from '../src/utils/responsive';
-import { studyGroupsAPI } from '../src/services/api';
+import { studyGroupsAPI, uploadsAPI } from '../src/services/api';
 import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import ErrorMessage from '../src/components/ErrorMessage';
@@ -313,13 +313,13 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   useEffect(() => {
     return () => {
       if (recording) {
-        recording.stopAndUnloadAsync().catch(() => {});
+        recording.stopAndUnloadAsync().catch(() => { });
       }
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
       }
       if (soundObject) {
-        soundObject.unloadAsync().catch(() => {});
+        soundObject.unloadAsync().catch(() => { });
       }
     };
   }, []);
@@ -603,7 +603,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const startRecording = async () => {
     // Prevent multiple rapid taps
     if (isRecording) return;
-    
+
     try {
       // Clean up any existing recording first
       if (recording) {
@@ -614,7 +614,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         }
         setRecording(null);
       }
-      
+
       // Clear any existing timer
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
@@ -964,22 +964,95 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
   const handleSaveGroupEdit = async () => {
     try {
-      // For now, just close the modal - implement API call when backend supports it
-      Alert.alert('Saved', 'Group settings updated successfully');
+      setEditGroupImageLoading(true);
+      let imageUrl = editGroupData.image;
+
+      // If it's a local URI (from Picker), upload it first
+      if (imageUrl && (imageUrl.startsWith('file://') || imageUrl.startsWith('content://'))) {
+        const uploadRes = await uploadsAPI.uploadImage({
+          uri: imageUrl,
+          type: 'image/jpeg',
+          name: `group_${groupId}_${Date.now()}.jpg`
+        });
+        imageUrl = uploadRes.data.url;
+      }
+
+      const updateData = {
+        name: editGroupData.name,
+        description: editGroupData.description,
+        level: editGroupData.level,
+        focus: editGroupData.focus,
+        maxMembers: editGroupData.maxMembers,
+        isPrivate: editGroupData.isPrivate,
+        image: imageUrl
+      };
+
+      await studyGroupsAPI.update(groupId, updateData);
+
+      Alert.alert('Success', 'Group settings updated successfully');
       setShowEditGroup(false);
       loadGroup();
     } catch (error) {
+      console.error('Update group error:', error);
       Alert.alert('Error', error.response?.data?.message || 'Failed to update group');
+    } finally {
+      setEditGroupImageLoading(false);
     }
   };
 
-  const showImageOptions = () => {
+  const pickGroupImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your photo library');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+        aspect: [1, 1],
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setEditGroupData(prev => ({ ...prev, image: result.assets[0].uri }));
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const takeGroupPhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to your camera');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+        aspect: [1, 1],
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setEditGroupData(prev => ({ ...prev, image: result.assets[0].uri }));
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const showGroupImageOptions = () => {
     Alert.alert(
       'Change Group Image',
       'Choose an option',
       [
-        { text: 'Take Photo', onPress: takePhoto },
-        { text: 'Choose from Library', onPress: pickImage },
+        { text: 'Take Photo', onPress: takeGroupPhoto },
+        { text: 'Choose from Library', onPress: pickGroupImage },
+        { text: 'Remove Photo', style: 'destructive', onPress: () => setEditGroupData(prev => ({ ...prev, image: null })) },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
@@ -1009,7 +1082,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
   const handleSwipeDelete = (discussion, isOwnMessage) => {
     if (!isOwnMessage && !isModerator()) return;
-    
+
     Alert.alert(
       'Delete Message',
       'Are you sure you want to delete this message?',
@@ -1048,7 +1121,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     ]).start(() => {
       setDoubleTapHeartIndex(null);
     });
-    
+
     // Add reaction to message
     handleReaction(index, reaction);
   };
@@ -1113,10 +1186,10 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const downloadDocument = async (uri, filename) => {
     try {
       if (!uri) return;
-      
+
       // Check if sharing is available
       const isAvailable = await Sharing.isAvailableAsync();
-      
+
       if (isAvailable) {
         // Use sharing to open/save the document
         await Sharing.shareAsync(uri, {
@@ -1190,7 +1263,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
   const handleDeleteMessage = async () => {
     if (!selectedMessage) return;
-    
+
     Alert.alert(
       'Delete Message',
       'Are you sure you want to delete this message?',
@@ -1237,14 +1310,14 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       if (!discussion) return;
 
       await studyGroupsAPI.reactToDiscussion(groupId, discussion._id, reaction.emoji);
-      
+
       setMessageReactions(prev => {
         const messageId = discussion._id.toString();
         const existingReactions = prev[messageId] || [];
         const userReactionIndex = existingReactions.findIndex(
           r => r.userId === user?._id && r.emoji === reaction.emoji
         );
-        
+
         if (userReactionIndex >= 0) {
           return {
             ...prev,
@@ -1323,7 +1396,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         type: '*/*',
         copyToCacheDirectory: true,
       });
-      
+
       // Handle new DocumentPicker API (Expo SDK 49+)
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const doc = result.assets[0];
@@ -1335,7 +1408,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         });
         setSelectedImage(null); // Clear any selected image
         setShowAttachmentMenu(false);
-      } 
+      }
       // Handle old DocumentPicker API
       else if (result.type === 'success') {
         setSelectedDocument({
@@ -1376,369 +1449,369 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-                <View style={styles.callControls}>
-                  <View style={styles.callControlsRow}>
-                    <TouchableOpacity style={[styles.callControlBtn, isMuted && styles.callControlBtnActive]} onPress={toggleMute}>
-                      <Ionicons name={isMuted ? "mic-off" : "mic"} size={26} color="#FFFFFF" />
-                      <Text style={styles.callControlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
-                    </TouchableOpacity>
+        <View style={styles.callControls}>
+          <View style={styles.callControlsRow}>
+            <TouchableOpacity style={[styles.callControlBtn, isMuted && styles.callControlBtnActive]} onPress={toggleMute}>
+              <Ionicons name={isMuted ? "mic-off" : "mic"} size={26} color="#FFFFFF" />
+              <Text style={styles.callControlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
+            </TouchableOpacity>
 
-                    <TouchableOpacity style={[styles.callControlBtn, isSpeakerOn && styles.callControlBtnActive]} onPress={toggleSpeaker}>
-                      <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={26} color="#FFFFFF" />
-                      <Text style={styles.callControlLabel}>{isSpeakerOn ? 'Speaker' : 'Phone'}</Text>
-                    </TouchableOpacity>
-                  </View>
+            <TouchableOpacity style={[styles.callControlBtn, isSpeakerOn && styles.callControlBtnActive]} onPress={toggleSpeaker}>
+              <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={26} color="#FFFFFF" />
+              <Text style={styles.callControlLabel}>{isSpeakerOn ? 'Speaker' : 'Phone'}</Text>
+            </TouchableOpacity>
+          </View>
 
-                  <TouchableOpacity style={styles.endCallBtn} onPress={endCall}>
-                    <LinearGradient colors={['#FF3B30', '#FF453A']} style={styles.endCallBtnGradient}>
-                      <Ionicons name="call" size={30} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-              </LinearGradient>
-        </Modal>
+          <TouchableOpacity style={styles.endCallBtn} onPress={endCall}>
+            <LinearGradient colors={['#FF3B30', '#FF453A']} style={styles.endCallBtnGradient}>
+              <Ionicons name="call" size={30} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    </Modal>
   );
 
   const renderGroupOptionsModal = () => (
-        <Modal
-          visible={showGroupOptions}
-          transparent={true}
-          animationType="none"
-          onRequestClose={closeGroupOptions}
+    <Modal
+      visible={showGroupOptions}
+      transparent={true}
+      animationType="none"
+      onRequestClose={closeGroupOptions}
+    >
+      <TouchableOpacity
+        style={styles.actionSheetOverlay}
+        activeOpacity={1}
+        onPress={closeGroupOptions}
+      >
+        <Animated.View
+          style={[
+            styles.actionSheetContainer,
+            {
+              transform: [{
+                translateY: groupOptionsAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [600, 0],
+                })
+              }]
+            }
+          ]}
         >
+
+          <View style={[styles.actionSheetHeader, { backgroundColor: colors.card }]}>
+            <View style={[styles.actionSheetGroupInfo, { backgroundColor: colors.card }]}>
+              {group?.image ? (
+                <Image source={{ uri: group.image }} style={styles.actionSheetGroupAvatarImage} />
+              ) : (
+                <View style={[styles.actionSheetGroupAvatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                  <Ionicons name="people" size={28} color={premiumColors.primary.main} />
+                </View>
+              )}
+              <View style={styles.actionSheetGroupDetails}>
+                <Text style={[styles.actionSheetGroupName, { color: colors.text }]}>{group?.name}</Text>
+                <Text style={[styles.actionSheetGroupMeta, { color: colors.secondaryText }]}>
+                  {memberCount} members • {group?.isPrivate ? 'Private' : 'Public'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
+            {isModerator() && (
+              <TouchableOpacity style={styles.actionSheetItem} onPress={openEditGroup}>
+                <View style={[styles.actionSheetIcon, { backgroundColor: '#007AFF20' }]}>
+                  <Ionicons name="pencil" size={20} color="#007AFF" />
+                </View>
+                <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Edit Group</Text>
+                <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity style={styles.actionSheetItem} onPress={handleCopyInviteCode}>
+              <View style={[styles.actionSheetIcon, { backgroundColor: '#34C75920' }]}>
+                <Ionicons name="link" size={20} color="#34C759" />
+              </View>
+              <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Copy Invite Link</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionSheetItem} onPress={handleShareGroup}>
+              <View style={[styles.actionSheetIcon, { backgroundColor: '#5856D620' }]}>
+                <Ionicons name="share-outline" size={20} color="#5856D6" />
+              </View>
+              <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Share Group</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
+            <TouchableOpacity style={styles.actionSheetItem} onPress={() => setShowNotificationSettings(true)}>
+              <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
+                <Ionicons name="notifications-outline" size={20} color="#FF3B30" />
+              </View>
+              <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Notifications</Text>
+              <Text style={[styles.actionSheetItemValue, { color: colors.secondaryText }]}>
+                {notificationSettings.muted ? 'Muted' : 'On'}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionSheetItem}
+              onPress={() => handleMuteGroup(notificationSettings.muted ? null : '8 hours')}
+            >
+              <View style={[styles.actionSheetIcon, { backgroundColor: '#8E8E9320' }]}>
+                <Ionicons name={notificationSettings.muted ? "volume-high" : "volume-mute"} size={20} color="#8E8E93" />
+              </View>
+              <Text style={[styles.actionSheetItemText, { color: colors.text }]}>
+                {notificationSettings.muted ? 'Unmute' : 'Mute'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionSheetItem}
+              onPress={() => {
+                setShowGroupOptions(false);
+                setTimeout(() => openBackgroundPicker(), 300);
+              }}
+            >
+              <View style={[styles.actionSheetIcon, { backgroundColor: '#25D36620' }]}>
+                <Ionicons name="image-outline" size={20} color="#25D366" />
+              </View>
+              <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Wallpaper</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
+            <TouchableOpacity style={styles.actionSheetItem} onPress={handleReportGroup}>
+              <View style={[styles.actionSheetIcon, { backgroundColor: '#FF950020' }]}>
+                <Ionicons name="flag-outline" size={20} color="#FF9500" />
+              </View>
+              <Text style={[styles.actionSheetItemText, { color: '#FF9500' }]}>Report Group</Text>
+            </TouchableOpacity>
+
+            {isMember() && !isModerator() && (
+              <TouchableOpacity style={styles.actionSheetItem} onPress={handleLeave}>
+                <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
+                  <Ionicons name="exit-outline" size={20} color="#FF3B30" />
+                </View>
+                <Text style={[styles.actionSheetItemText, { color: '#FF3B30' }]}>Leave Group</Text>
+              </TouchableOpacity>
+            )}
+
+            {isModerator() && (
+              <TouchableOpacity style={styles.actionSheetItem} onPress={handleDeleteGroup}>
+                <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
+                  <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                </View>
+                <Text style={[styles.actionSheetItemText, { color: '#FF3B30' }]}>Delete Group</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
           <TouchableOpacity
-            style={styles.actionSheetOverlay}
-            activeOpacity={1}
+            style={[styles.actionSheetCancelBtn, { backgroundColor: colors.card }]}
             onPress={closeGroupOptions}
           >
-            <Animated.View
-              style={[
-                styles.actionSheetContainer,
-                {
-                  transform: [{
-                    translateY: groupOptionsAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [600, 0],
-                    })
-                  }]
-                }
-              ]}
-            >
-
-              <View style={[styles.actionSheetHeader, { backgroundColor: colors.card }]}>
-                <View style={[styles.actionSheetGroupInfo, { backgroundColor: colors.card }]}>
-                  {group?.image ? (
-                    <Image source={{ uri: group.image }} style={styles.actionSheetGroupAvatarImage} />
-                  ) : (
-                    <View style={[styles.actionSheetGroupAvatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                      <Ionicons name="people" size={28} color={premiumColors.primary.main} />
-                    </View>
-                  )}
-                  <View style={styles.actionSheetGroupDetails}>
-                    <Text style={[styles.actionSheetGroupName, { color: colors.text }]}>{group?.name}</Text>
-                    <Text style={[styles.actionSheetGroupMeta, { color: colors.secondaryText }]}>
-                      {memberCount} members • {group?.isPrivate ? 'Private' : 'Public'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
-                {isModerator() && (
-                  <TouchableOpacity style={styles.actionSheetItem} onPress={openEditGroup}>
-                    <View style={[styles.actionSheetIcon, { backgroundColor: '#007AFF20' }]}>
-                      <Ionicons name="pencil" size={20} color="#007AFF" />
-                    </View>
-                    <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Edit Group</Text>
-                    <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity style={styles.actionSheetItem} onPress={handleCopyInviteCode}>
-                  <View style={[styles.actionSheetIcon, { backgroundColor: '#34C75920' }]}>
-                    <Ionicons name="link" size={20} color="#34C759" />
-                  </View>
-                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Copy Invite Link</Text>
-                  <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionSheetItem} onPress={handleShareGroup}>
-                  <View style={[styles.actionSheetIcon, { backgroundColor: '#5856D620' }]}>
-                    <Ionicons name="share-outline" size={20} color="#5856D6" />
-                  </View>
-                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Share Group</Text>
-                  <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
-                <TouchableOpacity style={styles.actionSheetItem} onPress={() => setShowNotificationSettings(true)}>
-                  <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
-                    <Ionicons name="notifications-outline" size={20} color="#FF3B30" />
-                  </View>
-                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Notifications</Text>
-                  <Text style={[styles.actionSheetItemValue, { color: colors.secondaryText }]}>
-                    {notificationSettings.muted ? 'Muted' : 'On'}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionSheetItem}
-                  onPress={() => handleMuteGroup(notificationSettings.muted ? null : '8 hours')}
-                >
-                  <View style={[styles.actionSheetIcon, { backgroundColor: '#8E8E9320' }]}>
-                    <Ionicons name={notificationSettings.muted ? "volume-high" : "volume-mute"} size={20} color="#8E8E93" />
-                  </View>
-                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>
-                    {notificationSettings.muted ? 'Unmute' : 'Mute'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionSheetItem}
-                  onPress={() => {
-                    setShowGroupOptions(false);
-                    setTimeout(() => openBackgroundPicker(), 300);
-                  }}
-                >
-                  <View style={[styles.actionSheetIcon, { backgroundColor: '#25D36620' }]}>
-                    <Ionicons name="image-outline" size={20} color="#25D366" />
-                  </View>
-                  <Text style={[styles.actionSheetItemText, { color: colors.text }]}>Wallpaper</Text>
-                  <Ionicons name="chevron-forward" size={20} color={colors.secondaryText} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={[styles.actionSheetSection, { backgroundColor: colors.card }]}>
-                <TouchableOpacity style={styles.actionSheetItem} onPress={handleReportGroup}>
-                  <View style={[styles.actionSheetIcon, { backgroundColor: '#FF950020' }]}>
-                    <Ionicons name="flag-outline" size={20} color="#FF9500" />
-                  </View>
-                  <Text style={[styles.actionSheetItemText, { color: '#FF9500' }]}>Report Group</Text>
-                </TouchableOpacity>
-
-                {isMember() && !isModerator() && (
-                  <TouchableOpacity style={styles.actionSheetItem} onPress={handleLeave}>
-                    <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
-                      <Ionicons name="exit-outline" size={20} color="#FF3B30" />
-                    </View>
-                    <Text style={[styles.actionSheetItemText, { color: '#FF3B30' }]}>Leave Group</Text>
-                  </TouchableOpacity>
-                )}
-
-                {isModerator() && (
-                  <TouchableOpacity style={styles.actionSheetItem} onPress={handleDeleteGroup}>
-                    <View style={[styles.actionSheetIcon, { backgroundColor: '#FF3B3020' }]}>
-                      <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-                    </View>
-                    <Text style={[styles.actionSheetItemText, { color: '#FF3B30' }]}>Delete Group</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              <TouchableOpacity
-                style={[styles.actionSheetCancelBtn, { backgroundColor: colors.card }]}
-                onPress={closeGroupOptions}
-              >
-                <Text style={[styles.actionSheetCancelText, { color: '#007AFF' }]}>Cancel</Text>
-              </TouchableOpacity>
-            </Animated.View>
+            <Text style={[styles.actionSheetCancelText, { color: '#007AFF' }]}>Cancel</Text>
           </TouchableOpacity>
-        </Modal>
+        </Animated.View>
+      </TouchableOpacity>
+    </Modal>
   );
 
   const renderEditGroupModal = () => (
-        <Modal
-          visible={showEditGroup}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setShowEditGroup(false)}
-        >
-          <View style={[styles.editGroupModal, { backgroundColor: colors.background }]}>
+    <Modal
+      visible={showEditGroup}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowEditGroup(false)}
+    >
+      <View style={[styles.editGroupModal, { backgroundColor: colors.background }]}>
 
-            <View style={[styles.editGroupHeader, { borderBottomColor: colors.border }]}>
-              <TouchableOpacity onPress={() => setShowEditGroup(false)}>
-                <Text style={[styles.editGroupCancelBtn, { color: '#007AFF' }]}>Cancel</Text>
-              </TouchableOpacity>
-              <Text style={[styles.editGroupTitle, { color: colors.text }]}>Edit Group</Text>
-              <TouchableOpacity onPress={handleSaveGroupEdit} disabled={editGroupImageLoading}>
-                {editGroupImageLoading ? (
-                  <ActivityIndicator size="small" color="#007AFF" />
-                ) : (
-                  <Text style={[styles.editGroupSaveBtn, { color: '#007AFF' }]}>Save</Text>
-                )}
-              </TouchableOpacity>
+        <View style={[styles.editGroupHeader, { borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={() => setShowEditGroup(false)}>
+            <Text style={[styles.editGroupCancelBtn, { color: '#007AFF' }]}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={[styles.editGroupTitle, { color: colors.text }]}>Edit Group</Text>
+          <TouchableOpacity onPress={handleSaveGroupEdit} disabled={editGroupImageLoading}>
+            {editGroupImageLoading ? (
+              <ActivityIndicator size="small" color="#007AFF" />
+            ) : (
+              <Text style={[styles.editGroupSaveBtn, { color: '#007AFF' }]}>Save</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.editGroupContent} showsVerticalScrollIndicator={false}>
+
+          <View style={styles.editGroupPhotoSection}>
+            <TouchableOpacity onPress={showGroupImageOptions} activeOpacity={0.8}>
+              {editGroupData.image ? (
+                <View style={styles.editGroupPhotoContainer}>
+                  <Image
+                    source={{ uri: editGroupData.image }}
+                    style={styles.editGroupPhotoImage}
+                  />
+                  <View style={styles.editGroupPhotoOverlay}>
+                    <Ionicons name="camera" size={24} color="#FFFFFF" />
+                  </View>
+                </View>
+              ) : (
+                <View style={[styles.editGroupPhoto, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                  <Ionicons name="people" size={50} color={premiumColors.primary.main} />
+                  <View style={styles.editGroupPhotoOverlay}>
+                    <Ionicons name="camera" size={24} color="#FFFFFF" />
+                  </View>
+                </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.editGroupPhotoBtn} onPress={showGroupImageOptions}>
+              <Text style={[styles.editGroupPhotoBtnText, { color: '#007AFF' }]}>
+                {editGroupData.image ? 'Change Photo' : 'Add Photo'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
+            <Text style={[styles.editGroupSectionTitle, { color: colors.secondaryText }]}>GROUP INFO</Text>
+
+            <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.editGroupFieldLabel, { color: colors.secondaryText }]}>Name</Text>
+              <TextInput
+                style={[styles.editGroupFieldInput, { color: colors.text }]}
+                value={editGroupData.name}
+                onChangeText={(text) => setEditGroupData(prev => ({ ...prev, name: text }))}
+                placeholder="Group Name"
+                placeholderTextColor={colors.secondaryText}
+              />
             </View>
 
-            <ScrollView style={styles.editGroupContent} showsVerticalScrollIndicator={false}>
-
-              <View style={styles.editGroupPhotoSection}>
-                <TouchableOpacity onPress={showImageOptions} activeOpacity={0.8}>
-                  {editGroupData.image ? (
-                    <View style={styles.editGroupPhotoContainer}>
-                      <Image
-                        source={{ uri: editGroupData.image }}
-                        style={styles.editGroupPhotoImage}
-                      />
-                      <View style={styles.editGroupPhotoOverlay}>
-                        <Ionicons name="camera" size={24} color="#FFFFFF" />
-                      </View>
-                    </View>
-                  ) : (
-                    <View style={[styles.editGroupPhoto, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                      <Ionicons name="people" size={50} color={premiumColors.primary.main} />
-                      <View style={styles.editGroupPhotoOverlay}>
-                        <Ionicons name="camera" size={24} color="#FFFFFF" />
-                      </View>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.editGroupPhotoBtn} onPress={showImageOptions}>
-                  <Text style={[styles.editGroupPhotoBtnText, { color: '#007AFF' }]}>
-                    {editGroupData.image ? 'Change Photo' : 'Add Photo'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
-                <Text style={[styles.editGroupSectionTitle, { color: colors.secondaryText }]}>GROUP INFO</Text>
-
-                <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.editGroupFieldLabel, { color: colors.secondaryText }]}>Name</Text>
-                  <TextInput
-                    style={[styles.editGroupFieldInput, { color: colors.text }]}
-                    value={editGroupData.name}
-                    onChangeText={(text) => setEditGroupData(prev => ({ ...prev, name: text }))}
-                    placeholder="Group Name"
-                    placeholderTextColor={colors.secondaryText}
-                  />
-                </View>
-
-                <View style={styles.editGroupField}>
-                  <Text style={[styles.editGroupFieldLabel, { color: colors.secondaryText }]}>Description</Text>
-                  <TextInput
-                    style={[styles.editGroupFieldInput, styles.editGroupFieldMultiline, { color: colors.text }]}
-                    value={editGroupData.description}
-                    onChangeText={(text) => setEditGroupData(prev => ({ ...prev, description: text }))}
-                    placeholder="Describe your group"
-                    placeholderTextColor={colors.secondaryText}
-                    multiline
-                    numberOfLines={3}
-                  />
-                </View>
-              </View>
-
-              <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
-                <Text style={[styles.editGroupSectionTitle, { color: colors.secondaryText }]}>SETTINGS</Text>
-
-                <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Level</Text>
-                  <View style={styles.editGroupOptionsRow}>
-                    {['beginner', 'intermediate', 'advanced', 'all'].map((level) => (
-                      <TouchableOpacity
-                        key={level}
-                        style={[
-                          styles.editGroupOption,
-                          { borderColor: colors.border },
-                          editGroupData.level === level && { backgroundColor: premiumColors.primary.main, borderColor: premiumColors.primary.main }
-                        ]}
-                        onPress={() => setEditGroupData(prev => ({ ...prev, level }))}
-                      >
-                        <Text style={[
-                          styles.editGroupOptionText,
-                          { color: colors.secondaryText },
-                          editGroupData.level === level && { color: '#FFFFFF' }
-                        ]}>
-                          {level.charAt(0).toUpperCase() + level.slice(1)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Focus</Text>
-                  <View style={styles.editGroupOptionsRow}>
-                    {['grammar', 'conversation', 'vocabulary', 'general'].map((focus) => (
-                      <TouchableOpacity
-                        key={focus}
-                        style={[
-                          styles.editGroupOption,
-                          { borderColor: colors.border },
-                          editGroupData.focus === focus && { backgroundColor: premiumColors.primary.main, borderColor: premiumColors.primary.main }
-                        ]}
-                        onPress={() => setEditGroupData(prev => ({ ...prev, focus }))}
-                      >
-                        <Text style={[
-                          styles.editGroupOptionText,
-                          { color: colors.secondaryText },
-                          editGroupData.focus === focus && { color: '#FFFFFF' }
-                        ]}>
-                          {focus.charAt(0).toUpperCase() + focus.slice(1)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
-                  <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Max Members</Text>
-                  <View style={styles.editGroupSliderRow}>
-                    <TouchableOpacity
-                      style={[styles.editGroupSliderBtn, { backgroundColor: colors.border }]}
-                      onPress={() => setEditGroupData(prev => ({ ...prev, maxMembers: Math.max(5, prev.maxMembers - 5) }))}
-                    >
-                      <Ionicons name="remove" size={20} color={colors.text} />
-                    </TouchableOpacity>
-                    <Text style={[styles.editGroupSliderValue, { color: colors.text }]}>{editGroupData.maxMembers}</Text>
-                    <TouchableOpacity
-                      style={[styles.editGroupSliderBtn, { backgroundColor: colors.border }]}
-                      onPress={() => setEditGroupData(prev => ({ ...prev, maxMembers: Math.min(100, prev.maxMembers + 5) }))}
-                    >
-                      <Ionicons name="add" size={20} color={colors.text} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.editGroupToggleField}>
-                  <View style={styles.editGroupToggleInfo}>
-                    <Ionicons name="lock-closed" size={22} color={colors.text} />
-                    <View style={styles.editGroupToggleText}>
-                      <Text style={[styles.editGroupToggleLabel, { color: colors.text }]}>Private Group</Text>
-                      <Text style={[styles.editGroupToggleDesc, { color: colors.secondaryText }]}>
-                        Only invited members can join
-                      </Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity
-                    style={[
-                      styles.editGroupToggle,
-                      { backgroundColor: editGroupData.isPrivate ? '#34C759' : colors.border }
-                    ]}
-                    onPress={() => setEditGroupData(prev => ({ ...prev, isPrivate: !prev.isPrivate }))}
-                  >
-                    <Animated.View style={[
-                      styles.editGroupToggleThumb,
-                      { marginLeft: editGroupData.isPrivate ? 22 : 2 }
-                    ]} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
-                <Text style={[styles.editGroupSectionTitle, { color: '#FF3B30' }]}>DANGER ZONE</Text>
-
-                <TouchableOpacity style={styles.editGroupDangerBtn} onPress={handleDeleteGroup}>
-                  <Ionicons name="trash-outline" size={22} color="#FF3B30" />
-                  <Text style={styles.editGroupDangerBtnText}>Delete Group</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={{ height: 50 }} />
-            </ScrollView>
+            <View style={styles.editGroupField}>
+              <Text style={[styles.editGroupFieldLabel, { color: colors.secondaryText }]}>Description</Text>
+              <TextInput
+                style={[styles.editGroupFieldInput, styles.editGroupFieldMultiline, { color: colors.text }]}
+                value={editGroupData.description}
+                onChangeText={(text) => setEditGroupData(prev => ({ ...prev, description: text }))}
+                placeholder="Describe your group"
+                placeholderTextColor={colors.secondaryText}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
           </View>
-        </Modal>
+
+          <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
+            <Text style={[styles.editGroupSectionTitle, { color: colors.secondaryText }]}>SETTINGS</Text>
+
+            <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Level</Text>
+              <View style={styles.editGroupOptionsRow}>
+                {['beginner', 'intermediate', 'advanced', 'all'].map((level) => (
+                  <TouchableOpacity
+                    key={level}
+                    style={[
+                      styles.editGroupOption,
+                      { borderColor: colors.border },
+                      editGroupData.level === level && { backgroundColor: premiumColors.primary.main, borderColor: premiumColors.primary.main }
+                    ]}
+                    onPress={() => setEditGroupData(prev => ({ ...prev, level }))}
+                  >
+                    <Text style={[
+                      styles.editGroupOptionText,
+                      { color: colors.secondaryText },
+                      editGroupData.level === level && { color: '#FFFFFF' }
+                    ]}>
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Focus</Text>
+              <View style={styles.editGroupOptionsRow}>
+                {['grammar', 'conversation', 'vocabulary', 'general'].map((focus) => (
+                  <TouchableOpacity
+                    key={focus}
+                    style={[
+                      styles.editGroupOption,
+                      { borderColor: colors.border },
+                      editGroupData.focus === focus && { backgroundColor: premiumColors.primary.main, borderColor: premiumColors.primary.main }
+                    ]}
+                    onPress={() => setEditGroupData(prev => ({ ...prev, focus }))}
+                  >
+                    <Text style={[
+                      styles.editGroupOptionText,
+                      { color: colors.secondaryText },
+                      editGroupData.focus === focus && { color: '#FFFFFF' }
+                    ]}>
+                      {focus.charAt(0).toUpperCase() + focus.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Max Members</Text>
+              <View style={styles.editGroupSliderRow}>
+                <TouchableOpacity
+                  style={[styles.editGroupSliderBtn, { backgroundColor: colors.border }]}
+                  onPress={() => setEditGroupData(prev => ({ ...prev, maxMembers: Math.max(5, prev.maxMembers - 5) }))}
+                >
+                  <Ionicons name="remove" size={20} color={colors.text} />
+                </TouchableOpacity>
+                <Text style={[styles.editGroupSliderValue, { color: colors.text }]}>{editGroupData.maxMembers}</Text>
+                <TouchableOpacity
+                  style={[styles.editGroupSliderBtn, { backgroundColor: colors.border }]}
+                  onPress={() => setEditGroupData(prev => ({ ...prev, maxMembers: Math.min(100, prev.maxMembers + 5) }))}
+                >
+                  <Ionicons name="add" size={20} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.editGroupToggleField}>
+              <View style={styles.editGroupToggleInfo}>
+                <Ionicons name="lock-closed" size={22} color={colors.text} />
+                <View style={styles.editGroupToggleText}>
+                  <Text style={[styles.editGroupToggleLabel, { color: colors.text }]}>Private Group</Text>
+                  <Text style={[styles.editGroupToggleDesc, { color: colors.secondaryText }]}>
+                    Only invited members can join
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.editGroupToggle,
+                  { backgroundColor: editGroupData.isPrivate ? '#34C759' : colors.border }
+                ]}
+                onPress={() => setEditGroupData(prev => ({ ...prev, isPrivate: !prev.isPrivate }))}
+              >
+                <Animated.View style={[
+                  styles.editGroupToggleThumb,
+                  { marginLeft: editGroupData.isPrivate ? 22 : 2 }
+                ]} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
+            <Text style={[styles.editGroupSectionTitle, { color: '#FF3B30' }]}>DANGER ZONE</Text>
+
+            <TouchableOpacity style={styles.editGroupDangerBtn} onPress={handleDeleteGroup}>
+              <Ionicons name="trash-outline" size={22} color="#FF3B30" />
+              <Text style={styles.editGroupDangerBtnText}>Delete Group</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ height: 50 }} />
+        </ScrollView>
+      </View>
+    </Modal>
   );
 
   // Wallpaper/Background picker modal - theme-aware colors
@@ -1777,16 +1850,16 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.wallpaperHeaderTitle}>Chat Wallpaper</Text>
-          <TouchableOpacity 
-            onPress={resetBackground} 
+          <TouchableOpacity
+            onPress={resetBackground}
             style={styles.wallpaperHeaderResetBtn}
           >
             <Text style={styles.wallpaperHeaderResetText}>Reset</Text>
           </TouchableOpacity>
         </LinearGradient>
 
-        <ScrollView 
-          style={styles.wallpaperScrollView} 
+        <ScrollView
+          style={styles.wallpaperScrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.wallpaperScrollContent}
         >
@@ -1802,8 +1875,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
               !chatBackground && { backgroundColor: isDarkMode ? '#0B141A' : '#E4DDD6' },
             ]}>
               {chatBackground?.type === 'image' && (
-                <Image 
-                  source={{ uri: chatBackground.value }} 
+                <Image
+                  source={{ uri: chatBackground.value }}
                   style={styles.wallpaperPreviewImage}
                   resizeMode="cover"
                 />
@@ -1884,233 +1957,233 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   );
 
   const renderGroupInfoModal = () => (
-        <Modal
-          visible={showGroupInfo}
-          transparent={true}
-          animationType="none"
-          onRequestClose={closeGroupInfo}
+    <Modal
+      visible={showGroupInfo}
+      transparent={true}
+      animationType="none"
+      onRequestClose={closeGroupInfo}
+    >
+      <View style={styles.groupInfoOverlay}>
+        <TouchableOpacity style={styles.groupInfoBackdrop} activeOpacity={1} onPress={closeGroupInfo} />
+        <Animated.View
+          style={[
+            styles.groupInfoContainer,
+            { backgroundColor: colors.card },
+            {
+              transform: [{
+                translateY: groupInfoAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [height, 0],
+                })
+              }]
+            }
+          ]}
         >
-          <View style={styles.groupInfoOverlay}>
-            <TouchableOpacity style={styles.groupInfoBackdrop} activeOpacity={1} onPress={closeGroupInfo} />
-            <Animated.View
-              style={[
-                styles.groupInfoContainer,
-                { backgroundColor: colors.card },
-                {
-                  transform: [{
-                    translateY: groupInfoAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [height, 0],
-                    })
-                  }]
-                }
-              ]}
-            >
 
-              <View style={styles.groupInfoHandle}>
-                <View style={[styles.groupInfoHandleBar, { backgroundColor: colors.border }]} />
-              </View>
-
-              <View style={styles.groupInfoHeader}>
-                {group?.image ? (
-                  <Image source={{ uri: group.image }} style={styles.groupInfoAvatarImage} />
-                ) : (
-                  <View style={[styles.groupInfoAvatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                    <Ionicons name="people" size={40} color={premiumColors.primary.main} />
-                  </View>
-                )}
-                <Text style={[styles.groupInfoName, { color: colors.text }]}>{group?.name}</Text>
-                <Text style={[styles.groupInfoDesc, { color: colors.secondaryText }]} numberOfLines={2}>
-                  {group?.description}
-                </Text>
-
-                <View style={styles.groupInfoStats}>
-                  <View style={styles.groupInfoStat}>
-                    <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>{memberCount}</Text>
-                    <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Members</Text>
-                  </View>
-                  <View style={[styles.groupInfoStatDivider, { backgroundColor: colors.border }]} />
-                  <View style={styles.groupInfoStat}>
-                    <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>
-                      {group?.discussions?.length || 0}
-                    </Text>
-                    <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Messages</Text>
-                  </View>
-                  <View style={[styles.groupInfoStatDivider, { backgroundColor: colors.border }]} />
-                  <View style={styles.groupInfoStat}>
-                    <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>
-                      {group?.resources?.length || 0}
-                    </Text>
-                    <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Resources</Text>
-                  </View>
-                </View>
-              </View>
-
-              <ScrollView style={styles.groupInfoScroll} showsVerticalScrollIndicator={false}>
-
-                <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
-                  <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>DETAILS</Text>
-
-                  <View style={styles.groupInfoRow}>
-                    <View style={[styles.groupInfoRowIcon, { backgroundColor: '#007AFF20' }]}>
-                      <Ionicons name="school" size={18} color="#007AFF" />
-                    </View>
-                    <View style={styles.groupInfoRowContent}>
-                      <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Level</Text>
-                      <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
-                        {group?.level ? group.level.charAt(0).toUpperCase() + group.level.slice(1) : 'All Levels'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.groupInfoRow}>
-                    <View style={[styles.groupInfoRowIcon, { backgroundColor: '#34C75920' }]}>
-                      <Ionicons name="bookmark" size={18} color="#34C759" />
-                    </View>
-                    <View style={styles.groupInfoRowContent}>
-                      <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Focus</Text>
-                      <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
-                        {group?.focus ? group.focus.charAt(0).toUpperCase() + group.focus.slice(1) : 'General'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.groupInfoRow}>
-                    <View style={[styles.groupInfoRowIcon, { backgroundColor: '#FF950020' }]}>
-                      <Ionicons name={group?.isPrivate ? "lock-closed" : "globe"} size={18} color="#FF9500" />
-                    </View>
-                    <View style={styles.groupInfoRowContent}>
-                      <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Privacy</Text>
-                      <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
-                        {group?.isPrivate ? 'Private Group' : 'Public Group'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.groupInfoRow}>
-                    <View style={[styles.groupInfoRowIcon, { backgroundColor: '#5856D620' }]}>
-                      <Ionicons name="calendar" size={18} color="#5856D6" />
-                    </View>
-                    <View style={styles.groupInfoRowContent}>
-                      <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Created</Text>
-                      <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
-                        {group?.createdAt ? new Date(group.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric', month: 'long', day: 'numeric'
-                        }) : 'Unknown'}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
-                  <View style={styles.groupInfoSectionHeader}>
-                    <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>MEMBERS</Text>
-                    <TouchableOpacity onPress={() => { closeGroupInfo(); setActiveTab('members'); }}>
-                      <Text style={[styles.groupInfoSeeAll, { color: premiumColors.primary.main }]}>See All</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.groupInfoMembersList}>
-                    {group?.members?.slice(0, 5).map((m, idx) => {
-                      const memberUser = typeof m.user === 'object' ? m.user : null;
-                      const isCreator = memberUser?._id === (typeof group.creator === 'object' ? group.creator?._id : group.creator);
-                      return (
-                        <View key={idx} style={styles.groupInfoMember}>
-                          {memberUser?.avatar ? (
-                            <Image source={{ uri: memberUser.avatar }} style={styles.groupInfoMemberAvatar} />
-                          ) : (
-                            <View style={[styles.groupInfoMemberAvatarPlaceholder, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                              <Ionicons name="person" size={16} color={premiumColors.primary.main} />
-                            </View>
-                          )}
-                          <View style={styles.groupInfoMemberInfo}>
-                            <Text style={[styles.groupInfoMemberName, { color: colors.text }]} numberOfLines={1}>
-                              {memberUser?.name || 'Member'}
-                            </Text>
-                            {isCreator && (
-                              <Text style={[styles.groupInfoMemberRole, { color: premiumColors.accent.gold }]}>Creator</Text>
-                            )}
-                            {m.role === 'moderator' && !isCreator && (
-                              <Text style={[styles.groupInfoMemberRole, { color: premiumColors.primary.main }]}>Moderator</Text>
-                            )}
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
-                  <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>QUICK ACTIONS</Text>
-
-                  <View style={styles.groupInfoActions}>
-                    <TouchableOpacity
-                      style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
-                      onPress={() => { closeGroupInfo(); setActiveTab('resources'); }}
-                    >
-                      <View style={[styles.groupInfoActionIcon, { backgroundColor: '#007AFF20' }]}>
-                        <Ionicons name="folder" size={22} color="#007AFF" />
-                      </View>
-                      <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Resources</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
-                      onPress={() => { closeGroupInfo(); setActiveTab('members'); }}
-                    >
-                      <View style={[styles.groupInfoActionIcon, { backgroundColor: '#34C75920' }]}>
-                        <Ionicons name="people" size={22} color="#34C759" />
-                      </View>
-                      <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Members</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
-                      onPress={() => { closeGroupInfo(); startCall('voice'); }}
-                    >
-                      <View style={[styles.groupInfoActionIcon, { backgroundColor: '#5856D620' }]}>
-                        <Ionicons name="call" size={22} color="#5856D6" />
-                      </View>
-                      <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Call</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
-                      onPress={() => { closeGroupInfo(); openGroupOptions(); }}
-                    >
-                      <View style={[styles.groupInfoActionIcon, { backgroundColor: '#FF950020' }]}>
-                        <Ionicons name="settings" size={22} color="#FF9500" />
-                      </View>
-                      <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Settings</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                <View style={styles.groupInfoButtonSection}>
-                  {isMember() ? (
-                    <TouchableOpacity
-                      style={[styles.groupInfoLeaveBtn, { borderColor: '#FF3B30' }]}
-                      onPress={() => { closeGroupInfo(); handleLeave(); }}
-                    >
-                      <Ionicons name="exit-outline" size={20} color="#FF3B30" />
-                      <Text style={styles.groupInfoLeaveBtnText}>Leave Group</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[styles.groupInfoJoinBtn, { backgroundColor: premiumColors.primary.main }]}
-                      onPress={() => { closeGroupInfo(); handleJoin(); }}
-                    >
-                      <Ionicons name="person-add" size={20} color="#FFFFFF" />
-                      <Text style={styles.groupInfoJoinBtnText}>Join Group</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                <View style={{ height: 40 }} />
-              </ScrollView>
-            </Animated.View>
+          <View style={styles.groupInfoHandle}>
+            <View style={[styles.groupInfoHandleBar, { backgroundColor: colors.border }]} />
           </View>
-        </Modal>
+
+          <View style={styles.groupInfoHeader}>
+            {group?.image ? (
+              <Image source={{ uri: group.image }} style={styles.groupInfoAvatarImage} />
+            ) : (
+              <View style={[styles.groupInfoAvatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                <Ionicons name="people" size={40} color={premiumColors.primary.main} />
+              </View>
+            )}
+            <Text style={[styles.groupInfoName, { color: colors.text }]}>{group?.name}</Text>
+            <Text style={[styles.groupInfoDesc, { color: colors.secondaryText }]} numberOfLines={2}>
+              {group?.description}
+            </Text>
+
+            <View style={styles.groupInfoStats}>
+              <View style={styles.groupInfoStat}>
+                <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>{memberCount}</Text>
+                <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Members</Text>
+              </View>
+              <View style={[styles.groupInfoStatDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.groupInfoStat}>
+                <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>
+                  {group?.discussions?.length || 0}
+                </Text>
+                <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Messages</Text>
+              </View>
+              <View style={[styles.groupInfoStatDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.groupInfoStat}>
+                <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>
+                  {group?.resources?.length || 0}
+                </Text>
+                <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Resources</Text>
+              </View>
+            </View>
+          </View>
+
+          <ScrollView style={styles.groupInfoScroll} showsVerticalScrollIndicator={false}>
+
+            <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
+              <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>DETAILS</Text>
+
+              <View style={styles.groupInfoRow}>
+                <View style={[styles.groupInfoRowIcon, { backgroundColor: '#007AFF20' }]}>
+                  <Ionicons name="school" size={18} color="#007AFF" />
+                </View>
+                <View style={styles.groupInfoRowContent}>
+                  <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Level</Text>
+                  <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
+                    {group?.level ? group.level.charAt(0).toUpperCase() + group.level.slice(1) : 'All Levels'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.groupInfoRow}>
+                <View style={[styles.groupInfoRowIcon, { backgroundColor: '#34C75920' }]}>
+                  <Ionicons name="bookmark" size={18} color="#34C759" />
+                </View>
+                <View style={styles.groupInfoRowContent}>
+                  <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Focus</Text>
+                  <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
+                    {group?.focus ? group.focus.charAt(0).toUpperCase() + group.focus.slice(1) : 'General'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.groupInfoRow}>
+                <View style={[styles.groupInfoRowIcon, { backgroundColor: '#FF950020' }]}>
+                  <Ionicons name={group?.isPrivate ? "lock-closed" : "globe"} size={18} color="#FF9500" />
+                </View>
+                <View style={styles.groupInfoRowContent}>
+                  <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Privacy</Text>
+                  <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
+                    {group?.isPrivate ? 'Private Group' : 'Public Group'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.groupInfoRow}>
+                <View style={[styles.groupInfoRowIcon, { backgroundColor: '#5856D620' }]}>
+                  <Ionicons name="calendar" size={18} color="#5856D6" />
+                </View>
+                <View style={styles.groupInfoRowContent}>
+                  <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Created</Text>
+                  <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
+                    {group?.createdAt ? new Date(group.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric', month: 'long', day: 'numeric'
+                    }) : 'Unknown'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
+              <View style={styles.groupInfoSectionHeader}>
+                <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>MEMBERS</Text>
+                <TouchableOpacity onPress={() => { closeGroupInfo(); setActiveTab('members'); }}>
+                  <Text style={[styles.groupInfoSeeAll, { color: premiumColors.primary.main }]}>See All</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.groupInfoMembersList}>
+                {group?.members?.slice(0, 5).map((m, idx) => {
+                  const memberUser = typeof m.user === 'object' ? m.user : null;
+                  const isCreator = memberUser?._id === (typeof group.creator === 'object' ? group.creator?._id : group.creator);
+                  return (
+                    <View key={idx} style={styles.groupInfoMember}>
+                      {memberUser?.avatar ? (
+                        <Image source={{ uri: memberUser.avatar }} style={styles.groupInfoMemberAvatar} />
+                      ) : (
+                        <View style={[styles.groupInfoMemberAvatarPlaceholder, { backgroundColor: premiumColors.primary.main + '20' }]}>
+                          <Ionicons name="person" size={16} color={premiumColors.primary.main} />
+                        </View>
+                      )}
+                      <View style={styles.groupInfoMemberInfo}>
+                        <Text style={[styles.groupInfoMemberName, { color: colors.text }]} numberOfLines={1}>
+                          {memberUser?.name || 'Member'}
+                        </Text>
+                        {isCreator && (
+                          <Text style={[styles.groupInfoMemberRole, { color: premiumColors.accent.gold }]}>Creator</Text>
+                        )}
+                        {m.role === 'moderator' && !isCreator && (
+                          <Text style={[styles.groupInfoMemberRole, { color: premiumColors.primary.main }]}>Moderator</Text>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
+              <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>QUICK ACTIONS</Text>
+
+              <View style={styles.groupInfoActions}>
+                <TouchableOpacity
+                  style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
+                  onPress={() => { closeGroupInfo(); setActiveTab('resources'); }}
+                >
+                  <View style={[styles.groupInfoActionIcon, { backgroundColor: '#007AFF20' }]}>
+                    <Ionicons name="folder" size={22} color="#007AFF" />
+                  </View>
+                  <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Resources</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
+                  onPress={() => { closeGroupInfo(); setActiveTab('members'); }}
+                >
+                  <View style={[styles.groupInfoActionIcon, { backgroundColor: '#34C75920' }]}>
+                    <Ionicons name="people" size={22} color="#34C759" />
+                  </View>
+                  <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Members</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
+                  onPress={() => { closeGroupInfo(); startCall('voice'); }}
+                >
+                  <View style={[styles.groupInfoActionIcon, { backgroundColor: '#5856D620' }]}>
+                    <Ionicons name="call" size={22} color="#5856D6" />
+                  </View>
+                  <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Call</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
+                  onPress={() => { closeGroupInfo(); openGroupOptions(); }}
+                >
+                  <View style={[styles.groupInfoActionIcon, { backgroundColor: '#FF950020' }]}>
+                    <Ionicons name="settings" size={22} color="#FF9500" />
+                  </View>
+                  <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Settings</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.groupInfoButtonSection}>
+              {isMember() ? (
+                <TouchableOpacity
+                  style={[styles.groupInfoLeaveBtn, { borderColor: '#FF3B30' }]}
+                  onPress={() => { closeGroupInfo(); handleLeave(); }}
+                >
+                  <Ionicons name="exit-outline" size={20} color="#FF3B30" />
+                  <Text style={styles.groupInfoLeaveBtnText}>Leave Group</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.groupInfoJoinBtn, { backgroundColor: premiumColors.primary.main }]}
+                  onPress={() => { closeGroupInfo(); handleJoin(); }}
+                >
+                  <Ionicons name="person-add" size={20} color="#FFFFFF" />
+                  <Text style={styles.groupInfoJoinBtnText}>Join Group</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </Animated.View>
+      </View>
+    </Modal>
   );
 
   if (loading && !group) {
@@ -2153,14 +2226,14 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           !isDarkMode && styles.chatHeaderLightShadow,
         ]}>
           <View style={styles.chatHeaderLeft}>
-            <TouchableOpacity 
-              onPress={() => navigation.goBack()} 
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
               style={styles.chatHeaderBackBtn}
               activeOpacity={0.7}
             >
               <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#E9EDEF' : '#111B21'} />
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.chatHeaderGroupInfo}
               onPress={openGroupInfo}
               activeOpacity={0.7}
@@ -2176,13 +2249,13 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                 </View>
               )}
               <View style={styles.chatHeaderTextBox}>
-                <Text 
-                  style={[styles.chatHeaderGroupName, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]} 
+                <Text
+                  style={[styles.chatHeaderGroupName, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}
                   numberOfLines={1}
                 >
                   {group.name}
                 </Text>
-                <Text 
+                <Text
                   style={[styles.chatHeaderSubtext, { color: isDarkMode ? '#8696A0' : '#667781' }]}
                   numberOfLines={1}
                 >
@@ -2192,21 +2265,21 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
             </TouchableOpacity>
           </View>
           <View style={styles.chatHeaderRight}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.chatHeaderIconBtn}
               onPress={() => startCall('video')}
               activeOpacity={0.6}
             >
               <Ionicons name="videocam" size={22} color={isDarkMode ? '#E9EDEF' : '#54656F'} />
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.chatHeaderIconBtn}
               onPress={() => startCall('voice')}
               activeOpacity={0.6}
             >
               <Ionicons name="call" size={21} color={isDarkMode ? '#E9EDEF' : '#54656F'} />
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.chatHeaderIconBtn}
               onPress={openGroupOptions}
               activeOpacity={0.6}
@@ -2229,94 +2302,94 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           ]}>
             {/* Background Image */}
             {chatBackground?.type === 'image' && (
-              <Image 
-                source={{ uri: chatBackground.value }} 
+              <Image
+                source={{ uri: chatBackground.value }}
                 style={styles.chatBackgroundImage}
                 resizeMode="cover"
               />
             )}
             <ScrollView
-            ref={discussionsScrollRef}
-            style={styles.chatScrollView}
-            contentContainerStyle={styles.whatsappChatContent}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25D366" />
-            }
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
-          >
-          {/* Access Restriction Check */}
-          {!isAuthenticated ? (
-            <View style={styles.whatsappEmptyChat}>
-              <View style={[styles.restrictedAccessIcon, { backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)' }]}>
-                <Ionicons name="lock-closed" size={50} color="#EF4444" />
-              </View>
-              <Text style={[styles.whatsappEmptyTitle, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>
-                Login Required
-              </Text>
-              <Text style={[styles.whatsappEmptyText, { color: isDarkMode ? '#8696A0' : '#667781', textAlign: 'center', paddingHorizontal: 20 }]}>
-                Please login to view group messages and participate in discussions.
-              </Text>
-              <TouchableOpacity
-                style={[styles.restrictedAccessBtn, { backgroundColor: '#3B82F6' }]}
-                onPress={() => navigation.navigate('Auth')}
-              >
-                <Ionicons name="log-in-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.restrictedAccessBtnText}>Login to Continue</Text>
-              </TouchableOpacity>
-            </View>
-          ) : !isMember() ? (
-            <View style={styles.whatsappEmptyChat}>
-              <View style={[styles.restrictedAccessIcon, { backgroundColor: isDarkMode ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)' }]}>
-                <Ionicons name="people" size={50} color="#F59E0B" />
-              </View>
-              <Text style={[styles.whatsappEmptyTitle, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>
-                Members Only
-              </Text>
-              <Text style={[styles.whatsappEmptyText, { color: isDarkMode ? '#8696A0' : '#667781', textAlign: 'center', paddingHorizontal: 20 }]}>
-                Join this study group to view messages and participate in discussions with other members.
-              </Text>
-              <TouchableOpacity
-                style={[styles.restrictedAccessBtn, { backgroundColor: '#10B981' }]}
-                onPress={handleJoin}
-              >
-                <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.restrictedAccessBtnText}>
-                  {group.isPrivate ? 'Request to Join' : 'Join Group'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : group.discussions?.length > 0 ? (
-            group.discussions.map((discussion, index) => {
-              const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
-              const isOwnMessage = discussionUser?._id === user?._id;
-              const reactions = messageReactions[discussion._id?.toString()] || [];
-
-              let messageData;
-              try {
-                messageData = JSON.parse(discussion.message);
-              } catch {
-                messageData = { message: discussion.message, type: MESSAGE_TYPES.TEXT };
+              ref={discussionsScrollRef}
+              style={styles.chatScrollView}
+              contentContainerStyle={styles.whatsappChatContent}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#25D366" />
               }
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+            >
+              {/* Access Restriction Check */}
+              {!isAuthenticated ? (
+                <View style={styles.whatsappEmptyChat}>
+                  <View style={[styles.restrictedAccessIcon, { backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)' }]}>
+                    <Ionicons name="lock-closed" size={50} color="#EF4444" />
+                  </View>
+                  <Text style={[styles.whatsappEmptyTitle, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>
+                    Login Required
+                  </Text>
+                  <Text style={[styles.whatsappEmptyText, { color: isDarkMode ? '#8696A0' : '#667781', textAlign: 'center', paddingHorizontal: 20 }]}>
+                    Please login to view group messages and participate in discussions.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.restrictedAccessBtn, { backgroundColor: '#3B82F6' }]}
+                    onPress={() => navigation.navigate('Auth')}
+                  >
+                    <Ionicons name="log-in-outline" size={20} color="#FFFFFF" />
+                    <Text style={styles.restrictedAccessBtnText}>Login to Continue</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : !isMember() ? (
+                <View style={styles.whatsappEmptyChat}>
+                  <View style={[styles.restrictedAccessIcon, { backgroundColor: isDarkMode ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)' }]}>
+                    <Ionicons name="people" size={50} color="#F59E0B" />
+                  </View>
+                  <Text style={[styles.whatsappEmptyTitle, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>
+                    Members Only
+                  </Text>
+                  <Text style={[styles.whatsappEmptyText, { color: isDarkMode ? '#8696A0' : '#667781', textAlign: 'center', paddingHorizontal: 20 }]}>
+                    Join this study group to view messages and participate in discussions with other members.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.restrictedAccessBtn, { backgroundColor: '#10B981' }]}
+                    onPress={handleJoin}
+                  >
+                    <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
+                    <Text style={styles.restrictedAccessBtnText}>
+                      {group.isPrivate ? 'Request to Join' : 'Join Group'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : group.discussions?.length > 0 ? (
+                group.discussions.map((discussion, index) => {
+                  const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
+                  const isOwnMessage = discussionUser?._id === user?._id;
+                  const reactions = messageReactions[discussion._id?.toString()] || [];
 
-              return (
-                <View key={index} style={styles.messageWrapper}>
-                  {/* Date Separator */}
-                  {index === 0 || new Date(discussion.createdAt).toDateString() !==
-                    new Date(group.discussions[index - 1]?.createdAt).toDateString() ? (
-                    <View style={styles.whatsappDateSeparator}>
-                      <View style={[styles.whatsappDateBubble, { backgroundColor: isDarkMode ? '#182229' : '#FFFFFF' }]}>
-                        <Text style={[styles.whatsappDateText, { color: isDarkMode ? '#8696A0' : '#54656F' }]}>
-                          {new Date(discussion.createdAt).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                        </Text>
-                      </View>
-                    </View>
-                  ) : null}
+                  let messageData;
+                  try {
+                    messageData = JSON.parse(discussion.message);
+                  } catch {
+                    messageData = { message: discussion.message, type: MESSAGE_TYPES.TEXT };
+                  }
+
+                  return (
+                    <View key={index} style={styles.messageWrapper}>
+                      {/* Date Separator */}
+                      {index === 0 || new Date(discussion.createdAt).toDateString() !==
+                        new Date(group.discussions[index - 1]?.createdAt).toDateString() ? (
+                        <View style={styles.whatsappDateSeparator}>
+                          <View style={[styles.whatsappDateBubble, { backgroundColor: isDarkMode ? '#182229' : '#FFFFFF' }]}>
+                            <Text style={[styles.whatsappDateText, { color: isDarkMode ? '#8696A0' : '#54656F' }]}>
+                              {new Date(discussion.createdAt).toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </Text>
+                          </View>
+                        </View>
+                      ) : null}
 
                       <Swipeable
                         renderLeftActions={(progress, dragX) => {
@@ -2425,10 +2498,12 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                                   {
                                     opacity: doubleTapHeartAnim,
                                     transform: [
-                                      { scale: doubleTapHeartAnim.interpolate({
-                                        inputRange: [0, 0.5, 1],
-                                        outputRange: [0, 1.3, 1],
-                                      })},
+                                      {
+                                        scale: doubleTapHeartAnim.interpolate({
+                                          inputRange: [0, 0.5, 1],
+                                          outputRange: [0, 1.3, 1],
+                                        })
+                                      },
                                     ],
                                   },
                                 ]}
@@ -2467,240 +2542,242 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                                 messageData.type === MESSAGE_TYPES.IMAGE && (isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble),
                               ]}>
 
-                              {messageData.type !== MESSAGE_TYPES.IMAGE && (
-                                <View style={[
-                                  isOwnMessage ? styles.ownBubbleTail : styles.otherBubbleTail,
-                                  { backgroundColor: isOwnMessage ? (isDarkMode ? '#005C4B' : '#D9FDD3') : (isDarkMode ? '#202C33' : '#FFFFFF') }
-                                ]}>
+                                {messageData.type !== MESSAGE_TYPES.IMAGE && (
                                   <View style={[
-                                    styles.bubbleTailCover,
-                                    { backgroundColor: chatBackground?.type === 'color' ? chatBackground.value : (isDarkMode ? '#0B141A' : '#E4DDD6') },
-                                    isOwnMessage ? styles.ownTailCover : styles.otherTailCover
-                                  ]} />
-                                </View>
-                              )}
+                                    isOwnMessage ? styles.ownBubbleTail : styles.otherBubbleTail,
+                                    { backgroundColor: isOwnMessage ? (isDarkMode ? '#005C4B' : '#D9FDD3') : (isDarkMode ? '#202C33' : '#FFFFFF') }
+                                  ]}>
+                                    <View style={[
+                                      styles.bubbleTailCover,
+                                      { backgroundColor: chatBackground?.type === 'color' ? chatBackground.value : (isDarkMode ? '#0B141A' : '#E4DDD6') },
+                                      isOwnMessage ? styles.ownTailCover : styles.otherTailCover
+                                    ]} />
+                                  </View>
+                                )}
 
-                              {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
-                                <Text style={[styles.messageAuthor, { color: isDarkMode ? '#53BDEB' : '#075E54' }]}>
-                                  {discussionUser?.name?.toUpperCase() || 'MEMBER'}
-                                </Text>
-                              )}
-
-                              {messageData.replyTo && (
-                                <View style={[styles.replyPreview, {
-                                  backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background,
-                                  borderLeftColor: premiumColors.accent.emerald,
-                                }]}>
-                                  <Text style={[styles.replyAuthor, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.emerald }]}>
-                                    {messageData.replyTo.userName}
+                                {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
+                                  <Text style={[styles.messageAuthor, { color: isDarkMode ? '#53BDEB' : '#075E54' }]}>
+                                    {discussionUser?.name?.toUpperCase() || 'MEMBER'}
                                   </Text>
-                                  <Text style={[styles.replyText, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]} numberOfLines={1}>
-                                    {messageData.replyTo.message}
-                                  </Text>
-                                </View>
-                              )}
+                                )}
 
-                              {messageData.type === MESSAGE_TYPES.IMAGE && messageData.attachment?.uri && (
-                                <TouchableOpacity
-                                  onPress={() => openImagePreview(messageData.attachment.uri)}
-                                  style={[
-                                    styles.imageAttachment,
-                                    isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble
-                                  ]}
-                                  activeOpacity={0.95}
-                                >
-                                  <Image
-                                    source={{ uri: messageData.attachment.uri }}
+                                {messageData.replyTo && (
+                                  <View style={[styles.replyPreview, {
+                                    backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background,
+                                    borderLeftColor: premiumColors.accent.emerald,
+                                  }]}>
+                                    <Text style={[styles.replyAuthor, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.emerald }]}>
+                                      {messageData.replyTo.userName}
+                                    </Text>
+                                    <Text style={[styles.replyText, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]} numberOfLines={1}>
+                                      {messageData.replyTo.message}
+                                    </Text>
+                                  </View>
+                                )}
+
+                                {messageData.type === MESSAGE_TYPES.IMAGE && messageData.attachment?.uri && (
+                                  <TouchableOpacity
+                                    onPress={() => openImagePreview(messageData.attachment.uri)}
                                     style={[
-                                      styles.attachedImage,
+                                      styles.imageAttachment,
                                       isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble
                                     ]}
-                                    resizeMode="cover"
-                                  />
-                                  <LinearGradient
-                                    colors={['transparent', 'rgba(0,0,0,0.35)']}
-                                    style={[
-                                      styles.imageGradientOverlay,
-                                      isOwnMessage ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }
-                                    ]}
+                                    activeOpacity={0.95}
                                   >
-                                    <View style={styles.imageTimeContainer}>
-                                      <Text style={styles.imageTimeText}>{formatTimeAgo(discussion.createdAt)}</Text>
-                                      {isOwnMessage && (
-                                        <Ionicons
-                                          name="checkmark-done"
-                                          size={13}
-                                          color="#FFFFFF"
-                                          style={{ marginLeft: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: {width: 0, height: 1}, textShadowRadius: 2 }}
-                                        />
-                                      )}
-                                    </View>
-                                  </LinearGradient>
-                                </TouchableOpacity>
-                              )}
+                                    <Image
+                                      source={{ uri: messageData.attachment.uri }}
+                                      style={[
+                                        styles.attachedImage,
+                                        isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble
+                                      ]}
+                                      resizeMode="cover"
+                                    />
+                                    <LinearGradient
+                                      colors={['transparent', 'rgba(0,0,0,0.35)']}
+                                      style={[
+                                        styles.imageGradientOverlay,
+                                        isOwnMessage ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }
+                                      ]}
+                                    >
+                                      <View style={styles.imageTimeContainer}>
+                                        <Text style={styles.imageTimeText}>{formatTimeAgo(discussion.createdAt)}</Text>
+                                        {isOwnMessage && (
+                                          <Ionicons
+                                            name="checkmark-done"
+                                            size={13}
+                                            color="#FFFFFF"
+                                            style={{ marginLeft: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}
+                                          />
+                                        )}
+                                      </View>
+                                    </LinearGradient>
+                                  </TouchableOpacity>
+                                )}
 
-                              {messageData.type === MESSAGE_TYPES.DOCUMENT && messageData.attachment && (
-                                <TouchableOpacity
-                                  activeOpacity={0.8}
-                                  onPress={() => downloadDocument(messageData.attachment.uri, messageData.attachment.name)}
-                                  style={styles.whatsappDocContainer}
-                                >
-                                  {/* Document Card */}
-                                  <View style={[
-                                    styles.whatsappDocCard,
-                                    { backgroundColor: isDarkMode 
-                                      ? (isOwnMessage ? 'rgba(0,0,0,0.15)' : '#1D2A32') 
-                                      : (isOwnMessage ? 'rgba(0,0,0,0.08)' : '#F0F2F5') 
-                                    }
-                                  ]}>
-                                    {/* File Icon with colored background */}
+                                {messageData.type === MESSAGE_TYPES.DOCUMENT && messageData.attachment && (
+                                  <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    onPress={() => downloadDocument(messageData.attachment.uri, messageData.attachment.name)}
+                                    style={styles.whatsappDocContainer}
+                                  >
+                                    {/* Document Card */}
                                     <View style={[
-                                      styles.whatsappDocIconWrapper,
-                                      { backgroundColor: getFileIcon(messageData.attachment.name).color }
+                                      styles.whatsappDocCard,
+                                      {
+                                        backgroundColor: isDarkMode
+                                          ? (isOwnMessage ? 'rgba(0,0,0,0.15)' : '#1D2A32')
+                                          : (isOwnMessage ? 'rgba(0,0,0,0.08)' : '#F0F2F5')
+                                      }
+                                    ]}>
+                                      {/* File Icon with colored background */}
+                                      <View style={[
+                                        styles.whatsappDocIconWrapper,
+                                        { backgroundColor: getFileIcon(messageData.attachment.name).color }
+                                      ]}>
+                                        <Ionicons
+                                          name={getFileIcon(messageData.attachment.name).icon}
+                                          size={28}
+                                          color="#FFFFFF"
+                                        />
+                                        {/* File extension badge */}
+                                        <View style={styles.whatsappDocExtBadge}>
+                                          <Text style={styles.whatsappDocExtText}>
+                                            {messageData.attachment.name?.split('.').pop()?.toUpperCase() || 'FILE'}
+                                          </Text>
+                                        </View>
+                                      </View>
+
+                                      {/* File Info */}
+                                      <View style={styles.whatsappDocInfo}>
+                                        <Text
+                                          style={[styles.whatsappDocName, { color: '#E9EDEF' }]}
+                                          numberOfLines={2}
+                                        >
+                                          {messageData.attachment.name}
+                                        </Text>
+                                        <View style={styles.whatsappDocMeta}>
+                                          <Text style={styles.whatsappDocSize}>
+                                            {messageData.attachment.size
+                                              ? messageData.attachment.size > 1024 * 1024
+                                                ? `${(messageData.attachment.size / (1024 * 1024)).toFixed(1)} MB`
+                                                : `${(messageData.attachment.size / 1024).toFixed(1)} KB`
+                                              : 'Document'
+                                            }
+                                          </Text>
+                                          <Text style={styles.whatsappDocDot}>•</Text>
+                                          <Text style={styles.whatsappDocType}>
+                                            {messageData.attachment.name?.split('.').pop()?.toUpperCase() || 'FILE'}
+                                          </Text>
+                                        </View>
+                                      </View>
+
+                                      {/* Download Icon */}
+                                      <View style={styles.whatsappDocDownload}>
+                                        <Ionicons name="download-outline" size={22} color="#8696A0" />
+                                      </View>
+                                    </View>
+
+                                    {/* Caption if any */}
+                                    {messageData.message && (
+                                      <Text style={[styles.whatsappDocCaption, { color: isOwnMessage ? '#FFFFFF' : '#E9EDEF' }]}>
+                                        {messageData.message}
+                                      </Text>
+                                    )}
+                                  </TouchableOpacity>
+                                )}
+
+                                {messageData.type === MESSAGE_TYPES.VOICE && messageData.attachment && (
+                                  <TouchableOpacity
+                                    style={[styles.voiceMessage, {
+                                      backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background
+                                    }]}
+                                    onPress={() => playVoiceMessage(messageData.attachment.uri, discussion._id)}
+                                    activeOpacity={0.8}
+                                  >
+                                    <View style={[
+                                      styles.voicePlayButton,
+                                      { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.25)' : premiumColors.primary.main + '20' }
                                     ]}>
                                       <Ionicons
-                                        name={getFileIcon(messageData.attachment.name).icon}
-                                        size={28}
-                                        color="#FFFFFF"
+                                        name={playingVoice === discussion._id ? "pause" : "play"}
+                                        size={20}
+                                        color={isOwnMessage ? '#FFFFFF' : premiumColors.primary.main}
                                       />
-                                      {/* File extension badge */}
-                                      <View style={styles.whatsappDocExtBadge}>
-                                        <Text style={styles.whatsappDocExtText}>
-                                          {messageData.attachment.name?.split('.').pop()?.toUpperCase() || 'FILE'}
-                                        </Text>
-                                      </View>
                                     </View>
-                                    
-                                    {/* File Info */}
-                                    <View style={styles.whatsappDocInfo}>
-                                      <Text 
-                                        style={[styles.whatsappDocName, { color: '#E9EDEF' }]} 
-                                        numberOfLines={2}
-                                      >
-                                        {messageData.attachment.name}
+                                    <View style={styles.voiceWaveform}>
+                                      {[...Array(20)].map((_, i) => (
+                                        <Animated.View
+                                          key={i}
+                                          style={[
+                                            styles.voiceBar,
+                                            {
+                                              height: Math.random() * 16 + 6,
+                                              backgroundColor: isOwnMessage ?
+                                                (i / 20 <= (voiceProgress[discussion._id] || 0) ? '#FFFFFF' : 'rgba(255,255,255,0.4)') :
+                                                (i / 20 <= (voiceProgress[discussion._id] || 0) ? premiumColors.primary.main : colors.border),
+                                            }
+                                          ]}
+                                        />
+                                      ))}
+                                    </View>
+                                    <Text style={[styles.voiceDuration, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]}>
+                                      {formatDuration(messageData.attachment.duration || 0)}
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+
+                                {messageData.type === MESSAGE_TYPES.LINK && messageData.links && (
+                                  <TouchableOpacity
+                                    style={[styles.linkPreview, {
+                                      backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background
+                                    }]}
+                                    onPress={() => Linking.openURL(messageData.links[0])}
+                                  >
+                                    <View style={[styles.linkIcon, { backgroundColor: premiumColors.accent.sky + '20' }]}>
+                                      <Ionicons name="link" size={20} color={premiumColors.accent.sky} />
+                                    </View>
+                                    <View style={styles.linkInfo}>
+                                      <Text style={[styles.linkUrl, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.sky }]} numberOfLines={1}>
+                                        {messageData.links[0]}
                                       </Text>
-                                      <View style={styles.whatsappDocMeta}>
-                                        <Text style={styles.whatsappDocSize}>
-                                          {messageData.attachment.size 
-                                            ? messageData.attachment.size > 1024 * 1024
-                                              ? `${(messageData.attachment.size / (1024 * 1024)).toFixed(1)} MB`
-                                              : `${(messageData.attachment.size / 1024).toFixed(1)} KB`
-                                            : 'Document'
-                                          }
-                                        </Text>
-                                        <Text style={styles.whatsappDocDot}>•</Text>
-                                        <Text style={styles.whatsappDocType}>
-                                          {messageData.attachment.name?.split('.').pop()?.toUpperCase() || 'FILE'}
-                                        </Text>
-                                      </View>
+                                      <Text style={[styles.linkHint, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
+                                        Tap to open
+                                      </Text>
                                     </View>
+                                    <Ionicons name="open-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.secondaryText} />
+                                  </TouchableOpacity>
+                                )}
 
-                                    {/* Download Icon */}
-                                    <View style={styles.whatsappDocDownload}>
-                                      <Ionicons name="download-outline" size={22} color="#8696A0" />
-                                    </View>
-                                  </View>
-
-                                  {/* Caption if any */}
-                                  {messageData.message && (
-                                    <Text style={[styles.whatsappDocCaption, { color: isOwnMessage ? '#FFFFFF' : '#E9EDEF' }]}>
-                                      {messageData.message}
-                                    </Text>
-                                  )}
-                                </TouchableOpacity>
-                              )}
-
-                              {messageData.type === MESSAGE_TYPES.VOICE && messageData.attachment && (
-                                <TouchableOpacity
-                                  style={[styles.voiceMessage, {
-                                    backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background
-                                  }]}
-                                  onPress={() => playVoiceMessage(messageData.attachment.uri, discussion._id)}
-                                  activeOpacity={0.8}
-                                >
-                                  <View style={[
-                                    styles.voicePlayButton,
-                                    { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.25)' : premiumColors.primary.main + '20' }
+                                {messageData.message && messageData.type !== MESSAGE_TYPES.VOICE && (
+                                  <Text style={[
+                                    styles.messageText,
+                                    {
+                                      color: isDarkMode
+                                        ? (isOwnMessage ? '#E9EDEF' : '#E9EDEF')
+                                        : (isOwnMessage ? '#111B21' : '#111B21')
+                                    }
                                   ]}>
-                                    <Ionicons
-                                      name={playingVoice === discussion._id ? "pause" : "play"}
-                                      size={20}
-                                      color={isOwnMessage ? '#FFFFFF' : premiumColors.primary.main}
-                                    />
-                                  </View>
-                                  <View style={styles.voiceWaveform}>
-                                    {[...Array(20)].map((_, i) => (
-                                      <Animated.View
-                                        key={i}
-                                        style={[
-                                          styles.voiceBar,
-                                          {
-                                            height: Math.random() * 16 + 6,
-                                            backgroundColor: isOwnMessage ?
-                                              (i / 20 <= (voiceProgress[discussion._id] || 0) ? '#FFFFFF' : 'rgba(255,255,255,0.4)') :
-                                              (i / 20 <= (voiceProgress[discussion._id] || 0) ? premiumColors.primary.main : colors.border),
-                                          }
-                                        ]}
-                                      />
-                                    ))}
-                                  </View>
-                                  <Text style={[styles.voiceDuration, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]}>
-                                    {formatDuration(messageData.attachment.duration || 0)}
+                                    {messageData.message}
                                   </Text>
-                                </TouchableOpacity>
-                              )}
+                                )}
 
-                              {messageData.type === MESSAGE_TYPES.LINK && messageData.links && (
-                                <TouchableOpacity
-                                  style={[styles.linkPreview, {
-                                    backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background
-                                  }]}
-                                  onPress={() => Linking.openURL(messageData.links[0])}
-                                >
-                                  <View style={[styles.linkIcon, { backgroundColor: premiumColors.accent.sky + '20' }]}>
-                                    <Ionicons name="link" size={20} color={premiumColors.accent.sky} />
-                                  </View>
-                                  <View style={styles.linkInfo}>
-                                    <Text style={[styles.linkUrl, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.sky }]} numberOfLines={1}>
-                                      {messageData.links[0]}
+                                {(messageData.type !== MESSAGE_TYPES.IMAGE || messageData.message) && (
+                                  <View style={styles.messageFooter}>
+                                    <Text style={[styles.messageTime, {
+                                      color: isDarkMode
+                                        ? (isOwnMessage ? 'rgba(255,255,255,0.6)' : '#8696A0')
+                                        : (isOwnMessage ? '#667781' : '#667781')
+                                    }]}>
+                                      {formatTimeAgo(discussion.createdAt)}
                                     </Text>
-                                    <Text style={[styles.linkHint, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
-                                      Tap to open
-                                    </Text>
+                                    {isOwnMessage && (
+                                      <Ionicons name="checkmark-done" size={14} color="#53BDEB" style={{ marginLeft: 4 }} />
+                                    )}
                                   </View>
-                                  <Ionicons name="open-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.secondaryText} />
-                                </TouchableOpacity>
-                              )}
+                                )}
+                              </View>
 
-                              {messageData.message && messageData.type !== MESSAGE_TYPES.VOICE && (
-                                <Text style={[
-                                  styles.messageText,
-                                  { color: isDarkMode 
-                                    ? (isOwnMessage ? '#E9EDEF' : '#E9EDEF') 
-                                    : (isOwnMessage ? '#111B21' : '#111B21') 
-                                  }
-                                ]}>
-                                  {messageData.message}
-                                </Text>
-                              )}
-
-                              {(messageData.type !== MESSAGE_TYPES.IMAGE || messageData.message) && (
-                                <View style={styles.messageFooter}>
-                                  <Text style={[styles.messageTime, { 
-                                    color: isDarkMode 
-                                      ? (isOwnMessage ? 'rgba(255,255,255,0.6)' : '#8696A0') 
-                                      : (isOwnMessage ? '#667781' : '#667781') 
-                                  }]}>
-                                    {formatTimeAgo(discussion.createdAt)}
-                                  </Text>
-                                  {isOwnMessage && (
-                                    <Ionicons name="checkmark-done" size={14} color="#53BDEB" style={{ marginLeft: 4 }} />
-                                  )}
-                                </View>
-                              )}
-                            </View>
-
-                          </TouchableOpacity>
+                            </TouchableOpacity>
                           </View>
                         </TapGestureHandler>
                       </Swipeable>
@@ -2762,316 +2839,316 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                     </View>
                   );
                 })
-          ) : (
-            <View style={styles.whatsappEmptyChat}>
-              <View style={styles.whatsappEmptyIcon}>
-                <Ionicons name="chatbubbles" size={60} color={isDarkMode ? '#8696A0' : '#A0AEB7'} />
-              </View>
-              <Text style={[styles.whatsappEmptyTitle, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>
-                No messages yet
-              </Text>
-              <Text style={[styles.whatsappEmptyText, { color: isDarkMode ? '#8696A0' : '#667781' }]}>
-                Say hello and start the conversation!
-              </Text>
-            </View>
-          )}
+              ) : (
+                <View style={styles.whatsappEmptyChat}>
+                  <View style={styles.whatsappEmptyIcon}>
+                    <Ionicons name="chatbubbles" size={60} color={isDarkMode ? '#8696A0' : '#A0AEB7'} />
+                  </View>
+                  <Text style={[styles.whatsappEmptyTitle, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>
+                    No messages yet
+                  </Text>
+                  <Text style={[styles.whatsappEmptyText, { color: isDarkMode ? '#8696A0' : '#667781' }]}>
+                    Say hello and start the conversation!
+                  </Text>
+                </View>
+              )}
             </ScrollView>
           </View>
 
           {isMember() ? (
             <>
               {replyingTo && (
-                  <View style={[styles.replyingToContainer, {
-                    backgroundColor: isDarkMode ? 'rgba(30, 30, 40, 0.98)' : 'rgba(255, 255, 255, 0.98)',
-                    borderTopColor: isDarkMode ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
-                  }]}>
-                    <View style={[styles.replyingToBar, {
-                      backgroundColor: '#10B981',
-                      shadowColor: '#10B981',
-                      shadowOffset: { width: 0, height: 0 },
-                      shadowOpacity: 0.5,
-                      shadowRadius: 4,
-                    }]} />
-                    <View style={styles.replyingToContent}>
-                      <Text style={[styles.replyingToLabel, { color: '#10B981' }]}>
-                        Replying to {replyingTo.user?.name || 'Member'}
-                      </Text>
-                      <Text style={[styles.replyingToText, { color: colors.secondaryText }]} numberOfLines={1}>
-                        {(() => {
-                          try {
-                            const parsed = JSON.parse(replyingTo.message);
-                            return parsed.message || replyingTo.message;
-                          } catch {
-                            return replyingTo.message;
-                          }
-                        })()}
-                      </Text>
+                <View style={[styles.replyingToContainer, {
+                  backgroundColor: isDarkMode ? 'rgba(30, 30, 40, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+                  borderTopColor: isDarkMode ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
+                }]}>
+                  <View style={[styles.replyingToBar, {
+                    backgroundColor: '#10B981',
+                    shadowColor: '#10B981',
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: 0.5,
+                    shadowRadius: 4,
+                  }]} />
+                  <View style={styles.replyingToContent}>
+                    <Text style={[styles.replyingToLabel, { color: '#10B981' }]}>
+                      Replying to {replyingTo.user?.name || 'Member'}
+                    </Text>
+                    <Text style={[styles.replyingToText, { color: colors.secondaryText }]} numberOfLines={1}>
+                      {(() => {
+                        try {
+                          const parsed = JSON.parse(replyingTo.message);
+                          return parsed.message || replyingTo.message;
+                        } catch {
+                          return replyingTo.message;
+                        }
+                      })()}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={cancelReply}
+                    style={[styles.cancelReplyButton, {
+                      backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
+                    }]}
+                  >
+                    <Ionicons name="close" size={18} color={colors.secondaryText} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {(selectedImage || selectedDocument) && (
+                <View style={[styles.attachmentPreview, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
+                  {selectedImage && (
+                    <View style={styles.imagePreviewContainer}>
+                      <Image source={{ uri: selectedImage.uri }} style={styles.previewThumbnail} />
+                      <View style={styles.previewInfo}>
+                        <Text style={[styles.previewName, { color: colors.text }]}>Photo attached</Text>
+                        <Text style={[styles.previewSize, { color: colors.secondaryText }]}>Ready to send</Text>
+                      </View>
                     </View>
-                    <TouchableOpacity
-                      onPress={cancelReply}
-                      style={[styles.cancelReplyButton, {
-                        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
-                      }]}
-                    >
-                      <Ionicons name="close" size={18} color={colors.secondaryText} />
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {(selectedImage || selectedDocument) && (
-                  <View style={[styles.attachmentPreview, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                    {selectedImage && (
-                      <View style={styles.imagePreviewContainer}>
-                        <Image source={{ uri: selectedImage.uri }} style={styles.previewThumbnail} />
-                        <View style={styles.previewInfo}>
-                          <Text style={[styles.previewName, { color: colors.text }]}>Photo attached</Text>
-                          <Text style={[styles.previewSize, { color: colors.secondaryText }]}>Ready to send</Text>
-                        </View>
+                  )}
+                  {selectedDocument && (
+                    <View style={styles.documentPreviewContainer}>
+                      <View style={[styles.documentPreviewIcon, { backgroundColor: getFileIcon(selectedDocument.name).color + '20' }]}>
+                        <Ionicons
+                          name={getFileIcon(selectedDocument.name).icon}
+                          size={24}
+                          color={getFileIcon(selectedDocument.name).color}
+                        />
                       </View>
-                    )}
-                    {selectedDocument && (
-                      <View style={styles.documentPreviewContainer}>
-                        <View style={[styles.documentPreviewIcon, { backgroundColor: getFileIcon(selectedDocument.name).color + '20' }]}>
-                          <Ionicons
-                            name={getFileIcon(selectedDocument.name).icon}
-                            size={24}
-                            color={getFileIcon(selectedDocument.name).color}
-                          />
-                        </View>
-                        <View style={styles.previewInfo}>
-                          <Text style={[styles.previewName, { color: colors.text }]} numberOfLines={1}>
-                            {selectedDocument.name}
-                          </Text>
-                          <Text style={[styles.previewSize, { color: colors.secondaryText }]}>
-                            {selectedDocument.size ? `${(selectedDocument.size / 1024).toFixed(1)} KB` : 'Document'}
-                          </Text>
-                        </View>
+                      <View style={styles.previewInfo}>
+                        <Text style={[styles.previewName, { color: colors.text }]} numberOfLines={1}>
+                          {selectedDocument.name}
+                        </Text>
+                        <Text style={[styles.previewSize, { color: colors.secondaryText }]}>
+                          {selectedDocument.size ? `${(selectedDocument.size / 1024).toFixed(1)} KB` : 'Document'}
+                        </Text>
                       </View>
-                    )}
-                    <TouchableOpacity onPress={cancelAttachment} style={styles.cancelAttachmentButton}>
-                      <Ionicons name="close-circle" size={24} color={colors.error || '#FF3B30'} />
-                    </TouchableOpacity>
-                  </View>
-                )}
+                    </View>
+                  )}
+                  <TouchableOpacity onPress={cancelAttachment} style={styles.cancelAttachmentButton}>
+                    <Ionicons name="close-circle" size={24} color={colors.error || '#FF3B30'} />
+                  </TouchableOpacity>
+                </View>
+              )}
 
+              <View style={[
+                styles.whatsappInputContainer,
+                {
+                  backgroundColor: 'transparent',
+                  paddingBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 8),
+                }
+              ]}>
+                {/* Plus/Add Button */}
+                <TouchableOpacity
+                  style={styles.whatsappAddBtn}
+                  onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                >
+                  <Ionicons
+                    name={showAttachmentMenu ? 'close' : 'add'}
+                    size={28}
+                    color={isDarkMode ? '#8696A0' : '#54656F'}
+                  />
+                </TouchableOpacity>
+
+                {/* Message Input with Emoji */}
                 <View style={[
-                  styles.whatsappInputContainer,
-                  { 
-                    backgroundColor: 'transparent',
-                    paddingBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 8),
+                  styles.whatsappInputWrapper,
+                  {
+                    backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF',
+                    borderWidth: isDarkMode ? 0 : 1,
+                    borderColor: isDarkMode ? 'transparent' : '#E4E6EB',
                   }
                 ]}>
-                  {/* Plus/Add Button */}
+                  <TextInput
+                    style={[styles.whatsappInput, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}
+                    placeholder="Message..."
+                    placeholderTextColor={isDarkMode ? '#8696A0' : '#667781'}
+                    value={discussionMessage}
+                    onChangeText={setDiscussionMessage}
+                    multiline
+                    maxLength={1000}
+                    selectionColor={isDarkMode ? '#00A884' : '#075E54'}
+                  />
                   <TouchableOpacity
-                    style={styles.whatsappAddBtn}
-                    onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
+                    style={styles.whatsappEmojiBtn}
+                    onPress={() => setShowEmojiPicker(!showEmojiPicker)}
                   >
                     <Ionicons
-                      name={showAttachmentMenu ? 'close' : 'add'}
-                      size={28}
+                      name={showEmojiPicker ? "happy" : "happy-outline"}
+                      size={24}
                       color={isDarkMode ? '#8696A0' : '#54656F'}
                     />
                   </TouchableOpacity>
-
-                  {/* Message Input with Emoji */}
-                  <View style={[
-                    styles.whatsappInputWrapper, 
-                    { 
-                      backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF',
-                      borderWidth: isDarkMode ? 0 : 1,
-                      borderColor: isDarkMode ? 'transparent' : '#E4E6EB',
-                    }
-                  ]}>
-                    <TextInput
-                      style={[styles.whatsappInput, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}
-                      placeholder="Message..."
-                      placeholderTextColor={isDarkMode ? '#8696A0' : '#667781'}
-                      value={discussionMessage}
-                      onChangeText={setDiscussionMessage}
-                      multiline
-                      maxLength={1000}
-                      selectionColor={isDarkMode ? '#00A884' : '#075E54'}
-                    />
-                    <TouchableOpacity
-                      style={styles.whatsappEmojiBtn}
-                      onPress={() => setShowEmojiPicker(!showEmojiPicker)}
-                    >
-                      <Ionicons
-                        name={showEmojiPicker ? "happy" : "happy-outline"}
-                        size={24}
-                        color={isDarkMode ? '#8696A0' : '#54656F'}
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Mic/Send Button */}
-                  {discussionMessage.trim() || selectedImage || selectedDocument ? (
-                    <TouchableOpacity
-                      style={[styles.whatsappMicBtn, { backgroundColor: '#00A884' }]}
-                      onPress={handleSendMessage}
-                      disabled={sendingMessage}
-                    >
-                      {sendingMessage ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Ionicons name="send" size={22} color="#FFFFFF" />
-                      )}
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[styles.whatsappMicBtn, { backgroundColor: isRecording ? '#FF3B30' : '#00A884' }]}
-                      onPress={isRecording ? sendVoiceMessage : startRecording}
-                      onLongPress={startRecording}
-                    >
-                      <Animated.View style={{ transform: [{ scale: isRecording ? recordingAnimRef : 1 }] }}>
-                        <Ionicons
-                          name={isRecording ? "stop" : "mic"}
-                          size={22}
-                          color="#FFFFFF"
-                        />
-                      </Animated.View>
-                    </TouchableOpacity>
-                  )}
                 </View>
 
-                {isRecording && (
-                  <View style={styles.recordingOverlay}>
-                    <LinearGradient
-                      colors={['rgba(255,59,48,0.95)', 'rgba(255,45,85,0.95)']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.recordingOverlayGradient}
+                {/* Mic/Send Button */}
+                {discussionMessage.trim() || selectedImage || selectedDocument ? (
+                  <TouchableOpacity
+                    style={[styles.whatsappMicBtn, { backgroundColor: '#00A884' }]}
+                    onPress={handleSendMessage}
+                    disabled={sendingMessage}
+                  >
+                    {sendingMessage ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Ionicons name="send" size={22} color="#FFFFFF" />
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.whatsappMicBtn, { backgroundColor: isRecording ? '#FF3B30' : '#00A884' }]}
+                    onPress={isRecording ? sendVoiceMessage : startRecording}
+                    onLongPress={startRecording}
+                  >
+                    <Animated.View style={{ transform: [{ scale: isRecording ? recordingAnimRef : 1 }] }}>
+                      <Ionicons
+                        name={isRecording ? "stop" : "mic"}
+                        size={22}
+                        color="#FFFFFF"
+                      />
+                    </Animated.View>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {isRecording && (
+                <View style={styles.recordingOverlay}>
+                  <LinearGradient
+                    colors={['rgba(255,59,48,0.95)', 'rgba(255,45,85,0.95)']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.recordingOverlayGradient}
+                  >
+
+                    <TouchableOpacity
+                      style={styles.recordingCancelBtn}
+                      onPress={cancelRecording}
                     >
+                      <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
+                    </TouchableOpacity>
 
-                      <TouchableOpacity
-                        style={styles.recordingCancelBtn}
-                        onPress={cancelRecording}
-                      >
-                        <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
-                      </TouchableOpacity>
+                    <View style={styles.recordingCenter}>
 
-                      <View style={styles.recordingCenter}>
+                      <View style={styles.recordingWaveform}>
+                        {[...Array(12)].map((_, i) => (
+                          <Animated.View
+                            key={i}
+                            style={[
+                              styles.recordingWaveBar,
+                              {
+                                height: Math.sin((i + recordingDuration) * 0.5) * 12 + 8,
+                                opacity: 0.6 + Math.sin((i + recordingDuration * 2) * 0.3) * 0.4,
+                              }
+                            ]}
+                          />
+                        ))}
+                      </View>
 
-                        <View style={styles.recordingWaveform}>
-                          {[...Array(12)].map((_, i) => (
-                            <Animated.View
-                              key={i}
-                              style={[
-                                styles.recordingWaveBar,
-                                {
-                                  height: Math.sin((i + recordingDuration) * 0.5) * 12 + 8,
-                                  opacity: 0.6 + Math.sin((i + recordingDuration * 2) * 0.3) * 0.4,
-                                }
-                              ]}
-                            />
-                          ))}
-                        </View>
-
-                        <View style={styles.recordingTimerContainer}>
-                          <Animated.View style={[
-                            styles.recordingPulseDot,
-                            { transform: [{ scale: recordingAnimRef }] }
-                          ]} />
-                          <Text style={styles.recordingTimer}>
-                            {formatDuration(recordingDuration)}
-                          </Text>
-                        </View>
-
-                        <Text style={styles.recordingHint}>
-                          Tap send to finish
+                      <View style={styles.recordingTimerContainer}>
+                        <Animated.View style={[
+                          styles.recordingPulseDot,
+                          { transform: [{ scale: recordingAnimRef }] }
+                        ]} />
+                        <Text style={styles.recordingTimer}>
+                          {formatDuration(recordingDuration)}
                         </Text>
                       </View>
 
-                      <TouchableOpacity
-                        style={styles.recordingSendBtn}
-                        onPress={sendVoiceMessage}
-                      >
-                        <View style={styles.recordingSendBtnInner}>
-                          <Ionicons name="arrow-up" size={22} color="#FF3B30" />
-                        </View>
-                      </TouchableOpacity>
+                      <Text style={styles.recordingHint}>
+                        Tap send to finish
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.recordingSendBtn}
+                      onPress={sendVoiceMessage}
+                    >
+                      <View style={styles.recordingSendBtnInner}>
+                        <Ionicons name="arrow-up" size={22} color="#FF3B30" />
+                      </View>
+                    </TouchableOpacity>
+                  </LinearGradient>
+                </View>
+              )}
+
+              {showAttachmentMenu && (
+                <Animated.View
+                  style={[
+                    styles.attachmentMenu,
+                    {
+                      backgroundColor: colors.card,
+                      borderTopColor: colors.border,
+                      opacity: attachmentMenuAnim,
+                      transform: [{
+                        translateY: attachmentMenuAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [50, 0],
+                        }),
+                      }],
+                    },
+                  ]}
+                >
+                  <TouchableOpacity style={styles.attachmentOption} onPress={pickImage}>
+                    <LinearGradient
+                      colors={['#9C27B0', '#7B1FA2']}
+                      style={styles.attachmentIconGradient}
+                    >
+                      <Ionicons name="images" size={24} color="#FFFFFF" />
                     </LinearGradient>
-                  </View>
-                )}
+                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Gallery</Text>
+                  </TouchableOpacity>
 
-                {showAttachmentMenu && (
-                  <Animated.View
-                    style={[
-                      styles.attachmentMenu,
-                      {
-                        backgroundColor: colors.card,
-                        borderTopColor: colors.border,
-                        opacity: attachmentMenuAnim,
-                        transform: [{
-                          translateY: attachmentMenuAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [50, 0],
-                          }),
-                        }],
-                      },
-                    ]}
-                  >
-                    <TouchableOpacity style={styles.attachmentOption} onPress={pickImage}>
-                      <LinearGradient
-                        colors={['#9C27B0', '#7B1FA2']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="images" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Gallery</Text>
-                    </TouchableOpacity>
+                  <TouchableOpacity style={styles.attachmentOption} onPress={takePhoto}>
+                    <LinearGradient
+                      colors={['#E91E63', '#C2185B']}
+                      style={styles.attachmentIconGradient}
+                    >
+                      <Ionicons name="camera" size={24} color="#FFFFFF" />
+                    </LinearGradient>
+                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Camera</Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.attachmentOption} onPress={takePhoto}>
-                      <LinearGradient
-                        colors={['#E91E63', '#C2185B']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="camera" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Camera</Text>
-                    </TouchableOpacity>
+                  <TouchableOpacity style={styles.attachmentOption} onPress={pickDocument}>
+                    <LinearGradient
+                      colors={['#3F51B5', '#303F9F']}
+                      style={styles.attachmentIconGradient}
+                    >
+                      <Ionicons name="document" size={24} color="#FFFFFF" />
+                    </LinearGradient>
+                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Document</Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.attachmentOption} onPress={pickDocument}>
-                      <LinearGradient
-                        colors={['#3F51B5', '#303F9F']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="document" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Document</Text>
-                    </TouchableOpacity>
+                  <TouchableOpacity style={styles.attachmentOption}>
+                    <LinearGradient
+                      colors={['#00BCD4', '#0097A7']}
+                      style={styles.attachmentIconGradient}
+                    >
+                      <Ionicons name="link" size={24} color="#FFFFFF" />
+                    </LinearGradient>
+                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Link</Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.attachmentOption}>
-                      <LinearGradient
-                        colors={['#00BCD4', '#0097A7']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="link" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Link</Text>
-                    </TouchableOpacity>
+                  <TouchableOpacity style={styles.attachmentOption} onPress={() => { setShowAttachmentMenu(false); startRecording(); }}>
+                    <LinearGradient
+                      colors={['#FF5722', '#E64A19']}
+                      style={styles.attachmentIconGradient}
+                    >
+                      <Ionicons name="mic" size={24} color="#FFFFFF" />
+                    </LinearGradient>
+                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Voice</Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.attachmentOption} onPress={() => { setShowAttachmentMenu(false); startRecording(); }}>
-                      <LinearGradient
-                        colors={['#FF5722', '#E64A19']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="mic" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Voice</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.attachmentOption}>
-                      <LinearGradient
-                        colors={['#4CAF50', '#388E3C']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="location" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Location</Text>
-                    </TouchableOpacity>
-                  </Animated.View>
-                )}
+                  <TouchableOpacity style={styles.attachmentOption}>
+                    <LinearGradient
+                      colors={['#4CAF50', '#388E3C']}
+                      style={styles.attachmentIconGradient}
+                    >
+                      <Ionicons name="location" size={24} color="#FFFFFF" />
+                    </LinearGradient>
+                    <Text style={[styles.attachmentLabel, { color: colors.text }]}>Location</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              )}
 
               {showEmojiPicker && (
                 <EmojiPicker
@@ -3084,7 +3161,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           ) : (
             <View style={[
               styles.whatsappJoinPrompt,
-              { 
+              {
                 backgroundColor: isDarkMode ? '#182229' : '#FFFFFF',
                 paddingBottom: Math.max(insets.bottom, 8) + 16,
               }
@@ -3102,388 +3179,388 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           )}
         </KeyboardAvoidingView>
 
-      <Modal
-        visible={showJoinModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowJoinModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Join Private Group</Text>
-              <TouchableOpacity onPress={() => setShowJoinModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <Text style={[styles.modalText, { color: colors.secondaryText }]}>
-              This is a private group. Please enter the invite code to join.
-            </Text>
-            <TextInput
-              style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              placeholder="Enter invite code"
-              placeholderTextColor={colors.secondaryText}
-              value={joinInviteCode}
-              onChangeText={setJoinInviteCode}
-              autoCapitalize="characters"
-              maxLength={6}
-            />
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: premiumColors.primary.main }]}
-              onPress={handleJoinWithCode}
-            >
-              <Text style={styles.modalButtonText}>Join Group</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={showResourceModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowResourceModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Add Resource</Text>
-              <TouchableOpacity onPress={() => setShowResourceModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              placeholder="Resource Title"
-              placeholderTextColor={colors.secondaryText}
-              value={newResource.title}
-              onChangeText={(text) => setNewResource({ ...newResource, title: text })}
-            />
-            <TextInput
-              style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
-              placeholder="URL"
-              placeholderTextColor={colors.secondaryText}
-              value={newResource.url}
-              onChangeText={(text) => setNewResource({ ...newResource, url: text })}
-            />
-            <TouchableOpacity
-              style={[styles.modalButton, { backgroundColor: premiumColors.primary.main }]}
-              onPress={handleAddResource}
-            >
-              <Text style={styles.modalButtonText}>Add Resource</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal
-        visible={isInCall}
-        transparent={false}
-        animationType="slide"
-        onRequestClose={endCall}
-        statusBarTranslucent
-      >
-        <View style={styles.callModal}>
-          {callType === 'video' ? (
-            <View style={styles.faceTimeContainer}>
-              <View style={styles.faceTimeMain}>
-                {isVideoOn ? (
-                  <View style={styles.faceTimeGroupView}>
-                    <LinearGradient colors={['#1c1c1e', '#2c2c2e', '#1c1c1e']} style={styles.faceTimeGroupGradient}>
-                      <View style={styles.faceTimeGroupAvatars}>
-                        {group?.members?.slice(0, 4).map((member, index) => {
-                          const memberUser = typeof member.user === 'object' ? member.user : null;
-                          return (
-                            <View key={index} style={styles.faceTimeParticipant}>
-                              {memberUser?.avatar ? (
-                                <Image source={{ uri: memberUser.avatar }} style={styles.faceTimeParticipantAvatar} />
-                              ) : (
-                                <View style={styles.faceTimeParticipantPlaceholder}>
-                                  <Ionicons name="person" size={40} color="rgba(255,255,255,0.6)" />
-                                </View>
-                              )}
-                              <Text style={styles.faceTimeParticipantName} numberOfLines={1}>
-                                {memberUser?.name || 'Member'}
-                              </Text>
-                            </View>
-                          );
-                        })}
-                      </View>
-                      {memberCount > 4 && (
-                        <Text style={styles.faceTimeMoreParticipants}>+{memberCount - 4} more</Text>
-                      )}
-                    </LinearGradient>
-                  </View>
-                ) : (
-                  <View style={styles.faceTimeVideoOff}>
-                    <View style={styles.faceTimeVideoOffIcon}>
-                      <Ionicons name="videocam-off" size={50} color="#FFFFFF" />
-                    </View>
-                    <Text style={styles.faceTimeVideoOffText}>Camera Off</Text>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.faceTimeSelfContainer}>
-                {isVideoOn && cameraPermission?.granted ? (
-                  <CameraView style={styles.faceTimeSelfCamera} facing={isFrontCamera ? 'front' : 'back'} />
-                ) : (
-                  <View style={styles.faceTimeSelfPlaceholder}>
-                    <Ionicons name="person" size={30} color="rgba(255,255,255,0.5)" />
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.faceTimeTopBar}>
-                <View style={styles.faceTimeInfo}>
-                  <Text style={styles.faceTimeGroupName}>{group?.name}</Text>
-                  <View style={styles.faceTimeStatusRow}>
-                    <View style={styles.faceTimeLiveIndicator} />
-                    <Text style={styles.faceTimeDuration}>
-                      {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.faceTimeControls}>
-                <View style={styles.faceTimeControlsRow}>
-                  <TouchableOpacity style={[styles.faceTimeControlBtn, isMuted && styles.faceTimeControlBtnActive]} onPress={toggleMute}>
-                    <Ionicons name={isMuted ? "mic-off" : "mic"} size={24} color="#FFFFFF" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.faceTimeEndCall} onPress={endCall}>
-                    <Ionicons name="close" size={28} color="#FFFFFF" />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.faceTimeControlBtn, !isVideoOn && styles.faceTimeControlBtnActive]} onPress={toggleVideo}>
-                    <Ionicons name={isVideoOn ? "videocam" : "videocam-off"} size={24} color="#FFFFFF" />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.faceTimeSecondaryRow}>
-                  <TouchableOpacity style={styles.faceTimeSecondaryBtn} onPress={toggleCamera}>
-                    <Ionicons name="camera-reverse-outline" size={22} color="#FFFFFF" />
-                    <Text style={styles.faceTimeSecondaryLabel}>Flip</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.faceTimeSecondaryBtn, isSpeakerOn && styles.faceTimeSecondaryBtnActive]} onPress={toggleSpeaker}>
-                    <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium-outline"} size={22} color="#FFFFFF" />
-                    <Text style={styles.faceTimeSecondaryLabel}>Speaker</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.faceTimeSecondaryBtn}>
-                    <Ionicons name="apps-outline" size={22} color="#FFFFFF" />
-                    <Text style={styles.faceTimeSecondaryLabel}>Effects</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          ) : (
-            <LinearGradient colors={['#667eea', '#764ba2', '#6B8DD6']} style={styles.callBackground}>
-              <View style={styles.voiceCallContainer}>
-                <Animated.View style={[styles.callAvatarContainer, { transform: [{ scale: callPulseAnim }] }]}>
-                  <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']} style={styles.callAvatarRing}>
-                    <View style={styles.callAvatar}>
-                      <Ionicons name="people" size={50} color="#FFFFFF" />
-                    </View>
-                  </LinearGradient>
-                </Animated.View>
-                <Text style={styles.callGroupName}>{group?.name}</Text>
-                <Text style={styles.callStatus}>{callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}</Text>
-                <View style={styles.callParticipants}>
-                  <Text style={styles.callParticipantsText}>{memberCount} participants</Text>
-                </View>
-              </View>
-              <View style={styles.callControls}>
-                <View style={styles.callControlsRow}>
-                  <TouchableOpacity style={[styles.callControlBtn, isMuted && styles.callControlBtnActive]} onPress={toggleMute}>
-                    <Ionicons name={isMuted ? "mic-off" : "mic"} size={26} color="#FFFFFF" />
-                    <Text style={styles.callControlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.callControlBtn, isSpeakerOn && styles.callControlBtnActive]} onPress={toggleSpeaker}>
-                    <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={26} color="#FFFFFF" />
-                    <Text style={styles.callControlLabel}>{isSpeakerOn ? 'Speaker' : 'Phone'}</Text>
-                  </TouchableOpacity>
-                </View>
-                <TouchableOpacity style={styles.endCallBtn} onPress={endCall}>
-                  <LinearGradient colors={['#FF3B30', '#FF453A']} style={styles.endCallBtnGradient}>
-                    <Ionicons name="call" size={30} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
-                  </LinearGradient>
+        <Modal
+          visible={showJoinModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowJoinModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Join Private Group</Text>
+                <TouchableOpacity onPress={() => setShowJoinModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
                 </TouchableOpacity>
               </View>
-            </LinearGradient>
-          )}
-        </View>
-      </Modal>
+              <Text style={[styles.modalText, { color: colors.secondaryText }]}>
+                This is a private group. Please enter the invite code to join.
+              </Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                placeholder="Enter invite code"
+                placeholderTextColor={colors.secondaryText}
+                value={joinInviteCode}
+                onChangeText={setJoinInviteCode}
+                autoCapitalize="characters"
+                maxLength={6}
+              />
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: premiumColors.primary.main }]}
+                onPress={handleJoinWithCode}
+              >
+                <Text style={styles.modalButtonText}>Join Group</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
-      <Modal
-        visible={showImagePreview}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowImagePreview(false)}
-      >
-        <View style={styles.imagePreviewModal}>
-          <TouchableOpacity
-            style={styles.imagePreviewClose}
-            onPress={() => setShowImagePreview(false)}
-          >
-            <Ionicons name="close" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-          {previewImage && (
-            <Image
-              source={{ uri: previewImage }}
-              style={styles.fullScreenImage}
-              resizeMode="contain"
-            />
-          )}
-          <View style={styles.imagePreviewActions}>
-            <TouchableOpacity
-              style={styles.imagePreviewAction}
-              onPress={() => shareImage(previewImage)}
-            >
-              <View style={styles.imagePreviewActionIcon}>
-                <Ionicons name="share-outline" size={24} color="#FFFFFF" />
+        <Modal
+          visible={showResourceModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowResourceModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Add Resource</Text>
+                <TouchableOpacity onPress={() => setShowResourceModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
               </View>
-              <Text style={styles.imagePreviewActionText}>Share</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.imagePreviewAction}
-              onPress={() => downloadImage(previewImage)}
-            >
-              <View style={styles.imagePreviewActionIcon}>
-                <Ionicons name="download-outline" size={24} color="#FFFFFF" />
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                placeholder="Resource Title"
+                placeholderTextColor={colors.secondaryText}
+                value={newResource.title}
+                onChangeText={(text) => setNewResource({ ...newResource, title: text })}
+              />
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.background, color: colors.text, borderColor: colors.border }]}
+                placeholder="URL"
+                placeholderTextColor={colors.secondaryText}
+                value={newResource.url}
+                onChangeText={(text) => setNewResource({ ...newResource, url: text })}
+              />
+              <TouchableOpacity
+                style={[styles.modalButton, { backgroundColor: premiumColors.primary.main }]}
+                onPress={handleAddResource}
+              >
+                <Text style={styles.modalButtonText}>Add Resource</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={isInCall}
+          transparent={false}
+          animationType="slide"
+          onRequestClose={endCall}
+          statusBarTranslucent
+        >
+          <View style={styles.callModal}>
+            {callType === 'video' ? (
+              <View style={styles.faceTimeContainer}>
+                <View style={styles.faceTimeMain}>
+                  {isVideoOn ? (
+                    <View style={styles.faceTimeGroupView}>
+                      <LinearGradient colors={['#1c1c1e', '#2c2c2e', '#1c1c1e']} style={styles.faceTimeGroupGradient}>
+                        <View style={styles.faceTimeGroupAvatars}>
+                          {group?.members?.slice(0, 4).map((member, index) => {
+                            const memberUser = typeof member.user === 'object' ? member.user : null;
+                            return (
+                              <View key={index} style={styles.faceTimeParticipant}>
+                                {memberUser?.avatar ? (
+                                  <Image source={{ uri: memberUser.avatar }} style={styles.faceTimeParticipantAvatar} />
+                                ) : (
+                                  <View style={styles.faceTimeParticipantPlaceholder}>
+                                    <Ionicons name="person" size={40} color="rgba(255,255,255,0.6)" />
+                                  </View>
+                                )}
+                                <Text style={styles.faceTimeParticipantName} numberOfLines={1}>
+                                  {memberUser?.name || 'Member'}
+                                </Text>
+                              </View>
+                            );
+                          })}
+                        </View>
+                        {memberCount > 4 && (
+                          <Text style={styles.faceTimeMoreParticipants}>+{memberCount - 4} more</Text>
+                        )}
+                      </LinearGradient>
+                    </View>
+                  ) : (
+                    <View style={styles.faceTimeVideoOff}>
+                      <View style={styles.faceTimeVideoOffIcon}>
+                        <Ionicons name="videocam-off" size={50} color="#FFFFFF" />
+                      </View>
+                      <Text style={styles.faceTimeVideoOffText}>Camera Off</Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.faceTimeSelfContainer}>
+                  {isVideoOn && cameraPermission?.granted ? (
+                    <CameraView style={styles.faceTimeSelfCamera} facing={isFrontCamera ? 'front' : 'back'} />
+                  ) : (
+                    <View style={styles.faceTimeSelfPlaceholder}>
+                      <Ionicons name="person" size={30} color="rgba(255,255,255,0.5)" />
+                    </View>
+                  )}
+                </View>
+
+                <View style={styles.faceTimeTopBar}>
+                  <View style={styles.faceTimeInfo}>
+                    <Text style={styles.faceTimeGroupName}>{group?.name}</Text>
+                    <View style={styles.faceTimeStatusRow}>
+                      <View style={styles.faceTimeLiveIndicator} />
+                      <Text style={styles.faceTimeDuration}>
+                        {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.faceTimeControls}>
+                  <View style={styles.faceTimeControlsRow}>
+                    <TouchableOpacity style={[styles.faceTimeControlBtn, isMuted && styles.faceTimeControlBtnActive]} onPress={toggleMute}>
+                      <Ionicons name={isMuted ? "mic-off" : "mic"} size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.faceTimeEndCall} onPress={endCall}>
+                      <Ionicons name="close" size={28} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.faceTimeControlBtn, !isVideoOn && styles.faceTimeControlBtnActive]} onPress={toggleVideo}>
+                      <Ionicons name={isVideoOn ? "videocam" : "videocam-off"} size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.faceTimeSecondaryRow}>
+                    <TouchableOpacity style={styles.faceTimeSecondaryBtn} onPress={toggleCamera}>
+                      <Ionicons name="camera-reverse-outline" size={22} color="#FFFFFF" />
+                      <Text style={styles.faceTimeSecondaryLabel}>Flip</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.faceTimeSecondaryBtn, isSpeakerOn && styles.faceTimeSecondaryBtnActive]} onPress={toggleSpeaker}>
+                      <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium-outline"} size={22} color="#FFFFFF" />
+                      <Text style={styles.faceTimeSecondaryLabel}>Speaker</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.faceTimeSecondaryBtn}>
+                      <Ionicons name="apps-outline" size={22} color="#FFFFFF" />
+                      <Text style={styles.faceTimeSecondaryLabel}>Effects</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-              <Text style={styles.imagePreviewActionText}>Save</Text>
-            </TouchableOpacity>
+            ) : (
+              <LinearGradient colors={['#667eea', '#764ba2', '#6B8DD6']} style={styles.callBackground}>
+                <View style={styles.voiceCallContainer}>
+                  <Animated.View style={[styles.callAvatarContainer, { transform: [{ scale: callPulseAnim }] }]}>
+                    <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']} style={styles.callAvatarRing}>
+                      <View style={styles.callAvatar}>
+                        <Ionicons name="people" size={50} color="#FFFFFF" />
+                      </View>
+                    </LinearGradient>
+                  </Animated.View>
+                  <Text style={styles.callGroupName}>{group?.name}</Text>
+                  <Text style={styles.callStatus}>{callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}</Text>
+                  <View style={styles.callParticipants}>
+                    <Text style={styles.callParticipantsText}>{memberCount} participants</Text>
+                  </View>
+                </View>
+                <View style={styles.callControls}>
+                  <View style={styles.callControlsRow}>
+                    <TouchableOpacity style={[styles.callControlBtn, isMuted && styles.callControlBtnActive]} onPress={toggleMute}>
+                      <Ionicons name={isMuted ? "mic-off" : "mic"} size={26} color="#FFFFFF" />
+                      <Text style={styles.callControlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.callControlBtn, isSpeakerOn && styles.callControlBtnActive]} onPress={toggleSpeaker}>
+                      <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={26} color="#FFFFFF" />
+                      <Text style={styles.callControlLabel}>{isSpeakerOn ? 'Speaker' : 'Phone'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity style={styles.endCallBtn} onPress={endCall}>
+                    <LinearGradient colors={['#FF3B30', '#FF453A']} style={styles.endCallBtnGradient}>
+                      <Ionicons name="call" size={30} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </LinearGradient>
+            )}
+          </View>
+        </Modal>
+
+        <Modal
+          visible={showImagePreview}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowImagePreview(false)}
+        >
+          <View style={styles.imagePreviewModal}>
             <TouchableOpacity
-              style={styles.imagePreviewAction}
+              style={styles.imagePreviewClose}
               onPress={() => setShowImagePreview(false)}
             >
-              <View style={styles.imagePreviewActionIcon}>
-                <Ionicons name="close-outline" size={24} color="#FFFFFF" />
-              </View>
-              <Text style={styles.imagePreviewActionText}>Close</Text>
+              <Ionicons name="close" size={28} color="#FFFFFF" />
             </TouchableOpacity>
+            {previewImage && (
+              <Image
+                source={{ uri: previewImage }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            )}
+            <View style={styles.imagePreviewActions}>
+              <TouchableOpacity
+                style={styles.imagePreviewAction}
+                onPress={() => shareImage(previewImage)}
+              >
+                <View style={styles.imagePreviewActionIcon}>
+                  <Ionicons name="share-outline" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.imagePreviewActionText}>Share</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.imagePreviewAction}
+                onPress={() => downloadImage(previewImage)}
+              >
+                <View style={styles.imagePreviewActionIcon}>
+                  <Ionicons name="download-outline" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.imagePreviewActionText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.imagePreviewAction}
+                onPress={() => setShowImagePreview(false)}
+              >
+                <View style={styles.imagePreviewActionIcon}>
+                  <Ionicons name="close-outline" size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.imagePreviewActionText}>Close</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      <Modal
-        visible={showMessageActions}
-        transparent={true}
-        animationType="none"
-        onRequestClose={closeMessageActions}
-      >
-        <TouchableOpacity
-          style={styles.messageActionsOverlay}
-          activeOpacity={1}
-          onPress={closeMessageActions}
+        <Modal
+          visible={showMessageActions}
+          transparent={true}
+          animationType="none"
+          onRequestClose={closeMessageActions}
         >
           <TouchableOpacity
+            style={styles.messageActionsOverlay}
             activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
+            onPress={closeMessageActions}
           >
-            <Animated.View
-              style={[
-                styles.messageActionsContainer,
-                {
-                  opacity: messageActionsAnim,
-                  transform: [{
-                    translateY: messageActionsAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [100, 0],
-                    }),
-                  }],
-                },
-              ]}
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
             >
-
-              <View style={[styles.messageActionsReactions, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}>
-                {['❤️', '👍', '👎', '😂', '😮', '😢', '🔥', '🎉'].map((emoji, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.messageActionsReactionBtn}
-                    onPress={() => {
-                      if (selectedMessage) {
-                        handleReaction(selectedMessage.index, { emoji, name: emoji });
-                      }
-                      closeMessageActions();
-                    }}
-                  >
-                    <Text style={styles.messageActionsReactionEmoji}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={[styles.messageActionsMenu, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}>
-                <TouchableOpacity style={styles.messageActionItem} onPress={handleReplyToMessage}>
-                  <View style={[styles.messageActionIcon, { backgroundColor: '#007AFF15' }]}>
-                    <Ionicons name="arrow-undo" size={20} color="#007AFF" />
-                  </View>
-                  <Text style={[styles.messageActionText, { color: colors.text }]}>Reply</Text>
-                  <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                </TouchableOpacity>
-
-                <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
-
-                <TouchableOpacity style={styles.messageActionItem} onPress={handleCopyMessage}>
-                  <View style={[styles.messageActionIcon, { backgroundColor: '#34C75915' }]}>
-                    <Ionicons name="copy" size={20} color="#34C759" />
-                  </View>
-                  <Text style={[styles.messageActionText, { color: colors.text }]}>Copy</Text>
-                  <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                </TouchableOpacity>
-
-                <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
-
-                <TouchableOpacity style={styles.messageActionItem} onPress={handleForwardMessage}>
-                  <View style={[styles.messageActionIcon, { backgroundColor: '#5856D615' }]}>
-                    <Ionicons name="arrow-redo" size={20} color="#5856D6" />
-                  </View>
-                  <Text style={[styles.messageActionText, { color: colors.text }]}>Forward</Text>
-                  <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                </TouchableOpacity>
-
-                {(selectedMessage?.isOwnMessage || isModerator()) && (
-                  <>
-                    <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
-                    <TouchableOpacity style={styles.messageActionItem} onPress={handleDeleteMessage}>
-                      <View style={[styles.messageActionIcon, { backgroundColor: '#FF3B3015' }]}>
-                        <Ionicons name="trash" size={20} color="#FF3B30" />
-                      </View>
-                      <Text style={[styles.messageActionText, { color: '#FF3B30' }]}>Delete</Text>
-                      <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                    </TouchableOpacity>
-                  </>
-                )}
-
-                {!selectedMessage?.isOwnMessage && (
-                  <>
-                    <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
-                    <TouchableOpacity style={styles.messageActionItem} onPress={handleReportMessage}>
-                      <View style={[styles.messageActionIcon, { backgroundColor: '#FF950015' }]}>
-                        <Ionicons name="flag" size={20} color="#FF9500" />
-                      </View>
-                      <Text style={[styles.messageActionText, { color: '#FF9500' }]}>Report</Text>
-                      <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
-
-              <TouchableOpacity
-                style={[styles.messageActionsCancelBtn, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}
-                onPress={closeMessageActions}
+              <Animated.View
+                style={[
+                  styles.messageActionsContainer,
+                  {
+                    opacity: messageActionsAnim,
+                    transform: [{
+                      translateY: messageActionsAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [100, 0],
+                      }),
+                    }],
+                  },
+                ]}
               >
-                <Text style={styles.messageActionsCancelText}>Cancel</Text>
-              </TouchableOpacity>
-            </Animated.View>
+
+                <View style={[styles.messageActionsReactions, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}>
+                  {['❤️', '👍', '👎', '😂', '😮', '😢', '🔥', '🎉'].map((emoji, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.messageActionsReactionBtn}
+                      onPress={() => {
+                        if (selectedMessage) {
+                          handleReaction(selectedMessage.index, { emoji, name: emoji });
+                        }
+                        closeMessageActions();
+                      }}
+                    >
+                      <Text style={styles.messageActionsReactionEmoji}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <View style={[styles.messageActionsMenu, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}>
+                  <TouchableOpacity style={styles.messageActionItem} onPress={handleReplyToMessage}>
+                    <View style={[styles.messageActionIcon, { backgroundColor: '#007AFF15' }]}>
+                      <Ionicons name="arrow-undo" size={20} color="#007AFF" />
+                    </View>
+                    <Text style={[styles.messageActionText, { color: colors.text }]}>Reply</Text>
+                    <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+                  </TouchableOpacity>
+
+                  <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
+
+                  <TouchableOpacity style={styles.messageActionItem} onPress={handleCopyMessage}>
+                    <View style={[styles.messageActionIcon, { backgroundColor: '#34C75915' }]}>
+                      <Ionicons name="copy" size={20} color="#34C759" />
+                    </View>
+                    <Text style={[styles.messageActionText, { color: colors.text }]}>Copy</Text>
+                    <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+                  </TouchableOpacity>
+
+                  <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
+
+                  <TouchableOpacity style={styles.messageActionItem} onPress={handleForwardMessage}>
+                    <View style={[styles.messageActionIcon, { backgroundColor: '#5856D615' }]}>
+                      <Ionicons name="arrow-redo" size={20} color="#5856D6" />
+                    </View>
+                    <Text style={[styles.messageActionText, { color: colors.text }]}>Forward</Text>
+                    <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+                  </TouchableOpacity>
+
+                  {(selectedMessage?.isOwnMessage || isModerator()) && (
+                    <>
+                      <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
+                      <TouchableOpacity style={styles.messageActionItem} onPress={handleDeleteMessage}>
+                        <View style={[styles.messageActionIcon, { backgroundColor: '#FF3B3015' }]}>
+                          <Ionicons name="trash" size={20} color="#FF3B30" />
+                        </View>
+                        <Text style={[styles.messageActionText, { color: '#FF3B30' }]}>Delete</Text>
+                        <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+                      </TouchableOpacity>
+                    </>
+                  )}
+
+                  {!selectedMessage?.isOwnMessage && (
+                    <>
+                      <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
+                      <TouchableOpacity style={styles.messageActionItem} onPress={handleReportMessage}>
+                        <View style={[styles.messageActionIcon, { backgroundColor: '#FF950015' }]}>
+                          <Ionicons name="flag" size={20} color="#FF9500" />
+                        </View>
+                        <Text style={[styles.messageActionText, { color: '#FF9500' }]}>Report</Text>
+                        <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.messageActionsCancelBtn, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}
+                  onPress={closeMessageActions}
+                >
+                  <Text style={styles.messageActionsCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            </TouchableOpacity>
           </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-      
-      {renderVoiceCallModal()}
-      {renderGroupOptionsModal()}
-      {renderEditGroupModal()}
-      {renderGroupInfoModal()}
-      {renderBackgroundPickerModal()}
-    </View>
+        </Modal>
+
+        {renderVoiceCallModal()}
+        {renderGroupOptionsModal()}
+        {renderEditGroupModal()}
+        {renderGroupInfoModal()}
+        {renderBackgroundPickerModal()}
+      </View>
     </GestureHandlerRootView>
   );
 }
