@@ -39,6 +39,7 @@ export default function LessonScreen({ route, navigation }) {
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [startPosition, setStartPosition] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [bookmarking, setBookmarking] = useState(false);
@@ -46,6 +47,7 @@ export default function LessonScreen({ route, navigation }) {
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [lastSavedProgress, setLastSavedProgress] = useState(0);
 
   const isBookmarked = user?.bookmarkedLessons?.includes(lessonId);
 
@@ -64,6 +66,8 @@ export default function LessonScreen({ route, navigation }) {
       setLesson(response.data.data.lesson);
       if (response.data.data.progress) {
         setProgress(response.data.data.progress.watchedDuration);
+        setStartPosition(response.data.data.progress.watchedDuration);
+        setLastSavedProgress(response.data.data.progress.watchedDuration);
         setIsCompleted(response.data.data.progress.isCompleted);
       }
     } catch (error) {
@@ -130,21 +134,25 @@ export default function LessonScreen({ route, navigation }) {
 
   const handleProgress = async (watchedSeconds) => {
     if (!lesson) return;
-    const totalSeconds = lesson.videoDuration;
-    const progressPercent = (watchedSeconds / totalSeconds) * 100;
+    const totalSeconds = lesson.videoDuration || 0;
+    const progressPercent = totalSeconds > 0 ? (watchedSeconds / totalSeconds) * 100 : 0;
 
     setProgress(watchedSeconds);
 
-    if (Math.floor(watchedSeconds) % 10 === 0) {
+    // Save progress every 10 seconds or when significantly ahead/behind
+    if (Math.abs(watchedSeconds - lastSavedProgress) >= 10 || (progressPercent >= 90 && !isCompleted)) {
       try {
+        setLastSavedProgress(watchedSeconds);
         await lessonsAPI.updateProgress(lessonId, {
-          watchedDuration: watchedSeconds,
+          watchedDuration: Math.floor(watchedSeconds),
           isCompleted: progressPercent >= 90,
         });
         if (progressPercent >= 90 && !isCompleted) {
           setIsCompleted(true);
         }
-      } catch (error) { }
+      } catch (error) {
+        console.error('Failed to sync progress:', error);
+      }
     }
   };
 
@@ -194,6 +202,7 @@ export default function LessonScreen({ route, navigation }) {
           thumbnail={lesson.thumbnail}
           style={styles.videoPlayer}
           onProgress={handleProgress}
+          initialTime={startPosition}
           downloadable={lesson.isDownloadable}
         />
       </View>

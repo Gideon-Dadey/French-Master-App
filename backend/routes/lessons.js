@@ -3,6 +3,7 @@ const router = express.Router();
 const Lesson = require('../models/Lesson');
 const Course = require('../models/Course');
 const Progress = require('../models/Progress');
+const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
 router.get('/course/:courseId', protect, async (req, res) => {
@@ -130,6 +131,40 @@ router.post('/:id/progress', protect, async (req, res) => {
       success: true,
       data: progress
     });
+
+    // Update User model progress in background
+    try {
+      const course = await Course.findById(lesson.course).populate('lessons');
+      const allProgress = await Progress.find({
+        user: req.user._id,
+        course: lesson.course,
+        isCompleted: true
+      });
+
+      const totalLessons = course.lessons.length;
+      const completedCount = allProgress.length;
+      const progressPercent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+
+      const user = await User.findById(req.user._id);
+      const enrollmentIndex = user.enrolledCourses.findIndex(
+        ec => ec.course.toString() === lesson.course.toString()
+      );
+
+      if (enrollmentIndex !== -1) {
+        user.enrolledCourses[enrollmentIndex].progress = progressPercent;
+
+        // Also update completedLessons array if not already there
+        if (isCompleted) {
+          if (!user.enrolledCourses[enrollmentIndex].completedLessons.includes(lesson._id)) {
+            user.enrolledCourses[enrollmentIndex].completedLessons.push(lesson._id);
+          }
+        }
+
+        await user.save();
+      }
+    } catch (err) {
+      console.error('Failed to update user course progress:', err);
+    }
   } catch (error) {
     res.status(500).json({
       success: false,

@@ -99,6 +99,13 @@ router.get('/dashboard', protect, async (req, res) => {
       );
     }
 
+    // Calculate overall average progress
+    let totalProgressSum = 0;
+    user.enrolledCourses.forEach(ec => {
+      totalProgressSum += ec.progress || 0;
+    });
+    stats.totalProgress = stats.totalCourses > 0 ? Math.round(totalProgressSum / stats.totalCourses) : 0;
+
     res.json({
       success: true,
       data: stats

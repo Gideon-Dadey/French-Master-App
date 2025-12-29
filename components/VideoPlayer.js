@@ -22,6 +22,7 @@ export default function VideoPlayer({
   onProgress,
   downloadable = false,
   autoPlay = false,
+  initialTime = 0,
 }) {
   const videoRef = useRef(null);
   const [status, setStatus] = useState({});
@@ -131,7 +132,12 @@ export default function VideoPlayer({
           isLooping={false}
           shouldPlay={autoPlay}
           onLoadStart={() => setLoading(true)}
-          onLoad={() => setLoading(false)}
+          onLoad={(status) => {
+            setLoading(false);
+            if (initialTime > 0) {
+              videoRef.current.setPositionAsync(initialTime * 1000);
+            }
+          }}
           onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
           onError={(err) => {
             console.error('Video error:', err);
