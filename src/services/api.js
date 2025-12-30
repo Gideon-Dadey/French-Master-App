@@ -3,27 +3,26 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 const getApiUrl = () => {
-  // Use production URL by default
+  // Use production URL for final Play Store release
   const PRODUCTION_URL = 'https://api.frenchmastergh.com/api';
-  const DEVELOPMENT_URL = 'http://192.168.190.80:5001/api'; // Only for local development
+  // Ngrok public URL - accessible from anywhere on the internet
+  const NGROK_URL = 'https://eb7e54bcf266.ngrok-free.app/api';
+  // Local IP for same-network testing
+  const LOCAL_TEST_URL = 'http://192.168.190.80:5001/api';
 
   if (__DEV__) {
-    // In development, use local URL only if explicitly set
-    // Otherwise fallback to production for mobile testing
-    const USE_LOCAL = true; // Set to true only for local development
-    if (USE_LOCAL) {
-      if (Platform.OS === 'android') {
-        return DEVELOPMENT_URL;
-      }
-      if (Platform.OS === 'ios') {
-        return 'http://localhost:5001/api';
-      }
-      return DEVELOPMENT_URL;
+    // In development (Expo Go), use local URL
+    if (Platform.OS === 'android') {
+      return LOCAL_TEST_URL;
     }
+    if (Platform.OS === 'ios') {
+      return 'http://localhost:5001/api';
+    }
+    return LOCAL_TEST_URL;
   }
 
-  // Always use production URL for deployed/built apps
-  return PRODUCTION_URL;
+  // Using ngrok URL so anyone can access the app (your friend included!)
+  return NGROK_URL;
 };
 
 const API_URL = getApiUrl();
