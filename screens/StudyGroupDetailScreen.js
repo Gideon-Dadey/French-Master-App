@@ -1861,23 +1861,23 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     </Modal>
   );
 
-  // Wallpaper/Background picker modal - theme-aware colors
+  // Wallpaper/Background picker modal - theme-aware premium palette
   const backgroundColors = isDarkMode ? [
-    // Dark theme colors
-    '#0B141A', '#075E54', '#128C7E', '#25D366',
-    '#34B7F1', '#1F2C34', '#2A3942', '#111B21',
-    '#1E3A5F', '#3D0066', '#4A0E4E', '#1A1A2E',
-    '#16213E', '#0F3460', '#533483', '#E94560',
-    '#FF6B6B', '#4ECDC4', '#2C3E50', '#34495E',
-    '#7F8C8D', '#95A5A6', '#1ABC9C', '#3498DB',
+    // Premium Dark Palette
+    '#0F172A', '#1E293B', '#334155', '#475569', // Slates
+    '#111827', '#1F2937', '#374151', '#4B5563', // Grays
+    '#18181B', '#27272A', '#3F3F46', '#52525B', // Zincs
+    '#171717', '#262626', '#404040', '#525252', // Neutrals
+    '#020617', '#0B141A', '#0F0F10', '#1A1A1A', // Deep Blacks
+    '#134E4A', '#831843', '#713F12', '#14532D', // Deep Accents
   ] : [
-    // Light theme colors
-    '#E4DDD6', '#DCF8C6', '#E8F5E9', '#FFF8E1',
-    '#E3F2FD', '#FCE4EC', '#F3E5F5', '#EDE7F6',
-    '#E0F7FA', '#E0F2F1', '#FFF3E0', '#FFEBEE',
-    '#F5F5F5', '#ECEFF1', '#B2DFDB', '#BBDEFB',
-    '#C8E6C9', '#DCEDC8', '#F0F4C3', '#FFECB3',
-    '#FFE0B2', '#FFCCBC', '#D7CCC8', '#CFD8DC',
+    // Premium Light Palette
+    '#F8FAFC', '#F1F5F9', '#E2E8F0', '#CBD5E1', // Slates
+    '#F9FAFB', '#F3F4F6', '#E5E7EB', '#D1D5DB', // Grays
+    '#FAFAFA', '#F4F4F5', '#E4E4E7', '#D4D4D8', // Zincs
+    '#FAFAF9', '#F5F5F4', '#E7E5E4', '#D6D3D1', // Stones
+    '#FFFFFF', '#F0F2F5', '#F5F7FA', '#EBF0F5', // Whites/Off-whites
+    '#CCFBF1', '#FCE7F3', '#FEF3C7', '#DCFCE7', // Pastel Accents
   ];
 
   const renderBackgroundPickerModal = () => (
@@ -1887,19 +1887,24 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       animationType="slide"
       onRequestClose={closeBackgroundPicker}
     >
-      <View style={[styles.wallpaperModalContainer, { backgroundColor: isDarkMode ? '#0B141A' : '#F0F2F5' }]}>
-        {/* Header */}
+      <View style={[styles.wallpaperModalContainer, { backgroundColor: isDarkMode ? '#0F172A' : '#F8FAFC' }]}>
+        {/* Premium Header */}
         <LinearGradient
-          colors={isDarkMode ? ['#075E54', '#128C7E'] : ['#128C7E', '#25D366']}
+          colors={isDarkMode ? [premiumColors.primary.dark, '#0F172A'] : [premiumColors.primary.main, premiumColors.primary.light]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={styles.wallpaperHeader}
         >
-          <TouchableOpacity onPress={closeBackgroundPicker} style={styles.wallpaperBackBtn}>
-            <Ionicons name="arrow-back" size={24} color="#fff" />
+          <TouchableOpacity
+            onPress={closeBackgroundPicker}
+            style={[styles.wallpaperBackBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.wallpaperHeaderTitle}>Chat Wallpaper</Text>
           <TouchableOpacity
             onPress={resetBackground}
-            style={styles.wallpaperHeaderResetBtn}
+            style={[styles.wallpaperHeaderResetBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
           >
             <Text style={styles.wallpaperHeaderResetText}>Reset</Text>
           </TouchableOpacity>
@@ -1910,90 +1915,115 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.wallpaperScrollContent}
         >
-          {/* Preview Card */}
-          <View style={[styles.wallpaperPreviewCard, { backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF' }]}>
-            <View style={styles.wallpaperPreviewHeader}>
-              <Ionicons name="eye-outline" size={18} color={isDarkMode ? '#8696A0' : '#667781'} />
-              <Text style={[styles.wallpaperSectionLabel, { color: isDarkMode ? '#8696A0' : '#667781' }]}>Preview</Text>
-            </View>
-            <View style={[
-              styles.wallpaperPreviewBox,
-              chatBackground?.type === 'color' && { backgroundColor: chatBackground.value },
-              !chatBackground && { backgroundColor: isDarkMode ? '#0B141A' : '#E4DDD6' },
-            ]}>
-              {chatBackground?.type === 'image' && (
-                <Image
-                  source={{ uri: chatBackground.value }}
-                  style={styles.wallpaperPreviewImage}
-                  resizeMode="cover"
-                />
-              )}
-              {/* Sample chat bubbles */}
-              <View style={styles.wallpaperPreviewChat}>
-                <View style={[styles.wallpaperPreviewBubbleLeft, { backgroundColor: isDarkMode ? '#202C33' : '#FFFFFF' }]}>
-                  <Text style={[styles.wallpaperPreviewTextLeft, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>Hey! How are you? 👋</Text>
-                  <Text style={[styles.wallpaperPreviewTime, { color: isDarkMode ? '#8696A0' : '#667781' }]}>10:30 AM</Text>
-                </View>
-                <View style={[styles.wallpaperPreviewBubbleRight, { backgroundColor: isDarkMode ? '#005C4B' : '#D9FDD3' }]}>
-                  <Text style={[styles.wallpaperPreviewTextRight, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>I'm great! Learning French 🇫🇷</Text>
-                  <View style={styles.wallpaperPreviewTimeRow}>
-                    <Text style={[styles.wallpaperPreviewTimeRight, { color: isDarkMode ? 'rgba(255, 255, 255, 0.6)' : '#667781' }]}>10:31 AM</Text>
-                    <Ionicons name="checkmark-done" size={14} color="#53BDEB" />
+          {/* Mock Phone Preview */}
+          <View style={[styles.wallpaperPreviewContainer, { shadowColor: premiumColors.primary.main }]}>
+            <View style={[styles.wallpaperPreviewFrame, { borderColor: isDarkMode ? '#1E293B' : '#FFFFFF', backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
+              {/* Status Bar Hint */}
+              <View style={styles.wallpaperPreviewNotch} />
+
+              <View style={[
+                styles.wallpaperPreviewBox,
+                chatBackground?.type === 'color' && { backgroundColor: chatBackground.value },
+                !chatBackground && { backgroundColor: isDarkMode ? '#0B141A' : '#E4DDD6' },
+              ]}>
+                {chatBackground?.type === 'image' && (
+                  <Image
+                    source={{ uri: chatBackground.value }}
+                    style={styles.wallpaperPreviewImage}
+                    resizeMode="cover"
+                  />
+                )}
+
+                {/* Chat Bubbles Simulation */}
+                <View style={styles.wallpaperPreviewChat}>
+                  <View style={[styles.wallpaperPreviewBubbleLeft, {
+                    backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF',
+                    shadowColor: '#000',
+                  }]}>
+                    <Text style={[styles.wallpaperPreviewTextLeft, { color: isDarkMode ? '#E2E8F0' : '#1E293B' }]}>
+                      How do I say "Beautiful" in French? 🤔
+                    </Text>
+                    <Text style={[styles.wallpaperPreviewTime, { color: isDarkMode ? '#94A3B8' : '#64748B' }]}>10:30 AM</Text>
+                  </View>
+
+                  <View style={[styles.wallpaperPreviewBubbleRight, {
+                    backgroundColor: premiumColors.primary.main,
+                    shadowColor: premiumColors.primary.main,
+                  }]}>
+                    <Text style={[styles.wallpaperPreviewTextRight, { color: '#FFFFFF' }]}>
+                      It's "Magnifique"! ✨
+                    </Text>
+                    <View style={styles.wallpaperPreviewTimeRow}>
+                      <Text style={[styles.wallpaperPreviewTimeRight, { color: 'rgba(255,255,255,0.8)' }]}>10:31 AM</Text>
+                      <Ionicons name="checkmark-done" size={14} color="#FFFFFF" />
+                    </View>
                   </View>
                 </View>
               </View>
             </View>
+            <Text style={[styles.wallpaperPreviewLabel, { color: colors.secondaryText }]}>PREVIEW</Text>
           </View>
 
-          {/* Custom Image Option */}
-          <View style={[styles.wallpaperOptionCard, { backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF' }]}>
-            <TouchableOpacity style={styles.wallpaperImageOption} onPress={pickBackgroundImage}>
-              <View style={[styles.wallpaperImageIconBox, { backgroundColor: isDarkMode ? 'rgba(37, 211, 102, 0.15)' : 'rgba(37, 211, 102, 0.1)' }]}>
-                <Ionicons name="images" size={26} color="#25D366" />
-              </View>
+          {/* Gallery Option */}
+          <View style={styles.wallpaperSection}>
+            <Text style={[styles.wallpaperSectionTitle, { color: colors.text }]}>Custom</Text>
+            <TouchableOpacity
+              style={[
+                styles.wallpaperImageOption,
+                { backgroundColor: colors.card, borderColor: colors.border }
+              ]}
+              onPress={pickBackgroundImage}
+              activeOpacity={0.7}
+            >
+              <LinearGradient
+                colors={['#8B5CF6', '#6366F1']}
+                style={styles.wallpaperImageIconBox}
+              >
+                <Ionicons name="images" size={24} color="#FFFFFF" />
+              </LinearGradient>
               <View style={styles.wallpaperImageTextBox}>
-                <Text style={[styles.wallpaperImageTitle, { color: isDarkMode ? '#E9EDEF' : '#111B21' }]}>Choose from Gallery</Text>
-                <Text style={[styles.wallpaperImageSubtitle, { color: isDarkMode ? '#8696A0' : '#667781' }]}>Select a photo from your device</Text>
+                <Text style={[styles.wallpaperImageTitle, { color: colors.text }]}>Choose from Gallery</Text>
+                <Text style={[styles.wallpaperImageSubtitle, { color: colors.secondaryText }]}>Use your own photos</Text>
               </View>
-              <View style={[styles.wallpaperChevronBox, { backgroundColor: isDarkMode ? 'rgba(134, 150, 160, 0.15)' : 'rgba(0, 0, 0, 0.05)' }]}>
-                <Ionicons name="chevron-forward" size={18} color={isDarkMode ? '#8696A0' : '#667781'} />
+              <View style={[styles.wallpaperChevronBox, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
               </View>
             </TouchableOpacity>
           </View>
 
-          {/* Solid Colors */}
-          <View style={[styles.wallpaperColorsCard, { backgroundColor: isDarkMode ? '#1F2C34' : '#FFFFFF' }]}>
-            <View style={styles.wallpaperColorsHeader}>
-              <Ionicons name="color-palette-outline" size={18} color={isDarkMode ? '#8696A0' : '#667781'} />
-              <Text style={[styles.wallpaperSectionLabel, { color: isDarkMode ? '#8696A0' : '#667781' }]}>Solid Colors</Text>
-            </View>
-            <View style={styles.wallpaperColorsGrid}>
-              {backgroundColors.map((color, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.wallpaperColorCircle,
-                    { backgroundColor: color },
-                    chatBackground?.type === 'color' && chatBackground.value === color && styles.wallpaperColorCircleActive,
-                  ]}
-                  onPress={() => setBackgroundColor(color)}
-                  activeOpacity={0.7}
-                >
-                  {chatBackground?.type === 'color' && chatBackground.value === color && (
-                    <View style={styles.wallpaperColorSelected}>
-                      <Ionicons name="checkmark" size={20} color="#fff" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
+          {/* Solid Colors Grid */}
+          <View style={styles.wallpaperSection}>
+            <Text style={[styles.wallpaperSectionTitle, { color: colors.text }]}>Colors & Gradients</Text>
+            <View style={[styles.wallpaperColorsCard, { backgroundColor: colors.card }]}>
+              <View style={styles.wallpaperColorsGrid}>
+                {backgroundColors.map((color, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.wallpaperColorCircle,
+                      { backgroundColor: color },
+                      chatBackground?.type === 'color' && chatBackground.value === color && styles.wallpaperColorCircleActive,
+                      chatBackground?.type === 'color' && chatBackground.value === color && { borderColor: colors.text }
+                    ]}
+                    onPress={() => setBackgroundColor(color)}
+                    activeOpacity={0.7}
+                  >
+                    {chatBackground?.type === 'color' && chatBackground.value === color && (
+                      <View style={styles.wallpaperColorSelected}>
+                        <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
           </View>
 
-          {/* Info Text */}
+          {/* Info Footer */}
           <View style={styles.wallpaperInfoBox}>
-            <Ionicons name="information-circle-outline" size={16} color={isDarkMode ? '#8696A0' : '#667781'} />
-            <Text style={[styles.wallpaperInfoText, { color: isDarkMode ? '#8696A0' : '#667781' }]}>
-              Your wallpaper choice is saved for this group only
+            <Ionicons name="information-circle-outline" size={16} color={colors.secondaryText} />
+            <Text style={[styles.wallpaperInfoText, { color: colors.secondaryText }]}>
+              This wallpaper is visible only to you in this group.
             </Text>
           </View>
 
@@ -6747,8 +6777,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: Platform.OS === 'ios' ? 50 : 16,
-    paddingBottom: 16,
-    paddingHorizontal: 12,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
   },
   wallpaperBackBtn: {
     width: 40,
@@ -6759,17 +6789,16 @@ const styles = StyleSheet.create({
   },
   wallpaperHeaderTitle: {
     flex: 1,
-    fontSize: 19,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#FFFFFF',
-    marginLeft: 4,
+    marginLeft: 12,
     letterSpacing: 0.3,
   },
   wallpaperHeaderResetBtn: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   wallpaperHeaderResetText: {
     color: '#FFFFFF',
@@ -6780,30 +6809,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   wallpaperScrollContent: {
-    padding: 16,
+    padding: 20,
   },
-  wallpaperPreviewCard: {
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 16,
-    overflow: 'hidden',
-  },
-  wallpaperPreviewHeader: {
-    flexDirection: 'row',
+
+  // Premium Preview Section
+  wallpaperPreviewContainer: {
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: 32,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
   },
-  wallpaperSectionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
-  wallpaperPreviewBox: {
-    height: 180,
-    borderRadius: 12,
+  wallpaperPreviewFrame: {
+    width: width * 0.65,
+    aspectRatio: 9 / 16,
+    borderRadius: 32,
+    borderWidth: 6,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: '#000',
+  },
+  wallpaperPreviewNotch: {
+    position: 'absolute',
+    top: 0,
+    alignSelf: 'center',
+    width: '40%',
+    height: 24,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    zIndex: 10,
+  },
+  wallpaperPreviewBox: {
+    flex: 1,
   },
   wallpaperPreviewImage: {
     width: '100%',
@@ -6814,45 +6853,45 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     padding: 12,
+    paddingBottom: 24,
   },
   wallpaperPreviewBubbleLeft: {
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 12,
-    borderTopLeftRadius: 4,
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
     marginBottom: 8,
-    maxWidth: '75%',
-    shadowColor: '#000',
+    maxWidth: '85%',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
   wallpaperPreviewTextLeft: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 18,
   },
   wallpaperPreviewTime: {
-    fontSize: 11,
+    fontSize: 10,
     marginTop: 4,
     alignSelf: 'flex-end',
+    opacity: 0.7,
   },
   wallpaperPreviewBubbleRight: {
     alignSelf: 'flex-end',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 12,
-    borderTopRightRadius: 4,
-    maxWidth: '75%',
-    shadowColor: '#000',
+    borderRadius: 16,
+    borderBottomRightRadius: 4,
+    maxWidth: '85%',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
   wallpaperPreviewTextRight: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 18,
   },
   wallpaperPreviewTimeRow: {
@@ -6863,43 +6902,61 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   wallpaperPreviewTimeRight: {
-    fontSize: 11,
+    fontSize: 10,
   },
-  wallpaperOptionCard: {
-    borderRadius: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+  wallpaperPreviewLabel: {
+    marginTop: 16,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    opacity: 0.5,
   },
+
+  // Sections
+  wallpaperSection: {
+    marginBottom: 24,
+  },
+  wallpaperSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+    letterSpacing: -0.5,
+  },
+
+  // Image Option
   wallpaperImageOption: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
   },
   wallpaperImageIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   wallpaperImageTextBox: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 16,
   },
   wallpaperImageTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 3,
-    letterSpacing: 0.2,
+    marginBottom: 2,
   },
   wallpaperImageSubtitle: {
     fontSize: 13,
-    letterSpacing: 0.1,
+    opacity: 0.7,
   },
   wallpaperChevronBox: {
     width: 32,
@@ -6908,62 +6965,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  // Color Grid
   wallpaperColorsCard: {
-    borderRadius: 16,
+    borderRadius: 24,
     padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  wallpaperColorsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
   },
   wallpaperColorsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 12,
+    justifyContent: 'center',
   },
   wallpaperColorCircle: {
-    width: (width - 32 - 32 - 50) / 6,
+    width: (width - 40 - 24 - 36) / 4, // Approx 4 per row
     aspectRatio: 1,
     borderRadius: 100,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
   wallpaperColorCircleActive: {
-    transform: [{ scale: 1.1 }],
+    transform: [{ scale: 1.15 }],
   },
   wallpaperColorSelected: {
     width: '100%',
     height: '100%',
     borderRadius: 100,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    backgroundColor: 'rgba(0,0,0,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: '#FFFFFF',
   },
+
+  // Footer
   wallpaperInfoBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
     gap: 8,
+    opacity: 0.7,
   },
   wallpaperInfoText: {
     fontSize: 13,
-    letterSpacing: 0.2,
+    textAlign: 'center',
   },
 });
 
