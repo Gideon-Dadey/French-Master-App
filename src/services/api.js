@@ -5,7 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 const getApiUrl = () => {
   // Use production URL by default
   const PRODUCTION_URL = 'https://api.frenchmastergh.com/api';
-  const DEVELOPMENT_URL = 'http://192.168.0.135:5001/api'; // Only for local development
+  const DEVELOPMENT_URL = 'http://192.168.190.80:5001/api'; // Only for local development
 
   if (__DEV__) {
     // In development, use local URL only if explicitly set
@@ -327,6 +327,18 @@ export const sampleVideosAPI = {
   getByCourse: (courseId) => api.get(`/sample-videos/course/${courseId}`),
   assignToCourse: (videoId, courseId) =>
     api.put(`/sample-videos/${videoId}/assign`, { courseId }),
+};
+
+export const aiAPI = {
+  generateContent: (data) => api.post('/ai/generate-content', data),
+  improveContent: (data) => api.post('/ai/improve-content', data),
+  translate: (data) => api.post('/ai/translate', data),
+  evaluatePronunciation: (data) => api.post('/ai/evaluate-pronunciation', data),
+  chat: (data) => api.post('/ai/chat', data),
+};
+
+export const scenariosAPI = {
+  getAll: () => api.get('/scenarios'),
 };
 
 export const notesAPI = {

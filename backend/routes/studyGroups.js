@@ -372,9 +372,20 @@ router.post('/:id/discussions', protect, async (req, res) => {
     const populatedGroup = await StudyGroup.findById(studyGroup._id)
       .populate('discussions.user', 'name avatar');
 
+    const newMessage = populatedGroup.discussions[populatedGroup.discussions.length - 1];
+
+    // Emit real-time update
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.params.id).emit('new_message', {
+        groupId: req.params.id,
+        message: newMessage
+      });
+    }
+
     res.json({
       success: true,
-      data: populatedGroup.discussions[populatedGroup.discussions.length - 1]
+      data: newMessage
     });
   } catch (error) {
     res.status(400).json({

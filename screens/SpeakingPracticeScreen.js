@@ -9,13 +9,17 @@ import {
   Dimensions,
   Platform,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
 import { speakText, stopSpeech } from '../src/utils/textToSpeech';
 import { getThemeColors, themeShadows, themeRadius } from '../src/utils/organicTheme';
+import { aiAPI } from '../src/services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -544,11 +548,18 @@ export default function SpeakingPracticeScreen({ navigation }) {
     }).start();
   }, [progress]);
 
+  const [recording, setRecording] = useState(null);
+  const [recordedUri, setRecordedUri] = useState(null);
+  const [evaluation, setEvaluation] = useState(null);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+
   const startSession = (categoryId) => {
+    // ... same as before but ensure recording is reset
     setSelectedCategory(categoryId);
     setCurrentIndex(0);
     setPracticeAttempts([]);
     setIsRecording(false);
+    setRecordedUri(null);
     setShowTips(false);
     setSessionCompleted(false);
     setTimeElapsed(0);
@@ -571,22 +582,88 @@ export default function SpeakingPracticeScreen({ navigation }) {
     }
   };
 
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    setShowTips(false);
-    Animated.spring(micScaleAnim, { toValue: 1.1, tension: 100, friction: 5, useNativeDriver: true }).start();
+  const handleStartRecording = async () => {
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (permission.status !== 'granted') return;
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(recording);
+      setIsRecording(true);
+      setShowTips(false);
+      Animated.spring(micScaleAnim, { toValue: 1.1, tension: 100, friction: 5, useNativeDriver: true }).start();
+    } catch (err) {
+      console.error('Failed to start recording', err);
+    }
   };
 
-  const handleStopRecording = () => {
+  const handleStopRecording = async () => {
     setIsRecording(false);
     micScaleAnim.setValue(1);
 
-    const attempt = {
-      exerciseId: currentExercise.id,
-      completed: true,
-      timestamp: Date.now(),
-    };
-    setPracticeAttempts([...practiceAttempts, attempt]);
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecordedUri(uri);
+      setRecording(null);
+      setIsEvaluating(true);
+
+      // Convert audio to base64
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: 'base64',
+      });
+
+      // Call evaluation API
+      const response = await aiAPI.evaluatePronunciation({
+        targetText: currentExercise.phrase,
+        audioBase64: base64,
+        mimeType: Platform.OS === 'ios' ? 'audio/mpeg' : 'audio/m4a'
+      });
+
+      let evalData = null;
+      if (response.data.success) {
+        evalData = response.data.data;
+        setEvaluation(evalData);
+
+        // Award points based on score
+        if (evalData.score >= 80) {
+          addPoints(15, 'Excellent Pronunciation!');
+        } else if (evalData.score >= 60) {
+          addPoints(10, 'Good Job!');
+        }
+      }
+
+      const attempt = {
+        exerciseId: currentExercise.id,
+        completed: true,
+        uri: uri,
+        evaluation: evalData,
+        score: evalData?.score || 0,
+        timestamp: Date.now(),
+      };
+      setPracticeAttempts([...practiceAttempts, attempt]);
+    } catch (err) {
+      console.error('Failed to stop/evaluate recording', err);
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
+
+  const handlePlayRecorded = async () => {
+    if (!recordedUri) return;
+    try {
+      const { sound } = await Audio.Sound.createAsync({ uri: recordedUri });
+      await sound.playAsync();
+    } catch (err) {
+      console.error('Failed to play recording', err);
+    }
   };
 
   const handleNext = () => {
@@ -599,6 +676,8 @@ export default function SpeakingPracticeScreen({ navigation }) {
       setCurrentIndex(currentIndex + 1);
       setIsRecording(false);
       setShowTips(false);
+      setEvaluation(null);
+      setRecordedUri(null);
     } else {
       finishSession();
     }
@@ -1042,12 +1121,66 @@ export default function SpeakingPracticeScreen({ navigation }) {
             </Animated.View>
           </View>
 
-          {hasPracticed && (
-            <View style={styles.practiceComplete}>
-              <Ionicons name="checkmark-circle" size={24} color={theme.success} />
-              <Text style={[styles.practiceCompleteText, { color: theme.success }]}>
-                Great job! You practiced this phrase.
+          {isEvaluating && (
+            <View style={styles.evaluatingContainer}>
+              <ActivityIndicator size="small" color={categoryInfo?.color} />
+              <Text style={[styles.evaluatingText, { color: theme.textSecondary }]}>
+                Analyzing your pronunciation...
               </Text>
+            </View>
+          )}
+
+          {evaluation && (
+            <View style={[styles.evaluationResult, { backgroundColor: theme.surfaceAlt }]}>
+              <View style={styles.evaluationHeader}>
+                <View style={[styles.scoreBadge, { backgroundColor: evaluation.score >= 80 ? theme.success : evaluation.score >= 60 ? theme.warning : theme.error }]}>
+                  <Text style={styles.scoreText}>{evaluation.score}</Text>
+                  <Text style={styles.scoreLabel}>Score</Text>
+                </View>
+                <View style={styles.evaluationStats}>
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: theme.text }]}>{evaluation.accuracyScore}%</Text>
+                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Accuracy</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Text style={[styles.statValue, { color: theme.text }]}>{evaluation.fluencyScore}%</Text>
+                    <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Fluency</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.transcriptionBox}>
+                <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>I HEARD:</Text>
+                <Text style={[styles.transcriptionText, { color: theme.text }]}>"{evaluation.transcription}"</Text>
+              </View>
+
+              <View style={styles.feedbackBox}>
+                <View style={styles.sectionLabelRow}>
+                  <Ionicons name="chatbubble-ellipses" size={14} color={theme.textSecondary} />
+                  <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>TUTOR FEEDBACK</Text>
+                </View>
+                <Text style={[styles.feedbackText, { color: theme.text }]}>{evaluation.feedback}</Text>
+              </View>
+            </View>
+          )}
+
+          {hasPracticed && !isEvaluating && (
+            <View style={styles.practiceComplete}>
+              <View style={styles.practiceFeedbackRow}>
+                <Ionicons name="checkmark-circle" size={24} color={theme.success} />
+                <Text style={[styles.practiceCompleteText, { color: theme.success }]}>
+                  Recorded successfully!
+                </Text>
+              </View>
+              {recordedUri && (
+                <TouchableOpacity
+                  style={[styles.playBackBtn, { backgroundColor: theme.surfaceAlt }]}
+                  onPress={handlePlayRecorded}
+                >
+                  <Ionicons name="play-circle" size={20} color={categoryInfo?.color} />
+                  <Text style={[styles.playBackText, { color: categoryInfo?.color }]}>Listen to yourself</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>
@@ -1463,14 +1596,119 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   practiceComplete: {
+    marginTop: 20,
+    alignItems: 'center',
+    gap: 12,
+  },
+  practiceFeedbackRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 16,
+    gap: 10,
   },
   practiceCompleteText: {
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  evaluatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 15,
+    gap: 10,
+  },
+  evaluatingText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  evaluationResult: {
+    marginTop: 20,
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+  },
+  evaluationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 20,
+  },
+  scoreBadge: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scoreText: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '800',
+  },
+  scoreLabel: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  evaluationStats: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  statLabel: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  transcriptionBox: {
+    marginBottom: 15,
+    padding: 12,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 12,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  sectionLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  transcriptionText: {
+    fontSize: 15,
+    fontStyle: 'italic',
+    lineHeight: 20,
+  },
+  feedbackBox: {
+    padding: 12,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 12,
+  },
+  feedbackText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  playBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    gap: 8,
+    marginTop: 10,
+  },
+  playBackText: {
     fontSize: 14,
     fontWeight: '600',
   },

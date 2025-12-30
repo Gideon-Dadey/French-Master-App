@@ -9,7 +9,9 @@ import {
     Platform,
     StatusBar,
     ImageBackground,
-    Alert
+    Alert,
+    TextInput,
+    ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,9 +19,10 @@ import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
 import { speakText, stopSpeech } from '../src/utils/textToSpeech';
 import { themeShadows } from '../src/utils/organicTheme';
+import { aiAPI, scenariosAPI } from '../src/services/api';
 
-// Mock Data for Scenarios
-const SCENARIOS = [
+// Mock Data for Scenarios (Fallback if API fails)
+const DEFAULT_SCENARIOS = [
     {
         id: 'cafe_morning',
         title: 'Morning Coffee',
@@ -161,19 +164,120 @@ const SCENARIOS = [
                 ]
             }
         ]
+    },
+    {
+        id: 'ai_tutor',
+        title: 'Free AI Tutor',
+        category: 'Experimental',
+        difficulty: 'All Levels',
+        location: 'Personal Tutor "Jean"',
+        description: 'Talk about anything with your personal AI French tutor.',
+        icon: 'sparkles',
+        isAi: true,
+        steps: []
     }
 ];
 
 export default function ConversationSimulatorScreen({ navigation }) {
-    const { isDarkMode, organicColors: theme } = useTheme();
+    const { organicColors: theme, isDarkMode } = useTheme();
     const { awardXP } = useGamification();
 
+    const [scenarios, setScenarios] = useState(DEFAULT_SCENARIOS);
+    const [loading, setLoading] = useState(false);
     const [selectedScenario, setSelectedScenario] = useState(null);
     const [currentStepId, setCurrentStepId] = useState(1);
     const [chatHistory, setChatHistory] = useState([]);
     const [isTyping, setIsTyping] = useState(false);
     const [showOptions, setShowOptions] = useState(false);
     const [sessionXP, setSessionXP] = useState(0);
+    const [freeMsg, setFreeMsg] = useState('');
+    const [isSending, setIsSending] = useState(false);
+
+    useEffect(() => {
+        loadScenarios();
+    }, []);
+
+    const loadScenarios = async () => {
+        try {
+            setLoading(true);
+            const response = await scenariosAPI.getAll();
+            if (response.data.success) {
+                setScenarios(response.data.data);
+            }
+        } catch (error) {
+            console.error('Failed to load scenarios:', error);
+            // Fallback is already DEFAULT_SCENARIOS in state init
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Initial message for AI mode
+    useEffect(() => {
+        if (selectedScenario?.isAi && chatHistory.length === 0) {
+            const initialMsg = "Bonjour ! Je suis Jean, votre tuteur de français. De quoi voulez-vous discuter aujourd'hui ?";
+            setChatHistory([{
+                type: 'incoming',
+                speaker: 'Jean',
+                text: initialMsg,
+                translation: 'Hello! I am Jean, your French tutor. What would you like to discuss today?'
+            }]);
+            speakText(initialMsg, 'fr-FR');
+        }
+    }, [selectedScenario]);
+
+    const handleSendFreeMessage = async () => {
+        if (!freeMsg.trim() || isSending) return;
+
+        const userMsg = freeMsg.trim();
+        setFreeMsg('');
+        setIsSending(true);
+
+        // Add user msg
+        setChatHistory(prev => [...prev, { type: 'outgoing', text: userMsg }]);
+
+        try {
+            setIsTyping(true);
+            // Prepare history for API (Gemini format: role/parts)
+            // But our aiService uses a simpler history usually, let's see.
+            // aiService expects history array of objects with role: 'user'|'model' and parts: [{text: '...'}]
+
+            const history = chatHistory.map(msg => ({
+                role: msg.type === 'outgoing' ? 'user' : 'model',
+                parts: [{ text: msg.text }]
+            }));
+
+            const response = await aiAPI.chat({
+                message: userMsg,
+                history: history
+            });
+
+            if (response.data.success) {
+                const aiText = response.data.data;
+                setIsTyping(false);
+                setChatHistory(prev => [...prev, {
+                    type: 'incoming',
+                    speaker: 'Jean',
+                    text: aiText
+                }]);
+                setSessionXP(prev => prev + 10);
+                speakText(aiText, 'fr-FR');
+            }
+        } catch (error) {
+            console.error('AI Simulator Error:', error);
+            const errorMsg = error.response?.data?.message || error.message || 'Failed to get AI response';
+            console.error('Error details:', errorMsg);
+            setChatHistory(prev => [...prev, {
+                type: 'incoming',
+                speaker: 'Jean',
+                text: "Désolé, j'ai eu un petit problème technique."
+            }]);
+        } finally {
+            setIsSending(false);
+            setIsTyping(false);
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+        }
+    };
 
     const scrollViewRef = useRef();
 
@@ -321,8 +425,31 @@ export default function ConversationSimulatorScreen({ navigation }) {
                     <View style={{ height: 20 }} />
                 </ScrollView>
 
-                {/* Options Area */}
-                {showOptions && (
+                {/* Options Area or AI Input */}
+                {selectedScenario.isAi ? (
+                    <View style={[styles.aiInputContainer, { backgroundColor: theme.surface, borderTopColor: theme.border, paddingBottom: Platform.OS === 'ios' ? 30 : 15 }]}>
+                        <TextInput
+                            style={[styles.aiInput, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', color: theme.text }]}
+                            placeholder="Écrivez en français..."
+                            placeholderTextColor={theme.textSecondary}
+                            value={freeMsg}
+                            onChangeText={setFreeMsg}
+                            onSubmitEditing={handleSendFreeMessage}
+                            returnKeyType="send"
+                        />
+                        <TouchableOpacity
+                            style={[styles.aiSendBtn, { backgroundColor: theme.primary }]}
+                            onPress={handleSendFreeMessage}
+                            disabled={isSending}
+                        >
+                            {isSending ? (
+                                <ActivityIndicator size="small" color="#FFF" />
+                            ) : (
+                                <Ionicons name="send" size={20} color="#FFF" />
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                ) : showOptions && (
                     <View style={[styles.optionsContainer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
                         <Text style={[styles.optionsTitle, { color: theme.textSecondary }]}>Choose your reply:</Text>
                         {selectedScenario.steps.find(s => s.id === currentStepId)?.options.map((opt, i) => (
@@ -375,7 +502,12 @@ export default function ConversationSimulatorScreen({ navigation }) {
 
                 <View style={styles.listContent}>
                     <Text style={[styles.sectionTitle, { color: theme.text }]}>Available Scenarios</Text>
-                    {SCENARIOS.map((scenario, index) => {
+
+                    {loading && (
+                        <ActivityIndicator size="large" color={theme.primary} style={{ marginVertical: 20 }} />
+                    )}
+
+                    {scenarios.map((scenario, index) => {
                         // Semantic colors based on difficulty
                         let diffColor = theme.secondary;
                         let diffIcon = 'fitness';
@@ -670,5 +802,26 @@ const styles = StyleSheet.create({
     },
     optionText: {
         fontSize: 16,
-    }
+    },
+    aiInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderTopWidth: 1,
+        gap: 10,
+    },
+    aiInput: {
+        flex: 1,
+        height: 44,
+        borderRadius: 22,
+        paddingHorizontal: 16,
+        fontSize: 16,
+    },
+    aiSendBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });

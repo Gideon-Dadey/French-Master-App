@@ -27,38 +27,40 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import { Audio } from 'expo-av';
+import { BlurView } from 'expo-blur';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
-import { spacing, fontSize } from '../src/utils/responsive';
+import { spacing, fontSize, colors as themeColors } from '../src/utils/responsive';
 import { studyGroupsAPI, uploadsAPI } from '../src/services/api';
 import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import ErrorMessage from '../src/components/ErrorMessage';
+import socketService from '../src/services/socketService';
+
+// Extracted Components
+import MessageBubble from '../src/components/studyGroups/MessageBubble';
+import ChatInput from '../src/components/studyGroups/ChatInput';
+import AttachmentMenu from '../src/components/studyGroups/AttachmentMenu';
+import RecordingOverlay from '../src/components/studyGroups/RecordingOverlay';
+
+// Chat Utilities
+import {
+  formatTimeAgo,
+  getFileIcon,
+  formatDuration,
+  MESSAGE_TYPES,
+  REACTIONS,
+  detectURL
+} from '../src/utils/chatUtils';
 
 const { width, height } = Dimensions.get('window');
-
-const MESSAGE_TYPES = {
-  TEXT: 'text',
-  IMAGE: 'image',
-  VOICE: 'voice',
-  DOCUMENT: 'document',
-  LINK: 'link',
-};
-
-const REACTIONS = [
-  { emoji: '👍', name: 'like' },
-  { emoji: '❤️', name: 'love' },
-  { emoji: '🔥', name: 'fire' },
-  { emoji: '😂', name: 'laugh' },
-  { emoji: '😮', name: 'wow' },
-  { emoji: '🎉', name: 'celebrate' },
-];
+// ... rest of constants ...
 
 const EMOJI_CATEGORIES = [
   {
@@ -118,48 +120,6 @@ const EMOJI_CATEGORIES = [
   },
 ];
 
-const formatTimeAgo = (date) => {
-  const now = new Date();
-  const messageDate = new Date(date);
-  const diffInSeconds = Math.floor((now - messageDate) / 1000);
-
-  if (diffInSeconds < 60) return 'Just now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-
-  return messageDate.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: messageDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-  });
-};
-
-const detectURL = (text) => {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return text.match(urlRegex);
-};
-
-const getFileIcon = (filename) => {
-  const ext = filename?.split('.').pop()?.toLowerCase();
-  switch (ext) {
-    case 'pdf': return { icon: 'document-text', color: '#E53935' };
-    case 'doc':
-    case 'docx': return { icon: 'document', color: '#1976D2' };
-    case 'xls':
-    case 'xlsx': return { icon: 'grid', color: '#2E7D32' };
-    case 'ppt':
-    case 'pptx': return { icon: 'easel', color: '#F57C00' };
-    case 'zip':
-    case 'rar': return { icon: 'archive', color: '#795548' };
-    case 'mp3':
-    case 'wav': return { icon: 'musical-notes', color: '#9C27B0' };
-    case 'mp4':
-    case 'mov': return { icon: 'videocam', color: '#00BCD4' };
-    default: return { icon: 'document-attach', color: '#607D8B' };
-  }
-};
-
 export default function StudyGroupDetailScreen({ route, navigation }) {
   const { groupId, initialTab = 'discussions' } = route.params;
   const { user, isAuthenticated } = useAuth();
@@ -203,7 +163,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const recordingAnimRef = useRef(new Animated.Value(1)).current;
 
   const [isInCall, setIsInCall] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(null); // { callerName, type, callerId, groupId }
   const [callType, setCallType] = useState(null);
+  const [callStatus, setCallStatus] = useState('Connecting...');
   const [callDuration, setCallDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(false);
@@ -221,6 +183,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
   // Keyboard state for Android proper handling
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [typingUsers, setTypingUsers] = useState([]);
 
   // Keyboard event listeners for proper input visibility
   useEffect(() => {
@@ -306,6 +269,84 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const attachmentMenuAnim = useRef(new Animated.Value(0)).current;
   const reactionPickerAnim = useRef(new Animated.Value(0)).current;
   const discussionsScrollRef = useRef(null);
+
+  // Typing indicator logic
+  useEffect(() => {
+    if (discussionMessage.trim()) {
+      socketService.emitTyping(groupId, user?.name || 'Someone');
+
+      const timeout = setTimeout(() => {
+        // We could emit a "stopped typing" if needed, 
+        // but the current server implementation just waits for a timeout or next message
+      }, 3000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [discussionMessage]);
+
+  // Socket setup
+  useEffect(() => {
+    socketService.connect();
+    socketService.joinGroup(groupId);
+
+    socketService.onNewMessage(({ message }) => {
+      setGroup(prevGroup => {
+        if (!prevGroup) return prevGroup;
+        // Avoid duplicate messages if the sender already added it via REST response
+        const messageExists = prevGroup.discussions.some(d => d._id === message._id);
+        if (messageExists) return prevGroup;
+
+        return {
+          ...prevGroup,
+          discussions: [...prevGroup.discussions, message]
+        };
+      });
+
+      // Scroll to bottom
+      setTimeout(() => {
+        discussionsScrollRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    socketService.onUserTyping(({ userName }) => {
+      if (userName === user?.name) return; // Don't show our own typing
+
+      setTypingUsers(prev => {
+        if (prev.includes(userName)) return prev;
+        return [...prev, userName];
+      });
+
+      // Clear typing indicator after 3 seconds
+      setTimeout(() => {
+        setTypingUsers(prev => prev.filter(u => u !== userName));
+      }, 3000);
+    });
+
+    socketService.onIncomingCall(({ callerName, type, callerId, groupId: callGroupId }) => {
+      if (callGroupId === groupId && !isInCall) {
+        setIncomingCall({ callerName, type, callerId, callGroupId });
+      }
+    });
+
+    socketService.onCallAccepted(({ accepterName }) => {
+      console.log(`Call accepted by ${accepterName}`);
+      setCallStatus('In Call');
+    });
+
+    socketService.onCallRejected(() => {
+      Alert.alert('Call Rejected', 'The call was declined.');
+      endCall();
+    });
+
+    return () => {
+      socketService.leaveGroup(groupId);
+      socketService.removeListener('new_message');
+      socketService.removeListener('user_typing');
+      socketService.removeListener('incoming_call');
+      socketService.removeListener('call_accepted');
+      socketService.removeListener('call_rejected');
+    };
+  }, [groupId]);
 
   useEffect(() => {
     loadGroup();
@@ -793,6 +834,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       }
     }
 
+    // Emit call to group
+    socketService.emitCall(groupId, user?.name || 'Someone', type);
+
     setCallType(type);
     setIsInCall(true);
     setCallDuration(0);
@@ -822,6 +866,26 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     setIsMuted(false);
     setIsSpeakerOn(false);
     setIsVideoOn(true);
+
+    // Notify others if we are the one ending it
+    socketService.socket?.emit('end_call', { groupId });
+  };
+
+  const acceptCall = () => {
+    if (incomingCall) {
+      socketService.emitAcceptCall(incomingCall.callerId, user?.name || 'Someone');
+      setCallType(incomingCall.type);
+      setIsInCall(true);
+      setIncomingCall(null);
+      setShowVoiceCall(true);
+    }
+  };
+
+  const rejectCall = () => {
+    if (incomingCall) {
+      socketService.emitRejectCall(incomingCall.callerId);
+      setIncomingCall(null);
+    }
   };
 
   const toggleMute = () => {
@@ -1466,6 +1530,42 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       Alert.alert('Error', 'Failed to save image');
     }
   };
+
+  const renderIncomingCallModal = () => (
+    <Modal visible={!!incomingCall} transparent animationType="slide">
+      <View style={styles.incomingCallOverlay}>
+        <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
+        <View style={styles.incomingCallContent}>
+          <LinearGradient
+            colors={['#667eea', '#764ba2']}
+            style={styles.incomingCallAvatar}
+          >
+            <Ionicons name="call" size={40} color="#FFF" />
+          </LinearGradient>
+
+          <Text style={styles.incomingCallTitle}>Incoming {incomingCall?.type} Call</Text>
+          <Text style={styles.incomingCallName}>{incomingCall?.callerName}</Text>
+          <Text style={styles.incomingCallGroup}>{group?.name}</Text>
+
+          <View style={styles.incomingCallActions}>
+            <TouchableOpacity
+              style={[styles.callActionBtn, { backgroundColor: '#FF3B30' }]}
+              onPress={rejectCall}
+            >
+              <Ionicons name="close" size={30} color="#FFF" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.callActionBtn, { backgroundColor: '#4CD964' }]}
+              onPress={acceptCall}
+            >
+              <Ionicons name="checkmark" size={30} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
   const renderVoiceCallModal = () => (
     <Modal visible={showVoiceCall} animationType="fade" statusBarTranslucent>
@@ -2463,502 +2563,35 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </TouchableOpacity>
                 </View>
               ) : group.discussions?.length > 0 ? (
-                group.discussions.map((discussion, index) => {
-                  const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
-                  const isOwnMessage = discussionUser?._id === user?._id;
-                  const reactions = messageReactions[discussion._id?.toString()] || [];
-
-                  let messageData;
-                  try {
-                    messageData = JSON.parse(discussion.message);
-                  } catch {
-                    messageData = { message: discussion.message, type: MESSAGE_TYPES.TEXT };
-                  }
-
-                  return (
-                    <View key={index} style={styles.messageWrapper}>
-                      {/* Date Separator */}
-                      {index === 0 || new Date(discussion.createdAt).toDateString() !==
-                        new Date(group.discussions[index - 1]?.createdAt).toDateString() ? (
-                        <View style={styles.whatsappDateSeparator}>
-                          <View style={[styles.whatsappDateBubble, { backgroundColor: isDarkMode ? '#182229' : '#FFFFFF' }]}>
-                            <Text style={[styles.whatsappDateText, { color: isDarkMode ? '#8696A0' : '#54656F' }]}>
-                              {new Date(discussion.createdAt).toLocaleDateString('en-US', {
-                                weekday: 'long',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </Text>
-                          </View>
-                        </View>
-                      ) : null}
-
-                      <Swipeable
-                        ref={ref => {
-                          if (ref) {
-                            swipeableRefs.current.set(discussion._id, ref);
-                          } else {
-                            swipeableRefs.current.delete(discussion._id);
-                          }
-                        }}
-                        renderLeftActions={(progress, dragX) => {
-                          const translateX = dragX.interpolate({
-                            inputRange: [0, 60, 80, 100],
-                            outputRange: [-40, 0, 8, 16],
-                            extrapolate: 'clamp',
-                          });
-                          const scale = dragX.interpolate({
-                            inputRange: [0, 40, 80],
-                            outputRange: [0.3, 0.8, 1],
-                            extrapolate: 'clamp',
-                          });
-                          const opacity = dragX.interpolate({
-                            inputRange: [0, 30, 60],
-                            outputRange: [0, 0.5, 1],
-                            extrapolate: 'clamp',
-                          });
-                          const rotate = dragX.interpolate({
-                            inputRange: [0, 80],
-                            outputRange: ['-45deg', '0deg'],
-                            extrapolate: 'clamp',
-                          });
-                          return (
-                            <Animated.View
-                              style={[
-                                styles.swipeReplyContainer,
-                                {
-                                  opacity,
-                                  transform: [{ translateX }, { scale }],
-                                }
-                              ]}
-                            >
-                              <View style={[
-                                styles.swipeReplyIcon,
-                                { backgroundColor: isDarkMode ? 'rgba(99, 102, 241, 0.15)' : 'rgba(99, 102, 241, 0.1)' }
-                              ]}>
-                                <Animated.View style={{ transform: [{ rotate }] }}>
-                                  <Ionicons name="arrow-undo" size={22} color={premiumColors.primary.main} />
-                                </Animated.View>
-                              </View>
-                            </Animated.View>
-                          );
-                        }}
-                        renderRightActions={(progress, dragX) => {
-
-                          if (!isOwnMessage && !isModerator()) return null;
-
-                          const translateX = dragX.interpolate({
-                            inputRange: [-100, -80, -60, 0],
-                            outputRange: [0, 8, 20, 80],
-                            extrapolate: 'clamp',
-                          });
-                          const scale = dragX.interpolate({
-                            inputRange: [-80, -40, 0],
-                            outputRange: [1, 0.8, 0.3],
-                            extrapolate: 'clamp',
-                          });
-                          const opacity = dragX.interpolate({
-                            inputRange: [-60, -30, 0],
-                            outputRange: [1, 0.5, 0],
-                            extrapolate: 'clamp',
-                          });
-                          return (
-                            <TouchableOpacity
-                              onPress={() => {
-                                const ref = swipeableRefs.current.get(discussion._id);
-                                if (ref) ref.close();
-                                handleSwipeDelete(discussion, isOwnMessage);
-                              }}
-                              activeOpacity={0.8}
-                            >
-                              <Animated.View
-                                style={[
-                                  styles.swipeDeleteContainer,
-                                  {
-                                    opacity,
-                                    transform: [{ translateX }, { scale }],
-                                  }
-                                ]}
-                              >
-                                <View style={styles.swipeDeleteIcon}>
-                                  <Ionicons name="trash" size={22} color="#FFFFFF" />
-                                </View>
-                              </Animated.View>
-                            </TouchableOpacity>
-                          );
-                        }}
-                        onSwipeableLeftOpen={() => {
-                          setReplyingTo({ ...discussion, user: discussionUser });
-                          const ref = swipeableRefs.current.get(discussion._id);
-                          if (ref) ref.close();
-                        }}
-                        overshootLeft={false}
-                        overshootRight={false}
-                        friction={1.5}
-                        leftThreshold={50}
-                        rightThreshold={50}
-                      >
-                        <TapGestureHandler
-                          numberOfTaps={2}
-                          onHandlerStateChange={({ nativeEvent }) => {
-                            if (nativeEvent.state === State.ACTIVE) {
-                              handleDoubleTapLike(index, { emoji: '❤️', name: 'love' });
-                            }
-                          }}
-                        >
-                          <View style={styles.messageWrapper}>
-
-                            {doubleTapHeartIndex === index && (
-                              <Animated.View
-                                style={[
-                                  styles.doubleTapHeart,
-                                  {
-                                    opacity: doubleTapHeartAnim,
-                                    transform: [
-                                      {
-                                        scale: doubleTapHeartAnim.interpolate({
-                                          inputRange: [0, 0.5, 1],
-                                          outputRange: [0, 1.3, 1],
-                                        })
-                                      },
-                                    ],
-                                  },
-                                ]}
-                              >
-                                <Text style={styles.doubleTapHeartEmoji}>❤️</Text>
-                              </Animated.View>
-                            )}
-                            <TouchableOpacity
-                              activeOpacity={0.8}
-                              onLongPress={() => openMessageActions({ ...discussion, content: discussion.message }, index, isOwnMessage)}
-                              style={[
-                                styles.messageContainer,
-                                isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer,
-                              ]}
-                            >
-
-                              {!isOwnMessage && (
-                                discussionUser?.avatar ? (
-                                  <Image
-                                    source={{ uri: discussionUser.avatar }}
-                                    style={styles.messageAvatar}
-                                  />
-                                ) : (
-                                  <View style={[styles.messageAvatarPlaceholder, { backgroundColor: isDarkMode ? '#2A3942' : '#DFE5E7' }]}>
-                                    <Ionicons name="person" size={16} color={isDarkMode ? '#8696A0' : '#667781'} />
-                                  </View>
-                                )
-                              )}
-
-                              <View style={[
-                                styles.messageBubble,
-                                isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble,
-                                messageData.type === MESSAGE_TYPES.IMAGE && styles.imageBubble,
-                                messageData.type === MESSAGE_TYPES.IMAGE && (isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble),
-                                // Telegram-style background colors
-                                messageData.type !== MESSAGE_TYPES.IMAGE && {
-                                  backgroundColor: isOwnMessage
-                                    ? (isDarkMode ? '#2B5278' : '#EEFFDE')
-                                    : (isDarkMode ? '#182533' : '#FFFFFF')
-                                },
-                              ]}>
-                                {/* Telegram-style Gradient Overlay for Own Messages */}
-                                {isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
-                                  <LinearGradient
-                                    colors={isDarkMode
-                                      ? ['rgba(43, 82, 120, 0)', 'rgba(43, 82, 120, 0.3)']
-                                      : ['rgba(200, 255, 200, 0)', 'rgba(180, 240, 180, 0.2)']
-                                    }
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={StyleSheet.absoluteFill}
-                                  />
-                                )}
-
-                                {/* Telegram-style Author Name with Random Colors */}
-                                {!isOwnMessage && messageData.type !== MESSAGE_TYPES.IMAGE && (
-                                  <Text style={[styles.messageAuthor, {
-                                    color: [
-                                      '#E17076', '#7BC862', '#65AADD', '#EE7AE6',
-                                      '#FAA05A', '#6EC9CB', '#E47FBD', '#7B88FF'
-                                    ][Math.abs((discussionUser?.name?.charCodeAt(0) || 0) % 8)]
-                                  }]}>
-                                    {discussionUser?.name || 'Member'}
-                                  </Text>
-                                )}
-
-                                {messageData.replyTo && (
-                                  <View style={[styles.replyPreview, {
-                                    backgroundColor: isOwnMessage
-                                      ? (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,128,0,0.08)')
-                                      : (isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'),
-                                    borderLeftColor: '#6EB545',
-                                  }]}>
-                                    <Text style={[styles.replyAuthor, { color: '#6EB545' }]}>
-                                      {messageData.replyTo.userName}
-                                    </Text>
-                                    <Text style={[styles.replyText, { color: isOwnMessage ? (isDarkMode ? 'rgba(255,255,255,0.7)' : '#2E7D32') : colors.secondaryText }]} numberOfLines={1}>
-                                      {messageData.replyTo.message}
-                                    </Text>
-                                  </View>
-                                )}
-
-                                {messageData.type === MESSAGE_TYPES.IMAGE && messageData.attachment?.uri && (
-                                  <TouchableOpacity
-                                    onPress={() => openImagePreview(messageData.attachment.uri)}
-                                    style={[
-                                      styles.imageAttachment,
-                                      isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble
-                                    ]}
-                                    activeOpacity={0.95}
-                                  >
-                                    <Image
-                                      source={{ uri: messageData.attachment.uri }}
-                                      style={[
-                                        styles.attachedImage,
-                                        isOwnMessage ? styles.ownImageBubble : styles.otherImageBubble
-                                      ]}
-                                      resizeMode="cover"
-                                    />
-                                    <View style={styles.telegramImageTimePill}>
-                                      <Text style={styles.telegramImageTimeText}>{formatTimeAgo(discussion.createdAt)}</Text>
-                                      {isOwnMessage && (
-                                        <Ionicons
-                                          name="checkmark-done"
-                                          size={13}
-                                          color="#FFFFFF"
-                                          style={{ marginLeft: 4 }}
-                                        />
-                                      )}
-                                    </View>
-                                  </TouchableOpacity>
-                                )}
-
-                                {messageData.type === MESSAGE_TYPES.DOCUMENT && messageData.attachment && (
-                                  <TouchableOpacity
-                                    activeOpacity={0.8}
-                                    onPress={() => downloadDocument(messageData.attachment.uri, messageData.attachment.name)}
-                                    style={styles.whatsappDocContainer}
-                                  >
-                                    {/* Document Card */}
-                                    <View style={[
-                                      styles.whatsappDocCard,
-                                      {
-                                        backgroundColor: isDarkMode
-                                          ? (isOwnMessage ? 'rgba(0,0,0,0.15)' : '#1D2A32')
-                                          : (isOwnMessage ? 'rgba(0,0,0,0.08)' : '#F0F2F5')
-                                      }
-                                    ]}>
-                                      {/* File Icon with colored background */}
-                                      <View style={[
-                                        styles.whatsappDocIconWrapper,
-                                        { backgroundColor: getFileIcon(messageData.attachment.name).color }
-                                      ]}>
-                                        <Ionicons
-                                          name={getFileIcon(messageData.attachment.name).icon}
-                                          size={28}
-                                          color="#FFFFFF"
-                                        />
-                                        {/* File extension badge */}
-                                        <View style={styles.whatsappDocExtBadge}>
-                                          <Text style={styles.whatsappDocExtText}>
-                                            {messageData.attachment.name?.split('.').pop()?.toUpperCase() || 'FILE'}
-                                          </Text>
-                                        </View>
-                                      </View>
-
-                                      {/* File Info */}
-                                      <View style={styles.whatsappDocInfo}>
-                                        <Text
-                                          style={[styles.whatsappDocName, { color: isOwnMessage ? '#FFFFFF' : (isDarkMode ? '#E9EDEF' : colors.text) }]}
-                                          numberOfLines={2}
-                                        >
-                                          {messageData.attachment.name}
-                                        </Text>
-                                        <View style={styles.whatsappDocMeta}>
-                                          <Text style={styles.whatsappDocSize}>
-                                            {messageData.attachment.size
-                                              ? messageData.attachment.size > 1024 * 1024
-                                                ? `${(messageData.attachment.size / (1024 * 1024)).toFixed(1)} MB`
-                                                : `${(messageData.attachment.size / 1024).toFixed(1)} KB`
-                                              : 'Document'
-                                            }
-                                          </Text>
-                                          <Text style={styles.whatsappDocDot}>•</Text>
-                                          <Text style={styles.whatsappDocType}>
-                                            {messageData.attachment.name?.split('.').pop()?.toUpperCase() || 'FILE'}
-                                          </Text>
-                                        </View>
-                                      </View>
-
-                                      {/* Download Icon */}
-                                      <View style={styles.whatsappDocDownload}>
-                                        <Ionicons name="download-outline" size={22} color="#8696A0" />
-                                      </View>
-                                    </View>
-
-                                    {/* Caption if any */}
-                                    {messageData.message && (
-                                      <Text style={[styles.whatsappDocCaption, { color: isOwnMessage ? '#FFFFFF' : (isDarkMode ? '#E9EDEF' : colors.text) }]}>
-                                        {messageData.message}
-                                      </Text>
-                                    )}
-                                  </TouchableOpacity>
-                                )}
-
-                                {messageData.type === MESSAGE_TYPES.VOICE && messageData.attachment && (
-                                  <TouchableOpacity
-                                    style={[styles.voiceMessage, {
-                                      backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background
-                                    }]}
-                                    onPress={() => playVoiceMessage(messageData.attachment.uri, discussion._id)}
-                                    activeOpacity={0.8}
-                                  >
-                                    <View style={[
-                                      styles.voicePlayButton,
-                                      { backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.25)' : premiumColors.primary.main + '20' }
-                                    ]}>
-                                      <Ionicons
-                                        name={playingVoice === discussion._id ? "pause" : "play"}
-                                        size={20}
-                                        color={isOwnMessage ? '#FFFFFF' : premiumColors.primary.main}
-                                      />
-                                    </View>
-                                    <View style={styles.voiceWaveform}>
-                                      {[...Array(20)].map((_, i) => (
-                                        <Animated.View
-                                          key={i}
-                                          style={[
-                                            styles.voiceBar,
-                                            {
-                                              height: Math.random() * 16 + 6,
-                                              backgroundColor: isOwnMessage ?
-                                                (i / 20 <= (voiceProgress[discussion._id] || 0) ? '#FFFFFF' : 'rgba(255,255,255,0.4)') :
-                                                (i / 20 <= (voiceProgress[discussion._id] || 0) ? premiumColors.primary.main : colors.border),
-                                            }
-                                          ]}
-                                        />
-                                      ))}
-                                    </View>
-                                    <Text style={[styles.voiceDuration, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : (isDarkMode ? '#E9EDEF' : colors.text) }]}>
-                                      {formatDuration(messageData.attachment.duration || 0)}
-                                    </Text>
-                                  </TouchableOpacity>
-                                )}
-
-                                {messageData.type === MESSAGE_TYPES.LINK && messageData.links && (
-                                  <TouchableOpacity
-                                    style={[styles.linkPreview, {
-                                      backgroundColor: isOwnMessage ? 'rgba(255,255,255,0.15)' : colors.background
-                                    }]}
-                                    onPress={() => Linking.openURL(messageData.links[0])}
-                                  >
-                                    <View style={[styles.linkIcon, { backgroundColor: premiumColors.accent.sky + '20' }]}>
-                                      <Ionicons name="link" size={20} color={premiumColors.accent.sky} />
-                                    </View>
-                                    <View style={styles.linkInfo}>
-                                      <Text style={[styles.linkUrl, { color: isOwnMessage ? '#FFFFFF' : premiumColors.accent.sky }]} numberOfLines={1}>
-                                        {messageData.links[0]}
-                                      </Text>
-                                      <Text style={[styles.linkHint, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : colors.secondaryText }]}>
-                                        Tap to open
-                                      </Text>
-                                    </View>
-                                    <Ionicons name="open-outline" size={18} color={isOwnMessage ? '#FFFFFF' : colors.secondaryText} />
-                                  </TouchableOpacity>
-                                )}
-
-                                {messageData.message && messageData.type !== MESSAGE_TYPES.VOICE && (
-                                  <Text style={[
-                                    styles.messageText,
-                                    {
-                                      color: isDarkMode
-                                        ? (isOwnMessage ? '#E9EDEF' : '#E9EDEF')
-                                        : (isOwnMessage ? '#111B21' : '#111B21')
-                                    }
-                                  ]}>
-                                    {messageData.message}
-                                  </Text>
-                                )}
-
-                                {(messageData.type !== MESSAGE_TYPES.IMAGE || messageData.message) && (
-                                  <View style={styles.messageFooter}>
-                                    <Text style={[styles.messageTime, {
-                                      color: isDarkMode
-                                        ? (isOwnMessage ? 'rgba(255,255,255,0.6)' : '#8696A0')
-                                        : (isOwnMessage ? '#667781' : '#667781')
-                                    }]}>
-                                      {formatTimeAgo(discussion.createdAt)}
-                                    </Text>
-                                    {isOwnMessage && (
-                                      <Ionicons name="checkmark-done" size={14} color="#53BDEB" style={{ marginLeft: 4 }} />
-                                    )}
-                                  </View>
-                                )}
-                              </View>
-
-                            </TouchableOpacity>
-                          </View>
-                        </TapGestureHandler>
-                      </Swipeable>
-
-                      {reactions.length > 0 && (
-                        <View style={[
-                          styles.reactionsContainer,
-                          isOwnMessage ? styles.ownReactions : styles.otherReactions,
-                        ]}>
-                          {reactions.map((reaction, rIndex) => (
-                            <View
-                              key={rIndex}
-                              style={[
-                                styles.reactionBubble,
-                                {
-                                  backgroundColor: isDarkMode ? 'rgba(30, 30, 40, 0.95)' : 'rgba(255, 255, 255, 0.98)',
-                                  borderColor: isDarkMode ? 'rgba(99, 102, 241, 0.3)' : 'rgba(99, 102, 241, 0.15)',
-                                  shadowColor: isDarkMode ? '#6366F1' : '#000',
-                                }
-                              ]}
-                            >
-                              <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-
-                      {showReactionPicker === index && (
-                        <Animated.View
-                          style={[
-                            styles.reactionPicker,
-                            {
-                              backgroundColor: colors.card,
-                              borderColor: colors.border,
-                              opacity: reactionPickerAnim,
-                              transform: [{ scale: reactionPickerAnim }],
-                            },
-                            premiumShadows.lg,
-                            isOwnMessage ? styles.ownReactionPicker : styles.otherReactionPicker,
-                          ]}
-                        >
-                          {REACTIONS.map((reaction) => (
-                            <TouchableOpacity
-                              key={reaction.name}
-                              style={styles.reactionOption}
-                              onPress={() => handleReaction(index, reaction)}
-                            >
-                              <Text style={styles.reactionOptionEmoji}>{reaction.emoji}</Text>
-                            </TouchableOpacity>
-                          ))}
-                          <TouchableOpacity
-                            style={styles.reactionCloseButton}
-                            onPress={() => setShowReactionPicker(null)}
-                          >
-                            <Ionicons name="close" size={16} color={colors.secondaryText} />
-                          </TouchableOpacity>
-                        </Animated.View>
-                      )}
-                    </View>
-                  );
-                })
+                group.discussions.map((discussion, index) => (
+                  <MessageBubble
+                    key={discussion._id || index}
+                    discussion={discussion}
+                    index={index}
+                    user={user}
+                    isDarkMode={isDarkMode}
+                    colors={colors}
+                    messageReactions={messageReactions}
+                    isModerator={isModerator()}
+                    onSwipeDelete={handleSwipeDelete}
+                    onDoubleTapLike={handleDoubleTapLike}
+                    onLongPress={openMessageActions}
+                    onImagePreview={openImagePreview}
+                    onDownloadDocument={downloadDocument}
+                    onReply={setReplyingTo}
+                    onPlayVoice={playVoiceMessage}
+                    playingVoice={playingVoice}
+                    voiceProgress={voiceProgress}
+                    showReactionPicker={showReactionPicker}
+                    reactionPickerAnim={reactionPickerAnim}
+                    handleReaction={handleReaction}
+                    setShowReactionPicker={setShowReactionPicker}
+                    doubleTapHeartIndex={doubleTapHeartIndex}
+                    doubleTapHeartAnim={doubleTapHeartAnim}
+                    swipeableRefs={swipeableRefs}
+                    groupDiscussions={group.discussions}
+                  />
+                ))
               ) : (
                 <View style={styles.whatsappEmptyChat}>
                   <View style={styles.whatsappEmptyIcon}>
@@ -2976,288 +2609,58 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
             {isMember() ? (
               <>
-                {replyingTo && (
-                  <View style={[
-                    styles.proAttachmentContainer,
-                    { backgroundColor: isDarkMode ? '#1E2C3A' : '#FFFFFF' }
-                  ]}>
-                    <View style={[styles.proAttachmentThumb, { backgroundColor: 'rgba(16, 185, 129, 0.1)', justifyContent: 'center', alignItems: 'center' }]}>
-                      <Ionicons name="arrow-undo" size={24} color="#10B981" />
-                    </View>
-
-                    <View style={styles.proAttachmentInfo}>
-                      <Text style={[styles.proAttachmentTitle, { color: '#10B981', fontSize: 13 }]}>
-                        Replying to {replyingTo.user?.name || 'Member'}
-                      </Text>
-                      <Text style={[styles.proAttachmentSubtitle, { color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }]} numberOfLines={1}>
-                        {(() => {
-                          try {
-                            const parsed = JSON.parse(replyingTo.message);
-                            return parsed.message || replyingTo.message;
-                          } catch {
-                            return replyingTo.message;
-                          }
-                        })()}
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity onPress={cancelReply} style={styles.proAttachmentCloseBtn}>
-                      <Ionicons name="close" size={18} color="#FFFFFF" />
-                    </TouchableOpacity>
+                {typingUsers.length > 0 && (
+                  <View style={styles.typingIndicatorWrapper}>
+                    <Text style={[styles.typingIndicatorText, { color: isDarkMode ? '#8696A0' : '#667781' }]}>
+                      {typingUsers.length === 1
+                        ? `${typingUsers[0]} is typing...`
+                        : `${typingUsers.length} people are typing...`}
+                    </Text>
                   </View>
                 )}
-
-                {/* Professional Selected Image/Document Preview */}
-                {(selectedImage || selectedDocument) && (
-                  <View style={[
-                    styles.proAttachmentContainer,
-                    { backgroundColor: isDarkMode ? '#1E2C3A' : '#FFFFFF' }
-                  ]}>
-                    {selectedImage ? (
-                      <Image source={{ uri: selectedImage.uri }} style={styles.proAttachmentThumb} resizeMode="cover" />
-                    ) : (
-                      <View style={[styles.proAttachmentThumb, { backgroundColor: 'rgba(51, 144, 236, 0.1)', justifyContent: 'center', alignItems: 'center' }]}>
-                        <Ionicons name="document-text" size={24} color={premiumColors.primary.main} />
-                      </View>
-                    )}
-
-                    <View style={styles.proAttachmentInfo}>
-                      <Text style={[styles.proAttachmentTitle, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>
-                        {selectedImage ? 'Photo attached' : 'Document attached'}
-                      </Text>
-                      <Text style={[styles.proAttachmentSubtitle, { color: isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)' }]} numberOfLines={1}>
-                        {selectedImage ? 'Ready to send' : (selectedDocument.name || 'Ready to send')}
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity onPress={cancelAttachment} style={styles.proAttachmentCloseBtn}>
-                      <Ionicons name="close" size={18} color="#FFFFFF" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {/* Telegram-style Input Container */}
-                <View style={[
-                  styles.telegramInputContainer,
-                  {
-                    backgroundColor: 'transparent',
-                    paddingBottom: keyboardVisible ? 4 : Math.max(insets.bottom, 8),
-                  }
-                ]}>
-                  {/* Main Input Pill */}
-                  <View style={[
-                    styles.telegramInputPill,
-                    {
-                      backgroundColor: isDarkMode ? '#17212B' : '#FFFFFF',
-                      borderWidth: 1,
-                      borderColor: isDarkMode ? '#2B3945' : '#E8E8E8',
-                    }
-                  ]}>
-                    {/* Emoji Button - Left Side */}
-                    <TouchableOpacity
-                      style={styles.telegramEmojiBtn}
-                      onPress={() => setShowEmojiPicker(!showEmojiPicker)}
-                    >
-                      <Ionicons
-                        name={showEmojiPicker ? "happy" : "happy-outline"}
-                        size={26}
-                        color={isDarkMode ? '#6C7883' : '#8E8E93'}
-                      />
-                    </TouchableOpacity>
-
-                    {/* Text Input */}
-                    <TextInput
-                      style={[styles.telegramInput, { color: isDarkMode ? '#F5F5F5' : '#000000' }]}
-                      placeholder="Message"
-                      placeholderTextColor={isDarkMode ? '#6C7883' : '#8E8E93'}
-                      value={discussionMessage}
-                      onChangeText={setDiscussionMessage}
-                      multiline
-                      maxLength={1000}
-                      selectionColor="#3390EC"
-                    />
-
-                    {/* Attachment Button */}
-                    <TouchableOpacity
-                      style={styles.telegramAttachBtn}
-                      onPress={() => setShowAttachmentMenu(!showAttachmentMenu)}
-                    >
-                      <Ionicons
-                        name="attach"
-                        size={26}
-                        color={isDarkMode ? '#6C7883' : '#8E8E93'}
-                        style={{ transform: [{ rotate: '-45deg' }] }}
-                      />
-                    </TouchableOpacity>
-
-                    {/* Mic/Send Button - Inside Pill */}
-                    {discussionMessage.trim() || selectedImage || selectedDocument ? (
-                      <TouchableOpacity
-                        style={styles.telegramSendBtn}
-                        onPress={handleSendMessage}
-                        disabled={sendingMessage}
-                      >
-                        {sendingMessage ? (
-                          <ActivityIndicator size="small" color="#3390EC" />
-                        ) : (
-                          <Ionicons name="send" size={24} color="#3390EC" />
-                        )}
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.telegramMicBtn}
-                        onPress={isRecording ? sendVoiceMessage : startRecording}
-                        onLongPress={startRecording}
-                      >
-                        <Animated.View style={{ transform: [{ scale: isRecording ? recordingAnimRef : 1 }] }}>
-                          <Ionicons
-                            name={isRecording ? "stop" : "mic-outline"}
-                            size={26}
-                            color={isRecording ? '#FF3B30' : (isDarkMode ? '#6C7883' : '#8E8E93')}
-                          />
-                        </Animated.View>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
+                <ChatInput
+                  discussionMessage={discussionMessage}
+                  setDiscussionMessage={setDiscussionMessage}
+                  replyingTo={replyingTo}
+                  cancelReply={cancelReply}
+                  selectedImage={selectedImage}
+                  selectedDocument={selectedDocument}
+                  cancelAttachment={cancelAttachment}
+                  isDarkMode={isDarkMode}
+                  colors={colors}
+                  insets={insets}
+                  keyboardVisible={keyboardVisible}
+                  showEmojiPicker={showEmojiPicker}
+                  setShowEmojiPicker={setShowEmojiPicker}
+                  showAttachmentMenu={showAttachmentMenu}
+                  setShowAttachmentMenu={setShowAttachmentMenu}
+                  handleSendMessage={handleSendMessage}
+                  sendingMessage={sendingMessage}
+                  isRecording={isRecording}
+                  startRecording={startRecording}
+                  sendVoiceMessage={sendVoiceMessage}
+                  recordingAnimRef={recordingAnimRef}
+                />
 
                 {isRecording && (
-                  <View style={styles.recordingOverlay}>
-                    <LinearGradient
-                      colors={['rgba(255,59,48,0.95)', 'rgba(255,45,85,0.95)']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.recordingOverlayGradient}
-                    >
-
-                      <TouchableOpacity
-                        style={styles.recordingCancelBtn}
-                        onPress={cancelRecording}
-                      >
-                        <Ionicons name="trash-outline" size={22} color="#FFFFFF" />
-                      </TouchableOpacity>
-
-                      <View style={styles.recordingCenter}>
-
-                        <View style={styles.recordingWaveform}>
-                          {[...Array(12)].map((_, i) => (
-                            <Animated.View
-                              key={i}
-                              style={[
-                                styles.recordingWaveBar,
-                                {
-                                  height: Math.sin((i + recordingDuration) * 0.5) * 12 + 8,
-                                  opacity: 0.6 + Math.sin((i + recordingDuration * 2) * 0.3) * 0.4,
-                                }
-                              ]}
-                            />
-                          ))}
-                        </View>
-
-                        <View style={styles.recordingTimerContainer}>
-                          <Animated.View style={[
-                            styles.recordingPulseDot,
-                            { transform: [{ scale: recordingAnimRef }] }
-                          ]} />
-                          <Text style={styles.recordingTimer}>
-                            {formatDuration(recordingDuration)}
-                          </Text>
-                        </View>
-
-                        <Text style={styles.recordingHint}>
-                          Tap send to finish
-                        </Text>
-                      </View>
-
-                      <TouchableOpacity
-                        style={styles.recordingSendBtn}
-                        onPress={sendVoiceMessage}
-                      >
-                        <View style={styles.recordingSendBtnInner}>
-                          <Ionicons name="arrow-up" size={22} color="#FF3B30" />
-                        </View>
-                      </TouchableOpacity>
-                    </LinearGradient>
-                  </View>
+                  <RecordingOverlay
+                    recordingDuration={recordingDuration}
+                    cancelRecording={cancelRecording}
+                    sendVoiceMessage={sendVoiceMessage}
+                    recordingAnimRef={recordingAnimRef}
+                  />
                 )}
 
                 {showAttachmentMenu && (
-                  <Animated.View
-                    style={[
-                      styles.attachmentMenu,
-                      {
-                        backgroundColor: colors.card,
-                        borderTopColor: colors.border,
-                        opacity: attachmentMenuAnim,
-                        transform: [{
-                          translateY: attachmentMenuAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [50, 0],
-                          }),
-                        }],
-                      },
-                    ]}
-                  >
-                    <TouchableOpacity style={styles.attachmentOption} onPress={pickImage}>
-                      <LinearGradient
-                        colors={['#9C27B0', '#7B1FA2']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="images" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Gallery</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.attachmentOption} onPress={takePhoto}>
-                      <LinearGradient
-                        colors={['#E91E63', '#C2185B']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="camera" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Camera</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.attachmentOption} onPress={pickDocument}>
-                      <LinearGradient
-                        colors={['#3F51B5', '#303F9F']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="document" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Document</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.attachmentOption}>
-                      <LinearGradient
-                        colors={['#00BCD4', '#0097A7']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="link" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Link</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.attachmentOption} onPress={() => { setShowAttachmentMenu(false); startRecording(); }}>
-                      <LinearGradient
-                        colors={['#FF5722', '#E64A19']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="mic" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Voice</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.attachmentOption}>
-                      <LinearGradient
-                        colors={['#4CAF50', '#388E3C']}
-                        style={styles.attachmentIconGradient}
-                      >
-                        <Ionicons name="location" size={24} color="#FFFFFF" />
-                      </LinearGradient>
-                      <Text style={[styles.attachmentLabel, { color: colors.text }]}>Location</Text>
-                    </TouchableOpacity>
-                  </Animated.View>
+                  <AttachmentMenu
+                    colors={colors}
+                    attachmentMenuAnim={attachmentMenuAnim}
+                    pickImage={pickImage}
+                    takePhoto={takePhoto}
+                    pickDocument={pickDocument}
+                    setShowAttachmentMenu={setShowAttachmentMenu}
+                    startRecording={startRecording}
+                  />
                 )}
 
                 {showEmojiPicker && (
@@ -3700,13 +3103,14 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         </Modal>
 
+        {renderIncomingCallModal()}
         {renderVoiceCallModal()}
         {renderGroupOptionsModal()}
         {renderEditGroupModal()}
         {renderGroupInfoModal()}
         {renderBackgroundPickerModal()}
-      </View>
-    </GestureHandlerRootView>
+      </View >
+    </GestureHandlerRootView >
   );
 }
 
@@ -3813,6 +3217,67 @@ function EmojiPicker({ colors, onSelectEmoji, onClose }) {
 }
 
 const styles = StyleSheet.create({
+  incomingCallOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  incomingCallContent: {
+    width: '80%',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 30,
+    padding: 30,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  incomingCallAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  incomingCallTitle: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  incomingCallName: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 5,
+  },
+  incomingCallGroup: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 16,
+    marginBottom: 30,
+  },
+  incomingCallActions: {
+    flexDirection: 'row',
+    gap: 40,
+  },
+  callActionBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...premiumShadows.md,
+  },
+  typingIndicatorWrapper: {
+    paddingHorizontal: 20,
+    paddingVertical: 5,
+  },
+  typingIndicatorText: {
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
   container: {
     flex: 1,
   },

@@ -1,0 +1,39 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying 192.168.190.80:5001...
+* Established connection to 192.168.190.80 (192.168.190.80 port 5001) from 192.168.190.80 port 6776 
+* using HTTP/1.x
+> GET /api/wishlist HTTP/1.1
+> Host: 192.168.190.80:5001
+> User-Agent: curl/8.16.0
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 401 Unauthorized
+< Cross-Origin-Opener-Policy: same-origin
+< Cross-Origin-Resource-Policy: same-origin
+< Origin-Agent-Cluster: ?1
+< Referrer-Policy: no-referrer
+< Strict-Transport-Security: max-age=15552000; includeSubDomains
+< X-Content-Type-Options: nosniff
+< X-DNS-Prefetch-Control: off
+< X-Download-Options: noopen
+< X-Frame-Options: SAMEORIGIN
+< X-Permitted-Cross-Domain-Policies: none
+< X-XSS-Protection: 0
+< X-RateLimit-Limit: 100
+< X-RateLimit-Remaining: 98
+< Date: Tue, 30 Dec 2025 15:54:48 GMT
+< X-RateLimit-Reset: 1767110918
+< Access-Control-Allow-Origin: *
+< Access-Control-Allow-Credentials: true
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 65
+< ETag: W/"41-TJq3LYiwj1On+7IZ17oLU5tM1Zs"
+< Vary: Accept-Encoding
+< Connection: keep-alive
+< Keep-Alive: timeout=5
+< 
+{ [65 bytes data]
+100    65  100    65    0     0  31988      0 --:--:-- --:--:-- --:--:-- 65000{"success":false,"message":"Not authorized to access this route"}
+* Connection #0 to host 192.168.190.80:5001 left intact
