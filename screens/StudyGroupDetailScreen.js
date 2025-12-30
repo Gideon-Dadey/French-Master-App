@@ -213,6 +213,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const callPulseAnim = useRef(new Animated.Value(1)).current;
 
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const swipeableRefs = useRef(new Map());
 
   // Chat background customization
   const [showBackgroundPicker, setShowBackgroundPicker] = useState(false);
@@ -2464,6 +2465,13 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                       ) : null}
 
                       <Swipeable
+                        ref={ref => {
+                          if (ref) {
+                            swipeableRefs.current.set(discussion._id, ref);
+                          } else {
+                            swipeableRefs.current.delete(discussion._id);
+                          }
+                        }}
                         renderLeftActions={(progress, dragX) => {
                           const translateX = dragX.interpolate({
                             inputRange: [0, 60, 80, 100],
@@ -2527,7 +2535,11 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                           });
                           return (
                             <TouchableOpacity
-                              onPress={() => handleSwipeDelete(discussion, isOwnMessage)}
+                              onPress={() => {
+                                const ref = swipeableRefs.current.get(discussion._id);
+                                if (ref) ref.close();
+                                handleSwipeDelete(discussion, isOwnMessage);
+                              }}
                               activeOpacity={0.8}
                             >
                               <Animated.View
@@ -2546,7 +2558,11 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                             </TouchableOpacity>
                           );
                         }}
-                        onSwipeableLeftOpen={() => setReplyingTo({ ...discussion, user: discussionUser })}
+                        onSwipeableLeftOpen={() => {
+                          setReplyingTo({ ...discussion, user: discussionUser });
+                          const ref = swipeableRefs.current.get(discussion._id);
+                          if (ref) ref.close();
+                        }}
                         overshootLeft={false}
                         overshootRight={false}
                         friction={1.5}
@@ -2940,22 +2956,19 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
             {isMember() ? (
               <>
                 {replyingTo && (
-                  <View style={[styles.replyingToContainer, {
-                    backgroundColor: isDarkMode ? 'rgba(30, 30, 40, 0.98)' : 'rgba(255, 255, 255, 0.98)',
-                    borderTopColor: isDarkMode ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
-                  }]}>
-                    <View style={[styles.replyingToBar, {
-                      backgroundColor: '#10B981',
-                      shadowColor: '#10B981',
-                      shadowOffset: { width: 0, height: 0 },
-                      shadowOpacity: 0.5,
-                      shadowRadius: 4,
-                    }]} />
-                    <View style={styles.replyingToContent}>
-                      <Text style={[styles.replyingToLabel, { color: '#10B981' }]}>
+                  <View style={[
+                    styles.proAttachmentContainer,
+                    { backgroundColor: isDarkMode ? '#1E2C3A' : '#FFFFFF' }
+                  ]}>
+                    <View style={[styles.proAttachmentThumb, { backgroundColor: 'rgba(16, 185, 129, 0.1)', justifyContent: 'center', alignItems: 'center' }]}>
+                      <Ionicons name="arrow-undo" size={24} color="#10B981" />
+                    </View>
+
+                    <View style={styles.proAttachmentInfo}>
+                      <Text style={[styles.proAttachmentTitle, { color: '#10B981', fontSize: 13 }]}>
                         Replying to {replyingTo.user?.name || 'Member'}
                       </Text>
-                      <Text style={[styles.replyingToText, { color: colors.secondaryText }]} numberOfLines={1}>
+                      <Text style={[styles.proAttachmentSubtitle, { color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }]} numberOfLines={1}>
                         {(() => {
                           try {
                             const parsed = JSON.parse(replyingTo.message);
@@ -2966,13 +2979,9 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                         })()}
                       </Text>
                     </View>
-                    <TouchableOpacity
-                      onPress={cancelReply}
-                      style={[styles.cancelReplyButton, {
-                        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
-                      }]}
-                    >
-                      <Ionicons name="close" size={18} color={colors.secondaryText} />
+
+                    <TouchableOpacity onPress={cancelReply} style={styles.proAttachmentCloseBtn}>
+                      <Ionicons name="close" size={18} color="#FFFFFF" />
                     </TouchableOpacity>
                   </View>
                 )}
