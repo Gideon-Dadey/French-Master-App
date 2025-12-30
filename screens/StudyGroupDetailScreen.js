@@ -197,6 +197,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [playingVoice, setPlayingVoice] = useState(null);
   const [voiceProgress, setVoiceProgress] = useState({});
+  const [isVideoSwapped, setIsVideoSwapped] = useState(false);
   const [soundObject, setSoundObject] = useState(null);
   const recordingTimerRef = useRef(null);
   const recordingAnimRef = useRef(new Animated.Value(1)).current;
@@ -3353,35 +3354,59 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
             {callType === 'video' ? (
               <>
                 {/* Full Screen Camera Background */}
-                <View style={styles.telegramVideoBackground}>
-                  {cameraPermission?.granted ? (
-                    <CameraView
-                      style={styles.telegramFullCamera}
-                      facing={isFrontCamera ? 'front' : 'back'}
-                    />
-                  ) : (
-                    <LinearGradient
-                      colors={['#1A1A2E', '#16213E', '#0F3460']}
-                      style={styles.telegramNoCameraGradient}
-                    >
-                      <View style={styles.telegramNoCameraIcon}>
-                        <Ionicons name="videocam-off" size={60} color="rgba(255,255,255,0.3)" />
+                <LinearGradient
+                  colors={['#1A1A2E', '#16213E', '#0F3460']}
+                  style={styles.telegramVideoBackground}
+                >
+                  {!isVideoSwapped ? (
+                    cameraPermission?.granted ? (
+                      <CameraView
+                        style={styles.telegramFullCamera}
+                        facing={isFrontCamera ? 'front' : 'back'}
+                      />
+                    ) : (
+                      <View style={styles.telegramNoCameraGradient}>
+                        <View style={styles.telegramNoCameraIcon}>
+                          <Ionicons name="videocam-off" size={60} color="rgba(255,255,255,0.3)" />
+                        </View>
+                        <Text style={styles.telegramNoCameraText}>Camera access required</Text>
                       </View>
-                      <Text style={styles.telegramNoCameraText}>Camera access required</Text>
-                    </LinearGradient>
+                    )
+                  ) : (
+                    isVideoOn && cameraPermission?.granted ? (
+                      <CameraView style={styles.telegramFullCamera} facing={isFrontCamera ? 'front' : 'back'} />
+                    ) : (
+                      <View style={[styles.telegramNoCameraGradient, { backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' }]}>
+                        <Ionicons name="person" size={60} color="rgba(255,255,255,0.3)" />
+                      </View>
+                    )
                   )}
-                </View>
+                </LinearGradient>
 
                 {/* Floating Self View - Draggable */}
-                <View style={styles.telegramSelfView}>
-                  {isVideoOn && cameraPermission?.granted ? (
-                    <CameraView style={styles.telegramSelfCamera} facing={isFrontCamera ? 'front' : 'back'} />
+                <TouchableOpacity
+                  style={styles.telegramSelfView}
+                  onPress={() => setIsVideoSwapped(prev => !prev)}
+                  activeOpacity={0.9}
+                >
+                  {isVideoSwapped ? (
+                    cameraPermission?.granted ? (
+                      <CameraView style={styles.telegramSelfCamera} facing={isFrontCamera ? 'front' : 'back'} />
+                    ) : (
+                      <View style={[styles.telegramSelfPlaceholder, { backgroundColor: '#1A1A2E' }]}>
+                        <Ionicons name="videocam-off" size={24} color="rgba(255,255,255,0.5)" />
+                      </View>
+                    )
                   ) : (
-                    <View style={styles.telegramSelfPlaceholder}>
-                      <Ionicons name="person" size={32} color="rgba(255,255,255,0.5)" />
-                    </View>
+                    isVideoOn && cameraPermission?.granted ? (
+                      <CameraView style={styles.telegramSelfCamera} facing={isFrontCamera ? 'front' : 'back'} />
+                    ) : (
+                      <View style={styles.telegramSelfPlaceholder}>
+                        <Ionicons name="person" size={32} color="rgba(255,255,255,0.5)" />
+                      </View>
+                    )
                   )}
-                </View>
+                </TouchableOpacity>
 
                 {/* Top Info Bar */}
                 <View style={styles.telegramCallTopBar}>
@@ -3458,10 +3483,12 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
                 <View style={styles.telegramVoiceControls}>
                   <TouchableOpacity
-                    style={[styles.telegramVoiceControlBtn, isMuted && styles.telegramControlBtnActive]}
+                    style={styles.telegramVoiceControlBtn}
                     onPress={toggleMute}
                   >
-                    <Ionicons name={isMuted ? "mic-off" : "mic"} size={28} color="#FFFFFF" />
+                    <View style={[styles.telegramVoiceBtnCircle, isMuted && styles.telegramVoiceBtnActive]}>
+                      <Ionicons name={isMuted ? "mic-off" : "mic"} size={28} color={isMuted ? "#000000" : "#FFFFFF"} />
+                    </View>
                     <Text style={styles.telegramVoiceControlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
                   </TouchableOpacity>
 
@@ -3470,10 +3497,12 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.telegramVoiceControlBtn, isSpeakerOn && styles.telegramControlBtnActive]}
+                    style={styles.telegramVoiceControlBtn}
                     onPress={toggleSpeaker}
                   >
-                    <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={28} color="#FFFFFF" />
+                    <View style={[styles.telegramVoiceBtnCircle, isSpeakerOn && styles.telegramVoiceBtnActive]}>
+                      <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={28} color={isSpeakerOn ? "#000000" : "#FFFFFF"} />
+                    </View>
                     <Text style={styles.telegramVoiceControlLabel}>Speaker</Text>
                   </TouchableOpacity>
                 </View>
@@ -4995,6 +5024,133 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 10,
   },
+
+  // Telegram Video Call Styles
+  telegramCallContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  telegramVideoBackground: {
+    flex: 1,
+  },
+  telegramFullCamera: {
+    flex: 1,
+  },
+  telegramNoCameraGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  telegramNoCameraIcon: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  telegramNoCameraText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  telegramSelfView: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: 16,
+    width: 120, // Mobile portrait width
+    height: 160,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 20, // Ensure it's above other elements
+  },
+  telegramSelfCamera: {
+    flex: 1,
+  },
+  telegramSelfPlaceholder: {
+    flex: 1,
+    backgroundColor: '#1A1A2E',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  telegramCallTopBar: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    zIndex: 10, // Below self view
+  },
+  telegramCallInfo: {
+    flex: 1,
+    marginRight: 140, // Space for self view
+  },
+  telegramCallGroupName: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  telegramCallStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  telegramCallLiveIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CD964',
+    marginRight: 6,
+  },
+  telegramCallDuration: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  telegramCallParticipantCount: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    marginLeft: 6,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  telegramCallControls: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    paddingTop: 20,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  telegramControlsMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
   // Telegram Voice Call Styles
   telegramVoiceCallBg: {
     flex: 1,
@@ -5048,6 +5204,18 @@ const styles = StyleSheet.create({
   },
   telegramVoiceControlBtn: {
     alignItems: 'center',
+    width: 80,
+  },
+  telegramVoiceBtnCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  telegramVoiceBtnActive: {
+    backgroundColor: '#FFFFFF',
   },
   telegramVoiceControlLabel: {
     color: '#FFFFFF',
