@@ -14,9 +14,10 @@ This guide addresses the following issues that occurred after mobile installatio
 **Problem:** The app was hardcoded to use local IP `192.168.0.135:5001` which doesn't work on mobile phones outside your local network.
 
 **Solution Applied:**
-- Updated `/src/services/api.js` to use production URL by default
-- For development, set `USE_LOCAL = false` in the API configuration
-- Now uses `https://api.frenchmastergh.com/api` for all production builds
+- Updated `/src/services/api.js` with intelligent URL switching
+- Development (`__DEV__` mode) uses local IP for Expo Go testing
+- Production builds use ngrok public URL (`https://eb7e54bcf266.ngrok-free.app/api`)
+- Anyone can access the app from anywhere with the ngrok URL
 
 ### 2. **Network Error Handling**
 **Problem:** API failures weren't properly caught and displayed to users, leaving them confused.
@@ -74,10 +75,10 @@ This guide addresses the following issues that occurred after mobile installatio
 
 ### Mobile App Setup
 
-1. **Ensure production API is configured:**
-   - Open `/src/services/api.js`
-   - Verify that `USE_LOCAL = false` (line ~14)
-   - The app will use `https://api.frenchmastergh.com/api`
+1. **API Configuration (Automatic):**
+   - Development (Expo Go): Uses local IP automatically
+   - Production APK: Uses ngrok public URL automatically
+   - No manual configuration needed - API URL is determined by `__DEV__` flag
 
 2. **Build and install on mobile:**
    ```bash
@@ -275,5 +276,5 @@ If issues persist:
 6. Clear app cache and reinstall
 
 ---
-**Last Updated:** December 27, 2025
-**Status:** ✅ All critical issues resolved and tested
+**Last Updated:** December 30, 2025
+**Status:** ✅ All critical issues resolved - Android APK tested with ngrok

@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2025-12-30 📱
+
+### 📱 Android APK Network & Deployment Update
+
+#### Fixed
+
+- **Android APK Network Connectivity**
+  - Fixed mobile app failing to connect to backend on installed APK
+  - Resolved "Connection Lost" errors on LearnScreen
+  - Login, Signup, Courses, and Group Study now work on Android APK
+
+- **API Configuration for Mobile**
+  - Integrated ngrok for public URL access (`eb7e54bcf266.ngrok-free.app`)
+  - Dynamic API URL switching between development and production
+  - Enhanced network error detection and user feedback
+
+- **Production Build Improvements**
+  - Production builds now use ngrok public URL for universal access
+  - Development builds (Expo Go) use local IP for faster testing
+  - Better error messages for network connection failures
+
+#### Changed
+
+- **API URL Strategy**
+  - `__DEV__` mode uses local IP (`192.168.190.80:5001`)
+  - Production builds use ngrok public URL for internet access
+  - Removed hardcoded localhost references for Android
+
+#### Technical Details
+
+- Updated `/src/services/api.js` with intelligent URL selection
+- Backend server accessible via ngrok tunnel
+- EAS build profile configured for Android preview builds
+
+---
+
 ## [2.0.0] - 2025-12-26 🎨
 
 ### 🎨 Major UI/UX Redesign & Free Courses Update

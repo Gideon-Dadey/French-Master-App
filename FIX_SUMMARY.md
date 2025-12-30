@@ -74,12 +74,14 @@ if (Platform.OS === 'android') {
   return 'http://192.168.0.135:5001/api'; // ❌ Doesn't work on mobile
 }
 
-// AFTER (Fixed - uses production URL):
-const USE_LOCAL = false; // Set to true ONLY for local development
-if (USE_LOCAL) {
-  // Local development paths...
+// AFTER (Fixed - intelligent URL selection):
+const NGROK_URL = 'https://eb7e54bcf266.ngrok-free.app/api';
+const LOCAL_TEST_URL = 'http://192.168.190.80:5001/api';
+
+if (__DEV__) {
+  return LOCAL_TEST_URL; // Development (Expo Go)
 }
-return 'https://api.frenchmastergh.com/api'; // ✅ Works everywhere
+return NGROK_URL; // ✅ Production APK - accessible from anywhere!
 ```
 
 ### 2. **Better Error Handling Pattern**
@@ -227,8 +229,9 @@ Should show:
 - ✅ `PORT=5001` - Server port
 
 **Frontend (in code):**
-- ✅ `USE_LOCAL = false` - Uses production URL
-- ✅ Production URL: `https://api.frenchmastergh.com/api`
+- ✅ `__DEV__` automatically selects correct URL
+- ✅ Development: Local IP (`192.168.190.80:5001`)
+- ✅ Production APK: ngrok URL (`eb7e54bcf266.ngrok-free.app/api`)
 
 ---
 
@@ -302,5 +305,5 @@ Should show:
 ---
 
 **Status:** ✅ All issues fixed and tested  
-**Date:** December 27, 2025  
-**Tested On:** Multiple scenarios with error handling  
+**Date:** December 30, 2025  
+**Tested On:** Android APK with ngrok public URL, Expo Go with local IP  

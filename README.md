@@ -158,10 +158,16 @@ CLOUDINARY_API_SECRET=your-api-secret
 STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
 ```
 
-Update `src/services/api.js` with your IP:
+Update `src/services/api.js` with your configuration:
 ```javascript
-// Get your IP: ipconfig (Windows) or ifconfig (Mac/Linux)
-const API_URL = 'http://YOUR_IP_ADDRESS:5001/api';
+// For development (Expo Go) - local IP is used automatically
+const LOCAL_TEST_URL = 'http://YOUR_IP_ADDRESS:5001/api';
+
+// For production APK - ngrok or production URL
+const NGROK_URL = 'https://your-ngrok-url.ngrok-free.app/api';
+const PRODUCTION_URL = 'https://api.frenchmastergh.com/api';
+
+// URL is selected automatically based on __DEV__ flag
 ```
 
 ---
@@ -563,13 +569,18 @@ This checks:
 
 ### Recent Fixes (December 2025)
 
-**Fixed Issues:**
+**v2.1.0 - December 30, 2025:**
+- ❌ Android APK network issues → ✅ ngrok public URL integration
+- ❌ Connection lost on LearnScreen → ✅ Smart API URL selection
+- ❌ Login failing on APK → ✅ Production builds use public URL
+
+**v2.0.0 - December 26, 2025:**
 - ❌ Login failing → ✅ Improved error handling
 - ❌ Connection lost errors → ✅ Production URL configured
 - ❌ Courses not showing → ✅ Promise.allSettled() implementation
 - ❌ Study groups empty → ✅ Better error messages
 
-See detailed changes in: **[FIX_SUMMARY.md](./FIX_SUMMARY.md)**
+See detailed changes in: **[CHANGELOG.md](./CHANGELOG.md)** and **[FIX_SUMMARY.md](./FIX_SUMMARY.md)**
 
 ---
 
