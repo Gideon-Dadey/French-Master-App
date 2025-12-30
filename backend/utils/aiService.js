@@ -18,7 +18,7 @@ const aiService = {
             }
 
             const model = ai.getGenerativeModel({
-                model: "gemini-1.5-flash-latest",
+                model: "gemini-flash-latest",
                 systemInstruction: systemInstruction
             });
 
@@ -39,7 +39,7 @@ const aiService = {
             }
 
             const model = ai.getGenerativeModel({
-                model: "gemini-1.5-flash-latest",
+                model: "gemini-flash-latest",
                 systemInstruction: "You are a friendly French tutor named 'Jean'. Help the student learn French by engaging in conversation and correcting their mistakes politely."
             });
 
@@ -82,7 +82,7 @@ const aiService = {
                 throw new Error("GEMINI_API_KEY is not configured on the server.");
             }
 
-            const model = ai.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+            const model = ai.getGenerativeModel({ model: "gemini-flash-latest" });
 
             const prompt = `
         Evaluate the pronunciation of this French phrase: "${targetText}".

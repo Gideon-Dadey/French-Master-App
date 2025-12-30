@@ -189,9 +189,9 @@ export default function LearnerHomeScreen({ navigation }) {
                             colors={['transparent', 'rgba(0,0,0,0.8)']}
                             style={styles.heroGradient}
                         >
-                            <Text style={styles.heroSubtitle}>NEW EXPERIENCE</Text>
-                            <Text style={styles.heroTitle}>Immersion Mode</Text>
-                            <Text style={styles.heroDescription}>Step into real-world French conversations.</Text>
+                            <Text style={styles.heroSubtitle}>NEW • FREE AI TUTOR</Text>
+                            <Text style={styles.heroTitle}>Chat with Jean</Text>
+                            <Text style={styles.heroDescription}>Your personal AI French tutor is ready to chat about anything.</Text>
                         </LinearGradient>
                     </TouchableOpacity>
 
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     },
     // Hero Card
     heroCard: {
-        marginHorizontal: 10,
+        marginHorizontal: 22,
         height: 420,
         borderRadius: 20, // Apple style large radius
         overflow: 'hidden',
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
         marginBottom: 32,
     },
     focusCard: {
-        marginHorizontal: 10,
+        marginHorizontal: 22,
         padding: 20,
         borderRadius: 20,
         flexDirection: 'row',

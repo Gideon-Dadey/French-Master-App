@@ -24,6 +24,17 @@ import { aiAPI, scenariosAPI } from '../src/services/api';
 // Mock Data for Scenarios (Fallback if API fails)
 const DEFAULT_SCENARIOS = [
     {
+        id: 'ai_tutor',
+        title: 'Free AI Tutor',
+        category: 'Experimental',
+        difficulty: 'All Levels',
+        location: 'Personal Tutor "Jean"',
+        description: 'Talk about anything with your personal AI French tutor.',
+        icon: 'sparkles',
+        isAi: true,
+        steps: []
+    },
+    {
         id: 'cafe_morning',
         title: 'Morning Coffee',
         category: 'Daily Life',
@@ -165,17 +176,7 @@ const DEFAULT_SCENARIOS = [
             }
         ]
     },
-    {
-        id: 'ai_tutor',
-        title: 'Free AI Tutor',
-        category: 'Experimental',
-        difficulty: 'All Levels',
-        location: 'Personal Tutor "Jean"',
-        description: 'Talk about anything with your personal AI French tutor.',
-        icon: 'sparkles',
-        isAi: true,
-        steps: []
-    }
+
 ];
 
 export default function ConversationSimulatorScreen({ navigation }) {
@@ -393,8 +394,15 @@ export default function ConversationSimulatorScreen({ navigation }) {
                             ]}
                         >
                             {msg.type === 'incoming' && (
-                                <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
-                                    <Text style={styles.avatarText}>{msg.speaker[0]}</Text>
+                                <View style={[styles.avatar, { backgroundColor: theme.primary, overflow: 'hidden' }]}>
+                                    {msg.speaker === 'Jean' ? (
+                                        <ImageBackground
+                                            source={require('../assets/jean_ai_tutor.png')}
+                                            style={{ width: '100%', height: '100%' }}
+                                        />
+                                    ) : (
+                                        <Text style={styles.avatarText}>{msg.speaker[0]}</Text>
+                                    )}
                                 </View>
                             )}
                             <View style={[
@@ -402,14 +410,23 @@ export default function ConversationSimulatorScreen({ navigation }) {
                                 themeShadows.sm,
                                 msg.type === 'outgoing'
                                     ? { backgroundColor: theme.primary, borderBottomRightRadius: 2 }
-                                    : { backgroundColor: theme.surface, borderBottomLeftRadius: 2 }
+                                    : {
+                                        backgroundColor: isDarkMode ? '#1E1E1E' : '#F0F0F0', // Darker grey for dark mode, Light grey for light mode (better contrast than white)
+                                        borderBottomLeftRadius: 2,
+                                        borderWidth: 0, // Remove border for cleaner look
+                                    }
                             ]}>
                                 <Text style={[
                                     styles.bubbleText,
-                                    msg.type === 'outgoing' ? { color: '#FFF' } : { color: theme.text }
-                                ]}>{msg.text}</Text>
+                                    msg.type === 'outgoing'
+                                        ? { color: '#FFFFFF' }
+                                        : { color: isDarkMode ? '#FFFFFF' : '#000000' }
+                                ]}>{msg.text.replace(/\*\*/g, '').replace(/\*/g, '')}</Text>
                                 {msg.type === 'incoming' && (
-                                    <Text style={[styles.translationText, { color: theme.textSecondary }]}>{msg.translation}</Text>
+                                    <Text style={[
+                                        styles.translationText,
+                                        { color: isDarkMode ? '#AAAAAA' : '#666666' }
+                                    ]}>{msg.translation}</Text>
                                 )}
                             </View>
                         </Animated.View>
@@ -427,11 +444,17 @@ export default function ConversationSimulatorScreen({ navigation }) {
 
                 {/* Options Area or AI Input */}
                 {selectedScenario.isAi ? (
-                    <View style={[styles.aiInputContainer, { backgroundColor: theme.surface, borderTopColor: theme.border, paddingBottom: Platform.OS === 'ios' ? 30 : 15 }]}>
+                    <View style={[styles.aiInputContainer, { backgroundColor: theme.surface, borderTopColor: theme.border, paddingBottom: Platform.OS === 'ios' ? 30 : 40 }]}>
                         <TextInput
-                            style={[styles.aiInput, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', color: theme.text }]}
+                            style={[
+                                styles.aiInput,
+                                {
+                                    backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7',
+                                    color: isDarkMode ? '#FFFFFF' : '#000000'
+                                }
+                            ]}
                             placeholder="Écrivez en français..."
-                            placeholderTextColor={theme.textSecondary}
+                            placeholderTextColor={isDarkMode ? '#8E8E93' : '#8E8E93'}
                             value={freeMsg}
                             onChangeText={setFreeMsg}
                             onSubmitEditing={handleSendFreeMessage}
@@ -472,36 +495,19 @@ export default function ConversationSimulatorScreen({ navigation }) {
         <View style={[styles.container, { backgroundColor: theme.background }]}>
             <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={theme.background} />
             <Animated.ScrollView style={[styles.scrollView, { opacity: fadeAnim }]}>
-                <View style={[styles.hero, themeShadows.lg]}>
-                    <LinearGradient
-                        colors={theme.heroGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.heroGradient}
+                {/* Apple-style Large Header */}
+                <View style={{ paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingHorizontal: 20, paddingBottom: 10 }}>
+                    <TouchableOpacity
+                        style={{ marginBottom: 15, width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' }}
+                        onPress={() => navigation.goBack()}
                     >
-                        {/* Decorative Circles */}
-                        <View style={styles.heroDecor1} />
-                        <View style={styles.heroDecor2} />
-                        <View style={styles.heroDecor3} />
-
-                        <TouchableOpacity style={styles.backAbsBtn} onPress={() => navigation.goBack()}>
-                            <Ionicons name="arrow-back" size={24} color="#FFF" />
-                        </TouchableOpacity>
-
-                        <View style={styles.heroContent}>
-                            <View style={styles.heroIconCircle}>
-                                <Ionicons name="headset" size={32} color={theme.primary} />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.heroTitle}>Immersion Mode</Text>
-                                <Text style={styles.heroDesc}>Practice real-world conversations in simulated environments.</Text>
-                            </View>
-                        </View>
-                    </LinearGradient>
+                        <Ionicons name="arrow-back" size={28} color={theme.text} />
+                    </TouchableOpacity>
+                    <Text style={{ fontSize: 34, fontWeight: '800', color: theme.text, letterSpacing: -0.5 }}>AI Studio</Text>
+                    <Text style={{ fontSize: 17, color: theme.textSecondary, marginTop: 4, letterSpacing: -0.2 }}>Master fluency with simulated conversations.</Text>
                 </View>
 
-                <View style={styles.listContent}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Available Scenarios</Text>
+                <View style={[styles.listContent, { paddingTop: 10 }]}>
 
                     {loading && (
                         <ActivityIndicator size="large" color={theme.primary} style={{ marginVertical: 20 }} />
@@ -510,41 +516,97 @@ export default function ConversationSimulatorScreen({ navigation }) {
                     {scenarios.map((scenario, index) => {
                         // Semantic colors based on difficulty
                         let diffColor = theme.secondary;
-                        let diffIcon = 'fitness';
-                        if (scenario.difficulty === 'Beginner') { diffColor = theme.success; diffIcon = 'leaf'; }
-                        if (scenario.difficulty === 'Intermediate') { diffColor = theme.warning; diffIcon = 'trending-up'; }
-                        if (scenario.difficulty === 'Advanced') { diffColor = theme.error; diffIcon = 'flame'; }
+                        if (scenario.difficulty === 'Beginner') diffColor = theme.success;
+                        if (scenario.difficulty === 'Intermediate') diffColor = theme.warning;
+                        if (scenario.difficulty === 'Advanced') diffColor = theme.error;
 
+                        if (scenario.isAi) {
+                            return (
+                                <View key={scenario.id} style={{ marginBottom: 30 }}>
+                                    <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textSecondary, textTransform: 'uppercase', marginBottom: 10, marginLeft: 4 }}>Featured</Text>
+                                    <TouchableOpacity
+                                        style={[
+                                            {
+                                                height: 240,
+                                                borderRadius: 22,
+                                                overflow: 'hidden',
+                                                shadowColor: '#000',
+                                                shadowOffset: { width: 0, height: 10 },
+                                                shadowOpacity: 0.15,
+                                                shadowRadius: 20,
+                                                elevation: 10,
+                                            }
+                                        ]}
+                                        onPress={() => startScenario(scenario)}
+                                        activeOpacity={0.92}
+                                    >
+                                        <ImageBackground
+                                            source={require('../assets/jean_ai_tutor.png')}
+                                            style={{ flex: 1 }}
+                                            resizeMode="cover"
+                                        >
+                                            <LinearGradient
+                                                colors={['transparent', 'rgba(0,0,0,0.85)']}
+                                                style={{ flex: 1, padding: 24, justifyContent: 'space-between' }}
+                                            >
+                                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                    <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backdropFilter: 'blur(10px)' }}>
+                                                        <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 12 }}>PRO • FREE</Text>
+                                                    </View>
+                                                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' }}>
+                                                        <Ionicons name="sparkles" size={20} color="#FFF" />
+                                                    </View>
+                                                </View>
+
+                                                <View>
+                                                    <Text style={{ fontSize: 32, fontWeight: '800', color: '#FFF', marginBottom: 6 }}>Jean AI</Text>
+                                                    <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.9)', lineHeight: 22, fontWeight: '500' }}>Your personal language tutor. Chat about any topic in real-time.</Text>
+                                                </View>
+                                            </LinearGradient>
+                                        </ImageBackground>
+                                    </TouchableOpacity>
+                                </View>
+                            );
+                        }
+
+                        // Apple-style List Item
                         return (
                             <TouchableOpacity
                                 key={scenario.id}
-                                style={[styles.scenarioCard, { backgroundColor: theme.surface, borderColor: theme.border }, themeShadows.md]}
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    paddingVertical: 16,
+                                    borderBottomWidth: 1,
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.background
+                                }}
                                 onPress={() => startScenario(scenario)}
-                                activeOpacity={0.9}
+                                activeOpacity={0.7}
                             >
-                                <LinearGradient
-                                    colors={[theme.primary, theme.primaryLight]}
-                                    style={styles.cardHeader}
-                                >
-                                    <Ionicons name={scenario.icon} size={32} color={theme.textOnPrimary} />
-                                </LinearGradient>
-                                <View style={styles.cardBody}>
-                                    <View style={styles.cardTop}>
-                                        <Text style={[styles.cardTitle, { color: theme.text }]}>{scenario.title}</Text>
-                                        <View style={[styles.badge, { backgroundColor: diffColor + '20', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
-                                            <Ionicons name={diffIcon} size={12} color={diffColor} />
-                                            <Text style={[styles.badgeText, { color: diffColor }]}>{scenario.difficulty}</Text>
-                                        </View>
-                                    </View>
-                                    <Text style={[styles.cardLoc, { color: theme.primary }]}>
-                                        <Ionicons name="location-sharp" size={14} /> {scenario.location}
-                                    </Text>
-                                    <Text style={[styles.cardDesc, { color: theme.textSecondary }]}>{scenario.description}</Text>
-                                    <View style={[styles.startBtn, { borderColor: theme.border }]}>
-                                        <Text style={[styles.startBtnText, { color: theme.primary }]}>Start Conversation</Text>
-                                        <Ionicons name="chatbubble-ellipses-outline" size={16} color={theme.primary} />
+                                <View style={{
+                                    width: 48,
+                                    height: 48,
+                                    borderRadius: 12,
+                                    backgroundColor: isDarkMode ? '#1C1C1E' : '#F2F2F7',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    marginRight: 16
+                                }}>
+                                    <Ionicons name={scenario.icon} size={24} color={theme.primary} />
+                                </View>
+
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontSize: 17, fontWeight: '600', color: theme.text, marginBottom: 4 }}>{scenario.title}</Text>
+                                    <Text style={{ fontSize: 14, color: theme.textSecondary }} numberOfLines={1}>{scenario.description}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                                        <Text style={{ fontSize: 12, fontWeight: '500', color: theme.textSecondary }}>{scenario.location}</Text>
+                                        <Text style={{ fontSize: 12, color: theme.textSecondary, marginHorizontal: 6 }}>•</Text>
+                                        <Text style={{ fontSize: 12, fontWeight: '600', color: diffColor }}>{scenario.difficulty}</Text>
                                     </View>
                                 </View>
+
+                                <Ionicons name="chevron-forward" size={20} color={theme.textMuted} style={{ marginLeft: 8 }} />
                             </TouchableOpacity>
                         );
                     })}

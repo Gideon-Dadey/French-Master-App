@@ -5,6 +5,17 @@ const { protect } = require('../middleware/auth');
 // This could eventually be a DB model, but for now we'll serve it from here
 const SCENARIOS = [
     {
+        id: 'ai_tutor',
+        title: 'Free AI Tutor',
+        category: 'Experimental',
+        difficulty: 'All Levels',
+        location: 'Personal Tutor "Jean"',
+        description: 'Talk about anything with your personal AI French tutor.',
+        icon: 'sparkles',
+        isAi: true,
+        steps: []
+    },
+    {
         id: 'cafe_morning',
         title: 'Morning Coffee',
         category: 'Daily Life',
@@ -86,17 +97,6 @@ const SCENARIOS = [
             }
         ]
     },
-    {
-        id: 'ai_tutor',
-        title: 'Free AI Tutor',
-        category: 'Experimental',
-        difficulty: 'All Levels',
-        location: 'Personal Tutor "Jean"',
-        description: 'Talk about anything with your personal AI French tutor.',
-        icon: 'sparkles',
-        isAi: true,
-        steps: []
-    }
 ];
 
 router.get('/', protect, async (req, res) => {
