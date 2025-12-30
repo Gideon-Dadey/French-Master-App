@@ -5028,7 +5028,7 @@ const styles = StyleSheet.create({
   // Telegram Video Call Styles
   telegramCallContainer: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#1A1A2E',
   },
   telegramVideoBackground: {
     flex: 1,
@@ -5063,7 +5063,7 @@ const styles = StyleSheet.create({
     height: 160,
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#000',
+    backgroundColor: '#1A1A2E',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     shadowColor: '#000',
