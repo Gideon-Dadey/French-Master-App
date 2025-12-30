@@ -2708,7 +2708,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                                       {/* File Info */}
                                       <View style={styles.whatsappDocInfo}>
                                         <Text
-                                          style={[styles.whatsappDocName, { color: '#E9EDEF' }]}
+                                          style={[styles.whatsappDocName, { color: isOwnMessage ? '#FFFFFF' : (isDarkMode ? '#E9EDEF' : colors.text) }]}
                                           numberOfLines={2}
                                         >
                                           {messageData.attachment.name}
@@ -2737,7 +2737,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
                                     {/* Caption if any */}
                                     {messageData.message && (
-                                      <Text style={[styles.whatsappDocCaption, { color: isOwnMessage ? '#FFFFFF' : '#E9EDEF' }]}>
+                                      <Text style={[styles.whatsappDocCaption, { color: isOwnMessage ? '#FFFFFF' : (isDarkMode ? '#E9EDEF' : colors.text) }]}>
                                         {messageData.message}
                                       </Text>
                                     )}
@@ -2778,7 +2778,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                                         />
                                       ))}
                                     </View>
-                                    <Text style={[styles.voiceDuration, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : colors.secondaryText }]}>
+                                    <Text style={[styles.voiceDuration, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : (isDarkMode ? '#E9EDEF' : colors.text) }]}>
                                       {formatDuration(messageData.attachment.duration || 0)}
                                     </Text>
                                   </TouchableOpacity>
@@ -5509,7 +5509,7 @@ const styles = StyleSheet.create({
 
   // Premium Redesigned Action Sheet
   premiumActionSheet: {
-    borderRadius: 0.5,
+    borderRadius: 20,
     marginBottom: 12,
     overflow: 'hidden',
     ...premiumShadows.large,
@@ -5529,12 +5529,12 @@ const styles = StyleSheet.create({
   actionSheetAvatarPremium: {
     width: 64,
     height: 64,
-    borderRadius: 0.5,
+    borderRadius: 32,
   },
   actionSheetAvatarPlaceholderPremium: {
     width: 64,
     height: 64,
-    borderRadius: 0.5,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -5578,7 +5578,7 @@ const styles = StyleSheet.create({
   quickActionIconBox: {
     width: 48,
     height: 48,
-    borderRadius: 0.5,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -5591,7 +5591,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   actionSheetSectionPremium: {
-    borderRadius: 0.5,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   actionSheetItemPremium: {
@@ -5603,7 +5603,7 @@ const styles = StyleSheet.create({
   actionSheetIconPremium: {
     width: 36,
     height: 36,
-    borderRadius: 0.5,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -5617,7 +5617,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   premiumActionSheetCancel: {
-    borderRadius: 0.5,
+    borderRadius: 20,
     padding: 18,
     alignItems: 'center',
     ...premiumShadows.medium,
