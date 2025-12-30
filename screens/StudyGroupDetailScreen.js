@@ -1438,6 +1438,35 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     }
   };
 
+  const shareImage = async (uri) => {
+    try {
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert('Error', 'Sharing is not available on this device');
+        return;
+      }
+      await Sharing.shareAsync(uri);
+    } catch (error) {
+      console.error('Error sharing image:', error);
+      Alert.alert('Error', 'Failed to share image');
+    }
+  };
+
+  const downloadImage = async (uri) => {
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow access to media library to save images.');
+        return;
+      }
+
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert('Success', 'Image saved to gallery!');
+    } catch (error) {
+      console.error('Error saving image:', error);
+      Alert.alert('Error', 'Failed to save image');
+    }
+  };
+
   const renderVoiceCallModal = () => (
     <Modal visible={showVoiceCall} animationType="fade" statusBarTranslucent>
       <LinearGradient
@@ -2691,25 +2720,17 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                                       ]}
                                       resizeMode="cover"
                                     />
-                                    <LinearGradient
-                                      colors={['transparent', 'rgba(0,0,0,0.35)']}
-                                      style={[
-                                        styles.imageGradientOverlay,
-                                        isOwnMessage ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 }
-                                      ]}
-                                    >
-                                      <View style={styles.imageTimeContainer}>
-                                        <Text style={styles.imageTimeText}>{formatTimeAgo(discussion.createdAt)}</Text>
-                                        {isOwnMessage && (
-                                          <Ionicons
-                                            name="checkmark-done"
-                                            size={13}
-                                            color="#FFFFFF"
-                                            style={{ marginLeft: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}
-                                          />
-                                        )}
-                                      </View>
-                                    </LinearGradient>
+                                    <View style={styles.telegramImageTimePill}>
+                                      <Text style={styles.telegramImageTimeText}>{formatTimeAgo(discussion.createdAt)}</Text>
+                                      {isOwnMessage && (
+                                        <Ionicons
+                                          name="checkmark-done"
+                                          size={13}
+                                          color="#FFFFFF"
+                                          style={{ marginLeft: 4 }}
+                                        />
+                                      )}
+                                    </View>
                                   </TouchableOpacity>
                                 )}
 
@@ -3517,49 +3538,51 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           animationType="fade"
           onRequestClose={() => setShowImagePreview(false)}
         >
-          <View style={styles.imagePreviewModal}>
-            <TouchableOpacity
-              style={styles.imagePreviewClose}
-              onPress={() => setShowImagePreview(false)}
-            >
-              <Ionicons name="close" size={28} color="#FFFFFF" />
-            </TouchableOpacity>
+          <View style={styles.telegramPreviewContainer}>
             {previewImage && (
               <Image
                 source={{ uri: previewImage }}
-                style={styles.fullScreenImage}
+                style={styles.telegramFullScreenImage}
                 resizeMode="contain"
               />
             )}
-            <View style={styles.imagePreviewActions}>
+
+            {/* Telegram Header */}
+            <LinearGradient
+              colors={['rgba(0,0,0,0.6)', 'transparent']}
+              style={styles.telegramPreviewHeader}
+            >
               <TouchableOpacity
-                style={styles.imagePreviewAction}
-                onPress={() => shareImage(previewImage)}
-              >
-                <View style={styles.imagePreviewActionIcon}>
-                  <Ionicons name="share-outline" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.imagePreviewActionText}>Share</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.imagePreviewAction}
-                onPress={() => downloadImage(previewImage)}
-              >
-                <View style={styles.imagePreviewActionIcon}>
-                  <Ionicons name="download-outline" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.imagePreviewActionText}>Save</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.imagePreviewAction}
+                style={styles.telegramHeaderBackBtn}
                 onPress={() => setShowImagePreview(false)}
               >
-                <View style={styles.imagePreviewActionIcon}>
-                  <Ionicons name="close-outline" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.imagePreviewActionText}>Close</Text>
+                <Ionicons name="arrow-back" size={26} color="#FFFFFF" />
               </TouchableOpacity>
-            </View>
+              <View style={styles.telegramHeaderInfo}>
+                <Text style={styles.telegramHeaderTitle}>Photo</Text>
+                <Text style={styles.telegramHeaderSubtitle}>1 of 1</Text>
+              </View>
+            </LinearGradient>
+
+            {/* Telegram Footer */}
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.6)']}
+              style={styles.telegramPreviewFooter}
+            >
+              <TouchableOpacity
+                style={styles.telegramFooterIconBtn}
+                onPress={() => shareImage(previewImage)}
+              >
+                <Ionicons name="share-outline" size={26} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.telegramFooterIconBtn}
+                onPress={() => downloadImage(previewImage)}
+              >
+                <Ionicons name="download-outline" size={26} color="#FFFFFF" />
+              </TouchableOpacity>
+            </LinearGradient>
           </View>
         </Modal>
 
@@ -4161,8 +4184,14 @@ const styles = StyleSheet.create({
   },
   imageBubble: {
     padding: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
     backgroundColor: 'transparent',
-    overflow: 'hidden',
+    borderWidth: 0,
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
+    overflow: 'visible',
   },
   ownMessageBubble: {
     borderTopLeftRadius: 18,
@@ -4248,34 +4277,46 @@ const styles = StyleSheet.create({
   },
 
   imageAttachment: {
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
     minWidth: width * 0.5,
-    maxWidth: width * 0.65,
+    maxWidth: width * 0.7,
   },
   attachedImage: {
-    width: width * 0.55,
-    height: width * 0.65,
-    borderRadius: 18,
+    width: width * 0.65,
+    height: width * 0.85, // More vertical aspect ratio like generic photos
+    borderRadius: 16,
+  },
+  telegramImageTimePill: {
+    position: 'absolute',
+    bottom: 6,
+    right: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    minWidth: 40,
+    justifyContent: 'center',
+  },
+  telegramImageTimeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '500',
   },
 
   imageMessageWrapper: {
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
   },
   ownImageBubble: {
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 6,
+    borderRadius: 16,
   },
   otherImageBubble: {
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 6,
-    borderBottomRightRadius: 18,
+    borderRadius: 16,
   },
   imageOverlay: {
     position: 'absolute',
@@ -5241,50 +5282,70 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  imagePreviewModal: {
+  // Telegram Image Preview Styles
+  telegramPreviewContainer: {
     flex: 1,
     backgroundColor: '#000000',
+    position: 'relative',
+  },
+  telegramFullScreenImage: {
+    width: width,
+    height: height,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  telegramPreviewHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 100 : 80,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingHorizontal: 16,
+    zIndex: 20,
+  },
+  telegramHeaderBackBtn: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 12,
   },
-  imagePreviewClose: {
+  telegramHeaderInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  telegramHeaderTitle: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  telegramHeaderSubtitle: {
+    color: '#D1D1D1',
+    fontSize: 13,
+  },
+  telegramPreviewFooter: {
     position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 10,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: Platform.OS === 'ios' ? 100 : 80,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
+    zIndex: 20,
+  },
+  telegramFooterIconBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  fullScreenImage: {
-    width: width,
-    height: height * 0.7,
-  },
-  imagePreviewActions: {
-    position: 'absolute',
-    bottom: 50,
-    flexDirection: 'row',
-    gap: spacing.xl * 2,
-  },
-  imagePreviewAction: {
-    alignItems: 'center',
-  },
-  imagePreviewActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  imagePreviewActionText: {
-    color: '#FFFFFF',
-    fontSize: fontSize.sm,
-    fontWeight: '500',
   },
 
   chatHeader: {
