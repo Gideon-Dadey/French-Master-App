@@ -5198,13 +5198,14 @@ const styles = StyleSheet.create({
   telegramVoiceControls: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingBottom: 60,
-    gap: 40,
+    gap: 20,
   },
   telegramVoiceControlBtn: {
     alignItems: 'center',
     width: 80,
+    marginTop: 10,
   },
   telegramVoiceBtnCircle: {
     width: 60,
