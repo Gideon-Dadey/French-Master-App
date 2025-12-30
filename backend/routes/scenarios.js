@@ -9,7 +9,7 @@ const SCENARIOS = [
         title: 'Free AI Tutor',
         category: 'Experimental',
         difficulty: 'All Levels',
-        location: 'Personal Tutor "Jean"',
+        location: 'Personal Tutor "Mirah"',
         description: 'Talk about anything with your personal AI French tutor.',
         icon: 'sparkles',
         isAi: true,

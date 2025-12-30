@@ -190,7 +190,7 @@ export default function LearnerHomeScreen({ navigation }) {
                             style={styles.heroGradient}
                         >
                             <Text style={styles.heroSubtitle}>NEW • FREE AI TUTOR</Text>
-                            <Text style={styles.heroTitle}>Chat with Jean</Text>
+                            <Text style={styles.heroTitle}>Chat with Mirah</Text>
                             <Text style={styles.heroDescription}>Your personal AI French tutor is ready to chat about anything.</Text>
                         </LinearGradient>
                     </TouchableOpacity>

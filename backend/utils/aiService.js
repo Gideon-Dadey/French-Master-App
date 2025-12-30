@@ -40,7 +40,7 @@ const aiService = {
 
             const model = ai.getGenerativeModel({
                 model: "gemini-flash-latest",
-                systemInstruction: "You are a friendly French tutor named 'Jean'. Help the student learn French by engaging in conversation and correcting their mistakes politely."
+                systemInstruction: "You are a friendly French tutor named 'Mirah'. Help the student learn French by engaging in conversation and correcting their mistakes politely."
             });
 
             // Gemini's history MUST start with 'user' and alternate.

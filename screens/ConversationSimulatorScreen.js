@@ -28,7 +28,7 @@ const DEFAULT_SCENARIOS = [
         title: 'Free AI Tutor',
         category: 'Experimental',
         difficulty: 'All Levels',
-        location: 'Personal Tutor "Jean"',
+        location: 'Personal Tutor "Mirah"',
         description: 'Talk about anything with your personal AI French tutor.',
         icon: 'sparkles',
         isAi: true,
@@ -216,12 +216,12 @@ export default function ConversationSimulatorScreen({ navigation }) {
     // Initial message for AI mode
     useEffect(() => {
         if (selectedScenario?.isAi && chatHistory.length === 0) {
-            const initialMsg = "Bonjour ! Je suis Jean, votre tuteur de français. De quoi voulez-vous discuter aujourd'hui ?";
+            const initialMsg = "Bonjour ! Je suis Mirah, votre tuteur de français. De quoi voulez-vous discuter aujourd'hui ?";
             setChatHistory([{
                 type: 'incoming',
-                speaker: 'Jean',
+                speaker: 'Mirah',
                 text: initialMsg,
-                translation: 'Hello! I am Jean, your French tutor. What would you like to discuss today?'
+                translation: 'Hello! I am Mirah, your French tutor. What would you like to discuss today?'
             }]);
             speakText(initialMsg, 'fr-FR');
         }
@@ -258,7 +258,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
                 setIsTyping(false);
                 setChatHistory(prev => [...prev, {
                     type: 'incoming',
-                    speaker: 'Jean',
+                    speaker: 'Mirah',
                     text: aiText
                 }]);
                 setSessionXP(prev => prev + 10);
@@ -270,7 +270,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
             console.error('Error details:', errorMsg);
             setChatHistory(prev => [...prev, {
                 type: 'incoming',
-                speaker: 'Jean',
+                speaker: 'Mirah',
                 text: "Désolé, j'ai eu un petit problème technique."
             }]);
         } finally {
@@ -395,7 +395,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
                         >
                             {msg.type === 'incoming' && (
                                 <View style={[styles.avatar, { backgroundColor: theme.primary, overflow: 'hidden' }]}>
-                                    {msg.speaker === 'Jean' ? (
+                                    {msg.speaker === 'Mirah' ? (
                                         <ImageBackground
                                             source={require('../assets/jean_ai_tutor.png')}
                                             style={{ width: '100%', height: '100%' }}
@@ -559,7 +559,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
                                                 </View>
 
                                                 <View>
-                                                    <Text style={{ fontSize: 32, fontWeight: '800', color: '#FFF', marginBottom: 6 }}>Jean AI</Text>
+                                                    <Text style={{ fontSize: 32, fontWeight: '800', color: '#FFF', marginBottom: 6 }}>Mirah AI</Text>
                                                     <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.9)', lineHeight: 22, fontWeight: '500' }}>Your personal language tutor. Chat about any topic in real-time.</Text>
                                                 </View>
                                             </LinearGradient>
