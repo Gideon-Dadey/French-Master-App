@@ -71,22 +71,22 @@ export const organicTheme = {
     accent: '#7AA8D4',            // Soft Blue
 
     // Background Colors
-    background: '#0D1B2A',        // Deep Navy - main background
-    surface: '#1B2838',           // Navy - cards, modals
-    surfaceAlt: '#243447',        // Lighter Navy - alternate surface
-    surfaceElevated: '#2D3E50',   // Elevated cards
+    background: '#000000',        // Pure Black - main background
+    surface: '#121212',           // Dark Grey - cards, modals
+    surfaceAlt: '#1E1E1E',        // Slightly Lighter Grey - alternate surface
+    surfaceElevated: '#121212',   // Elevated cards
 
     // Text Colors
     text: '#F0EBE3',              // Warm Cream - primary text
     textSecondary: '#A8B4C4',     // Muted Blue-Grey - secondary text
     textMuted: '#6B7C93',         // Slate - hints, placeholders
     textOnPrimary: '#FFFFFF',     // White text on primary color
-    textOnSecondary: '#0D1B2A',   // Dark text on gold
+    textOnSecondary: '#000000',   // Dark text on gold
 
     // Border Colors
-    border: '#2D3E50',            // Dark Blue-Grey
-    borderLight: '#3D4E60',       // Lighter border
-    divider: '#2D3E50',           // Dividers
+    border: '#333333',            // Dark Grey
+    borderLight: '#444444',       // Lighter border
+    divider: '#333333',           // Dividers
 
     // Semantic Colors
     success: '#4CAF7A',           // Bright Green
@@ -104,9 +104,9 @@ export const organicTheme = {
     silver: '#A8B4C4',            // Achievement silver
 
     // Gradient Stops
-    gradientStart: '#0D1B2A',
-    gradientEnd: '#1B2838',
-    heroGradient: ['#0D1B2A', '#1B2838', '#2D4A6F'],
+    gradientStart: '#000000',
+    gradientEnd: '#121212',
+    heroGradient: ['#000000', '#121212', '#1E3A5F'],
   },
 };
 

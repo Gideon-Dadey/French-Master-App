@@ -396,7 +396,7 @@ export default function LearnScreen({ navigation }) {
           </View>
         </Animated.View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 80 }} />
       </Animated.ScrollView>
     </View>
   );

@@ -36,22 +36,22 @@ const lightTheme = {
 
 // Updated dark theme with unified Midnight Blue & Gold colors
 const darkTheme = {
-  background: '#0D1B2A',
-  secondaryBackground: '#1B2838',
-  tertiaryBackground: '#243447',
+  background: '#000000',     // Pure Black
+  secondaryBackground: '#121212', // Standard Material Dark Surface
+  tertiaryBackground: '#1E1E1E',
   text: '#F5F3EF',
   secondaryText: '#A0AEC0',
   border: '#2D3E50',
-  primary: '#4A7AB0',        // Lighter blue for dark mode
+  primary: '#4A7AB0',
   primaryHover: '#5B8BC1',
-  secondary: '#D4A853',      // Gold (same)
-  accent: '#D49A6A',         // Lighter terracotta
+  secondary: '#D4A853',
+  accent: '#D49A6A',
   success: '#48BB78',
   error: '#FC8181',
   warning: '#D4A853',
-  card: '#1B2838',
-  surface: '#1B2838',
-  shadow: 'rgba(0, 0, 0, 0.3)',
+  card: '#121212',
+  surface: '#121212',
+  shadow: 'rgba(0, 0, 0, 0.5)',
 };
 
 export const ThemeProvider = ({ children }) => {
@@ -104,7 +104,7 @@ export const ThemeProvider = ({ children }) => {
 
   const theme = isDarkMode ? darkTheme : lightTheme;
   const colors = theme;
-  
+
   // Also provide the full organic theme colors
   const organicColors = getThemeColors(isDarkMode);
 

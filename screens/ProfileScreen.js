@@ -424,7 +424,7 @@ export default function ProfileScreen({ navigation }) {
           <Text style={[styles.version, { color: mutedColor }]}>Version 1.2.0 • L'Alliance Royale</Text>
         </Animated.View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 80 }} />
       </Animated.ScrollView>
 
       {/* Edit Profile Modal */}

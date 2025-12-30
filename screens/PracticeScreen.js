@@ -380,7 +380,7 @@ export default function PracticeScreen({ navigation }) {
           </TouchableOpacity>
         </Animated.View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 80 }} />
       </Animated.ScrollView>
     </View>
   );
