@@ -1364,9 +1364,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
+        allowsEditing: false,
         quality: 0.8,
-        aspect: [4, 3],
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -1388,9 +1387,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
+        allowsEditing: false,
         quality: 0.8,
-        aspect: [4, 3],
       });
 
       if (!result.canceled && result.assets[0]) {
@@ -2979,38 +2977,31 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   </View>
                 )}
 
+                {/* Professional Selected Image/Document Preview */}
                 {(selectedImage || selectedDocument) && (
-                  <View style={[styles.attachmentPreview, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-                    {selectedImage && (
-                      <View style={styles.imagePreviewContainer}>
-                        <Image source={{ uri: selectedImage.uri }} style={styles.previewThumbnail} />
-                        <View style={styles.previewInfo}>
-                          <Text style={[styles.previewName, { color: colors.text }]}>Photo attached</Text>
-                          <Text style={[styles.previewSize, { color: colors.secondaryText }]}>Ready to send</Text>
-                        </View>
+                  <View style={[
+                    styles.proAttachmentContainer,
+                    { backgroundColor: isDarkMode ? '#1E2C3A' : '#FFFFFF' }
+                  ]}>
+                    {selectedImage ? (
+                      <Image source={{ uri: selectedImage.uri }} style={styles.proAttachmentThumb} resizeMode="cover" />
+                    ) : (
+                      <View style={[styles.proAttachmentThumb, { backgroundColor: 'rgba(51, 144, 236, 0.1)', justifyContent: 'center', alignItems: 'center' }]}>
+                        <Ionicons name="document-text" size={24} color={premiumColors.primary.main} />
                       </View>
                     )}
-                    {selectedDocument && (
-                      <View style={styles.documentPreviewContainer}>
-                        <View style={[styles.documentPreviewIcon, { backgroundColor: getFileIcon(selectedDocument.name).color + '20' }]}>
-                          <Ionicons
-                            name={getFileIcon(selectedDocument.name).icon}
-                            size={24}
-                            color={getFileIcon(selectedDocument.name).color}
-                          />
-                        </View>
-                        <View style={styles.previewInfo}>
-                          <Text style={[styles.previewName, { color: colors.text }]} numberOfLines={1}>
-                            {selectedDocument.name}
-                          </Text>
-                          <Text style={[styles.previewSize, { color: colors.secondaryText }]}>
-                            {selectedDocument.size ? `${(selectedDocument.size / 1024).toFixed(1)} KB` : 'Document'}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                    <TouchableOpacity onPress={cancelAttachment} style={styles.cancelAttachmentButton}>
-                      <Ionicons name="close-circle" size={24} color={colors.error || '#FF3B30'} />
+
+                    <View style={styles.proAttachmentInfo}>
+                      <Text style={[styles.proAttachmentTitle, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>
+                        {selectedImage ? 'Photo attached' : 'Document attached'}
+                      </Text>
+                      <Text style={[styles.proAttachmentSubtitle, { color: isDarkMode ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)' }]} numberOfLines={1}>
+                        {selectedImage ? 'Ready to send' : (selectedDocument.name || 'Ready to send')}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity onPress={cancelAttachment} style={styles.proAttachmentCloseBtn}>
+                      <Ionicons name="close" size={18} color="#FFFFFF" />
                     </TouchableOpacity>
                   </View>
                 )}
@@ -7078,6 +7069,52 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // Professional Image Attachment Preview
+  proAttachmentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 8,
+    marginBottom: 8,
+    borderRadius: 14,
+    padding: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  proAttachmentThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    marginRight: 12,
+    marginLeft: 2,
+  },
+  proAttachmentInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  proAttachmentTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  proAttachmentSubtitle: {
+    fontSize: 13,
+    fontWeight: '400',
+  },
+  proAttachmentCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FF3B30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
 });
 
