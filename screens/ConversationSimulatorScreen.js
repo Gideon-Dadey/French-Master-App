@@ -413,9 +413,9 @@ export default function ConversationSimulatorScreen({ navigation }) {
                                     styles.bubble,
                                     msg.type === 'outgoing'
                                         ? {
-                                            backgroundColor: isDarkMode ? theme.primary : '#2563EB', // Vibrant Blue in Light Mode
+                                            backgroundColor: '#2563EB', // Always Vibrant Blue
                                             borderBottomRightRadius: 4,
-                                            shadowColor: isDarkMode ? theme.primary : '#2563EB',
+                                            shadowColor: '#2563EB',
                                             shadowOffset: { width: 0, height: 4 },
                                             shadowOpacity: 0.2, // Reduced opacity
                                             shadowRadius: 8,
@@ -512,8 +512,10 @@ export default function ConversationSimulatorScreen({ navigation }) {
                                     style={[styles.aiSendBtn, {
                                         backgroundColor: freeMsg.trim()
                                             ? (isDarkMode ? theme.primary : '#2563EB')
-                                            : 'transparent',
-                                        transform: [{ scale: freeMsg.trim() ? 1 : 0.95 }]
+                                            : (isDarkMode ? 'rgba(255,255,255,0.08)' : '#F0F2F5'),
+                                        transform: [{ scale: freeMsg.trim() ? 1 : 0.95 }],
+                                        borderWidth: freeMsg.trim() ? 0 : 1,
+                                        borderColor: isDarkMode ? 'transparent' : 'rgba(0,0,0,0.05)'
                                     }]}
                                     onPress={handleSendFreeMessage}
                                     disabled={isSending || !freeMsg.trim()}
