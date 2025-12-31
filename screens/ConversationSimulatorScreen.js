@@ -11,7 +11,8 @@ import {
     ImageBackground,
     Alert,
     TextInput,
-    ActivityIndicator
+    ActivityIndicator,
+    KeyboardAvoidingView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -180,7 +181,7 @@ const DEFAULT_SCENARIOS = [
 ];
 
 export default function ConversationSimulatorScreen({ navigation }) {
-    const { organicColors: theme, isDarkMode } = useTheme();
+    const { theme, isDarkMode } = useTheme();
     const { awardXP } = useGamification();
 
     const [scenarios, setScenarios] = useState(DEFAULT_SCENARIOS);
@@ -363,19 +364,28 @@ export default function ConversationSimulatorScreen({ navigation }) {
 
     if (selectedScenario) {
         return (
-            <View style={[styles.container, { backgroundColor: theme.background }]}>
+            <KeyboardAvoidingView
+                style={[styles.container, { backgroundColor: theme.background }]}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            >
                 <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={theme.background} />
 
                 {/* Chat Header */}
                 <View style={[styles.header, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
                     <TouchableOpacity onPress={() => setSelectedScenario(null)} style={styles.backBtn}>
-                        <Ionicons name="chevron-back" size={24} color={theme.text} />
+                        <Ionicons name="chevron-back" size={28} color={theme.text} />
                     </TouchableOpacity>
-                    <View>
+                    <View style={styles.headerTitleContainer}>
                         <Text style={[styles.headerTitle, { color: theme.text }]}>{selectedScenario.title}</Text>
-                        <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>{selectedScenario.location}</Text>
+                        <View style={styles.headerStatus}>
+                            <View style={[styles.statusDot, { backgroundColor: theme.success }]} />
+                            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>Online</Text>
+                        </View>
                     </View>
-                    <View style={{ width: 40 }} />
+                    <TouchableOpacity style={styles.headerInfoBtn}>
+                        <Ionicons name="information-circle-outline" size={24} color={theme.textSecondary} />
+                    </TouchableOpacity>
                 </View>
 
                 {/* Chat Area */}
@@ -383,6 +393,8 @@ export default function ConversationSimulatorScreen({ navigation }) {
                     ref={scrollViewRef}
                     style={styles.chatScroll}
                     contentContainerStyle={styles.chatContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
                 >
                     {chatHistory.map((msg, index) => (
                         <Animated.View
@@ -390,91 +402,98 @@ export default function ConversationSimulatorScreen({ navigation }) {
                             style={[
                                 styles.messageRow,
                                 msg.type === 'outgoing' ? styles.msgRight : styles.msgLeft,
-                                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] } // Apply loosely to all, ideal would be individual anims
+                                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
                             ]}
                         >
                             {msg.type === 'incoming' && (
-                                <View style={[styles.avatar, { backgroundColor: theme.primary, overflow: 'hidden' }]}>
-                                    {msg.speaker === 'Mirah' ? (
-                                        <ImageBackground
-                                            source={require('../assets/jean_ai_tutor.png')}
-                                            style={{ width: '100%', height: '100%' }}
-                                        />
-                                    ) : (
-                                        <Text style={styles.avatarText}>{msg.speaker[0]}</Text>
-                                    )}
+                                <View style={[styles.avatar, { backgroundColor: theme.tertiaryBackground, overflow: 'hidden', borderWidth: 1, borderColor: theme.border }]}>
+                                    <ImageBackground
+                                        source={require('../assets/mirah_tutor.png')}
+                                        style={{ width: '100%', height: '100%' }}
+                                    />
                                 </View>
                             )}
                             <View style={[
                                 styles.bubble,
-                                themeShadows.sm,
                                 msg.type === 'outgoing'
-                                    ? { backgroundColor: theme.primary, borderBottomRightRadius: 2 }
+                                    ? { backgroundColor: theme.primary, borderBottomRightRadius: 4 }
                                     : {
-                                        backgroundColor: isDarkMode ? '#1E1E1E' : '#F0F0F0', // Darker grey for dark mode, Light grey for light mode (better contrast than white)
-                                        borderBottomLeftRadius: 2,
-                                        borderWidth: 0, // Remove border for cleaner look
+                                        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                                        borderBottomLeftRadius: 4,
                                     }
                             ]}>
                                 <Text style={[
                                     styles.bubbleText,
-                                    msg.type === 'outgoing'
-                                        ? { color: '#FFFFFF' }
-                                        : { color: isDarkMode ? '#FFFFFF' : '#000000' }
+                                    {
+                                        color: msg.type === 'outgoing'
+                                            ? '#FFFFFF'
+                                            : theme.text,
+                                        fontWeight: '500'
+                                    }
                                 ]}>{msg.text.replace(/\*\*/g, '').replace(/\*/g, '')}</Text>
-                                {msg.type === 'incoming' && (
-                                    <Text style={[
-                                        styles.translationText,
-                                        { color: isDarkMode ? '#AAAAAA' : '#666666' }
-                                    ]}>{msg.translation}</Text>
+
+                                {msg.type === 'incoming' && msg.translation && (
+                                    <View style={[styles.translationContainer, { borderTopColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                                        <Text style={[
+                                            styles.translationText,
+                                            { color: theme.secondaryText }
+                                        ]}>{msg.translation}</Text>
+                                    </View>
                                 )}
                             </View>
                         </Animated.View>
                     ))}
                     {isTyping && (
                         <View style={styles.messageRow}>
-                            <View style={[styles.avatar, { backgroundColor: theme.textMuted }]}>
-                                <Ionicons name="ellipsis-horizontal" size={16} color="#FFF" />
+                            <View style={[styles.avatar, { backgroundColor: theme.tertiaryBackground }]}>
+                                <ActivityIndicator size="small" color={theme.secondary} />
                             </View>
-                            <Text style={[styles.typingText, { color: theme.textSecondary }]}>{selectedScenario.steps.find(s => s.id === currentStepId)?.speaker} is speaking...</Text>
+                            <View style={[styles.bubble, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+                                <Text style={[styles.typingText, { color: theme.secondaryText }]}>
+                                    Mirah is thinking...
+                                </Text>
+                            </View>
                         </View>
                     )}
-                    <View style={{ height: 20 }} />
+                    <View style={{ height: 40 }} />
                 </ScrollView>
 
                 {/* Options Area or AI Input */}
                 {selectedScenario.isAi ? (
-                    <View style={[styles.aiInputContainer, { backgroundColor: theme.surface, borderTopColor: theme.border, paddingBottom: Platform.OS === 'ios' ? 30 : 40 }]}>
-                        <TextInput
-                            style={[
-                                styles.aiInput,
-                                {
-                                    backgroundColor: isDarkMode ? '#2C2C2E' : '#F2F2F7',
-                                    color: isDarkMode ? '#FFFFFF' : '#000000'
-                                }
-                            ]}
-                            placeholder="Écrivez en français..."
-                            placeholderTextColor={isDarkMode ? '#8E8E93' : '#8E8E93'}
-                            value={freeMsg}
-                            onChangeText={setFreeMsg}
-                            onSubmitEditing={handleSendFreeMessage}
-                            returnKeyType="send"
-                        />
-                        <TouchableOpacity
-                            style={[styles.aiSendBtn, { backgroundColor: theme.primary }]}
-                            onPress={handleSendFreeMessage}
-                            disabled={isSending}
-                        >
-                            {isSending ? (
-                                <ActivityIndicator size="small" color="#FFF" />
-                            ) : (
-                                <Ionicons name="send" size={20} color="#FFF" />
-                            )}
-                        </TouchableOpacity>
+                    <View style={[styles.aiInputWrapper, { backgroundColor: theme.background }]}>
+                        <View style={[styles.aiInputContainer, { backgroundColor: theme.surface, borderColor: theme.border, shadowColor: isDarkMode ? '#000' : theme.primary, shadowOpacity: isDarkMode ? 0 : 0.05 }]}>
+                            <TextInput
+                                style={[
+                                    styles.aiInput,
+                                    { color: theme.text }
+                                ]}
+                                placeholder="Message Mirah..."
+                                placeholderTextColor={theme.secondaryText}
+                                value={freeMsg}
+                                onChangeText={setFreeMsg}
+                                onSubmitEditing={handleSendFreeMessage}
+                                returnKeyType="send"
+                                multiline
+                            />
+                            <TouchableOpacity
+                                style={[styles.aiSendBtn, { backgroundColor: freeMsg.trim() ? theme.primary : theme.tertiaryBackground }]}
+                                onPress={handleSendFreeMessage}
+                                disabled={isSending || !freeMsg.trim()}
+                            >
+                                {isSending ? (
+                                    <ActivityIndicator size="small" color="#FFFFFF" />
+                                ) : (
+                                    <Ionicons name="arrow-up" size={24} color={freeMsg.trim() ? "#FFFFFF" : theme.secondaryText} />
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                        <Text style={[styles.aiInputFooter, { color: theme.secondaryText }]}>
+                            Mirah can make mistakes. Consider checking important info.
+                        </Text>
                     </View>
                 ) : showOptions && (
                     <View style={[styles.optionsContainer, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
-                        <Text style={[styles.optionsTitle, { color: theme.textSecondary }]}>Choose your reply:</Text>
+                        <Text style={[styles.optionsTitle, { color: theme.secondaryText }]}>Choose your reply:</Text>
                         {selectedScenario.steps.find(s => s.id === currentStepId)?.options.map((opt, i) => (
                             <TouchableOpacity
                                 key={i}
@@ -486,7 +505,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
                         ))}
                     </View>
                 )}
-            </View>
+            </KeyboardAvoidingView>
         );
     }
 
@@ -504,7 +523,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
                         <Ionicons name="arrow-back" size={28} color={theme.text} />
                     </TouchableOpacity>
                     <Text style={{ fontSize: 34, fontWeight: '800', color: theme.text, letterSpacing: -0.5 }}>AI Studio</Text>
-                    <Text style={{ fontSize: 17, color: theme.textSecondary, marginTop: 4, letterSpacing: -0.2 }}>Master fluency with simulated conversations.</Text>
+                    <Text style={{ fontSize: 17, color: theme.secondaryText, marginTop: 4, letterSpacing: -0.2 }}>Master fluency with simulated conversations.</Text>
                 </View>
 
                 <View style={[styles.listContent, { paddingTop: 10 }]}>
@@ -523,44 +542,54 @@ export default function ConversationSimulatorScreen({ navigation }) {
                         if (scenario.isAi) {
                             return (
                                 <View key={scenario.id} style={{ marginBottom: 30 }}>
-                                    <Text style={{ fontSize: 13, fontWeight: '600', color: theme.textSecondary, textTransform: 'uppercase', marginBottom: 10, marginLeft: 4 }}>Featured</Text>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12, paddingHorizontal: 4 }}>
+                                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.text, textTransform: 'uppercase', letterSpacing: 1 }}>Featured Experience</Text>
+                                        <Text style={{ fontSize: 12, fontWeight: '600', color: theme.secondary }}>NEW</Text>
+                                    </View>
                                     <TouchableOpacity
                                         style={[
                                             {
-                                                height: 240,
-                                                borderRadius: 22,
+                                                height: 280,
+                                                borderRadius: 28,
                                                 overflow: 'hidden',
-                                                shadowColor: '#000',
-                                                shadowOffset: { width: 0, height: 10 },
-                                                shadowOpacity: 0.15,
-                                                shadowRadius: 20,
-                                                elevation: 10,
+                                                backgroundColor: theme.surface,
+                                                shadowColor: theme.primary,
+                                                shadowOffset: { width: 0, height: 12 },
+                                                shadowOpacity: isDarkMode ? 0.3 : 0.1,
+                                                shadowRadius: 24,
+                                                elevation: 15,
                                             }
                                         ]}
                                         onPress={() => startScenario(scenario)}
-                                        activeOpacity={0.92}
+                                        activeOpacity={0.95}
                                     >
                                         <ImageBackground
-                                            source={require('../assets/jean_ai_tutor.png')}
+                                            source={require('../assets/mirah_tutor.png')}
                                             style={{ flex: 1 }}
                                             resizeMode="cover"
                                         >
                                             <LinearGradient
-                                                colors={['transparent', 'rgba(0,0,0,0.85)']}
+                                                colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.95)']}
                                                 style={{ flex: 1, padding: 24, justifyContent: 'space-between' }}
                                             >
                                                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                    <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backdropFilter: 'blur(10px)' }}>
-                                                        <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 12 }}>PRO • FREE</Text>
+                                                    <View style={{ backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
+                                                        <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 11, letterSpacing: 0.5 }}>ULTRA • AI</Text>
                                                     </View>
-                                                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' }}>
-                                                        <Ionicons name="sparkles" size={20} color="#FFF" />
+                                                    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
+                                                        <Ionicons name="sparkles" size={22} color={theme.secondary} />
                                                     </View>
                                                 </View>
 
                                                 <View>
-                                                    <Text style={{ fontSize: 32, fontWeight: '800', color: '#FFF', marginBottom: 6 }}>Mirah AI</Text>
-                                                    <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.9)', lineHeight: 22, fontWeight: '500' }}>Your personal language tutor. Chat about any topic in real-time.</Text>
+                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.success }} />
+                                                        <Text style={{ color: theme.success, fontWeight: '700', fontSize: 12 }}>ADAPTIVE LEARNING ACTIVE</Text>
+                                                    </View>
+                                                    <Text style={{ fontSize: 36, fontWeight: '900', color: '#FFF', marginBottom: 8, letterSpacing: -1 }}>Mirah AI</Text>
+                                                    <Text style={{ fontSize: 17, color: 'rgba(255,255,255,0.85)', lineHeight: 24, fontWeight: '500', maxWidth: '90%' }}>
+                                                        Master French with your personal AI mentor. Dynamic, real-time conversations.
+                                                    </Text>
                                                 </View>
                                             </LinearGradient>
                                         </ImageBackground>
@@ -569,47 +598,57 @@ export default function ConversationSimulatorScreen({ navigation }) {
                             );
                         }
 
-                        // Apple-style List Item
+                        // Premium Card for Standard Scenarios
                         return (
                             <TouchableOpacity
                                 key={scenario.id}
                                 style={{
+                                    backgroundColor: theme.surface,
+                                    borderRadius: 24,
+                                    padding: 16,
+                                    marginBottom: 16,
                                     flexDirection: 'row',
                                     alignItems: 'center',
-                                    paddingVertical: 16,
-                                    borderBottomWidth: 1,
+                                    borderWidth: 1,
                                     borderColor: theme.border,
-                                    backgroundColor: theme.background
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 4 },
+                                    shadowOpacity: isDarkMode ? 0.2 : 0.05,
+                                    shadowRadius: 10,
+                                    elevation: 5,
                                 }}
                                 onPress={() => startScenario(scenario)}
                                 activeOpacity={0.7}
                             >
                                 <View style={{
-                                    width: 48,
-                                    height: 48,
-                                    borderRadius: 12,
-                                    backgroundColor: isDarkMode ? '#1C1C1E' : '#F2F2F7',
+                                    width: 60,
+                                    height: 60,
+                                    borderRadius: 18,
+                                    backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F0F4F8',
                                     justifyContent: 'center',
                                     alignItems: 'center',
                                     marginRight: 16
                                 }}>
-                                    <Ionicons name={scenario.icon} size={24} color={theme.primary} />
+                                    <Ionicons name={scenario.icon} size={28} color={theme.primary} />
                                 </View>
 
                                 <View style={{ flex: 1 }}>
-                                    <Text style={{ fontSize: 17, fontWeight: '600', color: theme.text, marginBottom: 4 }}>{scenario.title}</Text>
-                                    <Text style={{ fontSize: 14, color: theme.textSecondary }} numberOfLines={1}>{scenario.description}</Text>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                                        <Text style={{ fontSize: 12, fontWeight: '500', color: theme.textSecondary }}>{scenario.location}</Text>
-                                        <Text style={{ fontSize: 12, color: theme.textSecondary, marginHorizontal: 6 }}>•</Text>
-                                        <Text style={{ fontSize: 12, fontWeight: '600', color: diffColor }}>{scenario.difficulty}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                        <Text style={{ fontSize: 11, fontWeight: '800', color: theme.secondary, textTransform: 'uppercase' }}>{scenario.category || 'SCENARIO'}</Text>
+                                        <Text style={{ fontSize: 10, color: theme.secondaryText }}>•</Text>
+                                        <Text style={{ fontSize: 11, fontWeight: '700', color: diffColor }}>{scenario.difficulty}</Text>
                                     </View>
+                                    <Text style={{ fontSize: 18, fontWeight: '700', color: theme.text, marginBottom: 2 }}>{scenario.title}</Text>
+                                    <Text style={{ fontSize: 14, color: theme.secondaryText }} numberOfLines={2}>{scenario.description}</Text>
                                 </View>
 
-                                <Ionicons name="chevron-forward" size={20} color={theme.textMuted} style={{ marginLeft: 8 }} />
+                                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: theme.tertiaryBackground, justifyContent: 'center', alignItems: 'center', marginLeft: 8 }}>
+                                    <Ionicons name="chevron-forward" size={18} color={theme.primary} />
+                                </View>
                             </TouchableOpacity>
                         );
                     })}
+                    <View style={{ height: 40 }} />
                 </View>
             </Animated.ScrollView>
         </View>
@@ -777,36 +816,60 @@ const styles = StyleSheet.create({
 
     // Chat Styles
     header: {
-        height: Platform.OS === 'ios' ? 100 : 80,
+        height: Platform.OS === 'ios' ? 110 : 90,
         paddingTop: Platform.OS === 'ios' ? 50 : 30,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
+        paddingHorizontal: 8,
         borderBottomWidth: 1,
     },
     backBtn: {
-        padding: 8,
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    headerTitleContainer: {
+        flex: 1,
+        alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 16,
+        fontSize: 17,
         fontWeight: '700',
-        textAlign: 'center',
+        letterSpacing: -0.3,
+    },
+    headerStatus: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginTop: 2,
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
     },
     headerSubtitle: {
         fontSize: 12,
-        textAlign: 'center',
+        fontWeight: '500',
+    },
+    headerInfoBtn: {
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     chatScroll: {
         flex: 1,
     },
     chatContent: {
         padding: 16,
+        paddingTop: 8,
     },
     messageRow: {
         flexDirection: 'row',
-        marginBottom: 20,
-        alignItems: 'flex-end',
+        marginBottom: 24,
+        alignItems: 'flex-start',
     },
     msgLeft: {
         justifyContent: 'flex-start',
@@ -815,36 +878,43 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
     },
     avatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 30,
+        height: 30,
+        borderRadius: 8,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 8,
+        marginRight: 10,
+        marginTop: 4,
     },
     avatarText: {
         color: '#FFF',
         fontWeight: '700',
-        fontSize: 14,
+        fontSize: 12,
     },
     bubble: {
-        maxWidth: '75%',
-        padding: 12,
-        borderRadius: 16,
+        maxWidth: '82%',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 20,
     },
     bubbleText: {
         fontSize: 16,
-        lineHeight: 22,
+        lineHeight: 24,
+        letterSpacing: -0.1,
+    },
+    translationContainer: {
+        marginTop: 10,
+        paddingTop: 8,
+        borderTopWidth: 1,
     },
     translationText: {
         fontSize: 13,
-        marginTop: 6,
+        lineHeight: 18,
         fontStyle: 'italic',
     },
     typingText: {
-        fontSize: 12,
-        fontStyle: 'italic',
-        marginLeft: 40,
+        fontSize: 14,
+        fontWeight: '500',
     },
     optionsContainer: {
         padding: 20,
@@ -865,25 +935,40 @@ const styles = StyleSheet.create({
     optionText: {
         fontSize: 16,
     },
+    aiInputWrapper: {
+        paddingHorizontal: 16,
+        paddingTop: 12,
+        paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+    },
     aiInputContainer: {
         flexDirection: 'row',
-        alignItems: 'center',
-        padding: 12,
-        borderTopWidth: 1,
-        gap: 10,
+        alignItems: 'flex-end',
+        padding: 6,
+        paddingLeft: 16,
+        borderRadius: 28,
+        borderWidth: 1.5,
+        minHeight: 52,
+        gap: 8,
     },
     aiInput: {
         flex: 1,
-        height: 44,
-        borderRadius: 22,
-        paddingHorizontal: 16,
         fontSize: 16,
+        paddingTop: 10,
+        paddingBottom: 10,
+        maxHeight: 120,
     },
     aiSendBtn: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: 0,
     },
+    aiInputFooter: {
+        fontSize: 10,
+        textAlign: 'center',
+        marginTop: 8,
+        fontWeight: '500',
+    }
 });
