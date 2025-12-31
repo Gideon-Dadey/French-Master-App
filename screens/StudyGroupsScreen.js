@@ -477,7 +477,7 @@ export default function StudyGroupsScreen({ navigation }) {
                   style={styles.emptyButtonGradient}
                 >
                   <Ionicons name="add-circle" size={20} color="#FFFFFF" />
-                  <Text style={styles.emptyButtonText}>Create Study Group</Text>
+                  <Text style={[styles.emptyButtonText, { color: theme.textOnPrimary || '#FFFFFF' }]}>Create Study Group</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </Animated.View>
@@ -592,8 +592,8 @@ export default function StudyGroupsScreen({ navigation }) {
                   end={{ x: 1, y: 0 }}
                   style={styles.modalJoinGradient}
                 >
-                  <Text style={styles.modalJoinText}>Join Group</Text>
-                  <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                  <Text style={[styles.modalJoinText, { color: theme.textOnPrimary || '#FFFFFF' }]}>Join Group</Text>
+                  <Ionicons name="arrow-forward" size={18} color={theme.textOnPrimary || "#FFFFFF"} />
                 </LinearGradient>
               </TouchableOpacity>
 

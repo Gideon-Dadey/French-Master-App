@@ -690,13 +690,13 @@ export default function CreateStudyGroupScreen({ navigation }) {
                 >
                   {loading ? (
                     <>
-                      <ActivityIndicator color="#FFFFFF" size="small" />
-                      <Text style={styles.submitText}>Creating Group...</Text>
+                      <ActivityIndicator color={theme.textOnPrimary || "#FFFFFF"} size="small" />
+                      <Text style={[styles.submitText, { color: theme.textOnPrimary || '#FFFFFF' }]}>Creating Group...</Text>
                     </>
                   ) : (
                     <>
-                      <Ionicons name="rocket" size={22} color="#FFFFFF" />
-                      <Text style={styles.submitText}>Create Study Group</Text>
+                      <Ionicons name="rocket" size={22} color={theme.textOnPrimary || "#FFFFFF"} />
+                      <Text style={[styles.submitText, { color: theme.textOnPrimary || '#FFFFFF' }]}>Create Study Group</Text>
                     </>
                   )}
                 </LinearGradient>

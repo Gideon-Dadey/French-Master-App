@@ -341,7 +341,7 @@ function PremiumGroupCard({ group, theme, navigation }) {
           <Text style={[styles.levelText, { color: theme.primary }]}>{group.level || 'All'}</Text>
         </View>
         <TouchableOpacity style={[styles.joinBtn, { backgroundColor: theme.primary }]}>
-          <Text style={styles.joinText}>Enter</Text>
+          <Text style={[styles.joinText, { color: theme.textOnPrimary || '#FFFFFF' }]}>Enter</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
