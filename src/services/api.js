@@ -5,23 +5,26 @@ import * as SecureStore from 'expo-secure-store';
 const getApiUrl = () => {
   // Use production URL for final Play Store release
   const PRODUCTION_URL = 'https://api.frenchmastergh.com/api';
-  // Ngrok public URL - accessible from anywhere on the internet
-  const NGROK_URL = 'https://eb7e54bcf266.ngrok-free.app/api';
-  // Local IP for same-network testing
-  const LOCAL_TEST_URL = 'http://192.168.190.80:5001/api';
+
+  // 1. CLAIM YOUR FREE STATIC DOMAIN at dashboard.ngrok.com
+  // 2. PASTE IT HERE (e.g., 'your-name.ngrok-free.app')
+  const STABLE_DOMAIN = 'compulsively-unevincible-irwin.ngrok-free.dev';
+
+  const NGROK_URL = `https://${STABLE_DOMAIN}/api`;
+  const LOCAL_IP_URL = 'http://192.168.232.80:5001/api';
 
   if (__DEV__) {
-    // In development (Expo Go), use local URL
+    // In development (Expo Go), use ngrok for better mobile connectivity
     if (Platform.OS === 'android') {
-      return LOCAL_TEST_URL;
+      return NGROK_URL;
     }
     if (Platform.OS === 'ios') {
-      return 'http://localhost:5001/api';
+      return NGROK_URL;
     }
-    return LOCAL_TEST_URL;
+    return NGROK_URL;
   }
 
-  // Using ngrok URL so anyone can access the app (your friend included!)
+  // For production builds, also use ngrok if not on production server
   return NGROK_URL;
 };
 

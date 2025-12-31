@@ -10,7 +10,6 @@ import {
   RefreshControl,
   TextInput,
   Alert,
-  Dimensions,
   Modal,
   Image,
   Animated,
@@ -36,7 +35,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
-import { spacing, fontSize, colors as themeColors } from '../src/utils/responsive';
+import { spacing, fontSize, screenWidth, screenHeight, colors as themeColors } from '../src/utils/responsive';
 import { studyGroupsAPI, uploadsAPI } from '../src/services/api';
 import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
 import LoadingSpinner from '../src/components/LoadingSpinner';
@@ -48,6 +47,14 @@ import MessageBubble from '../src/components/studyGroups/MessageBubble';
 import ChatInput from '../src/components/studyGroups/ChatInput';
 import AttachmentMenu from '../src/components/studyGroups/AttachmentMenu';
 import RecordingOverlay from '../src/components/studyGroups/RecordingOverlay';
+import EmojiPicker from '../src/components/studyGroups/modals/EmojiPicker';
+import InfoSection from '../src/components/studyGroups/InfoSection';
+import IncomingCallModal from '../src/components/studyGroups/modals/IncomingCallModal';
+import VoiceCallModal from '../src/components/studyGroups/modals/VoiceCallModal';
+import GroupOptionsModal from '../src/components/studyGroups/modals/GroupOptionsModal';
+import EditGroupModal from '../src/components/studyGroups/modals/EditGroupModal';
+import GroupInfoModal from '../src/components/studyGroups/modals/GroupInfoModal';
+import BackgroundPickerModal from '../src/components/studyGroups/modals/BackgroundPickerModal';
 
 // Chat Utilities
 import {
@@ -59,66 +66,11 @@ import {
   detectURL
 } from '../src/utils/chatUtils';
 
-const { width, height } = Dimensions.get('window');
+const width = screenWidth;
+const height = screenHeight;
 // ... rest of constants ...
 
-const EMOJI_CATEGORIES = [
-  {
-    name: 'Smileys',
-    icon: 'happy-outline',
-    emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '☺️', '😚', '😙', '🥲', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '😵‍💫', '🤯', '🤠', '🥳', '🥸', '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾'],
-  },
-  {
-    name: 'People',
-    icon: 'person-outline',
-    emojis: ['👶', '👧', '🧒', '👦', '👩', '🧑', '👨', '👩‍🦱', '🧑‍🦱', '👨‍🦱', '👩‍🦰', '🧑‍🦰', '👨‍🦰', '👱‍♀️', '👱', '👱‍♂️', '👩‍🦳', '🧑‍🦳', '👨‍🦳', '👩‍🦲', '🧑‍🦲', '👨‍🦲', '🧔‍♀️', '🧔', '🧔‍♂️', '👵', '🧓', '👴', '👲', '👳‍♀️', '👳', '👳‍♂️', '🧕', '👮‍♀️', '👮', '👮‍♂️', '👷‍♀️', '👷', '👷‍♂️', '💂‍♀️', '💂', '💂‍♂️', '🕵️‍♀️', '🕵️', '🕵️‍♂️', '👩‍⚕️', '🧑‍⚕️', '👨‍⚕️', '👩‍🌾', '🧑‍🌾', '👨‍🌾', '👩‍🍳', '🧑‍🍳', '👨‍🍳', '👩‍🎓', '🧑‍🎓', '👨‍🎓', '👩‍🎤', '🧑‍🎤', '👨‍🎤', '👩‍🏫', '🧑‍🏫', '👨‍🏫', '👩‍🏭', '🧑‍🏭', '👨‍🏭', '👩‍💻', '🧑‍💻', '👨‍💻', '👩‍💼', '🧑‍💼', '👨‍💼', '👩‍🔧', '🧑‍🔧', '👨‍🔧', '👩‍🔬', '🧑‍🔬', '👨‍🔬', '👩‍🎨', '🧑‍🎨', '👨‍🎨', '👩‍🚒', '🧑‍🚒', '👨‍🚒', '👩‍✈️', '🧑‍✈️', '👨‍✈️', '👩‍🚀', '🧑‍🚀', '👨‍🚀', '👩‍⚖️', '🧑‍⚖️', '👨‍⚖️', '👰‍♀️', '👰', '👰‍♂️', '🤵‍♀️', '🤵', '🤵‍♂️', '👸', '🤴', '🥷', '🦸‍♀️', '🦸', '🦸‍♂️', '🦹‍♀️', '🦹', '🦹‍♂️', '🤶', '🧑‍🎄', '🎅', '🧙‍♀️', '🧙', '🧙‍♂️', '🧝‍♀️', '🧝', '🧝‍♂️', '🧛‍♀️', '🧛', '🧛‍♂️', '🧟‍♀️', '🧟', '🧟‍♂️', '🧞‍♀️', '🧞', '🧞‍♂️', '🧜‍♀️', '🧜', '🧜‍♂️', '🧚‍♀️', '🧚', '🧚‍♂️', '👼', '🤰', '🤱', '👩‍🍼', '🧑‍🍼', '👨‍🍼', '🙇‍♀️', '🙇', '🙇‍♂️', '💁‍♀️', '💁', '💁‍♂️', '🙅‍♀️', '🙅', '🙅‍♂️', '🙆‍♀️', '🙆', '🙆‍♂️', '🙋‍♀️', '🙋', '🙋‍♂️', '🧏‍♀️', '🧏', '🧏‍♂️', '🤦‍♀️', '🤦', '🤦‍♂️', '🤷‍♀️', '🤷', '🤷‍♂️'],
-  },
-  {
-    name: 'Gestures',
-    icon: 'hand-left-outline',
-    emojis: ['👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋', '🩸', '👣', '🫂', '👤', '👥', '🗣️', '👶', '🧒', '👦', '👧'],
-  },
-  {
-    name: 'Hearts',
-    icon: 'heart-outline',
-    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❤️‍🔥', '❤️‍🩹', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭'],
-  },
-  {
-    name: 'Animals',
-    icon: 'paw-outline',
-    emojis: ['🐶', '🐕', '🦮', '🐕‍🦺', '🐩', '🐺', '🦊', '🦝', '🐱', '🐈', '🐈‍⬛', '🦁', '🐯', '🐅', '🐆', '🐴', '🐎', '🦄', '🦓', '🦌', '🦬', '🐮', '🐂', '🐃', '🐄', '🐷', '🐖', '🐗', '🐽', '🐏', '🐑', '🐐', '🐪', '🐫', '🦙', '🦒', '🐘', '🦣', '🦏', '🦛', '🐭', '🐁', '🐀', '🐹', '🐰', '🐇', '🐿️', '🦫', '🦔', '🦇', '🐻', '🐻‍❄️', '🐨', '🐼', '🦥', '🦦', '🦨', '🦘', '🦡', '🐾', '🦃', '🐔', '🐓', '🐣', '🐤', '🐥', '🐦', '🐧', '🕊️', '🦅', '🦆', '🦢', '🦉', '🦤', '🪶', '🦩', '🦚', '🦜', '🐸', '🐊', '🐢', '🦎', '🐍', '🐲', '🐉', '🦕', '🦖', '🐳', '🐋', '🐬', '🦭', '🐟', '🐠', '🐡', '🦈', '🐙', '🐚', '🐌', '🦋', '🐛', '🐜', '🐝', '🪲', '🐞', '🦗', '🪳', '🕷️', '🕸️', '🦂', '🦟', '🪰', '🪱', '🦠'],
-  },
-  {
-    name: 'Food',
-    icon: 'fast-food-outline',
-    emojis: ['🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🫒', '🧄', '🧅', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🦴', '🌭', '🍔', '🍟', '🍕', '🫓', '🥪', '🥙', '🧆', '🌮', '🌯', '🫔', '🥗', '🥘', '🫕', '🥫', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🦪', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠', '🥮', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍩', '🍪', '🌰', '🥜', '🍯', '🥛', '🍼', '🫖', '☕', '🍵', '🧃', '🥤', '🧋', '🍶', '🍺', '🍻', '🥂', '🍷', '🥃', '🍸', '🍹', '🧉', '🍾', '🧊', '🥄', '🍴', '🍽️', '🥣', '🥡', '🥢', '🧂'],
-  },
-  {
-    name: 'Activities',
-    icon: 'football-outline',
-    emojis: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️‍♀️', '🏋️', '🏋️‍♂️', '🤼‍♀️', '🤼', '🤼‍♂️', '🤸‍♀️', '🤸', '🤸‍♂️', '⛹️‍♀️', '⛹️', '⛹️‍♂️', '🤺', '🤾‍♀️', '🤾', '🤾‍♂️', '🏌️‍♀️', '🏌️', '🏌️‍♂️', '🏇', '🧘‍♀️', '🧘', '🧘‍♂️', '🏄‍♀️', '🏄', '🏄‍♂️', '🏊‍♀️', '🏊', '🏊‍♂️', '🤽‍♀️', '🤽', '🤽‍♂️', '🚣‍♀️', '🚣', '🚣‍♂️', '🧗‍♀️', '🧗', '🧗‍♂️', '🚵‍♀️', '🚵', '🚵‍♂️', '🚴‍♀️', '🚴', '🚴‍♂️', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️', '🎫', '🎟️', '🎪', '🤹‍♀️', '🤹', '🤹‍♂️', '🎭', '🩰', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🪘', '🎷', '🎺', '🪗', '🎸', '🪕', '🎻', '🎲', '♟️', '🎯', '🎳', '🎮', '🎰', '🧩'],
-  },
-  {
-    name: 'Travel',
-    icon: 'airplane-outline',
-    emojis: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🛻', '🚚', '🚛', '🚜', '🦯', '🦽', '🦼', '🛴', '🚲', '🛵', '🏍️', '🛺', '🚨', '🚔', '🚍', '🚘', '🚖', '🚡', '🚠', '🚟', '🚃', '🚋', '🚞', '🚝', '🚄', '🚅', '🚈', '🚂', '🚆', '🚇', '🚊', '🚉', '✈️', '🛫', '🛬', '🛩️', '💺', '🛰️', '🚀', '🛸', '🚁', '🛶', '⛵', '🚤', '🛥️', '🛳️', '⛴️', '🚢', '⚓', '🪝', '⛽', '🚧', '🚦', '🚥', '🚏', '🗺️', '🗿', '🗽', '🗼', '🏰', '🏯', '🏟️', '🎡', '🎢', '🎠', '⛲', '⛱️', '🏖️', '🏝️', '🏜️', '🌋', '⛰️', '🏔️', '🗻', '🏕️', '⛺', '🛖', '🏠', '🏡', '🏘️', '🏚️', '🏗️', '🏭', '🏢', '🏬', '🏣', '🏤', '🏥', '🏦', '🏨', '🏪', '🏫', '🏩', '💒', '🏛️', '⛪', '🕌', '🕍', '🛕', '🕋', '⛩️', '🛤️', '🛣️', '🗾', '🎑', '🏞️', '🌅', '🌄', '🌠', '🎇', '🎆', '🌇', '🌆', '🏙️', '🌃', '🌌', '🌉', '🌁'],
-  },
-  {
-    name: 'Objects',
-    icon: 'bulb-outline',
-    emojis: ['⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🗜️', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🪛', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🪚', '🔩', '⚙️', '🪤', '🧱', '⛓️', '🧲', '🔫', '💣', '🧨', '🪓', '🔪', '🗡️', '⚔️', '🛡️', '🚬', '⚰️', '🪦', '⚱️', '🏺', '🔮', '📿', '🧿', '💈', '⚗️', '🔭', '🔬', '🕳️', '🩹', '🩺', '💊', '💉', '🩸', '🧬', '🦠', '🧫', '🧪', '🌡️', '🧹', '🪠', '🧺', '🧻', '🚽', '🚰', '🚿', '🛁', '🛀', '🧼', '🪥', '🪒', '🧽', '🪣', '🧴', '🛎️', '🔑', '🗝️', '🚪', '🪑', '🛋️', '🛏️', '🛌', '🧸', '🪆', '🖼️', '🪞', '🪟', '🛍️', '🛒', '🎁', '🎈', '🎏', '🎀', '🪄', '🪅', '🎊', '🎉', '🎎', '🏮', '🎐', '🧧', '✉️', '📩', '📨', '📧', '💌', '📥', '📤', '📦', '🏷️', '🪧', '📪', '📫', '📬', '📭', '📮', '📯', '📜', '📃', '📄', '📑', '🧾', '📊', '📈', '📉', '🗒️', '🗓️', '📆', '📅', '🗑️', '📇', '🗃️', '🗳️', '🗄️', '📋', '📁', '📂', '🗂️', '🗞️', '📰', '📓', '📔', '📒', '📕', '📗', '📘', '📙', '📚', '📖', '🔖', '🧷', '🔗', '📎', '🖇️', '📐', '📏', '🧮', '📌', '📍', '✂️', '🖊️', '🖋️', '✒️', '🖌️', '🖍️', '📝', '✏️', '🔍', '🔎', '🔏', '🔐', '🔒', '🔓'],
-  },
-  {
-    name: 'Symbols',
-    icon: 'star-outline',
-    emojis: ['⭐', '🌟', '✨', '💫', '🔥', '💥', '💢', '💦', '💨', '🕳️', '💣', '💬', '👁️‍🗨️', '🗨️', '🗯️', '💭', '💤', '✅', '❌', '❓', '❗', '‼️', '⁉️', '💯', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔶', '🔷', '🔸', '🔹', '🔺', '🔻', '💠', '🔘', '🔳', '🔲', '🏁', '🚩', '🎌', '🏴', '🏳️', '🏳️‍🌈', '🏳️‍⚧️', '🏴‍☠️', '🇦🇨', '🇦🇩', '🇦🇪', '🇦🇫', '🔈', '🔇', '🔉', '🔊', '🔔', '🔕', '📣', '📢', '👁️‍🗨️', '💬', '💭', '🗯️', '♠️', '♣️', '♥️', '♦️', '🃏', '🎴', '🀄', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟', '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱', '™️', '©️', '®️', '〰️', '➰', '➿', '🔚', '🔙', '🔛', '🔝', '🔜', '✔️', '☑️', '🔘', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔺', '🔻', '🔸', '🔹', '🔶', '🔷', '🔳', '🔲', '▪️', '▫️', '◾', '◽', '◼️', '◻️', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛', '⬜', '🟫', '🔈', '🔇', '🔉', '🔊', '🔔', '🔕', '📣', '📢'],
-  },
-  {
-    name: 'Flags',
-    icon: 'flag-outline',
-    emojis: ['🏁', '🚩', '🎌', '🏴', '🏳️', '🏳️‍🌈', '🏳️‍⚧️', '🏴‍☠️', '🇬🇭', '🇫🇷', '🇬🇧', '🇺🇸', '🇨🇦', '🇩🇪', '🇪🇸', '🇮🇹', '🇯🇵', '🇰🇷', '🇨🇳', '🇮🇳', '🇧🇷', '🇲🇽', '🇦🇺', '🇳🇬', '🇿🇦', '🇰🇪', '🇪🇬', '🇷🇺', '🇸🇦', '🇦🇪', '🇹🇷', '🇮🇱', '🇵🇰', '🇧🇩', '🇮🇩', '🇵🇭', '🇻🇳', '🇹🇭', '🇲🇾', '🇸🇬', '🇳🇿', '🇦🇷', '🇨🇴', '🇨🇱', '🇵🇪', '🇻🇪', '🇪🇨', '🇧🇴', '🇵🇾', '🇺🇾', '🇨🇺', '🇯🇲', '🇭🇹', '🇩🇴', '🇵🇷', '🇵🇦', '🇨🇷', '🇬🇹', '🇭🇳', '🇳🇮', '🇸🇻', '🇧🇿', '🇵🇱', '🇺🇦', '🇨🇿', '🇦🇹', '🇨🇭', '🇧🇪', '🇳🇱', '🇸🇪', '🇳🇴', '🇩🇰', '🇫🇮', '🇮🇪', '🇵🇹', '🇬🇷', '🇷🇴', '🇭🇺', '🇸🇰', '🇧🇬', '🇭🇷', '🇷🇸', '🇸🇮', '🇧🇦', '🇲🇰', '🇦🇱', '🇲🇪', '🇽🇰', '🇱🇹', '🇱🇻', '🇪🇪', '🇧🇾', '🇲🇩', '🇬🇪', '🇦🇲', '🇦🇿', '🇰🇿', '🇺🇿', '🇹🇲', '🇰🇬', '🇹🇯', '🇲🇳', '🇦🇫', '🇮🇷', '🇮🇶', '🇸🇾', '🇯🇴', '🇱🇧', '🇰🇼', '🇶🇦', '🇧🇭', '🇴🇲', '🇾🇪', '🇲🇦', '🇩🇿', '🇹🇳', '🇱🇾', '🇸🇩', '🇸🇸', '🇪🇹', '🇪🇷', '🇩🇯', '🇸🇴', '🇺🇬', '🇹🇿', '🇷🇼', '🇧🇮', '🇨🇩', '🇨🇬', '🇨🇫', '🇨🇲', '🇬🇦', '🇬🇶', '🇸🇹', '🇦🇴', '🇿🇲', '🇿🇼', '🇲🇿', '🇲🇼', '🇧🇼', '🇳🇦', '🇱🇸', '🇸🇿', '🇲🇬', '🇲🇺', '🇸🇨', '🇰🇲', '🇷🇪', '🇾🇹', '🇸🇳', '🇬🇲', '🇬🇼', '🇬🇳', '🇸🇱', '🇱🇷', '🇨🇮', '🇧🇫', '🇲🇱', '🇳🇪', '🇹🇬', '🇧🇯', '🇲🇷', '🇨🇻'],
-  },
-];
+
 
 export default function StudyGroupDetailScreen({ route, navigation }) {
   const { groupId, initialTab = 'discussions' } = route.params;
@@ -609,10 +561,33 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       }
 
       if (replyingTo) {
+        let replyContent = replyingTo.message || '';
+
+        // Try to parse if it's a JSON string (for existing messages)
+        try {
+          if (replyContent.trim().startsWith('{')) {
+            const parsed = JSON.parse(replyContent);
+            if (parsed.message) {
+              replyContent = parsed.message;
+            } else if (parsed.type === 'image') {
+              replyContent = '📷 Photo';
+            } else if (parsed.type === 'voice') {
+              replyContent = '🎤 Voice Message';
+            } else if (parsed.type === 'document') {
+              replyContent = '📄 Document';
+            } else if (parsed.type === 'link') {
+              replyContent = '🔗 Link';
+            }
+          }
+        } catch (e) {
+          // If parsing fails, use original text
+          console.log('Failed to parse reply message:', e);
+        }
+
         messageData.replyTo = {
           id: replyingTo._id || replyingTo.id,
           userName: replyingTo.user?.name || 'Member',
-          message: replyingTo.message?.substring(0, 50) + (replyingTo.message?.length > 50 ? '...' : ''),
+          message: replyContent.substring(0, 100) + (replyContent.length > 100 ? '...' : ''),
         };
       }
 
@@ -1393,7 +1368,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
         const messageId = discussion._id.toString();
         const existingReactions = prev[messageId] || [];
         const userReactionIndex = existingReactions.findIndex(
-          r => r.userId === user?._id && r.emoji === reaction.emoji
+          r => String(r.userId) === String(user?._id) && r.emoji === reaction.emoji
         );
 
         if (userReactionIndex >= 0) {
@@ -1531,852 +1506,18 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
     }
   };
 
-  const renderIncomingCallModal = () => (
-    <Modal visible={!!incomingCall} transparent animationType="slide">
-      <View style={styles.incomingCallOverlay}>
-        <BlurView intensity={80} tint="dark" style={StyleSheet.absoluteFill} />
-        <View style={styles.incomingCallContent}>
-          <LinearGradient
-            colors={['#667eea', '#764ba2']}
-            style={styles.incomingCallAvatar}
-          >
-            <Ionicons name="call" size={40} color="#FFF" />
-          </LinearGradient>
-
-          <Text style={styles.incomingCallTitle}>Incoming {incomingCall?.type} Call</Text>
-          <Text style={styles.incomingCallName}>{incomingCall?.callerName}</Text>
-          <Text style={styles.incomingCallGroup}>{group?.name}</Text>
-
-          <View style={styles.incomingCallActions}>
-            <TouchableOpacity
-              style={[styles.callActionBtn, { backgroundColor: '#FF3B30' }]}
-              onPress={rejectCall}
-            >
-              <Ionicons name="close" size={30} color="#FFF" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.callActionBtn, { backgroundColor: '#4CD964' }]}
-              onPress={acceptCall}
-            >
-              <Ionicons name="checkmark" size={30} color="#FFF" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-
-  const renderVoiceCallModal = () => (
-    <Modal visible={showVoiceCall} animationType="fade" statusBarTranslucent>
-      <LinearGradient
-        colors={['#667eea', '#764ba2', '#6B8DD6']}
-        style={styles.callBackground}
-      >
-        <View style={styles.voiceCallContainer}>
-          <Animated.View style={[styles.callAvatarContainer, { transform: [{ scale: callPulseAnim }] }]}>
-            <LinearGradient colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']} style={styles.callAvatarRing}>
-              <View style={styles.callAvatar}>
-                <Ionicons name="people" size={50} color="#FFFFFF" />
-              </View>
-            </LinearGradient>
-          </Animated.View>
-          <Text style={styles.callGroupName}>{group?.name}</Text>
-          <Text style={styles.callStatus}>
-            {callDuration > 0 ? formatCallDuration(callDuration) : 'Connecting...'}
-          </Text>
-          <View style={styles.callParticipants}>
-            <Text style={styles.callParticipantsText}>{memberCount} participants</Text>
-          </View>
-        </View>
-
-        <View style={styles.callControls}>
-          <View style={styles.callControlsRow}>
-            <TouchableOpacity style={[styles.callControlBtn, isMuted && styles.callControlBtnActive]} onPress={toggleMute}>
-              <Ionicons name={isMuted ? "mic-off" : "mic"} size={26} color="#FFFFFF" />
-              <Text style={styles.callControlLabel}>{isMuted ? 'Unmute' : 'Mute'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.callControlBtn, isSpeakerOn && styles.callControlBtnActive]} onPress={toggleSpeaker}>
-              <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={26} color="#FFFFFF" />
-              <Text style={styles.callControlLabel}>{isSpeakerOn ? 'Speaker' : 'Phone'}</Text>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity style={styles.endCallBtn} onPress={endCall}>
-            <LinearGradient colors={['#FF3B30', '#FF453A']} style={styles.endCallBtnGradient}>
-              <Ionicons name="call" size={30} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-    </Modal>
-  );
-
-  const renderGroupOptionsModal = () => (
-    <Modal
-      visible={showGroupOptions}
-      transparent={true}
-      animationType="none"
-      onRequestClose={closeGroupOptions}
-    >
-      <TouchableOpacity
-        style={styles.actionSheetOverlay}
-        activeOpacity={1}
-        onPress={closeGroupOptions}
-      >
-        <Animated.View
-          style={[
-            styles.actionSheetContainer,
-            {
-              transform: [{
-                translateY: groupOptionsAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [600, 0],
-                })
-              }]
-            }
-          ]}
-        >
-          {/* Main Card */}
-          <View style={[styles.premiumActionSheet, { backgroundColor: colors.card }]}>
-            {/* Header Area with Gradient Background */}
-            <LinearGradient
-              colors={isDarkMode ? ['#1E293B', '#0F172A'] : ['#F8FAFC', '#F1F5F9']}
-              style={styles.actionSheetHeaderPremium}
-            >
-              <View style={styles.actionSheetGroupInfoPremium}>
-                <View style={styles.actionSheetAvatarWrapper}>
-                  {group?.image ? (
-                    <Image source={{ uri: group.image }} style={styles.actionSheetAvatarPremium} />
-                  ) : (
-                    <LinearGradient
-                      colors={[premiumColors.primary.main, premiumColors.primary.light]}
-                      style={styles.actionSheetAvatarPlaceholderPremium}
-                    >
-                      <Ionicons name="people" size={32} color="#FFFFFF" />
-                    </LinearGradient>
-                  )}
-                  {isModerator() && (
-                    <View style={styles.adminBadgeSmall}>
-                      <Ionicons name="shield-checkmark" size={12} color="#FFFFFF" />
-                    </View>
-                  )}
-                </View>
-                <View style={styles.actionSheetNameWrapper}>
-                  <Text style={[styles.actionSheetGroupNamePremium, { color: colors.text }]}>{group?.name}</Text>
-                  <Text style={[styles.actionSheetGroupMetaPremium, { color: colors.secondaryText }]}>
-                    {memberCount} members • {group?.isPrivate ? 'Private' : 'Public'}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Quick Actions Grid */}
-              <View style={styles.quickActionsGrid}>
-                <TouchableOpacity
-                  style={styles.quickActionItem}
-                  onPress={() => handleMuteGroup(notificationSettings.muted ? null : '8 hours')}
-                >
-                  <View style={[styles.quickActionIconBox, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                    <Ionicons
-                      name={notificationSettings.muted ? "volume-off" : "volume-high"}
-                      size={20}
-                      color={notificationSettings.muted ? '#FF3B30' : premiumColors.primary.main}
-                    />
-                  </View>
-                  <Text style={[styles.quickActionLabel, { color: colors.secondaryText }]}>
-                    {notificationSettings.muted ? 'Unmute' : 'Mute'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.quickActionItem} onPress={handleShareGroup}>
-                  <View style={[styles.quickActionIconBox, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                    <Ionicons name="share-outline" size={20} color={premiumColors.primary.main} />
-                  </View>
-                  <Text style={[styles.quickActionLabel, { color: colors.secondaryText }]}>Share</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.quickActionItem} onPress={handleCopyInviteCode}>
-                  <View style={[styles.quickActionIconBox, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                    <Ionicons name="link" size={20} color={premiumColors.primary.main} />
-                  </View>
-                  <Text style={[styles.quickActionLabel, { color: colors.secondaryText }]}>Link</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.quickActionItem}
-                  onPress={() => { closeGroupOptions(); openGroupInfo(); }}
-                >
-                  <View style={[styles.quickActionIconBox, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                    <Ionicons name="information-circle-outline" size={20} color={premiumColors.primary.main} />
-                  </View>
-                  <Text style={[styles.quickActionLabel, { color: colors.secondaryText }]}>Info</Text>
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
-
-            <View style={styles.actionSheetContentPremium}>
-              {/* Settings Section */}
-              <View style={styles.actionSheetSectionPremium}>
-                {isModerator() && (
-                  <TouchableOpacity style={styles.actionSheetItemPremium} onPress={openEditGroup}>
-                    <View style={[styles.actionSheetIconPremium, { backgroundColor: '#3B82F620' }]}>
-                      <Ionicons name="settings-outline" size={18} color="#3B82F6" />
-                    </View>
-                    <Text style={[styles.actionSheetItemTextPremium, { color: colors.text }]}>Group Settings</Text>
-                    <Ionicons name="chevron-forward" size={16} color={colors.secondaryText} />
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                  style={styles.actionSheetItemPremium}
-                  onPress={() => {
-                    setShowGroupOptions(false);
-                    setTimeout(() => openBackgroundPicker(), 300);
-                  }}
-                >
-                  <View style={[styles.actionSheetIconPremium, { backgroundColor: '#10B98120' }]}>
-                    <Ionicons name="image-outline" size={18} color="#10B981" />
-                  </View>
-                  <Text style={[styles.actionSheetItemTextPremium, { color: colors.text }]}>Chat Wallpaper</Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.secondaryText} />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionSheetItemPremium} onPress={() => setShowNotificationSettings(true)}>
-                  <View style={[styles.actionSheetIconPremium, { backgroundColor: '#F59E0B20' }]}>
-                    <Ionicons name="notifications-outline" size={18} color="#F59E0B" />
-                  </View>
-                  <Text style={[styles.actionSheetItemTextPremium, { color: colors.text }]}>Notifications</Text>
-                  <Text style={[styles.actionSheetItemValuePremium, { color: colors.secondaryText }]}>
-                    {notificationSettings.muted ? 'Muted' : 'On'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Danger/Social Section */}
-              <View style={[styles.actionSheetSectionPremium, { marginTop: 12 }]}>
-                <TouchableOpacity style={styles.actionSheetItemPremium} onPress={handleReportGroup}>
-                  <View style={[styles.actionSheetIconPremium, { backgroundColor: '#64748B20' }]}>
-                    <Ionicons name="flag-outline" size={18} color="#64748B" />
-                  </View>
-                  <Text style={[styles.actionSheetItemTextPremium, { color: colors.text }]}>Report Group</Text>
-                </TouchableOpacity>
-
-                {isMember() && !isModerator() && (
-                  <TouchableOpacity style={styles.actionSheetItemPremium} onPress={handleLeave}>
-                    <View style={[styles.actionSheetIconPremium, { backgroundColor: '#EF444420' }]}>
-                      <Ionicons name="exit-outline" size={18} color="#EF4444" />
-                    </View>
-                    <Text style={[styles.actionSheetItemTextPremium, { color: '#EF4444' }]}>Leave Group</Text>
-                  </TouchableOpacity>
-                )}
-
-                {isModerator() && (
-                  <TouchableOpacity style={styles.actionSheetItemPremium} onPress={handleDeleteGroup}>
-                    <View style={[styles.actionSheetIconPremium, { backgroundColor: '#EF444420' }]}>
-                      <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                    </View>
-                    <Text style={[styles.actionSheetItemTextPremium, { color: '#EF4444' }]}>Delete Group</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          </View>
-
-          {/* Cancel Button */}
-          <TouchableOpacity
-            style={[styles.premiumActionSheetCancel, { backgroundColor: colors.card }]}
-            onPress={closeGroupOptions}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.premiumActionSheetCancelText, { color: premiumColors.primary.main }]}>Close Menu</Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </TouchableOpacity>
-    </Modal>
-  );
 
 
-  const renderEditGroupModal = () => (
-    <Modal
-      visible={showEditGroup}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={() => setShowEditGroup(false)}
-    >
-      <View style={[styles.editGroupModal, { backgroundColor: colors.background }]}>
 
-        <View style={[styles.editGroupHeader, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={() => setShowEditGroup(false)}>
-            <Text style={[styles.editGroupCancelBtn, { color: '#007AFF' }]}>Cancel</Text>
-          </TouchableOpacity>
-          <Text style={[styles.editGroupTitle, { color: colors.text }]}>Edit Group</Text>
-          <TouchableOpacity onPress={handleSaveGroupEdit} disabled={editGroupImageLoading}>
-            {editGroupImageLoading ? (
-              <ActivityIndicator size="small" color="#007AFF" />
-            ) : (
-              <Text style={[styles.editGroupSaveBtn, { color: '#007AFF' }]}>Save</Text>
-            )}
-          </TouchableOpacity>
-        </View>
 
-        <ScrollView style={styles.editGroupContent} showsVerticalScrollIndicator={false}>
 
-          <View style={styles.editGroupPhotoSection}>
-            <TouchableOpacity onPress={showGroupImageOptions} activeOpacity={0.8}>
-              {editGroupData.image ? (
-                <View style={styles.editGroupPhotoContainer}>
-                  <Image
-                    source={{ uri: editGroupData.image }}
-                    style={styles.editGroupPhotoImage}
-                  />
-                  <View style={styles.editGroupPhotoOverlay}>
-                    <Ionicons name="camera" size={24} color="#FFFFFF" />
-                  </View>
-                </View>
-              ) : (
-                <View style={[styles.editGroupPhoto, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                  <Ionicons name="people" size={50} color={premiumColors.primary.main} />
-                  <View style={styles.editGroupPhotoOverlay}>
-                    <Ionicons name="camera" size={24} color="#FFFFFF" />
-                  </View>
-                </View>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.editGroupPhotoBtn} onPress={showGroupImageOptions}>
-              <Text style={[styles.editGroupPhotoBtnText, { color: '#007AFF' }]}>
-                {editGroupData.image ? 'Change Photo' : 'Add Photo'}
-              </Text>
-            </TouchableOpacity>
-          </View>
 
-          <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
-            <Text style={[styles.editGroupSectionTitle, { color: colors.secondaryText }]}>GROUP INFO</Text>
 
-            <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.editGroupFieldLabel, { color: colors.secondaryText }]}>Name</Text>
-              <TextInput
-                style={[styles.editGroupFieldInput, { color: colors.text }]}
-                value={editGroupData.name}
-                onChangeText={(text) => setEditGroupData(prev => ({ ...prev, name: text }))}
-                placeholder="Group Name"
-                placeholderTextColor={colors.secondaryText}
-              />
-            </View>
 
-            <View style={styles.editGroupField}>
-              <Text style={[styles.editGroupFieldLabel, { color: colors.secondaryText }]}>Description</Text>
-              <TextInput
-                style={[styles.editGroupFieldInput, styles.editGroupFieldMultiline, { color: colors.text }]}
-                value={editGroupData.description}
-                onChangeText={(text) => setEditGroupData(prev => ({ ...prev, description: text }))}
-                placeholder="Describe your group"
-                placeholderTextColor={colors.secondaryText}
-                multiline
-                numberOfLines={3}
-              />
-            </View>
-          </View>
 
-          <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
-            <Text style={[styles.editGroupSectionTitle, { color: colors.secondaryText }]}>SETTINGS</Text>
 
-            <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Level</Text>
-              <View style={styles.editGroupOptionsRow}>
-                {['beginner', 'intermediate', 'advanced', 'all'].map((level) => (
-                  <TouchableOpacity
-                    key={level}
-                    style={[
-                      styles.editGroupOption,
-                      { borderColor: colors.border },
-                      editGroupData.level === level && { backgroundColor: premiumColors.primary.main, borderColor: premiumColors.primary.main }
-                    ]}
-                    onPress={() => setEditGroupData(prev => ({ ...prev, level }))}
-                  >
-                    <Text style={[
-                      styles.editGroupOptionText,
-                      { color: colors.secondaryText },
-                      editGroupData.level === level && { color: '#FFFFFF' }
-                    ]}>
-                      {level.charAt(0).toUpperCase() + level.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
 
-            <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Focus</Text>
-              <View style={styles.editGroupOptionsRow}>
-                {['grammar', 'conversation', 'vocabulary', 'general'].map((focus) => (
-                  <TouchableOpacity
-                    key={focus}
-                    style={[
-                      styles.editGroupOption,
-                      { borderColor: colors.border },
-                      editGroupData.focus === focus && { backgroundColor: premiumColors.primary.main, borderColor: premiumColors.primary.main }
-                    ]}
-                    onPress={() => setEditGroupData(prev => ({ ...prev, focus }))}
-                  >
-                    <Text style={[
-                      styles.editGroupOptionText,
-                      { color: colors.secondaryText },
-                      editGroupData.focus === focus && { color: '#FFFFFF' }
-                    ]}>
-                      {focus.charAt(0).toUpperCase() + focus.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
 
-            <View style={[styles.editGroupField, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.editGroupFieldLabel, { color: colors.text }]}>Max Members</Text>
-              <View style={styles.editGroupSliderRow}>
-                <TouchableOpacity
-                  style={[styles.editGroupSliderBtn, { backgroundColor: colors.border }]}
-                  onPress={() => setEditGroupData(prev => ({ ...prev, maxMembers: Math.max(5, prev.maxMembers - 5) }))}
-                >
-                  <Ionicons name="remove" size={20} color={colors.text} />
-                </TouchableOpacity>
-                <Text style={[styles.editGroupSliderValue, { color: colors.text }]}>{editGroupData.maxMembers}</Text>
-                <TouchableOpacity
-                  style={[styles.editGroupSliderBtn, { backgroundColor: colors.border }]}
-                  onPress={() => setEditGroupData(prev => ({ ...prev, maxMembers: Math.min(100, prev.maxMembers + 5) }))}
-                >
-                  <Ionicons name="add" size={20} color={colors.text} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.editGroupToggleField}>
-              <View style={styles.editGroupToggleInfo}>
-                <Ionicons name="lock-closed" size={22} color={colors.text} />
-                <View style={styles.editGroupToggleText}>
-                  <Text style={[styles.editGroupToggleLabel, { color: colors.text }]}>Private Group</Text>
-                  <Text style={[styles.editGroupToggleDesc, { color: colors.secondaryText }]}>
-                    Only invited members can join
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={[
-                  styles.editGroupToggle,
-                  { backgroundColor: editGroupData.isPrivate ? '#34C759' : colors.border }
-                ]}
-                onPress={() => setEditGroupData(prev => ({ ...prev, isPrivate: !prev.isPrivate }))}
-              >
-                <Animated.View style={[
-                  styles.editGroupToggleThumb,
-                  { marginLeft: editGroupData.isPrivate ? 22 : 2 }
-                ]} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={[styles.editGroupSection, { backgroundColor: colors.card }]}>
-            <Text style={[styles.editGroupSectionTitle, { color: '#FF3B30' }]}>DANGER ZONE</Text>
-
-            <TouchableOpacity style={styles.editGroupDangerBtn} onPress={handleDeleteGroup}>
-              <Ionicons name="trash-outline" size={22} color="#FF3B30" />
-              <Text style={styles.editGroupDangerBtnText}>Delete Group</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={{ height: 50 }} />
-        </ScrollView>
-      </View>
-    </Modal>
-  );
-
-  // Telegram-style Gradients
-  const premiumGradients = [
-    ['#ff9a9e', '#fecfef'], ['#a18cd1', '#fbc2eb'], ['#fad0c4', '#ffd1ff'],
-    ['#ffecd2', '#fcb69f'], ['#84fab0', '#8fd3f4'], ['#a1c4fd', '#c2e9fb'],
-    ['#e0c3fc', '#8ec5fc'], ['#f093fb', '#f5576c'], ['#4facfe', '#00f2fe'],
-    ['#43e97b', '#38f9d7'], ['#fa709a', '#fee140'], ['#667eea', '#764ba2'],
-    ['#2af598', '#009efd'], ['#6a11cb', '#2575fc'], ['#f77062', '#fe5196'],
-    ['#cfd9df', '#e2ebf0'], ['#a8edea', '#fed6e3'], ['#5ee7df', '#b490ca'],
-    ['#d299c2', '#fef9d7'], ['#fddb92', '#d1fdff'], ['#9890e3', '#b1f4cf'],
-  ];
-
-  // Telegram-style Solid Colors
-  const backgroundColors = isDarkMode ? [
-    '#0F172A', '#1E293B', '#334155', '#475569', '#1e1e1e', '#212121',
-    '#2c3e50', '#000000', '#192a56', '#2f3640', '#353b48', '#222f3e',
-    '#57606f', '#747d8c', '#a4b0be', '#2f3542', '#212f3c', '#2c2c54',
-  ] : [
-    '#F8FAFC', '#F1F5F9', '#E2E8F0', '#dff9fb', '#f7f1e3', '#f1f2f6',
-    '#dfe4ea', '#ced6e0', '#a4b0be', '#57606f', '#747d8c', '#2f3542',
-    '#ffffff', '#f5f6fa', '#dcdde1', '#718093', '#353b48', '#2f3640',
-  ];
-
-  const renderBackgroundPickerModal = () => (
-    <Modal
-      visible={showBackgroundPicker}
-      transparent={false}
-      animationType="slide"
-      onRequestClose={closeBackgroundPicker}
-    >
-      <View style={[styles.wallpaperModalContainer, { backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff' }]}>
-        {/* Telegram-style Header */}
-        <View style={[styles.wallpaperHeaderTelegram, { borderBottomColor: colors.border }]}>
-          <TouchableOpacity onPress={closeBackgroundPicker} style={styles.wallpaperBackBtnTelegram}>
-            <Ionicons name="close" size={26} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.wallpaperHeaderTitleTelegram, { color: colors.text }]}>Chat Wallpaper</Text>
-          <TouchableOpacity onPress={resetBackground} style={styles.wallpaperResetBtnTelegram}>
-            <Text style={{ color: premiumColors.primary.main, fontSize: 16, fontWeight: '600' }}>Reset</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          style={styles.wallpaperScrollViewTelegram}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 40 }}
-        >
-          {/* Main Preview */}
-          <View style={styles.wallpaperPreviewContainerTelegram}>
-            <View style={[styles.wallpaperPreviewFrameTelegram, { borderColor: colors.border }]}>
-              {/* Dynamic Background */}
-              <View style={[
-                styles.wallpaperPreviewBox,
-                chatBackground?.type === 'color' && { backgroundColor: chatBackground.value },
-                !chatBackground && { backgroundColor: isDarkMode ? '#0B141A' : '#E4DDD6' },
-              ]}>
-                {chatBackground?.type === 'image' && (
-                  <Image
-                    source={{ uri: chatBackground.value }}
-                    style={styles.wallpaperPreviewImage}
-                    resizeMode="cover"
-                  />
-                )}
-                {chatBackground?.type === 'gradient' && (
-                  <LinearGradient
-                    colors={chatBackground.value}
-                    style={styles.wallpaperPreviewImage}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  />
-                )}
-
-                {/* Telegram-like Bubbles */}
-                <View style={styles.wallpaperPreviewChat}>
-                  <View style={[styles.wallpaperBubbleStart, { backgroundColor: isDarkMode ? '#1E293B' : '#FFFFFF' }]}>
-                    <Text style={[styles.wallpaperText, { color: colors.text }]}>Check out this new wallpaper! 🎨</Text>
-                    <Text style={[styles.wallpaperTime, { color: colors.secondaryText }]}>10:41</Text>
-                  </View>
-                  <View style={[styles.wallpaperBubbleEnd, { backgroundColor: premiumColors.primary.main }]}>
-                    <Text style={[styles.wallpaperText, { color: '#ffffff' }]}>Looks amazing! 😍</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end', marginTop: 4 }}>
-                      <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>10:42</Text>
-                      <Ionicons name="checkmark-done" size={14} color="#fff" />
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          {/* Gallery Button */}
-          <TouchableOpacity
-            style={[styles.wallpaperGalleryBtn, { backgroundColor: colors.card }]}
-            onPress={pickBackgroundImage}
-          >
-            <View style={styles.wallpaperGalleryIcon}>
-              <Ionicons name="camera-outline" size={24} color={premiumColors.primary.main} />
-            </View>
-            <Text style={[styles.wallpaperGalleryText, { color: premiumColors.primary.main }]}>Set from Gallery</Text>
-          </TouchableOpacity>
-
-          {/* Gradients Section */}
-          <View style={styles.wallpaperSectionTelegram}>
-            <Text style={[styles.wallpaperSectionTitleTelegram, { color: colors.secondaryText }]}>MOTION & GRADIENTS</Text>
-            <View style={styles.wallpaperGridTelegram}>
-              {premiumGradients.map((gradient, index) => (
-                <TouchableOpacity
-                  key={`grad-${index}`}
-                  style={[
-                    styles.wallpaperThumbTelegram,
-                    chatBackground?.type === 'gradient' && chatBackground.value[0] === gradient[0] && styles.wallpaperThumbActive
-                  ]}
-                  onPress={() => setChatBackground({ type: 'gradient', value: gradient })}
-                >
-                  <LinearGradient
-                    colors={gradient}
-                    style={{ flex: 1, borderRadius: 12 }}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  />
-                  {chatBackground?.type === 'gradient' && chatBackground.value[0] === gradient[0] && (
-                    <View style={styles.wallpaperCheckOverlay}>
-                      <Ionicons name="checkmark-circle" size={24} color="#fff" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Colors Section */}
-          <View style={styles.wallpaperSectionTelegram}>
-            <Text style={[styles.wallpaperSectionTitleTelegram, { color: colors.secondaryText }]}>SOLID COLORS</Text>
-            <View style={styles.wallpaperGridTelegram}>
-              {backgroundColors.map((color, index) => (
-                <TouchableOpacity
-                  key={`col-${index}`}
-                  style={[
-                    styles.wallpaperThumbTelegram,
-                    chatBackground?.type === 'color' && chatBackground.value === color && styles.wallpaperThumbActive,
-                    { backgroundColor: color }
-                  ]}
-                  onPress={() => setBackgroundColor(color)}
-                >
-                  {chatBackground?.type === 'color' && chatBackground.value === color && (
-                    <View style={styles.wallpaperCheckOverlay}>
-                      <Ionicons name="checkmark-circle" size={24} color="#fff" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-        </ScrollView>
-      </View>
-    </Modal>
-  );
-
-  const renderGroupInfoModal = () => (
-    <Modal
-      visible={showGroupInfo}
-      transparent={true}
-      animationType="none"
-      onRequestClose={closeGroupInfo}
-    >
-      <View style={styles.groupInfoOverlay}>
-        <TouchableOpacity style={styles.groupInfoBackdrop} activeOpacity={1} onPress={closeGroupInfo} />
-        <Animated.View
-          style={[
-            styles.groupInfoContainer,
-            { backgroundColor: colors.card },
-            {
-              transform: [{
-                translateY: groupInfoAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [height, 0],
-                })
-              }]
-            }
-          ]}
-        >
-
-          <View style={styles.groupInfoHandle}>
-            <View style={[styles.groupInfoHandleBar, { backgroundColor: colors.border }]} />
-          </View>
-
-          <View style={styles.groupInfoHeader}>
-            {group?.image ? (
-              <Image source={{ uri: group.image }} style={styles.groupInfoAvatarImage} />
-            ) : (
-              <View style={[styles.groupInfoAvatar, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                <Ionicons name="people" size={40} color={premiumColors.primary.main} />
-              </View>
-            )}
-            <Text style={[styles.groupInfoName, { color: colors.text }]}>{group?.name}</Text>
-            <Text style={[styles.groupInfoDesc, { color: colors.secondaryText }]} numberOfLines={2}>
-              {group?.description}
-            </Text>
-
-            <View style={styles.groupInfoStats}>
-              <View style={styles.groupInfoStat}>
-                <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>{memberCount}</Text>
-                <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Members</Text>
-              </View>
-              <View style={[styles.groupInfoStatDivider, { backgroundColor: colors.border }]} />
-              <View style={styles.groupInfoStat}>
-                <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>
-                  {group?.discussions?.length || 0}
-                </Text>
-                <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Messages</Text>
-              </View>
-              <View style={[styles.groupInfoStatDivider, { backgroundColor: colors.border }]} />
-              <View style={styles.groupInfoStat}>
-                <Text style={[styles.groupInfoStatValue, { color: colors.text }]}>
-                  {group?.resources?.length || 0}
-                </Text>
-                <Text style={[styles.groupInfoStatLabel, { color: colors.secondaryText }]}>Resources</Text>
-              </View>
-            </View>
-          </View>
-
-          <ScrollView style={styles.groupInfoScroll} showsVerticalScrollIndicator={false}>
-
-            <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
-              <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>DETAILS</Text>
-
-              <View style={styles.groupInfoRow}>
-                <View style={[styles.groupInfoRowIcon, { backgroundColor: '#007AFF20' }]}>
-                  <Ionicons name="school" size={18} color="#007AFF" />
-                </View>
-                <View style={styles.groupInfoRowContent}>
-                  <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Level</Text>
-                  <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
-                    {group?.level ? group.level.charAt(0).toUpperCase() + group.level.slice(1) : 'All Levels'}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.groupInfoRow}>
-                <View style={[styles.groupInfoRowIcon, { backgroundColor: '#34C75920' }]}>
-                  <Ionicons name="bookmark" size={18} color="#34C759" />
-                </View>
-                <View style={styles.groupInfoRowContent}>
-                  <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Focus</Text>
-                  <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
-                    {group?.focus ? group.focus.charAt(0).toUpperCase() + group.focus.slice(1) : 'General'}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.groupInfoRow}>
-                <View style={[styles.groupInfoRowIcon, { backgroundColor: '#FF950020' }]}>
-                  <Ionicons name={group?.isPrivate ? "lock-closed" : "globe"} size={18} color="#FF9500" />
-                </View>
-                <View style={styles.groupInfoRowContent}>
-                  <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Privacy</Text>
-                  <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
-                    {group?.isPrivate ? 'Private Group' : 'Public Group'}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.groupInfoRow}>
-                <View style={[styles.groupInfoRowIcon, { backgroundColor: '#5856D620' }]}>
-                  <Ionicons name="calendar" size={18} color="#5856D6" />
-                </View>
-                <View style={styles.groupInfoRowContent}>
-                  <Text style={[styles.groupInfoRowLabel, { color: colors.secondaryText }]}>Created</Text>
-                  <Text style={[styles.groupInfoRowValue, { color: colors.text }]}>
-                    {group?.createdAt ? new Date(group.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric', month: 'long', day: 'numeric'
-                    }) : 'Unknown'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
-              <View style={styles.groupInfoSectionHeader}>
-                <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>MEMBERS</Text>
-                <TouchableOpacity onPress={() => { closeGroupInfo(); setActiveTab('members'); }}>
-                  <Text style={[styles.groupInfoSeeAll, { color: premiumColors.primary.main }]}>See All</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.groupInfoMembersList}>
-                {group?.members?.slice(0, 5).map((m, idx) => {
-                  const memberUser = typeof m.user === 'object' ? m.user : null;
-                  const isCreator = memberUser?._id === (typeof group.creator === 'object' ? group.creator?._id : group.creator);
-                  return (
-                    <View key={idx} style={styles.groupInfoMember}>
-                      {memberUser?.avatar ? (
-                        <Image source={{ uri: memberUser.avatar }} style={styles.groupInfoMemberAvatar} />
-                      ) : (
-                        <View style={[styles.groupInfoMemberAvatarPlaceholder, { backgroundColor: premiumColors.primary.main + '20' }]}>
-                          <Ionicons name="person" size={16} color={premiumColors.primary.main} />
-                        </View>
-                      )}
-                      <View style={styles.groupInfoMemberInfo}>
-                        <Text style={[styles.groupInfoMemberName, { color: colors.text }]} numberOfLines={1}>
-                          {memberUser?.name || 'Member'}
-                        </Text>
-                        {isCreator && (
-                          <Text style={[styles.groupInfoMemberRole, { color: premiumColors.accent.gold }]}>Creator</Text>
-                        )}
-                        {m.role === 'moderator' && !isCreator && (
-                          <Text style={[styles.groupInfoMemberRole, { color: premiumColors.primary.main }]}>Moderator</Text>
-                        )}
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-
-            <View style={[styles.groupInfoSection, { backgroundColor: colors.background }]}>
-              <Text style={[styles.groupInfoSectionTitle, { color: colors.secondaryText }]}>QUICK ACTIONS</Text>
-
-              <View style={styles.groupInfoActions}>
-                <TouchableOpacity
-                  style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
-                  onPress={() => { closeGroupInfo(); setActiveTab('resources'); }}
-                >
-                  <View style={[styles.groupInfoActionIcon, { backgroundColor: '#007AFF20' }]}>
-                    <Ionicons name="folder" size={22} color="#007AFF" />
-                  </View>
-                  <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Resources</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
-                  onPress={() => { closeGroupInfo(); setActiveTab('members'); }}
-                >
-                  <View style={[styles.groupInfoActionIcon, { backgroundColor: '#34C75920' }]}>
-                    <Ionicons name="people" size={22} color="#34C759" />
-                  </View>
-                  <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Members</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
-                  onPress={() => { closeGroupInfo(); startCall('voice'); }}
-                >
-                  <View style={[styles.groupInfoActionIcon, { backgroundColor: '#5856D620' }]}>
-                    <Ionicons name="call" size={22} color="#5856D6" />
-                  </View>
-                  <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Call</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.groupInfoActionBtn, { backgroundColor: colors.card }]}
-                  onPress={() => { closeGroupInfo(); openGroupOptions(); }}
-                >
-                  <View style={[styles.groupInfoActionIcon, { backgroundColor: '#FF950020' }]}>
-                    <Ionicons name="settings" size={22} color="#FF9500" />
-                  </View>
-                  <Text style={[styles.groupInfoActionLabel, { color: colors.text }]}>Settings</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.groupInfoButtonSection}>
-              {isMember() ? (
-                <TouchableOpacity
-                  style={[styles.groupInfoLeaveBtn, { borderColor: '#FF3B30' }]}
-                  onPress={() => { closeGroupInfo(); handleLeave(); }}
-                >
-                  <Ionicons name="exit-outline" size={20} color="#FF3B30" />
-                  <Text style={styles.groupInfoLeaveBtnText}>Leave Group</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.groupInfoJoinBtn, { backgroundColor: premiumColors.primary.main }]}
-                  onPress={() => { closeGroupInfo(); handleJoin(); }}
-                >
-                  <Ionicons name="person-add" size={20} color="#FFFFFF" />
-                  <Text style={styles.groupInfoJoinBtnText}>Join Group</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <View style={{ height: 40 }} />
-          </ScrollView>
-        </Animated.View>
-      </View>
-    </Modal>
-  );
 
   if (loading && !group) {
     return (
@@ -3103,173 +2244,96 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
           </TouchableOpacity>
         </Modal>
 
-        {renderIncomingCallModal()}
-        {renderVoiceCallModal()}
-        {renderGroupOptionsModal()}
-        {renderEditGroupModal()}
-        {renderGroupInfoModal()}
-        {renderBackgroundPickerModal()}
+        <IncomingCallModal
+          visible={!!incomingCall}
+          incomingCall={incomingCall}
+          group={group}
+          onAccept={acceptCall}
+          onReject={rejectCall}
+        />
+        <VoiceCallModal
+          visible={showVoiceCall}
+          group={group}
+          callDuration={callDuration}
+          memberCount={memberCount}
+          isMuted={isMuted}
+          isSpeakerOn={isSpeakerOn}
+          toggleMute={toggleMute}
+          toggleSpeaker={toggleSpeaker}
+          endCall={endCall}
+          formatCallDuration={formatCallDuration}
+          callPulseAnim={callPulseAnim}
+        />
+        <GroupOptionsModal
+          visible={showGroupOptions}
+          colors={colors}
+          isDarkMode={isDarkMode}
+          group={group}
+          memberCount={memberCount}
+          isModerator={isModerator}
+          isMember={isMember}
+          notificationSettings={notificationSettings}
+          groupOptionsAnim={groupOptionsAnim}
+          closeGroupOptions={closeGroupOptions}
+          handleMuteGroup={handleMuteGroup}
+          handleShareGroup={handleShareGroup}
+          handleCopyInviteCode={handleCopyInviteCode}
+          openGroupInfo={openGroupInfo}
+          openEditGroup={openEditGroup}
+          openBackgroundPicker={openBackgroundPicker}
+          setShowGroupOptions={setShowGroupOptions}
+          setShowNotificationSettings={setShowNotificationSettings}
+          handleReportGroup={handleReportGroup}
+          handleLeave={handleLeave}
+          handleDeleteGroup={handleDeleteGroup}
+        />
+        <EditGroupModal
+          visible={showEditGroup}
+          colors={colors}
+          editGroupData={editGroupData}
+          setEditGroupData={setEditGroupData}
+          editGroupImageLoading={editGroupImageLoading}
+          setShowEditGroup={setShowEditGroup}
+          handleSaveGroupEdit={handleSaveGroupEdit}
+          showGroupImageOptions={showGroupImageOptions}
+          handleDeleteGroup={handleDeleteGroup}
+        />
+        <GroupInfoModal
+          visible={showGroupInfo}
+          colors={colors}
+          group={group}
+          memberCount={memberCount}
+          groupInfoAnim={groupInfoAnim}
+          closeGroupInfo={closeGroupInfo}
+          isMember={isMember}
+          handleLeave={handleLeave}
+          handleJoin={handleJoin}
+          setActiveTab={setActiveTab}
+          startCall={startCall}
+          openGroupOptions={openGroupOptions}
+        />
+        <BackgroundPickerModal
+          visible={showBackgroundPicker}
+          colors={colors}
+          isDarkMode={isDarkMode}
+          chatBackground={chatBackground}
+          closeBackgroundPicker={closeBackgroundPicker}
+          resetBackground={resetBackground}
+          pickBackgroundImage={pickBackgroundImage}
+          setChatBackground={setChatBackground}
+          setBackgroundColor={setBackgroundColor}
+        />
       </View >
     </GestureHandlerRootView >
   );
 }
 
-function InfoSection({ title, value, colors }) {
-  return (
-    <View style={styles.infoSection}>
-      <Text style={[styles.infoLabel, { color: colors.secondaryText }]}>{title}</Text>
-      <Text style={[styles.infoValue, { color: colors.text }]}>{value}</Text>
-    </View>
-  );
-}
 
-function EmojiPicker({ colors, onSelectEmoji, onClose }) {
-  const [selectedCategory, setSelectedCategory] = useState(0);
-  const [recentEmojis, setRecentEmojis] = useState(['😀', '😂', '❤️', '👍', '🔥', '🎉', '😊', '🙏']);
 
-  const handleEmojiSelect = (emoji) => {
-    onSelectEmoji(emoji);
 
-    setRecentEmojis(prev => {
-      const filtered = prev.filter(e => e !== emoji);
-      return [emoji, ...filtered].slice(0, 8);
-    });
-  };
-
-  return (
-    <View style={[styles.emojiPickerContainer, { backgroundColor: colors.card, borderTopColor: colors.border }]}>
-
-      <View style={styles.emojiPickerHeader}>
-        <Text style={[styles.emojiPickerTitle, { color: colors.text }]}>Emojis</Text>
-        <TouchableOpacity onPress={onClose} style={styles.emojiPickerClose}>
-          <Ionicons name="chevron-down" size={24} color={colors.secondaryText} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.recentEmojisSection}>
-        <Text style={[styles.emojiCategoryLabel, { color: colors.secondaryText }]}>Recently Used</Text>
-        <View style={styles.emojiGrid}>
-          {recentEmojis.map((emoji, index) => (
-            <TouchableOpacity
-              key={`recent-${index}`}
-              style={styles.emojiItem}
-              onPress={() => handleEmojiSelect(emoji)}
-            >
-              <Text style={styles.emoji}>{emoji}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.emojiCategoryTabsWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.emojiCategoryTabsContent}
-        >
-          {EMOJI_CATEGORIES.map((category, index) => (
-            <TouchableOpacity
-              key={category.name}
-              style={[
-                styles.emojiCategoryTab,
-                selectedCategory === index && { backgroundColor: premiumColors.primary.main + '20' },
-              ]}
-              onPress={() => setSelectedCategory(index)}
-            >
-              <Ionicons
-                name={category.icon}
-                size={20}
-                color={selectedCategory === index ? premiumColors.primary.main : colors.secondaryText}
-              />
-              <Text style={[
-                styles.emojiCategoryTabText,
-                { color: selectedCategory === index ? premiumColors.primary.main : colors.secondaryText }
-              ]}>
-                {category.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      <ScrollView
-        style={styles.emojiScrollView}
-        contentContainerStyle={styles.emojiScrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={[styles.emojiCategoryLabel, { color: colors.secondaryText }]}>
-          {EMOJI_CATEGORIES[selectedCategory].name}
-        </Text>
-        <View style={styles.emojiGrid}>
-          {EMOJI_CATEGORIES[selectedCategory].emojis.map((emoji, index) => (
-            <TouchableOpacity
-              key={`${selectedCategory}-${index}`}
-              style={styles.emojiItem}
-              onPress={() => handleEmojiSelect(emoji)}
-            >
-              <Text style={styles.emoji}>{emoji}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
-  incomingCallOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  incomingCallContent: {
-    width: '80%',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 30,
-    padding: 30,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  incomingCallAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  incomingCallTitle: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 10,
-  },
-  incomingCallName: {
-    color: '#FFF',
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 5,
-  },
-  incomingCallGroup: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 16,
-    marginBottom: 30,
-  },
-  incomingCallActions: {
-    flexDirection: 'row',
-    gap: 40,
-  },
-  callActionBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...premiumShadows.md,
-  },
+
   typingIndicatorWrapper: {
     paddingHorizontal: 20,
     paddingVertical: 5,
@@ -3368,20 +2432,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: spacing.md,
   },
-  infoSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-  },
-  infoLabel: {
-    fontSize: fontSize.md,
-    fontWeight: '500',
-  },
-  infoValue: {
-    fontSize: fontSize.md,
-  },
+
   goalItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -4294,117 +3345,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  voiceCallContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingBottom: 100,
-  },
-  callAvatarContainer: {
-    marginBottom: 24,
-  },
-  callAvatarRing: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 6,
-  },
-  callAvatar: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  callGroupName: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  callStatus: {
-    fontSize: 18,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 16,
-  },
-  callParticipants: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  callParticipantsText: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  videoCallInfo: {
-    position: 'absolute',
-    top: 80,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  videoCallName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  videoCallDuration: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  callControls: {
-    paddingHorizontal: 20,
-    paddingBottom: 50,
-  },
-  callControlsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 30,
-    gap: 20,
-  },
-  callControlBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  callControlBtnActive: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  callControlLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.9)',
-    marginTop: 4,
-  },
-  endCallBtn: {
-    alignSelf: 'center',
-  },
-  endCallBtnGradient: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#FF3B30',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
-  },
 
   // Telegram-style Video Call
   telegramCallContainer: {
@@ -5061,701 +4001,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  emojiPickerContainer: {
-    height: 340,
-    borderTopWidth: 1,
-  },
-  emojiPickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  emojiPickerTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
-  },
-  emojiPickerClose: {
-    padding: spacing.xs,
-  },
-  recentEmojisSection: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-  },
-  emojiCategoryLabel: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  emojiCategoryTabsWrapper: {
-    height: 50,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-  },
-  emojiCategoryTabsContent: {
-    paddingHorizontal: spacing.sm,
-    alignItems: 'center',
-    height: 50,
-  },
-  emojiCategoryTab: {
-    paddingHorizontal: spacing.md,
-    height: 42,
-    borderRadius: premiumBorderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-    marginRight: spacing.xs,
-    gap: 6,
-  },
-  emojiCategoryTabText: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-  },
-  emojiScrollView: {
-    flex: 1,
-  },
-  emojiScrollContent: {
-    padding: spacing.md,
-  },
-  emojiGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  emojiItem: {
-    width: (width - spacing.md * 2) / 8,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emoji: {
-    fontSize: 24,
-  },
 
-  actionSheetOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  actionSheetContainer: {
-    paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  actionSheetHeader: {
-    borderRadius: premiumBorderRadius.xl,
-    marginBottom: spacing.sm,
-    overflow: 'hidden',
-  },
-  actionSheetGroupInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  actionSheetGroupAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionSheetGroupAvatarImage: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  actionSheetGroupDetails: {
-    marginLeft: spacing.md,
-    flex: 1,
-  },
-  actionSheetGroupName: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  actionSheetGroupMeta: {
-    fontSize: fontSize.sm,
-  },
-  actionSheetSection: {
-    borderRadius: premiumBorderRadius.xl,
-    marginBottom: spacing.sm,
-    overflow: 'hidden',
-  },
-  actionSheetItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    paddingVertical: spacing.md + 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(128,128,128,0.2)',
-  },
-  actionSheetIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  actionSheetItemText: {
-    flex: 1,
-    fontSize: fontSize.md,
-    fontWeight: '500',
-  },
-  actionSheetItemValue: {
-    fontSize: fontSize.sm,
-    marginRight: spacing.sm,
-  },
-  actionSheetBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginRight: spacing.sm,
-  },
-  actionSheetBadgeText: {
-    color: '#FFFFFF',
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-  },
-  actionSheetCancelBtn: {
-    borderRadius: premiumBorderRadius.xl,
-    padding: spacing.lg,
-    alignItems: 'center',
-  },
-  actionSheetCancelText: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-  },
 
-  // Premium Redesigned Action Sheet
-  premiumActionSheet: {
-    borderRadius: 20,
-    marginBottom: 12,
-    overflow: 'hidden',
-    ...premiumShadows.large,
-  },
-  actionSheetHeaderPremium: {
-    padding: 24,
-    paddingBottom: 20,
-  },
-  actionSheetGroupInfoPremium: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  actionSheetAvatarWrapper: {
-    position: 'relative',
-  },
-  actionSheetAvatarPremium: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-  },
-  actionSheetAvatarPlaceholderPremium: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  adminBadgeSmall: {
-    position: 'absolute',
-    bottom: -4,
-    right: -4,
-    backgroundColor: '#3B82F6',
-    width: 20,
-    height: 20,
-    borderRadius: 0.5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  actionSheetNameWrapper: {
-    marginLeft: 16,
-    flex: 1,
-  },
-  actionSheetGroupNamePremium: {
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  actionSheetGroupMetaPremium: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
-  },
-  quickActionItem: {
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  quickActionIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quickActionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  actionSheetContentPremium: {
-    padding: 16,
-    paddingTop: 8,
-  },
-  actionSheetSectionPremium: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  actionSheetItemPremium: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    gap: 14,
-  },
-  actionSheetIconPremium: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionSheetItemTextPremium: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  actionSheetItemValuePremium: {
-    fontSize: 14,
-    marginRight: 4,
-  },
-  premiumActionSheetCancel: {
-    borderRadius: 20,
-    padding: 18,
-    alignItems: 'center',
-    ...premiumShadows.medium,
-  },
-  premiumActionSheetCancelText: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
 
-  editGroupModal: {
-    flex: 1,
-  },
-  editGroupHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    paddingTop: 60,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  editGroupCancelBtn: {
-    fontSize: fontSize.md,
-    fontWeight: '400',
-  },
-  editGroupTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-  },
-  editGroupSaveBtn: {
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  editGroupContent: {
-    flex: 1,
-  },
-  editGroupPhotoSection: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-  },
-  editGroupPhoto: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  editGroupPhotoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  editGroupPhotoImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  editGroupPhotoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 36,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  editGroupPhotoBtn: {
-    marginTop: spacing.md,
-  },
-  editGroupPhotoBtnText: {
-    fontSize: fontSize.md,
-    fontWeight: '500',
-  },
-  editGroupSection: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    borderRadius: premiumBorderRadius.lg,
-    overflow: 'hidden',
-  },
-  editGroupSectionTitle: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-    marginLeft: spacing.md,
-    marginTop: spacing.md,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  editGroupField: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  editGroupFieldLabel: {
-    fontSize: fontSize.sm,
-    fontWeight: '500',
-    marginBottom: spacing.xs,
-  },
-  editGroupFieldInput: {
-    fontSize: fontSize.md,
-    fontWeight: '400',
-    padding: 0,
-  },
-  editGroupFieldMultiline: {
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  editGroupOptionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  editGroupOption: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: premiumBorderRadius.md,
-    borderWidth: 1,
-  },
-  editGroupOptionText: {
-    fontSize: fontSize.sm,
-    fontWeight: '500',
-  },
-  editGroupSliderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-    gap: spacing.lg,
-  },
-  editGroupSliderBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  editGroupSliderValue: {
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-    minWidth: 50,
-    textAlign: 'center',
-  },
-  editGroupToggleField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-  },
-  editGroupToggleInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  editGroupToggleText: {
-    marginLeft: spacing.md,
-  },
-  editGroupToggleLabel: {
-    fontSize: fontSize.md,
-    fontWeight: '500',
-  },
-  editGroupToggleDesc: {
-    fontSize: fontSize.xs,
-    marginTop: 2,
-  },
-  editGroupToggle: {
-    width: 50,
-    height: 30,
-    borderRadius: 15,
-    padding: 2,
-    justifyContent: 'center',
-  },
-  editGroupToggleThumb: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  editGroupDangerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  editGroupDangerBtnText: {
-    color: '#FF3B30',
-    fontSize: fontSize.md,
-    fontWeight: '500',
-  },
 
-  groupInfoOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  groupInfoBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  groupInfoContainer: {
-    maxHeight: height * 0.85,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: spacing.sm,
-  },
-  groupInfoHandle: {
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  groupInfoHandleBar: {
-    width: 40,
-    height: 5,
-    borderRadius: 3,
-  },
-  groupInfoHeader: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
-  },
-  groupInfoAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  groupInfoAvatarImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: spacing.md,
-  },
-  groupInfoName: {
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  groupInfoDesc: {
-    fontSize: fontSize.sm,
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: spacing.lg,
-  },
-  groupInfoStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.lg,
-    paddingHorizontal: spacing.md,
-  },
-  groupInfoStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  groupInfoStatValue: {
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-  },
-  groupInfoStatLabel: {
-    fontSize: fontSize.xs,
-    marginTop: 2,
-  },
-  groupInfoStatDivider: {
-    width: 1,
-    height: 30,
-  },
-  groupInfoScroll: {
-    flex: 1,
-  },
-  groupInfoSection: {
-    marginTop: spacing.md,
-    marginHorizontal: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-    padding: spacing.md,
-  },
-  groupInfoSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  groupInfoSectionTitle: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
-  },
-  groupInfoSeeAll: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-  },
-  groupInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  groupInfoRowIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  groupInfoRowContent: {
-    flex: 1,
-  },
-  groupInfoRowLabel: {
-    fontSize: fontSize.xs,
-    marginBottom: 2,
-  },
-  groupInfoRowValue: {
-    fontSize: fontSize.md,
-    fontWeight: '500',
-  },
-  groupInfoMembersList: {
-    gap: spacing.sm,
-  },
-  groupInfoMember: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-  },
-  groupInfoMemberAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: spacing.md,
-  },
-  groupInfoMemberAvatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  groupInfoMemberInfo: {
-    flex: 1,
-  },
-  groupInfoMemberName: {
-    fontSize: fontSize.md,
-    fontWeight: '500',
-  },
-  groupInfoMemberRole: {
-    fontSize: fontSize.xs,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  groupInfoActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  groupInfoActionBtn: {
-    width: (width - spacing.md * 4 - spacing.sm * 3) / 4,
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: premiumBorderRadius.md,
-  },
-  groupInfoActionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  groupInfoActionLabel: {
-    fontSize: fontSize.xs,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  groupInfoButtonSection: {
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.lg,
-  },
-  groupInfoJoinBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md + 2,
-    borderRadius: premiumBorderRadius.lg,
-    gap: spacing.sm,
-  },
-  groupInfoJoinBtnText: {
-    color: '#FFFFFF',
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  groupInfoLeaveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md + 2,
-    borderRadius: premiumBorderRadius.lg,
-    borderWidth: 1.5,
-    gap: spacing.sm,
-  },
-  groupInfoLeaveBtnText: {
-    color: '#FF3B30',
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
+
+
+
+
+
 
   messageActionsOverlay: {
     flex: 1,
@@ -6460,151 +4714,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  // Wallpaper Modal Styles - Premium Design
-  // Telegram-style Wallpaper Styles
-  wallpaperModalContainer: {
-    flex: 1,
-  },
-  wallpaperHeaderTelegram: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 50 : 16,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
-  },
-  wallpaperBackBtnTelegram: {
-    padding: 4,
-  },
-  wallpaperHeaderTitleTelegram: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 16,
-  },
-  wallpaperResetBtnTelegram: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  wallpaperScrollViewTelegram: {
-    flex: 1,
-  },
-  wallpaperPreviewContainerTelegram: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    backgroundColor: 'rgba(128,128,128,0.05)',
-    marginBottom: 20,
-  },
-  wallpaperPreviewFrameTelegram: {
-    width: 180,
-    height: 320,
-    borderRadius: 24,
-    borderWidth: 4,
-    overflow: 'hidden',
-    position: 'relative',
-    backgroundColor: '#000',
-  },
-  wallpaperPreviewBox: {
-    flex: 1,
-  },
-  wallpaperPreviewImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-  },
-  wallpaperBubbleStart: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderBottomLeftRadius: 4,
-    marginBottom: 8,
-    maxWidth: '85%',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  wallpaperBubbleEnd: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderBottomRightRadius: 4,
-    maxWidth: '85%',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  wallpaperText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  wallpaperTime: {
-    fontSize: 10,
-    marginTop: 2,
-    alignSelf: 'flex-end',
-    opacity: 0.7,
-  },
-  wallpaperGalleryBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
-  },
-  wallpaperGalleryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,122,255,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  wallpaperGalleryText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  wallpaperSectionTelegram: {
-    marginBottom: 24,
-    paddingHorizontal: 16,
-  },
-  wallpaperSectionTitleTelegram: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 12,
-    marginLeft: 4,
-    letterSpacing: 0.5,
-  },
-  wallpaperGridTelegram: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  wallpaperThumbTelegram: {
-    width: (width - 32 - 24) / 4, // 4 columns with gap
-    height: ((width - 32 - 24) / 4) * 1.5, // 1.5 aspect ratio
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  wallpaperThumbActive: {
-    borderColor: premiumColors.primary.main,
-    transform: [{ scale: 1.05 }],
-  },
-  wallpaperCheckOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
   // Professional Image Attachment Preview
   proAttachmentContainer: {

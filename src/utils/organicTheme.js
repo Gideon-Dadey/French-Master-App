@@ -61,7 +61,7 @@ export const organicTheme = {
 
   dark: {
     // Primary Colors
-    primary: '#4A7BB7',           // Lighter Blue for dark mode visibility
+    primary: '#FFFFFF',           // Set to White for better dark mode visibility
     primaryLight: '#5B8CC8',      // Lighter blue for hover
     primaryDark: '#3A6BA7',       // Darker blue for pressed
 
@@ -80,7 +80,7 @@ export const organicTheme = {
     text: '#F0EBE3',              // Warm Cream - primary text
     textSecondary: '#A8B4C4',     // Muted Blue-Grey - secondary text
     textMuted: '#6B7C93',         // Slate - hints, placeholders
-    textOnPrimary: '#FFFFFF',     // White text on primary color
+    textOnPrimary: '#000000',     // Dark text on primary (now white) color
     textOnSecondary: '#000000',   // Dark text on gold
 
     // Border Colors

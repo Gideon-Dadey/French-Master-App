@@ -129,7 +129,7 @@ export default function StudyGroupsScreen({ navigation }) {
     } catch (err) {
       console.error('Failed to load study groups:', err);
       const errorMessage = err.message || 'Failed to load study groups';
-      
+
       if (studyGroups.length === 0) {
         if (errorMessage.includes('Network') || errorMessage.includes('network')) {
           setError('Connection Lost - Please check your internet connection');
@@ -733,8 +733,8 @@ function StudyGroupCard({ group, theme, isDarkMode, isMember, onPress, onJoin, i
               end={{ x: 1, y: 0 }}
               style={styles.actionGradient}
             >
-              <Text style={styles.actionText}>Enter</Text>
-              <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+              <Text style={[styles.actionText, { color: theme.textOnPrimary || '#FFFFFF' }]}>Enter</Text>
+              <Ionicons name="arrow-forward" size={16} color={theme.textOnPrimary || "#FFFFFF"} />
             </LinearGradient>
           </TouchableOpacity>
         ) : (

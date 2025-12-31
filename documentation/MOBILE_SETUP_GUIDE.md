@@ -10,14 +10,21 @@ This guide addresses the following issues that occurred after mobile installatio
 
 ## Root Causes & Solutions
 
-### 1. **API URL Configuration (MAIN ISSUE)**
-**Problem:** The app was hardcoded to use local IP `192.168.0.135:5001` which doesn't work on mobile phones outside your local network.
+### 1. **API URL Configuration (PERMANENT FIX)**
+**Problem:** Local IPs change when you switch networks (Hotspot vs WiFi), and random ngrok URLs change every time you restart.
 
-**Solution Applied:**
-- Updated `/src/services/api.js` with intelligent URL switching
-- Development (`__DEV__` mode) uses local IP for Expo Go testing
-- Production builds use ngrok public URL (`https://eb7e54bcf266.ngrok-free.app/api`)
-- Anyone can access the app from anywhere with the ngrok URL
+**The Permanent Solution:**
+1.  **Claim a Static Domain:** (COMPLETED) You are using `compulsively-unevincible-irwin.ngrok-free.dev`.
+2.  **Update Code:** (COMPLETED) `src/services/api.js` and `src/services/socketService.js` are updated.
+3.  **Run Command:** Always start ngrok with:
+    ```bash
+    npx ngrok http 5001 --domain=compulsively-unevincible-irwin.ngrok-free.dev
+    ```
+
+**Benefits:**
+- Works on **WiFi**, **Hotspot**, and **Mobile Data** (4G/5G).
+- No need to update the code ever again.
+- Works for physical phones in any location.
 
 ### 2. **Network Error Handling**
 **Problem:** API failures weren't properly caught and displayed to users, leaving them confused.

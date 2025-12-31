@@ -6,18 +6,17 @@ import {
     TouchableOpacity,
     Image,
     Animated,
-    Dimensions,
-    Linking,
     Platform,
 } from 'react-native';
 import { Swipeable, TapGestureHandler, State } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
+import { Linking } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { spacing, fontSize } from '../../utils/responsive';
+import { spacing, fontSize, screenWidth } from '../../utils/responsive';
 import { premiumShadows, premiumColors, premiumBorderRadius } from '../../utils/premiumDesign';
 import { formatTimeAgo, getFileIcon, formatDuration, MESSAGE_TYPES, REACTIONS } from '../../utils/chatUtils';
 
-const { width } = Dimensions.get('window');
+const width = screenWidth;
 
 const MessageBubble = ({
     discussion,
@@ -46,7 +45,16 @@ const MessageBubble = ({
     groupDiscussions,
 }) => {
     const discussionUser = typeof discussion.user === 'object' ? discussion.user : null;
-    const isOwnMessage = discussionUser?._id === user?._id;
+    const currentUserId = user?._id ? String(user._id) : (user?.id ? String(user.id) : null);
+
+    let messageUserId = null;
+    if (discussionUser) {
+        messageUserId = discussionUser._id ? String(discussionUser._id) : (discussionUser.id ? String(discussionUser.id) : null);
+    } else if (discussion.user) {
+        messageUserId = String(discussion.user);
+    }
+
+    const isOwnMessage = currentUserId && messageUserId && currentUserId === messageUserId;
     const reactions = messageReactions[discussion._id?.toString()] || [];
 
     let messageData;
@@ -271,8 +279,8 @@ const MessageBubble = ({
                                 {messageData.replyTo && (
                                     <View style={[styles.replyPreview, {
                                         backgroundColor: isOwnMessage
-                                            ? (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,128,0,0.08)')
-                                            : (isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'),
+                                            ? (isDarkMode ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.05)')
+                                            : (isDarkMode ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.05)'),
                                         borderLeftColor: '#6EB545',
                                     }]}>
                                         <Text style={[styles.replyAuthor, { color: '#6EB545' }]}>
@@ -623,10 +631,10 @@ const styles = StyleSheet.create({
     },
     replyPreview: {
         paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderRadius: 10,
-        borderLeftWidth: 3,
-        marginBottom: 8,
+        paddingVertical: 6,
+        borderRadius: 4,
+        borderLeftWidth: 4,
+        marginBottom: 6,
     },
     replyAuthor: {
         fontSize: 13,

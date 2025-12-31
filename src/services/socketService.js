@@ -3,15 +3,18 @@ import { Platform } from 'react-native';
 
 const getSocketUrl = () => {
     const PRODUCTION_SOCKET_URL = 'https://api.frenchmastergh.com';
-    const DEVELOPMENT_SOCKET_URL = 'http://192.168.190.80:5001';
+
+    // Use the same stable domain as api.js
+    const STABLE_DOMAIN = 'compulsively-unevincible-irwin.ngrok-free.dev';
+
+    const NGROK_SOCKET_URL = `https://${STABLE_DOMAIN}`;
+    const LOCAL_IP_URL = 'http://192.168.232.80:5001';
 
     if (__DEV__) {
-        if (Platform.OS === 'ios') {
-            return 'http://localhost:5001';
-        }
-        return DEVELOPMENT_SOCKET_URL;
+        return NGROK_SOCKET_URL;
     }
-    return PRODUCTION_SOCKET_URL;
+    // For production builds, also use ngrok if not on production server
+    return NGROK_SOCKET_URL;
 };
 
 const SOCKET_URL = getSocketUrl();

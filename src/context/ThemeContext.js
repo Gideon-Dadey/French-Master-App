@@ -42,7 +42,7 @@ const darkTheme = {
   text: '#F5F3EF',
   secondaryText: '#A0AEC0',
   border: '#2D3E50',
-  primary: '#4A7AB0',
+  primary: '#FFFFFF',
   primaryHover: '#5B8BC1',
   secondary: '#D4A853',
   accent: '#D49A6A',
