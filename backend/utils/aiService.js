@@ -1,30 +1,57 @@
+const Groq = require("groq-sdk");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+// Initialize Groq client
+let groqClient;
 let genAI;
 
-const initAI = () => {
+const initGroq = () => {
+    if (!groqClient && process.env.GROQ_API_KEY) {
+        groqClient = new Groq({
+            apiKey: process.env.GROQ_API_KEY
+        });
+    }
+    return groqClient;
+};
+
+// Keep Gemini for audio evaluation (Groq doesn't support audio yet)
+const initGemini = () => {
     if (!genAI && process.env.GEMINI_API_KEY) {
         genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     }
     return genAI;
 };
 
+const MIRAH_SYSTEM_PROMPT = `You are Mirah, a friendly, warm, and encouraging French tutor. Your personality:
+- You're patient, supportive, and genuinely excited to help students learn French
+- You speak primarily in French but provide English translations when helpful
+- You gently correct mistakes and explain grammar naturally
+- You use casual, conversational French (not overly formal)
+- You ask follow-up questions to keep the conversation engaging
+- You celebrate small victories and progress
+- You occasionally share fun French cultural tidbits
+
+Remember: Keep responses concise (2-4 sentences usually). Be conversational, not like a textbook.`;
+
 const aiService = {
     generateFrenchContent: async (prompt, systemInstruction = "You are an expert French language tutor. Provide helpful, accurate, and educational content.") => {
         try {
-            const ai = initAI();
-            if (!ai) {
-                throw new Error("GEMINI_API_KEY is not configured on the server.");
+            const groq = initGroq();
+            if (!groq) {
+                throw new Error("GROQ_API_KEY is not configured on the server.");
             }
 
-            const model = ai.getGenerativeModel({
-                model: "gemini-flash-latest",
-                systemInstruction: systemInstruction
+            const completion = await groq.chat.completions.create({
+                model: "llama-3.3-70b-versatile",
+                messages: [
+                    { role: "system", content: systemInstruction },
+                    { role: "user", content: prompt }
+                ],
+                temperature: 0.7,
+                max_tokens: 2048,
             });
 
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            return response.text();
+            return completion.choices[0]?.message?.content || "";
         } catch (error) {
             console.error("AI Generation Error:", error);
             throw error;
@@ -33,53 +60,56 @@ const aiService = {
 
     getChatResponse: async (history, message) => {
         try {
-            const ai = initAI();
-            if (!ai) {
-                throw new Error("GEMINI_API_KEY is not configured on the server.");
+            const groq = initGroq();
+            if (!groq) {
+                throw new Error("GROQ_API_KEY is not configured on the server.");
             }
 
-            const model = ai.getGenerativeModel({
-                model: "gemini-flash-latest",
-                systemInstruction: "You are a friendly French tutor named 'Mirah'. Help the student learn French by engaging in conversation and correcting their mistakes politely."
-            });
+            // Build messages array for Groq (OpenAI format)
+            const messages = [
+                { role: "system", content: MIRAH_SYSTEM_PROMPT }
+            ];
 
-            // Gemini's history MUST start with 'user' and alternate.
-            let validHistory = [];
-            let lastRole = null;
-
+            // Add conversation history
             if (history && Array.isArray(history)) {
                 for (const msg of history) {
-                    // Skip if current role is same as last (Gemini requirement)
-                    if (msg.role === lastRole) continue;
-
-                    // First message must be 'user'
-                    if (validHistory.length === 0 && msg.role !== 'user') continue;
-
-                    validHistory.push(msg);
-                    lastRole = msg.role;
+                    // Convert from Gemini format to OpenAI format
+                    const role = msg.role === 'model' ? 'assistant' : 'user';
+                    const content = msg.parts?.[0]?.text || msg.text || '';
+                    if (content) {
+                        messages.push({ role, content });
+                    }
                 }
             }
 
-            const chat = model.startChat({
-                history: validHistory,
-            });
-            console.log('Processed History:', JSON.stringify(validHistory, null, 2));
-            console.log('Sending Message:', message);
+            // Add current message
+            messages.push({ role: "user", content: message });
 
-            const result = await chat.sendMessage(message);
-            const response = await result.response;
-            return response.text();
+            console.log('Sending to Groq:', JSON.stringify(messages, null, 2));
+
+            const completion = await groq.chat.completions.create({
+                model: "llama-3.3-70b-versatile",
+                messages: messages,
+                temperature: 0.8,
+                max_tokens: 1024,
+            });
+
+            const response = completion.choices[0]?.message?.content || "";
+            console.log('Groq Response:', response);
+
+            return response;
         } catch (error) {
             console.error("AI Chat Error:", error);
             throw error;
         }
     },
 
+    // Keep Gemini for pronunciation evaluation (requires audio input)
     evaluatePronunciation: async (targetText, audioBase64, mimeType = "audio/m4a") => {
         try {
-            const ai = initAI();
+            const ai = initGemini();
             if (!ai) {
-                throw new Error("GEMINI_API_KEY is not configured on the server.");
+                throw new Error("GEMINI_API_KEY is not configured for pronunciation evaluation.");
             }
 
             const model = ai.getGenerativeModel({ model: "gemini-flash-latest" });

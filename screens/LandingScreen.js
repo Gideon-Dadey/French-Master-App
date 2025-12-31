@@ -62,12 +62,6 @@ export default function LandingScreen({ navigation }) {
             <Text style={styles.appName}>L'ALLIANCE</Text>
           </View>
 
-          {/* Hero Image / Illustration Placeholder */}
-          <View style={styles.heroWrapper}>
-            <View style={styles.circleBg} />
-            <Ionicons name="language-sharp" size={100} color="#1A355E" />
-          </View>
-
           {/* Hero Text */}
           <View style={styles.textWrapper}>
             <Text style={styles.title}>Immersion Mastery</Text>

@@ -14,6 +14,7 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
@@ -21,6 +22,9 @@ import { useGamification } from '../src/context/GamificationContext';
 import { speakText, stopSpeech } from '../src/utils/textToSpeech';
 import { themeShadows } from '../src/utils/organicTheme';
 import { aiAPI, scenariosAPI } from '../src/services/api';
+
+const CHAT_HISTORY_KEY = 'mirah_chat_history';
+const MAX_SAVED_MESSAGES = 100; // Limit saved messages to prevent storage bloat
 
 // Mock Data for Scenarios (Fallback if API fails)
 const DEFAULT_SCENARIOS = [
@@ -93,9 +97,57 @@ export default function ConversationSimulatorScreen({ navigation }) {
     const [freeMsg, setFreeMsg] = useState('');
     const [isSending, setIsSending] = useState(false);
 
+    // Chat history persistence state
+    const [savedChatHistory, setSavedChatHistory] = useState([]);
+    const [hasSavedHistory, setHasSavedHistory] = useState(false);
+
     useEffect(() => {
         loadScenarios();
+        loadSavedChatHistory();
     }, []);
+
+    // Save chat history whenever it changes (only for AI mode)
+    useEffect(() => {
+        if (selectedScenario?.isAi && chatHistory.length > 0) {
+            saveChatHistory(chatHistory);
+        }
+    }, [chatHistory, selectedScenario]);
+
+    const loadSavedChatHistory = async () => {
+        try {
+            const saved = await AsyncStorage.getItem(CHAT_HISTORY_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                setSavedChatHistory(parsed);
+                setHasSavedHistory(parsed.length > 0);
+            }
+        } catch (error) {
+            console.error('Failed to load chat history:', error);
+        }
+    };
+
+    const saveChatHistory = async (history) => {
+        try {
+            // Keep only the last MAX_SAVED_MESSAGES messages
+            const trimmedHistory = history.slice(-MAX_SAVED_MESSAGES);
+            await AsyncStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(trimmedHistory));
+            setSavedChatHistory(trimmedHistory);
+            setHasSavedHistory(trimmedHistory.length > 0);
+        } catch (error) {
+            console.error('Failed to save chat history:', error);
+        }
+    };
+
+    const clearChatHistory = async () => {
+        try {
+            await AsyncStorage.removeItem(CHAT_HISTORY_KEY);
+            setSavedChatHistory([]);
+            setHasSavedHistory(false);
+            setChatHistory([]);
+        } catch (error) {
+            console.error('Failed to clear chat history:', error);
+        }
+    };
 
     const loadScenarios = async () => {
         try {
@@ -220,11 +272,18 @@ export default function ConversationSimulatorScreen({ navigation }) {
         }
     }, [currentStepId, selectedScenario]);
 
-    const startScenario = (scenario) => {
+    const startScenario = (scenario, continueSaved = false) => {
         setSelectedScenario(scenario);
         setCurrentStepId(1);
-        setChatHistory([]);
         setSessionXP(0);
+
+        // For AI mode, optionally load saved history
+        if (scenario.isAi && continueSaved && savedChatHistory.length > 0) {
+            setChatHistory(savedChatHistory);
+        } else {
+            setChatHistory([]);
+        }
+
         // Reset animations for the chat view
         fadeAnim.setValue(0);
         slideAnim.setValue(20);
@@ -232,6 +291,24 @@ export default function ConversationSimulatorScreen({ navigation }) {
             Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
             Animated.spring(slideAnim, { toValue: 0, tension: 50, friction: 8, useNativeDriver: true })
         ]).start();
+    };
+
+    const startNewChat = (scenario) => {
+        Alert.alert(
+            'Start New Chat',
+            'This will clear your previous conversation with Mirah. Continue?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Start Fresh',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await clearChatHistory();
+                        startScenario(scenario, false);
+                    }
+                }
+            ]
+        );
     };
 
     const handleOptionSelect = (option) => {
@@ -266,226 +343,235 @@ export default function ConversationSimulatorScreen({ navigation }) {
 
     if (selectedScenario) {
         return (
-            <KeyboardAvoidingView
-                style={[styles.container, { backgroundColor: theme.background }]}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-            >
-                <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={theme.background} />
+            <View style={{ flex: 1, backgroundColor: theme.background }}>
+                <KeyboardAvoidingView
+                    style={[styles.container, { backgroundColor: theme.background }]}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                >
+                    <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={theme.background} />
 
-                {/* Ultra-Premium Header */}
-                <View style={[styles.header, {
-                    backgroundColor: isDarkMode ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)',
-                    borderBottomColor: theme.border,
-                    backdropFilter: 'blur(10px)',
-                    zIndex: 10,
-                    height: Platform.OS === 'ios' ? 110 : 80,
-                    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingHorizontal: 16
-                }]}>
-                    <TouchableOpacity
-                        onPress={() => setSelectedScenario(null)}
-                        style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', justifyContent: 'center', alignItems: 'center' }}
-                    >
-                        <Ionicons name="chevron-back" size={24} color={theme.text} />
-                    </TouchableOpacity>
+                    {/* Ultra-Premium Header */}
+                    <View style={[styles.header, {
+                        backgroundColor: isDarkMode ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)',
+                        borderBottomColor: theme.border,
+                        backdropFilter: 'blur(10px)',
+                        zIndex: 10,
+                        height: Platform.OS === 'ios' ? 110 : 100, // Increased for Android
+                        paddingTop: Platform.OS === 'ios' ? 50 : 45, // Increased top padding
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        paddingHorizontal: 16
+                    }]}>
+                        <TouchableOpacity
+                            onPress={() => setSelectedScenario(null)}
+                            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', justifyContent: 'center', alignItems: 'center' }}
+                        >
+                            <Ionicons name="chevron-back" size={24} color={theme.text} />
+                        </TouchableOpacity>
 
-                    <View style={{ flex: 1, alignItems: 'center' }}>
-                        <Text style={{ fontSize: 17, fontWeight: '800', color: theme.text, letterSpacing: -0.2 }}>{selectedScenario.title}</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: theme.success, marginRight: 6 }} />
-                            <Text style={{ fontSize: 13, color: theme.secondaryText, fontWeight: '600' }}>Active Now</Text>
+                        <View style={{ flex: 1, alignItems: 'center' }}>
+                            <Text style={{ fontSize: 17, fontWeight: '800', color: theme.text, letterSpacing: -0.2 }}>{selectedScenario.title}</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: theme.success, marginRight: 6 }} />
+                                <Text style={{ fontSize: 13, color: theme.secondaryText, fontWeight: '600' }}>Active Now</Text>
+                            </View>
                         </View>
+
+                        <TouchableOpacity style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' }}>
+                            <Ionicons name="ellipsis-horizontal" size={24} color={theme.textSecondary} />
+                        </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', justifyContent: 'center', alignItems: 'center' }}>
-                        <Ionicons name="ellipsis-horizontal" size={20} color={theme.textSecondary} />
-                    </TouchableOpacity>
-                </View>
-
-                {/* Chat Area */}
-                <ScrollView
-                    ref={scrollViewRef}
-                    style={styles.chatScroll}
-                    contentContainerStyle={styles.chatContent}
-                    showsVerticalScrollIndicator={false}
-                    keyboardShouldPersistTaps="handled"
-                >
-                    {chatHistory.map((msg, index) => (
-                        <Animated.View
-                            key={index}
-                            style={[
-                                styles.messageRow,
-                                msg.type === 'outgoing' ? styles.msgRight : styles.msgLeft,
-                                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-                            ]}
-                        >
-                            {msg.type === 'incoming' && (
-                                <View style={[styles.avatar, { backgroundColor: theme.tertiaryBackground, overflow: 'hidden', borderWidth: 1, borderColor: theme.border }]}>
-                                    <ImageBackground
-                                        source={require('../assets/mirah_tutor.png')}
-                                        style={{ width: '100%', height: '100%' }}
-                                    />
-                                </View>
-                            )}
-                            <View style={[
-                                styles.bubble,
-                                msg.type === 'outgoing'
-                                    ? {
-                                        backgroundColor: theme.primary,
-                                        borderBottomRightRadius: 4,
-                                        shadowColor: theme.primary,
-                                        shadowOffset: { width: 0, height: 4 },
-                                        shadowOpacity: 0.3,
-                                        shadowRadius: 8,
-                                        elevation: 4
-                                    }
-                                    : {
-                                        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#FFF',
-                                        borderBottomLeftRadius: 4,
-                                        borderWidth: 1,
-                                        borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                                    }
-                            ]}>
-                                <Text style={[
-                                    styles.bubbleText,
-                                    {
-                                        color: msg.type === 'outgoing'
-                                            ? theme.textOnPrimary
-                                            : theme.text,
-                                        fontWeight: '500'
-                                    }
-                                ]}>{msg.text.replace(/\*\*/g, '').replace(/\*/g, '')}</Text>
-
-                                {msg.type === 'incoming' && msg.translation && (
-                                    <View style={[styles.translationContainer, { borderTopColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                                        <Text style={[
-                                            styles.translationText,
-                                            { color: theme.secondaryText }
-                                        ]}>{msg.translation}</Text>
+                    {/* Chat Area */}
+                    <ScrollView
+                        ref={scrollViewRef}
+                        style={styles.chatScroll}
+                        contentContainerStyle={styles.chatContent}
+                        showsVerticalScrollIndicator={false}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        {chatHistory.map((msg, index) => (
+                            <Animated.View
+                                key={index}
+                                style={[
+                                    styles.messageRow,
+                                    msg.type === 'outgoing' ? styles.msgRight : styles.msgLeft,
+                                    { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+                                ]}
+                            >
+                                {msg.type === 'incoming' && (
+                                    <View style={[styles.avatar, { backgroundColor: theme.tertiaryBackground, overflow: 'hidden', borderWidth: 1, borderColor: theme.border }]}>
+                                        <ImageBackground
+                                            source={require('../assets/mirah_tutor.png')}
+                                            style={{ width: '100%', height: '100%' }}
+                                        />
                                     </View>
                                 )}
-                            </View>
-                        </Animated.View>
-                    ))}
-                    {isTyping && (
-                        <View style={styles.messageRow}>
-                            <View style={[styles.avatar, { backgroundColor: theme.tertiaryBackground }]}>
-                                <ActivityIndicator size="small" color={theme.secondary} />
-                            </View>
-                            <View style={[
-                                styles.bubble,
-                                {
-                                    backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#FFF',
-                                    borderWidth: 1,
-                                    borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-                                }
-                            ]}>
-                                <Text style={[styles.typingText, { color: theme.secondaryText, fontWeight: '600' }]}>
-                                    Mirah is thinking...
-                                </Text>
-                            </View>
-                        </View>
-                    )}
-                    <View style={{ height: 40 }} />
-                </ScrollView>
+                                <View style={[
+                                    styles.bubble,
+                                    msg.type === 'outgoing'
+                                        ? {
+                                            backgroundColor: isDarkMode ? theme.primary : '#2563EB', // Vibrant Blue in Light Mode
+                                            borderBottomRightRadius: 4,
+                                            shadowColor: isDarkMode ? theme.primary : '#2563EB',
+                                            shadowOffset: { width: 0, height: 4 },
+                                            shadowOpacity: 0.2, // Reduced opacity
+                                            shadowRadius: 8,
+                                            elevation: 4
+                                        }
+                                        : {
+                                            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                                            borderBottomLeftRadius: 4,
+                                            borderWidth: 1,
+                                            borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E7EB',
+                                            shadowColor: '#000',
+                                            shadowOffset: { width: 0, height: 2 },
+                                            shadowOpacity: 0.05,
+                                            shadowRadius: 4,
+                                            elevation: 2
+                                        }
+                                ]}>
+                                    <Text style={[
+                                        styles.bubbleText,
+                                        {
+                                            color: msg.type === 'outgoing'
+                                                ? '#FFFFFF' // Force white text for outgoing (blue bubble)
+                                                : theme.text,
+                                            fontWeight: '500'
+                                        }
+                                    ]}>{msg.text.replace(/\*\*/g, '').replace(/\*/g, '')}</Text>
 
-                {/* Apple/Gemini Style Input Wrapper */}
-                {selectedScenario.isAi ? (
-                    <View style={[styles.aiInputWrapper, {
-                        backgroundColor: theme.background,
-                        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-                        borderTopWidth: 1,
-                        borderTopColor: theme.border
-                    }]}>
-                        <View style={[styles.aiInputContainer, {
-                            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#FFF',
-                            borderColor: theme.border,
-                            borderRadius: 30,
-                            paddingHorizontal: 6,
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 10,
-                            elevation: 5
-                        }]}>
-                            <TextInput
-                                style={[
-                                    styles.aiInput,
-                                    { color: theme.text, fontSize: 17 }
-                                ]}
-                                placeholder="Talk to Mirah..."
-                                placeholderTextColor={theme.secondaryText}
-                                value={freeMsg}
-                                onChangeText={setFreeMsg}
-                                onSubmitEditing={handleSendFreeMessage}
-                                returnKeyType="send"
-                                multiline
-                            />
-                            <TouchableOpacity
-                                style={[styles.aiSendBtn, {
-                                    backgroundColor: freeMsg.trim() ? theme.primary : 'rgba(255,255,255,0.05)',
-                                    transform: [{ scale: freeMsg.trim() ? 1 : 0.95 }]
-                                }]}
-                                onPress={handleSendFreeMessage}
-                                disabled={isSending || !freeMsg.trim()}
-                            >
-                                {isSending ? (
-                                    <ActivityIndicator size="small" color={theme.textOnPrimary} />
-                                ) : (
-                                    <Ionicons name="arrow-up" size={24} color={freeMsg.trim() ? theme.textOnPrimary : theme.secondaryText} />
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                        <Text style={{ fontSize: 11, color: theme.secondaryText, textAlign: 'center', marginTop: 12, fontWeight: '600', opacity: 1 }}>
-                            Mirah's AI can make mistakes. Double-check important info.
-                        </Text>
-                    </View>
-                ) : showOptions && (
-                    <View style={[styles.optionsContainer, {
-                        backgroundColor: isDarkMode ? 'rgba(0,0,0,0.8)' : '#F8F6F3',
-                        borderTopColor: theme.border
-                    }]}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 8 }}>
-                            <Ionicons name="chatbubbles-outline" size={18} color={theme.secondary} />
-                            <Text style={[styles.optionsTitle, { color: theme.secondaryText, marginBottom: 0 }]}>Select your response</Text>
-                        </View>
-                        {selectedScenario.steps.find(s => s.id === currentStepId)?.options.map((opt, i) => (
-                            <TouchableOpacity
-                                key={i}
-                                style={[
-                                    styles.optionBtn,
-                                    {
-                                        backgroundColor: theme.surface,
-                                        borderColor: theme.border,
-                                        shadowColor: '#000',
-                                        shadowOffset: { width: 0, height: 4 },
-                                        shadowOpacity: 0.05,
-                                        shadowRadius: 8,
-                                        elevation: 3
-                                    }
-                                ]}
-                                onPress={() => handleOptionSelect(opt)}
-                                activeOpacity={0.7}
-                            >
-                                <View style={{ flex: 1 }}>
-                                    <Text style={[styles.optionText, { color: theme.text, fontWeight: '600' }]}>{opt.text}</Text>
-                                    {opt.xp && (
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
-                                            <Ionicons name="flash" size={12} color={theme.secondary} />
-                                            <Text style={{ fontSize: 11, color: theme.secondary, fontWeight: '700' }}>+{opt.xp} XP</Text>
+                                    {msg.type === 'incoming' && msg.translation && (
+                                        <View style={[styles.translationContainer, { borderTopColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                                            <Text style={[
+                                                styles.translationText,
+                                                { color: theme.secondaryText }
+                                            ]}>{msg.translation}</Text>
                                         </View>
                                     )}
                                 </View>
-                                <Ionicons name="chevron-forward" size={18} color={theme.border} />
-                            </TouchableOpacity>
+                            </Animated.View>
                         ))}
-                    </View>
-                )}
-            </KeyboardAvoidingView>
+                        {isTyping && (
+                            <View style={styles.messageRow}>
+                                <View style={[styles.avatar, { backgroundColor: theme.tertiaryBackground }]}>
+                                    <ActivityIndicator size="small" color={theme.secondary} />
+                                </View>
+                                <View style={[
+                                    styles.bubble,
+                                    {
+                                        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#FFF',
+                                        borderWidth: 1,
+                                        borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                                    }
+                                ]}>
+                                    <Text style={[styles.typingText, { color: theme.secondaryText, fontWeight: '600' }]}>
+                                        Mirah is thinking...
+                                    </Text>
+                                </View>
+                            </View>
+                        )}
+                        <View style={{ height: 40 }} />
+                    </ScrollView>
+
+                    {/* Apple/Gemini Style Input Wrapper */}
+                    {selectedScenario.isAi ? (
+                        <View style={[styles.aiInputWrapper, {
+                            backgroundColor: isDarkMode ? theme.background : theme.surface,
+                            paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+                            borderTopWidth: 1,
+                            borderTopColor: theme.border
+                        }]}>
+                            <View style={[styles.aiInputContainer, {
+                                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#FFF',
+                                borderColor: theme.border,
+                                borderRadius: 30,
+                                paddingHorizontal: 6,
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.1,
+                                shadowRadius: 10,
+                                elevation: 5
+                            }]}>
+                                <TextInput
+                                    style={[
+                                        styles.aiInput,
+                                        { color: theme.text, fontSize: 17 }
+                                    ]}
+                                    placeholder="Talk to Mirah..."
+                                    placeholderTextColor={theme.secondaryText}
+                                    value={freeMsg}
+                                    onChangeText={setFreeMsg}
+                                    onSubmitEditing={handleSendFreeMessage}
+                                    returnKeyType="send"
+                                    multiline
+                                />
+                                <TouchableOpacity
+                                    style={[styles.aiSendBtn, {
+                                        backgroundColor: freeMsg.trim()
+                                            ? (isDarkMode ? theme.primary : '#2563EB')
+                                            : 'transparent',
+                                        transform: [{ scale: freeMsg.trim() ? 1 : 0.95 }]
+                                    }]}
+                                    onPress={handleSendFreeMessage}
+                                    disabled={isSending || !freeMsg.trim()}
+                                >
+                                    {isSending ? (
+                                        <ActivityIndicator size="small" color="#FFF" />
+                                    ) : (
+                                        <Ionicons name="arrow-up" size={24} color={freeMsg.trim() ? '#FFF' : theme.secondaryText} />
+                                    )}
+                                </TouchableOpacity>
+                            </View>
+                            <Text style={{ fontSize: 11, color: theme.secondaryText, textAlign: 'center', marginTop: 12, fontWeight: '600', opacity: 1 }}>
+                                Mirah's AI can make mistakes. Double-check important info.
+                            </Text>
+                        </View>
+                    ) : showOptions && (
+                        <View style={[styles.optionsContainer, {
+                            backgroundColor: isDarkMode ? theme.secondaryBackground : '#F8F6F3',
+                            borderTopColor: theme.border
+                        }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 8 }}>
+                                <Ionicons name="chatbubbles-outline" size={18} color={theme.secondary} />
+                                <Text style={[styles.optionsTitle, { color: theme.secondaryText, marginBottom: 0 }]}>Select your response</Text>
+                            </View>
+                            {selectedScenario.steps.find(s => s.id === currentStepId)?.options.map((opt, i) => (
+                                <TouchableOpacity
+                                    key={i}
+                                    style={[
+                                        styles.optionBtn,
+                                        {
+                                            backgroundColor: theme.surface,
+                                            borderColor: theme.border,
+                                            shadowColor: '#000',
+                                            shadowOffset: { width: 0, height: 4 },
+                                            shadowOpacity: 0.05,
+                                            shadowRadius: 8,
+                                            elevation: 3
+                                        }
+                                    ]}
+                                    onPress={() => handleOptionSelect(opt)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.optionText, { color: theme.text, fontWeight: '600' }]}>{opt.text}</Text>
+                                        {opt.xp && (
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
+                                                <Ionicons name="flash" size={12} color={theme.secondary} />
+                                                <Text style={{ fontSize: 11, color: theme.secondary, fontWeight: '700' }}>+{opt.xp} XP</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={18} color={theme.border} />
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    )}
+                </KeyboardAvoidingView>
+            </View >
         );
     }
 
@@ -562,12 +648,17 @@ export default function ConversationSimulatorScreen({ navigation }) {
                                 <View key={scenario.id} style={{ marginBottom: 36 }}>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16, paddingHorizontal: 4 }}>
                                         <Text style={{ fontSize: 15, fontWeight: '800', color: theme.text, textTransform: 'uppercase', letterSpacing: 1.5 }}>The Mirah Experience</Text>
-                                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.secondary }} />
+                                        {hasSavedHistory && (
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                                <Ionicons name="time-outline" size={14} color={theme.secondary} />
+                                                <Text style={{ fontSize: 12, fontWeight: '700', color: theme.secondary }}>{savedChatHistory.length} messages</Text>
+                                            </View>
+                                        )}
                                     </View>
                                     <TouchableOpacity
                                         style={[
                                             {
-                                                height: 320,
+                                                height: hasSavedHistory ? 380 : 320,
                                                 borderRadius: 32,
                                                 overflow: 'hidden',
                                                 backgroundColor: theme.surface,
@@ -578,7 +669,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
                                                 elevation: 20,
                                             }
                                         ]}
-                                        onPress={() => startScenario(scenario)}
+                                        onPress={() => hasSavedHistory ? startScenario(scenario, true) : startScenario(scenario, false)}
                                         activeOpacity={0.97}
                                     >
                                         <ImageBackground
@@ -595,7 +686,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
                                                         <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 11, letterSpacing: 0.5 }}>ULTRA • AI</Text>
                                                     </View>
                                                     <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }}>
-                                                        <Ionicons name="sparkles" size={22} color={theme.secondary} />
+                                                        <Ionicons name="hardware-chip-outline" size={22} color={theme.secondary} />
                                                     </View>
                                                 </View>
 
@@ -608,6 +699,64 @@ export default function ConversationSimulatorScreen({ navigation }) {
                                                     <Text style={{ fontSize: 17, color: 'rgba(255,255,255,0.85)', lineHeight: 24, fontWeight: '500', maxWidth: '90%' }}>
                                                         Master French with your personal AI mentor. Dynamic, real-time conversations.
                                                     </Text>
+
+                                                    {/* Chat History Actions */}
+                                                    {hasSavedHistory ? (
+                                                        <View style={{ marginTop: 16, gap: 10 }}>
+                                                            <TouchableOpacity
+                                                                style={{
+                                                                    flexDirection: 'row',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    backgroundColor: theme.secondary,
+                                                                    paddingVertical: 14,
+                                                                    paddingHorizontal: 20,
+                                                                    borderRadius: 16,
+                                                                    gap: 8
+                                                                }}
+                                                                onPress={() => startScenario(scenario, true)}
+                                                            >
+                                                                <Ionicons name="chatbubbles" size={18} color="#FFF" />
+                                                                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Continue Conversation</Text>
+                                                            </TouchableOpacity>
+                                                            <TouchableOpacity
+                                                                style={{
+                                                                    flexDirection: 'row',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    backgroundColor: 'rgba(255,255,255,0.15)',
+                                                                    paddingVertical: 12,
+                                                                    paddingHorizontal: 16,
+                                                                    borderRadius: 12,
+                                                                    borderWidth: 1,
+                                                                    borderColor: 'rgba(255,255,255,0.2)',
+                                                                    gap: 6
+                                                                }}
+                                                                onPress={() => startNewChat(scenario)}
+                                                            >
+                                                                <Ionicons name="add-circle-outline" size={16} color="rgba(255,255,255,0.8)" />
+                                                                <Text style={{ color: 'rgba(255,255,255,0.8)', fontWeight: '600', fontSize: 13 }}>Start Fresh</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    ) : (
+                                                        <TouchableOpacity
+                                                            style={{
+                                                                marginTop: 16,
+                                                                flexDirection: 'row',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                backgroundColor: theme.secondary,
+                                                                paddingVertical: 14,
+                                                                paddingHorizontal: 20,
+                                                                borderRadius: 16,
+                                                                gap: 8
+                                                            }}
+                                                            onPress={() => startScenario(scenario, false)}
+                                                        >
+                                                            <Ionicons name="chatbubbles" size={18} color="#FFF" />
+                                                            <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 15 }}>Start Chatting</Text>
+                                                        </TouchableOpacity>
+                                                    )}
                                                 </View>
                                             </LinearGradient>
                                         </ImageBackground>

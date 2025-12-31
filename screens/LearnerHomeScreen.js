@@ -175,23 +175,60 @@ export default function LearnerHomeScreen({ navigation }) {
 
                 <Animated.View style={{ opacity: fadeAnim }}>
 
-                    {/* 1. HERO FEATURE - Immersion Mode */}
+                    {/* 1. HERO FEATURE - Premium AI Chat with Mirah */}
                     <TouchableOpacity
-                        style={[styles.heroCard, themeShadows.md]}
+                        style={[styles.heroCard, themeShadows.lg]}
                         onPress={() => navigation.navigate('ConversationSimulator')}
-                        activeOpacity={0.95}
+                        activeOpacity={0.97}
                     >
                         <Image
                             source={{ uri: IMMERSION_IMAGES[currentImageIndex] }}
                             style={styles.heroImage}
                         />
+                        {/* Multi-layer gradient for depth */}
                         <LinearGradient
-                            colors={['transparent', 'rgba(0,0,0,0.8)']}
+                            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.85)']}
+                            locations={[0, 0.4, 1]}
                             style={styles.heroGradient}
                         >
-                            <Text style={styles.heroSubtitle}>NEW • FREE AI TUTOR</Text>
-                            <Text style={styles.heroTitle}>Chat with Mirah</Text>
-                            <Text style={styles.heroDescription}>Your personal AI French tutor is ready to chat about anything.</Text>
+                            {/* Top floating badges */}
+                            <View style={styles.heroTopRow}>
+                                <View style={styles.heroLiveBadge}>
+                                    <View style={styles.heroLiveDot} />
+                                    <Text style={styles.heroLiveText}>ONLINE NOW</Text>
+                                </View>
+                                <View style={styles.heroAiBadge}>
+                                    <Ionicons name="hardware-chip-outline" size={14} color="#FFD700" />
+                                    <Text style={styles.heroAiText}>AI POWERED</Text>
+                                </View>
+                            </View>
+
+                            {/* Bottom content area */}
+                            <View style={styles.heroBottomContent}>
+                                <View style={styles.heroTagRow}>
+                                    <View style={styles.heroNewTag}>
+                                        <Text style={styles.heroNewTagText}>NEW</Text>
+                                    </View>
+                                    <Text style={styles.heroSubtitle}>FREE AI TUTOR</Text>
+                                </View>
+
+                                <Text style={styles.heroTitle}>Chat with Mirah</Text>
+                                <Text style={styles.heroDescription}>
+                                    Your personal AI French companion. Practice conversations, get instant feedback, and learn naturally.
+                                </Text>
+
+                                {/* Action row */}
+                                <View style={styles.heroActionRow}>
+                                    <View style={styles.heroStartBtn}>
+                                        <Text style={styles.heroStartBtnText}>Start Chatting</Text>
+                                        <Ionicons name="arrow-forward" size={18} color="#FFF" />
+                                    </View>
+                                    <View style={styles.heroStats}>
+                                        <Ionicons name="chatbubbles" size={16} color="rgba(255,255,255,0.7)" />
+                                        <Text style={styles.heroStatsText}>Unlimited</Text>
+                                    </View>
+                                </View>
+                            </View>
                         </LinearGradient>
                     </TouchableOpacity>
 
@@ -368,14 +405,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    // Hero Card
+    // Hero Card - Premium Design
     heroCard: {
         marginHorizontal: 22,
-        height: 420,
-        borderRadius: 20, // Apple style large radius
+        height: 440,
+        borderRadius: 28,
         overflow: 'hidden',
         marginBottom: 32,
-        backgroundColor: '#000', // fallback
+        backgroundColor: '#0A1628',
     },
     heroImage: {
         width: '100%',
@@ -386,31 +423,128 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         right: 0,
+        top: 0,
         bottom: 0,
-        height: 200, // fade from bottom
-        padding: 24,
-        justifyContent: 'flex-end',
+        padding: 20,
+        justifyContent: 'space-between',
+    },
+    heroTopRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    heroLiveBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    heroLiveDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#4ADE80',
+    },
+    heroLiveText: {
+        color: '#FFF',
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+    heroAiBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 20,
+        gap: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255,215,0,0.3)',
+    },
+    heroAiText: {
+        color: '#FFD700',
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+    heroBottomContent: {
+        gap: 12,
+    },
+    heroTagRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    heroNewTag: {
+        backgroundColor: '#EF4444',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    heroNewTagText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 1,
     },
     heroSubtitle: {
-        color: 'rgba(255,255,255,0.7)',
+        color: 'rgba(255,255,255,0.8)',
         fontSize: 13,
         fontWeight: '700',
-        marginBottom: 8,
         textTransform: 'uppercase',
-        letterSpacing: 1,
+        letterSpacing: 1.5,
     },
     heroTitle: {
         color: '#FFF',
-        fontSize: 32,
-        fontWeight: '800',
-        marginBottom: 8,
-        lineHeight: 36,
+        fontSize: 36,
+        fontWeight: '900',
+        letterSpacing: -1,
+        lineHeight: 40,
     },
     heroDescription: {
-        color: 'rgba(255,255,255,0.9)',
-        fontSize: 15,
+        color: 'rgba(255,255,255,0.85)',
+        fontSize: 16,
         fontWeight: '500',
-        lineHeight: 20,
+        lineHeight: 24,
+        maxWidth: '95%',
+    },
+    heroActionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 8,
+    },
+    heroStartBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        borderRadius: 16,
+        gap: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.25)',
+    },
+    heroStartBtnText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    heroStats: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    heroStatsText: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 14,
+        fontWeight: '600',
     },
     // Focus Card (Goal)
     sectionContainer: {
