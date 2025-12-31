@@ -2177,68 +2177,7 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
                   ))}
                 </View>
 
-                <View style={[styles.messageActionsMenu, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}>
-                  <TouchableOpacity style={styles.messageActionItem} onPress={handleReplyToMessage}>
-                    <View style={[styles.messageActionIcon, { backgroundColor: '#007AFF15' }]}>
-                      <Ionicons name="arrow-undo" size={20} color="#007AFF" />
-                    </View>
-                    <Text style={[styles.messageActionText, { color: colors.text }]}>Reply</Text>
-                    <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                  </TouchableOpacity>
-
-                  <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
-
-                  <TouchableOpacity style={styles.messageActionItem} onPress={handleCopyMessage}>
-                    <View style={[styles.messageActionIcon, { backgroundColor: '#34C75915' }]}>
-                      <Ionicons name="copy" size={20} color="#34C759" />
-                    </View>
-                    <Text style={[styles.messageActionText, { color: colors.text }]}>Copy</Text>
-                    <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                  </TouchableOpacity>
-
-                  <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
-
-                  <TouchableOpacity style={styles.messageActionItem} onPress={handleForwardMessage}>
-                    <View style={[styles.messageActionIcon, { backgroundColor: '#5856D615' }]}>
-                      <Ionicons name="arrow-redo" size={20} color="#5856D6" />
-                    </View>
-                    <Text style={[styles.messageActionText, { color: colors.text }]}>Forward</Text>
-                    <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                  </TouchableOpacity>
-
-                  {(selectedMessage?.isOwnMessage || isModerator()) && (
-                    <>
-                      <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
-                      <TouchableOpacity style={styles.messageActionItem} onPress={handleDeleteMessage}>
-                        <View style={[styles.messageActionIcon, { backgroundColor: '#FF3B3015' }]}>
-                          <Ionicons name="trash" size={20} color="#FF3B30" />
-                        </View>
-                        <Text style={[styles.messageActionText, { color: '#FF3B30' }]}>Delete</Text>
-                        <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                      </TouchableOpacity>
-                    </>
-                  )}
-
-                  {!selectedMessage?.isOwnMessage && (
-                    <>
-                      <View style={[styles.messageActionDivider, { backgroundColor: colors.border }]} />
-                      <TouchableOpacity style={styles.messageActionItem} onPress={handleReportMessage}>
-                        <View style={[styles.messageActionIcon, { backgroundColor: '#FF950015' }]}>
-                          <Ionicons name="flag" size={20} color="#FF9500" />
-                        </View>
-                        <Text style={[styles.messageActionText, { color: '#FF9500' }]}>Report</Text>
-                        <Ionicons name="chevron-forward" size={18} color={colors.secondaryText} />
-                      </TouchableOpacity>
-                    </>
-                  )}
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.messageActionsCancelBtn, { backgroundColor: isDarkMode ? '#1c1c1e' : '#FFFFFF' }]}
-                  onPress={closeMessageActions}
-                >
-                  <Text style={styles.messageActionsCancelText}>Cancel</Text>
-                </TouchableOpacity>
+                {/* Menu and Cancel button removed as per user request to only show emojis */}
               </Animated.View>
             </TouchableOpacity>
           </TouchableOpacity>
