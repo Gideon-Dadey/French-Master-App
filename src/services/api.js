@@ -13,10 +13,10 @@ const getApiUrl = () => {
   // Legacy/Local URLs (for reference)
   // const STABLE_DOMAIN = 'compulsively-unevincible-irwin.ngrok-free.dev';
   // const NGROK_URL = `https://${STABLE_DOMAIN}/api`;
-  const LOCAL_IP_URL = 'http://192.168.59.80:5001/api';
+  // const LOCAL_IP_URL = 'http://192.168.232.80:5001/api';
 
-  // Use the Local Backend for development
-  return LOCAL_IP_URL;
+  // Use the Cloud Backend for EVERYTHING now to ensure availability
+  return RENDER_URL;
 };
 
 const API_URL = getApiUrl();

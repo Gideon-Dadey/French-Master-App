@@ -8,13 +8,13 @@ const getSocketUrl = () => {
     const STABLE_DOMAIN = 'compulsively-unevincible-irwin.ngrok-free.dev';
 
     const NGROK_SOCKET_URL = `https://${STABLE_DOMAIN}`;
-    const LOCAL_IP_URL = 'http://192.168.59.80:5001';
+    const LOCAL_IP_URL = 'http://192.168.232.80:5001';
 
     if (__DEV__) {
-        return LOCAL_IP_URL;
+        return NGROK_SOCKET_URL;
     }
-    // For production builds, also use local IP for dev testing
-    return LOCAL_IP_URL;
+    // For production builds, also use ngrok if not on production server
+    return NGROK_SOCKET_URL;
 };
 
 const SOCKET_URL = getSocketUrl();
