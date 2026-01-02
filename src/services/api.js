@@ -7,25 +7,16 @@ const getApiUrl = () => {
   const PRODUCTION_URL = 'https://api.frenchmastergh.com/api';
 
   // 1. CLAIM YOUR FREE STATIC DOMAIN at dashboard.ngrok.com
-  // 2. PASTE IT HERE (e.g., 'your-name.ngrok-free.app')
-  const STABLE_DOMAIN = 'compulsively-unevincible-irwin.ngrok-free.dev';
+  // Cloud Backend URL (Render)
+  const RENDER_URL = 'https://french-master-app.onrender.com/api';
 
-  const NGROK_URL = `https://${STABLE_DOMAIN}/api`;
-  const LOCAL_IP_URL = 'http://192.168.232.80:5001/api';
+  // Legacy/Local URLs (for reference)
+  // const STABLE_DOMAIN = 'compulsively-unevincible-irwin.ngrok-free.dev';
+  // const NGROK_URL = `https://${STABLE_DOMAIN}/api`;
+  const LOCAL_IP_URL = 'http://192.168.59.80:5001/api';
 
-  if (__DEV__) {
-    // In development (Expo Go), use ngrok for better mobile connectivity
-    if (Platform.OS === 'android') {
-      return NGROK_URL;
-    }
-    if (Platform.OS === 'ios') {
-      return NGROK_URL;
-    }
-    return NGROK_URL;
-  }
-
-  // For production builds, also use ngrok if not on production server
-  return NGROK_URL;
+  // Use the Local Backend for development
+  return LOCAL_IP_URL;
 };
 
 const API_URL = getApiUrl();

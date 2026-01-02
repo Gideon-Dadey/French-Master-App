@@ -26,7 +26,6 @@
     },
     "android": {
       "package": "com.lalliance.app",
-      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#FFFFFF"
@@ -54,9 +53,8 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "3cb7b33c-6b68-4f8a-a709-4225d8a59030"
+        "projectId": "6873ad7f-6e93-4bb7-bfcf-2d1c1c53e638"
       }
-    },
-    "owner": "s_phia"
+    }
   }
 }
