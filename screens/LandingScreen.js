@@ -123,18 +123,16 @@ const styles = StyleSheet.create({
     marginBottom: 60, // Increased spacing for grandeur
   },
   logoContainer: {
-    // Removed specific dimensions/bg to let the new logo breathe
     marginBottom: 24,
-    shadowColor: '#C9A227', // Golden glow
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowColor: '#C9A227', // Golden glow to match the brand
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 25,
+    elevation: 12,
   },
   logo: {
-    width: 120, // Much larger to showcase the "Masterpiece"
-    height: 120,
-    borderRadius: 30, // Softer curves matching the icon shape
+    width: 160, // Larger size to showcase the detail in the new masterpiece
+    height: 160,
   },
   topArea: {
     alignItems: 'center',
