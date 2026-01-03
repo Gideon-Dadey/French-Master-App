@@ -724,7 +724,7 @@ const styles = StyleSheet.create({
     actionButton: {
         paddingHorizontal: 16,
         paddingVertical: 8,
-        borderRadius: 20,
+        borderRadius: 12,
     },
     actionButtonText: {
         fontWeight: '800',
@@ -760,7 +760,7 @@ const styles = StyleSheet.create({
     iconCircle: {
         width: 36,
         height: 36,
-        borderRadius: 18,
+        borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
     },

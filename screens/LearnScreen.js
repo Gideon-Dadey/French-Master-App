@@ -722,7 +722,7 @@ const styles = StyleSheet.create({
   emptyIconBg: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,

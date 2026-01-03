@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   browseButton: {
     paddingHorizontal: 30,
     paddingVertical: 12,
-    borderRadius: 25,
+    borderRadius: 12,
   },
   browseButtonText: {
     color: '#fff',
