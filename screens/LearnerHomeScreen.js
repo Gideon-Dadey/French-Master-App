@@ -258,26 +258,36 @@ export default function LearnerHomeScreen({ navigation }) {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* 2. DAILY FOCUS - Combined Goal & Streak */}
+                    {/* 2. DAILY FOCUS - Senior Level Sync */}
                     <View style={styles.sectionContainer}>
+                        <View style={styles.sectionHeaderRow}>
+                            <View style={styles.headingWithBadge}>
+                                <Text style={[styles.sectionHeading, { color: navyColor, marginHorizontal: 0 }]}>Focus Hub</Text>
+                                <View style={[styles.statusBadge, { backgroundColor: theme.success + '12' }]}>
+                                    <View style={[styles.statusDot, { backgroundColor: theme.success }]} />
+                                    <Text style={[styles.statusText, { color: theme.success }]}>ON TRACK</Text>
+                                </View>
+                            </View>
+                        </View>
+
                         <TouchableOpacity
-                            style={[styles.focusCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.md]}
+                            style={[styles.focusCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1.5 }, themeShadows.md]}
                             onPress={() => navigation.navigate('Streaks')}
                             activeOpacity={0.92}
                         >
                             <View style={styles.focusLeft}>
-                                <View style={[styles.ringContainer, { borderColor: goldColor, backgroundColor: goldColor + '10' }]}>
-                                    <Ionicons name="flash-sharp" size={24} color={goldColor} />
-                                </View>
+                                <BlurView intensity={10} tint={isDarkMode ? 'dark' : 'light'} style={[styles.ringContainer, { borderColor: goldColor + '40', backgroundColor: goldColor + '08' }]}>
+                                    <Ionicons name="flash" size={24} color={goldColor} />
+                                </BlurView>
                                 <View>
-                                    <Text style={[styles.focusLabel, { color: mutedColor }]}>DAILY STREAK</Text>
+                                    <Text style={[styles.focusLabel, { color: mutedColor }]}>MÉTRIQUE DE RÉUSSITE</Text>
                                     <Text style={[styles.focusValue, { color: navyColor }]}>
-                                        {user?.streak?.current || 0} Days Active
+                                        {user?.streak?.current || 0} Day Mastery Streak
                                     </Text>
                                 </View>
                             </View>
                             <View style={[styles.actionButton, { backgroundColor: navyColor }]}>
-                                <Text style={[styles.actionButtonText, { color: theme.textOnPrimary }]}>VIEW</Text>
+                                <Text style={[styles.actionButtonText, { color: '#FFF' }]}>DÉTAILS</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -448,7 +458,15 @@ export default function LearnerHomeScreen({ navigation }) {
                     {/* 5. WATCH & LEARN - Video Masterclasses */}
                     {videoMasterclasses.length > 0 && (
                         <View style={styles.sectionContainer}>
-                            <Text style={[styles.sectionHeading, { color: navyColor }]}>Watch & Learn</Text>
+                            <View style={styles.sectionHeaderRow}>
+                                <View style={styles.headingWithBadge}>
+                                    <Text style={[styles.sectionHeading, { color: navyColor, marginHorizontal: 0 }]}>Watch & Learn</Text>
+                                    <View style={[styles.statusBadge, { backgroundColor: theme.error + '10' }]}>
+                                        <View style={[styles.statusDot, { backgroundColor: theme.error }]} />
+                                        <Text style={[styles.statusText, { color: theme.error }]}>LIVE SESSIONS</Text>
+                                    </View>
+                                </View>
+                            </View>
                             {videoMasterclasses.slice(0, 3).map((video, index) => (
                                 <TouchableOpacity
                                     key={index}
