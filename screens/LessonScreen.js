@@ -27,7 +27,7 @@ export default function LessonScreen({ route, navigation }) {
   const { isDarkMode, organicColors: theme } = useTheme();
   const { user, updateUser } = useAuth();
 
-  // L'Alliance Theme Colors - derived from Organic Theme
+  // French Master Theme Colors - derived from Organic Theme
   const bgColor = theme.background;
   const cardColor = theme.surface;
   const textColor = theme.text;

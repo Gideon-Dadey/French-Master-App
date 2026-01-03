@@ -209,7 +209,7 @@ export default function HomeScreen({ navigation }) {
         >
 
           <View style={styles.headerTopRow}>
-            <Text style={styles.appTitle}>L'ALLIANCE</Text>
+            <Text style={styles.appTitle}>FRENCH MASTER</Text>
             <View style={styles.headerActions}>
               <TouchableOpacity
                 style={styles.headerActionBtn}
@@ -462,7 +462,7 @@ export default function HomeScreen({ navigation }) {
                 <Ionicons name="person-circle" size={48} color="#6366F1" />
               </View>
               <Text style={[styles.loginPromptTitle, { color: colors.text }]}>
-                Welcome to L'Alliance!
+                Welcome to French Master!
               </Text>
               <Text style={[styles.loginPromptText, { color: colors.secondaryText }]}>
                 Sign in to track your progress, save courses, and unlock premium content
@@ -622,10 +622,7 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   headerActionBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },

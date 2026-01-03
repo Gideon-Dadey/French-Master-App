@@ -49,7 +49,7 @@ A comprehensive, production-ready mobile application for learning French and Eng
 
 ### 🎨 Premium iOS-Style Design
 - **Beautiful UI/UX** - Professional native interface inspired by iOS
-- **Unified "L'Alliance" Theme** - Sophisticated Navy, Gold, and Cream palette (`organicTheme`)
+- **Unified "French Master" Theme** - Sophisticated Navy, Gold, and Cream palette (`organicTheme`)
 - **Time-Based Greetings** - Dynamic French greetings in LearnScreen (Bonjour, Bon après-midi, Bonsoir)
 - **Dark/Light Mode** - Full theme support with smooth transitions
 - **Premium Animations** - Smooth entrance animations, staggered reveals, parallax effects

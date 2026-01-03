@@ -30,7 +30,7 @@ export default function CertificateView({ course, userName, completionDate, onCl
 
   const handleShare = async () => {
     try {
-      const shareMessage = `I've completed the course "${course?.title || 'Course'}" on L'Alliance! 🎓`;
+      const shareMessage = `I've completed the course "${course?.title || 'Course'}" on French Master! 🎓`;
       await Share.share({
         message: shareMessage,
         title: 'Certificate of Completion',
@@ -100,7 +100,7 @@ export default function CertificateView({ course, userName, completionDate, onCl
               <View style={[styles.seal, { borderColor: goldColor }]}>
                 <Ionicons name="shield-checkmark" size={32} color={goldColor} />
               </View>
-              <Text style={[styles.certifiedText, { color: goldColor }]}>L'ALLIANCE CERTIFIED</Text>
+              <Text style={[styles.certifiedText, { color: goldColor }]}>FRENCH MASTER CERTIFIED</Text>
             </View>
           </LinearGradient>
         </View>

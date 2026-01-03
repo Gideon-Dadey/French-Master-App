@@ -159,12 +159,12 @@ export default function SettingsScreen({ navigation }) {
                     <SettingItem
                         icon="document-text-outline"
                         title="Terms of Service"
-                        onPress={() => Linking.openURL('https://lalliance.fr/terms')}
+                        onPress={() => Linking.openURL('https://frenchmastergh.com/terms')}
                     />
                     <SettingItem
                         icon="shield-outline"
                         title="Privacy Policy"
-                        onPress={() => Linking.openURL('https://lalliance.fr/privacy')}
+                        onPress={() => Linking.openURL('https://frenchmastergh.com/privacy')}
                         isLast
                     />
                 </Section>
@@ -175,8 +175,8 @@ export default function SettingsScreen({ navigation }) {
                 </TouchableOpacity>
 
                 <View style={styles.footer}>
-                    <Text style={[styles.version, { color: theme.textMuted }]}>L'Alliance French Master</Text>
-                    <Text style={[styles.version, { color: theme.textMuted }]}>Version 1.2.0 (Build 42)</Text>
+                    <Text style={[styles.version, { color: theme.textMuted }]}>French Master</Text>
+                    <Text style={[styles.version, { color: theme.textMuted }]}>Version 2.0.0 (Build 42)</Text>
                 </View>
 
                 <View style={{ height: 40 }} />
@@ -203,9 +203,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     backBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        padding: 8,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -234,9 +232,9 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     iconWrap: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
+        width: 32,
+        height: 32,
+        borderRadius: 6,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 15,

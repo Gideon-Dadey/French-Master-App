@@ -525,10 +525,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   searchToggle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 1,
+    padding: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },

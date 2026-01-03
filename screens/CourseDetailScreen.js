@@ -32,7 +32,7 @@ export default function CourseDetailScreen({ route, navigation }) {
   const { isAuthenticated, user, loadUser } = useAuth();
   const { isDarkMode, organicColors: theme } = useTheme();
 
-  // L'Alliance Theme Colors - derived from Organic Theme
+  // French Master Theme Colors - derived from Organic Theme
   const bgColor = theme.background;
   const cardColor = theme.surface;
   const textColor = theme.text;

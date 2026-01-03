@@ -21,7 +21,7 @@ export default function StreaksScreen({ navigation }) {
     const { isDarkMode, organicColors: theme } = useTheme();
     const { user } = useAuth();
 
-    // L'Alliance Premium Theme - derived from Organic Theme
+    // French Master Premium Theme - derived from Organic Theme
     const navyColor = theme.primary;
     const goldColor = theme.secondary;
     const bgColor = theme.background;

@@ -497,7 +497,7 @@ export default function ResourcesScreen({ navigation }) {
         <View style={styles.blogSection}>
           <View style={styles.blogHeader}>
             <Heading
-              title="L'Alliance Lessons & News"
+              title="French Master Lessons & News"
               onSeeAll={() => navigation.navigate('BlogList')}
               seeAllText="See all"
             />
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
   categoryIcon: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
   downloadButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: spacing.md,
     justifyContent: 'center',
     alignItems: 'center',
   },

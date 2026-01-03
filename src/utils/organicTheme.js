@@ -1,5 +1,5 @@
 /**
- * L'Alliance - Unified Color Theme
+ * French Master - Unified Color Theme
  * 
  * A sophisticated Midnight Blue & Gold palette inspired by French elegance.
  * This palette evokes Parisian luxury, trust, and intellectual sophistication.

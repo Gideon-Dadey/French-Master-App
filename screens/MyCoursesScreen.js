@@ -165,7 +165,7 @@ export default function MyCoursesScreen({ navigation }) {
                       {course.title}
                     </Text>
                     <Text style={[styles.courseInstructor, { color: theme.textSecondary }]}>
-                      {course.instructor?.name || 'L\'Alliance Instructor'}
+                      {course.instructor?.name || 'French Master'}
                     </Text>
 
                     <View style={styles.progressArea}>

@@ -63,7 +63,7 @@ describe('LearnerHomeScreen', () => {
 
         await waitFor(() => {
             // Check for app name
-            const appNameElements = getAllByText("L'Alliance");
+            const appNameElements = getAllByText("French Master");
             expect(appNameElements.length).toBeGreaterThan(0);
 
             // Check for a greeting (default 'Learner')

@@ -376,7 +376,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
                     }]}>
                         <TouchableOpacity
                             onPress={() => setSelectedScenario(null)}
-                            style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', justifyContent: 'center', alignItems: 'center' }}
+                            style={{ padding: 8, justifyContent: 'center', alignItems: 'center' }}
                         >
                             <Ionicons name="chevron-back" size={24} color={theme.text} />
                         </TouchableOpacity>
@@ -610,10 +610,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                         <TouchableOpacity
                             style={{
-                                width: 44,
-                                height: 44,
-                                borderRadius: 22,
-                                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
+                                padding: 8,
                                 justifyContent: 'center',
                                 alignItems: 'center'
                             }}
@@ -1111,7 +1108,7 @@ const styles = StyleSheet.create({
     aiSendBtn: {
         width: 44,
         height: 44,
-        borderRadius: 22,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     }

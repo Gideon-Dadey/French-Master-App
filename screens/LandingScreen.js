@@ -59,7 +59,11 @@ export default function LandingScreen({ navigation }) {
             <View style={styles.logoContainer}>
               <Image source={require('../assets/logo.png')} style={styles.logo} />
             </View>
-            <Text style={styles.appName}>L'ALLIANCE</Text>
+            <View style={styles.topArea}>
+              <Text style={styles.welcomeText}>Welcome to</Text>
+              <Text style={styles.appName}>FRENCH MASTER</Text>
+              <Text style={styles.tagline}>Master French with Elegance</Text>
+            </View>
           </View>
 
           {/* Hero Text */}

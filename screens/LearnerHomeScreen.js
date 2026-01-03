@@ -52,7 +52,7 @@ export default function LearnerHomeScreen({ navigation }) {
     const gamification = useGamification();
     const gamificationStats = gamification?.stats || {};
 
-    // L'Alliance Premium Theme - derived from Organic Theme
+    // French Master Premium Theme - derived from Organic Theme
     const navyColor = theme.primary;
     const goldColor = theme.secondary;
     const bgColor = theme.background;
@@ -433,9 +433,9 @@ const styles = StyleSheet.create({
         marginTop: -4,
     },
     profileButton: {
-        width: 52,
-        height: 52,
-        borderRadius: 26,
+        width: 48,
+        height: 48,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: '#000',

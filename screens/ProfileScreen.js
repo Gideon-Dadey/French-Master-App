@@ -421,7 +421,7 @@ export default function ProfileScreen({ navigation }) {
             <Ionicons name="log-out-sharp" size={20} color={theme.error} />
             <Text style={[styles.logoutText, { color: theme.error }]}>Sign Out</Text>
           </TouchableOpacity>
-          <Text style={[styles.version, { color: mutedColor }]}>Version 1.2.0 • L'Alliance Royale</Text>
+          <Text style={[styles.version, { color: mutedColor }]}>Version 2.0.0 • French Master</Text>
         </Animated.View>
 
         <View style={{ height: 80 }} />
@@ -829,9 +829,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   settingIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
