@@ -295,11 +295,11 @@ export default function LearnScreen({ navigation }) {
                 <Ionicons
                   name={cat.icon}
                   size={18}
-                  color={selectedCategory === cat.id ? '#FFFFFF' : theme.textSecondary}
+                  color={selectedCategory === cat.id ? theme.textOnPrimary : theme.textSecondary}
                 />
                 <Text style={[
                   styles.categoryText,
-                  { color: selectedCategory === cat.id ? '#FFFFFF' : theme.text }
+                  { color: selectedCategory === cat.id ? theme.textOnPrimary : theme.text }
                 ]}>
                   {cat.name}
                 </Text>
