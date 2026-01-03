@@ -492,9 +492,16 @@ export default function ConversationSimulatorScreen({ navigation }) {
                                     disabled={isSending || !freeMsg.trim()}
                                 >
                                     {isSending ? (
-                                        <ActivityIndicator size="small" color="#FFF" />
+                                        <ActivityIndicator size="small" color={isDarkMode ? '#000' : '#FFF'} />
                                     ) : (
-                                        <Ionicons name="arrow-up" size={24} color={freeMsg.trim() ? '#FFF' : theme.secondaryText} />
+                                        <Ionicons
+                                            name="arrow-up"
+                                            size={24}
+                                            color={freeMsg.trim()
+                                                ? (isDarkMode ? '#000' : '#FFF')
+                                                : (isDarkMode ? 'rgba(255,255,255,0.4)' : theme.secondaryText)
+                                            }
+                                        />
                                     )}
                                 </TouchableOpacity>
                             </View>
