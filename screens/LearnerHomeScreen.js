@@ -156,38 +156,38 @@ export default function LearnerHomeScreen({ navigation }) {
                 }
                 showsVerticalScrollIndicator={false}
             >
-                {/* Ultra-Modern Header Section */}
+                {/* Ultra-Premium Header */}
                 <View style={styles.headerContainer}>
                     <View style={styles.headerTopRow}>
                         <View style={styles.headerTitleArea}>
-                            <View style={styles.headerLogoContainer}>
+                            <BlurView intensity={20} tint={isDarkMode ? 'dark' : 'light'} style={styles.headerLogoBlur}>
                                 <Image source={require('../assets/logo.png')} style={styles.headerLogo} resizeMode="contain" />
-                            </View>
+                            </BlurView>
                             <View>
-                                <Text style={[styles.headerGreeting, { color: navyColor }]}>
-                                    {new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'},
+                                <Text style={[styles.headerGreeting, { color: mutedColor }]}>
+                                    {new Date().getHours() < 12 ? 'Bon Matin' : new Date().getHours() < 18 ? 'Bon Après-midi' : 'Bonsoir'},
                                 </Text>
                                 <Text style={[styles.headerName, { color: navyColor }]}>{user?.firstName || 'Learner'}</Text>
                             </View>
                         </View>
                         <TouchableOpacity
-                            style={[styles.profileButton, { backgroundColor: lightBlue, borderColor: goldColor + '40', borderWidth: 1 }]}
+                            style={[styles.profileButton, { backgroundColor: '#FFF', borderColor: goldColor + '30', borderWidth: 1.5 }, themeShadows.md]}
                             onPress={() => navigation.navigate('Profile')}
                         >
                             {user?.avatar || user?.profilePicture ? (
                                 <Image source={{ uri: user.avatar || user.profilePicture }} style={styles.headerAvatar} />
                             ) : (
-                                <Ionicons name="person-sharp" size={20} color={navyColor} />
+                                <Ionicons name="person" size={20} color={navyColor} />
                             )}
                         </TouchableOpacity>
                     </View>
-                    <View style={styles.headerDateRow}>
-                        <View style={[styles.dateBadge, { backgroundColor: goldColor + '15' }]}>
-                            <Ionicons name="calendar-outline" size={14} color={goldColor} />
-                            <Text style={[styles.headerDateText, { color: goldColor }]}>{dateInfo.day}</Text>
+                    <View style={styles.headerSystemRow}>
+                        <View style={[styles.systemStatus, { backgroundColor: navyColor + '08' }]}>
+                            <View style={[styles.systemPulse, { backgroundColor: theme.success }]} />
+                            <Text style={[styles.systemText, { color: navyColor }]}>SESSION ACTIVE</Text>
                         </View>
-                        <View style={styles.headerSeperator} />
-                        <Text style={[styles.headerWeekday, { color: mutedColor }]}>{dateInfo.weekday}</Text>
+                        <View style={styles.headerDot} />
+                        <Text style={[styles.headerDateLabel, { color: mutedColor }]}>{dateInfo.day.toUpperCase()}</Text>
                     </View>
                 </View>
 
@@ -282,90 +282,163 @@ export default function LearnerHomeScreen({ navigation }) {
                         </TouchableOpacity>
                     </View>
 
-                    {/* 3. BENTO GRID QUICK PRACTICE */}
+                    {/* 3. PREMIUM STUDIO STRIP - Senior Level Actions */}
                     <View style={styles.sectionContainer}>
                         <View style={styles.sectionHeaderRow}>
-                            <Text style={[styles.sectionHeading, { color: navyColor }]}>Quick Actions</Text>
-                            <Ionicons name="grid-outline" size={18} color={goldColor} />
+                            <View style={styles.headingWithBadge}>
+                                <Text style={[styles.sectionHeading, { color: navyColor, marginHorizontal: 0 }]}>Daily Studio</Text>
+                                <View style={[styles.statusBadge, { backgroundColor: goldColor + '15' }]}>
+                                    <View style={[styles.statusDot, { backgroundColor: goldColor }]} />
+                                    <Text style={[styles.statusText, { color: goldColor }]}>SYNCED</Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity onPress={() => navigation.navigate('Courses')}>
+                                <Text style={{ color: goldColor, fontWeight: '700', fontSize: 13 }}>ADJUST HUB</Text>
+                            </TouchableOpacity>
                         </View>
 
-                        <View style={styles.bentoContainer}>
-                            {/* Left Large Column */}
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.studioStripScroll}
+                            snapToInterval={width * 0.72 + 16}
+                            decelerationRate="fast"
+                        >
+                            {/* Card 1: Word of the Day (The Master's Voice) */}
                             <TouchableOpacity
-                                style={[styles.bentoLarge, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.md]}
+                                style={[styles.studioCard, { backgroundColor: navyColor }, themeShadows.lg]}
                                 onPress={() => navigation.navigate('WordOfTheDay')}
-                                activeOpacity={0.9}
+                                activeOpacity={0.95}
                             >
-                                <LinearGradient colors={[theme.warning + '15', 'transparent']} style={StyleSheet.absoluteFill} />
-                                <View style={[styles.iconCircle, { backgroundColor: theme.warning + '20' }]}>
-                                    <Ionicons name="book-sharp" size={24} color={theme.warning} />
+                                <LinearGradient colors={['rgba(201, 162, 39, 0.15)', 'transparent']} style={StyleSheet.absoluteFill} />
+                                <View style={styles.studioCardTop}>
+                                    <View style={styles.studioIconCircle}>
+                                        <Ionicons name="journal" size={20} color={goldColor} />
+                                    </View>
+                                    <Text style={styles.studioCategory}>VOCABULARY</Text>
                                 </View>
-                                <View style={styles.bentoContent}>
-                                    <Text style={[styles.miniCardTitle, { color: navyColor }]}>Word of Day</Text>
-                                    <Text style={[styles.miniCardValue, { color: theme.warning }]}>{dailyWord.french}</Text>
-                                    <Text style={[styles.miniCardSub, { color: mutedColor }]} numberOfLines={1}>"{dailyWord.example}"</Text>
+                                <View style={styles.studioCardBody}>
+                                    <Text style={styles.studioCardLabel}>MOT DU JOUR</Text>
+                                    <Text style={styles.studioCardMainValue}>{dailyWord.french}</Text>
+                                    <Text style={styles.studioCardSubscript}>{dailyWord.phonetic}</Text>
                                 </View>
-                                <View style={styles.bentoArrow}>
-                                    <Ionicons name="arrow-forward-circle" size={24} color={theme.warning + '80'} />
+                                <View style={styles.studioCardFooter}>
+                                    <Text style={styles.studioCardActionText}>REVEAL LESSON</Text>
+                                    <Ionicons name="chevron-forward" size={16} color={goldColor} />
                                 </View>
                             </TouchableOpacity>
 
-                            {/* Right Two-Row Column */}
-                            <View style={styles.bentoSmallCol}>
-                                <TouchableOpacity
-                                    style={[styles.bentoSmall, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
-                                    onPress={() => navigation.navigate('Achievements')}
-                                    activeOpacity={0.9}
-                                >
-                                    <LinearGradient colors={[theme.success + '10', 'transparent']} style={StyleSheet.absoluteFill} />
-                                    <Ionicons name="stats-chart-sharp" size={20} color={theme.success} />
-                                    <Text style={[styles.miniCardTitle, { color: navyColor }]}>Progress</Text>
-                                    <Text style={[styles.miniCardValue, { color: theme.success, fontSize: 16 }]}>{gamificationStats.xp || 0} XP</Text>
-                                </TouchableOpacity>
+                            {/* Card 2: Progress Tracking (The Path) */}
+                            <TouchableOpacity
+                                style={[styles.studioCard, { backgroundColor: '#FFF', borderColor: lightBlue, borderWidth: 1 }, themeShadows.md]}
+                                onPress={() => navigation.navigate('Achievements')}
+                                activeOpacity={0.95}
+                            >
+                                <View style={styles.studioCardTop}>
+                                    <View style={[styles.studioIconCircle, { backgroundColor: navyColor + '08' }]}>
+                                        <Ionicons name="trending-up" size={20} color={navyColor} />
+                                    </View>
+                                    <Text style={[styles.studioCategory, { color: mutedColor }]}>MASTERY PATH</Text>
+                                </View>
+                                <View style={styles.studioCardBody}>
+                                    <Text style={[styles.studioCardLabel, { color: mutedColor }]}>TOTAL PROGRESS</Text>
+                                    <Text style={[styles.studioCardMainValue, { color: navyColor }]}>{gamificationStats.xp || 0} XP</Text>
+                                    <View style={styles.miniProgressTrack}>
+                                        <View style={[styles.miniProgressBar, { backgroundColor: navyColor + '10' }]}>
+                                            <View style={[styles.miniProgressFill, { backgroundColor: goldColor, width: '65%' }]} />
+                                        </View>
+                                    </View>
+                                </View>
+                                <View style={styles.studioCardFooter}>
+                                    <Text style={[styles.studioCardActionText, { color: navyColor }]}>VIEW STATS</Text>
+                                    <Ionicons name="chevron-forward" size={16} color={navyColor} />
+                                </View>
+                            </TouchableOpacity>
 
-                                <TouchableOpacity
-                                    style={[styles.bentoSmall, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
-                                    onPress={() => navigation.navigate('Flashcards')}
-                                    activeOpacity={0.9}
-                                >
-                                    <LinearGradient colors={[theme.info + '10', 'transparent']} style={StyleSheet.absoluteFill} />
-                                    <Ionicons name="documents-sharp" size={20} color={theme.info} />
-                                    <Text style={[styles.miniCardTitle, { color: navyColor }]}>Review</Text>
-                                    <Text style={[styles.miniCardValue, { color: theme.info, fontSize: 16 }]}>Flashcards</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
+                            {/* Card 3: Review Center (Atelier) */}
+                            <TouchableOpacity
+                                style={[styles.studioCard, { backgroundColor: goldColor }, themeShadows.md]}
+                                onPress={() => navigation.navigate('Flashcards')}
+                                activeOpacity={0.95}
+                            >
+                                <LinearGradient colors={['rgba(255,255,255,0.2)', 'transparent']} style={StyleSheet.absoluteFill} />
+                                <View style={styles.studioCardTop}>
+                                    <View style={[styles.studioIconCircle, { backgroundColor: '#FFF' }]}>
+                                        <Ionicons name="layers" size={20} color={goldColor} />
+                                    </View>
+                                    <Text style={[styles.studioCategory, { color: navyColor }]}>ATELIER</Text>
+                                </View>
+                                <View style={styles.studioCardBody}>
+                                    <Text style={[styles.studioCardLabel, { color: navyColor, opacity: 0.7 }]}>ACTIVE REVIEW</Text>
+                                    <Text style={[styles.studioCardMainValue, { color: navyColor }]}>Flashcards</Text>
+                                    <Text style={[styles.studioCardSubscript, { color: navyColor }]}>12 CARDS READY</Text>
+                                </View>
+                                <View style={styles.studioCardFooter}>
+                                    <Text style={[styles.studioCardActionText, { color: navyColor }]}>START REVIEW</Text>
+                                    <Ionicons name="chevron-forward" size={16} color={navyColor} />
+                                </View>
+                            </TouchableOpacity>
+                        </ScrollView>
                     </View>
 
-                    {/* 4. DISCOVERY - Featured Courses */}
+                    {/* 4. CURATED MASTERCLASSES - Same Premium Style */}
                     <View style={styles.sectionContainer}>
                         <View style={styles.sectionHeaderRow}>
-                            <Text style={[styles.sectionHeading, { color: navyColor }]}>Mastery Path</Text>
+                            <View style={styles.headingWithBadge}>
+                                <Text style={[styles.sectionHeading, { color: navyColor, marginHorizontal: 0 }]}>Curated Paths</Text>
+                                <View style={[styles.statusBadge, { backgroundColor: theme.info + '15' }]}>
+                                    <View style={[styles.statusDot, { backgroundColor: theme.info }]} />
+                                    <Text style={[styles.statusText, { color: theme.info }]}>EXPERT PICK</Text>
+                                </View>
+                            </View>
                             <TouchableOpacity onPress={() => navigation.navigate('Courses')}>
-                                <Text style={{ color: goldColor, fontWeight: '700' }}>See All</Text>
+                                <Text style={{ color: goldColor, fontWeight: '700', fontSize: 13 }}>BROWSE ALL</Text>
                             </TouchableOpacity>
                         </View>
 
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.studioStripScroll}
+                            snapToInterval={width * 0.72 + 16}
+                            decelerationRate="fast"
+                        >
                             {topCourses.map((course, index) => (
                                 <TouchableOpacity
                                     key={course._id || index}
-                                    style={[styles.courseCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.md]}
+                                    style={[styles.courseStudioCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.md]}
                                     onPress={() => navigation.navigate('CourseDetail', { courseId: course._id })}
-                                    activeOpacity={0.9}
+                                    activeOpacity={0.95}
                                 >
-                                    <View style={styles.courseImageWrapper}>
+                                    <View style={styles.courseImageHero}>
                                         <Image
                                             source={getCourseImage(course._id, index, course.category, course.title)}
-                                            style={styles.courseImage}
+                                            style={styles.courseHeroImg}
                                         />
-                                        <View style={styles.courseOverlay}>
-                                            <Text style={styles.courseCategoryBadge}>{course.category?.toUpperCase() || 'COURSE'}</Text>
+                                        <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.6)']} style={StyleSheet.absoluteFill} />
+                                        <View style={styles.courseHeroMeta}>
+                                            <BlurView intensity={20} tint="dark" style={styles.courseHeroLevel}>
+                                                <Text style={styles.courseLevelText}>{course.level?.toUpperCase()}</Text>
+                                            </BlurView>
                                         </View>
                                     </View>
-                                    <View style={styles.courseContent}>
-                                        <Text style={[styles.courseTitle, { color: navyColor }]} numberOfLines={2}>{course.title}</Text>
-                                        <Text style={[styles.courseMeta, { color: mutedColor }]}>{course.level} • {course.rating?.average?.toFixed(1) || 4.8} ★</Text>
+
+                                    <View style={styles.courseStudioContent}>
+                                        <View style={styles.courseStudioTop}>
+                                            <Text style={[styles.courseStudioCat, { color: goldColor }]}>{course.category?.toUpperCase() || 'MASTERCLASS'}</Text>
+                                            <View style={styles.courseStudioStar}>
+                                                <Ionicons name="star" size={12} color={goldColor} />
+                                                <Text style={[styles.courseStarText, { color: navyColor }]}>{course.rating?.average?.toFixed(1) || 4.8}</Text>
+                                            </View>
+                                        </View>
+                                        <Text style={[styles.courseStudioTitle, { color: navyColor }]} numberOfLines={2}>{course.title}</Text>
+
+                                        <View style={styles.courseStudioFooter}>
+                                            <Text style={[styles.courseStudioAction, { color: navyColor }]}>ENROLL NOW</Text>
+                                            <View style={[styles.courseActionCircle, { backgroundColor: goldColor }]}>
+                                                <Ionicons name="arrow-forward" size={14} color={navyColor} />
+                                            </View>
+                                        </View>
                                     </View>
                                 </TouchableOpacity>
                             ))}
@@ -417,92 +490,93 @@ const styles = StyleSheet.create({
     // Header Refinements
     headerContainer: {
         paddingHorizontal: 22,
-        marginBottom: 28,
+        marginBottom: 32,
         marginTop: 10,
     },
     headerTopRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: 20,
     },
     headerTitleArea: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 16,
     },
-    headerLogoContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
-        backgroundColor: '#FFF',
-        padding: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 2,
+    headerLogoBlur: {
+        width: 52,
+        height: 52,
+        borderRadius: 18,
+        padding: 6,
+        overflow: 'hidden',
+        borderWidth: 1.5,
+        borderColor: 'rgba(30, 58, 95, 0.08)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     headerLogo: {
         width: '100%',
         height: '100%',
     },
     headerGreeting: {
-        fontSize: 15,
-        fontWeight: '600',
-        opacity: 0.7,
-        letterSpacing: 0.5,
+        fontSize: 13,
+        fontWeight: '700',
+        letterSpacing: 1.2,
+        textTransform: 'uppercase',
     },
     headerName: {
-        fontSize: 28,
+        fontSize: 32,
         fontWeight: '900',
-        letterSpacing: -0.5,
-        marginTop: -4,
+        letterSpacing: -1.2,
+        marginTop: -2,
+        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     },
     profileButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
+        width: 54,
+        height: 54,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 4,
         overflow: 'hidden',
     },
     headerAvatar: {
         width: '100%',
         height: '100%',
     },
-    headerDateRow: {
+    headerSystemRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 12,
     },
-    dateBadge: {
+    systemStatus: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 12,
-        gap: 6,
+        gap: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
     },
-    headerDateText: {
-        fontSize: 13,
-        fontWeight: '800',
+    systemPulse: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
     },
-    headerSeperator: {
-        width: 1,
-        height: 14,
-        backgroundColor: 'rgba(0,0,0,0.1)',
-        marginHorizontal: 12,
-    },
-    headerWeekday: {
-        fontSize: 13,
-        fontWeight: '700',
+    systemText: {
+        fontSize: 10,
+        fontWeight: '900',
         letterSpacing: 1,
-        textTransform: 'uppercase',
+    },
+    headerDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: 'rgba(0,0,0,0.1)',
+    },
+    headerDateLabel: {
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 1,
         opacity: 0.6,
     },
     // Bento Grid Styling
@@ -559,11 +633,116 @@ const styles = StyleSheet.create({
         right: 16,
     },
     iconCircle: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    // Senior Level Studio Strip Styles
+    headingWithBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginHorizontal: 22,
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        gap: 5,
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+    },
+    statusText: {
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 1,
+    },
+    studioStripScroll: {
+        paddingLeft: 22,
+        paddingRight: 10,
+        paddingVertical: 10,
+        gap: 16,
+    },
+    studioCard: {
+        width: width * 0.72,
+        height: 200,
+        borderRadius: 24,
+        padding: 24,
+        justifyContent: 'space-between',
+        overflow: 'hidden',
+    },
+    studioCardTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    studioIconCircle: {
         width: 44,
         height: 44,
-        borderRadius: 14,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.15)',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    studioCategory: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 1.5,
+    },
+    studioCardBody: {
+        marginTop: 10,
+    },
+    studioCardLabel: {
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 12,
+        fontWeight: '700',
+        letterSpacing: 1,
+        marginBottom: 4,
+    },
+    studioCardMainValue: {
+        color: '#FFF',
+        fontSize: 32,
+        fontWeight: '900',
+        letterSpacing: -1,
+        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    },
+    studioCardSubscript: {
+        color: 'rgba(255,255,255,0.7)',
+        fontSize: 13,
+        fontWeight: '600',
+        fontStyle: 'italic',
+        marginTop: 2,
+    },
+    miniProgressTrack: {
+        marginTop: 15,
+    },
+    miniProgressBar: {
+        height: 5,
+        borderRadius: 2.5,
+        width: '100%',
+    },
+    miniProgressFill: {
+        height: '100%',
+        borderRadius: 2.5,
+    },
+    studioCardFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    studioCardActionText: {
+        color: '#C9A227',
+        fontSize: 13,
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
     // Hero Card - Premium Design
     heroCard: {
@@ -866,5 +1045,89 @@ const styles = StyleSheet.create({
     },
     videoDuration: {
         fontSize: 12,
+    },
+    // Course Studio Cards
+    courseStudioCard: {
+        width: width * 0.72,
+        height: 300,
+        borderRadius: 28,
+        overflow: 'hidden',
+    },
+    courseImageHero: {
+        height: 160,
+        width: '100%',
+    },
+    courseHeroImg: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+    courseHeroMeta: {
+        position: 'absolute',
+        bottom: 15,
+        left: 15,
+    },
+    courseHeroLevel: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 8,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+    },
+    courseLevelText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 1,
+    },
+    courseStudioContent: {
+        padding: 20,
+        flex: 1,
+        justifyContent: 'space-between',
+    },
+    courseStudioTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    courseStudioCat: {
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 1,
+    },
+    courseStudioStar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    courseStarText: {
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    courseStudioTitle: {
+        fontSize: 20,
+        fontWeight: '900',
+        letterSpacing: -0.5,
+        lineHeight: 26,
+        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    },
+    courseStudioFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 10,
+    },
+    courseStudioAction: {
+        fontSize: 12,
+        fontWeight: '900',
+        letterSpacing: 0.5,
+    },
+    courseActionCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
