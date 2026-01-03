@@ -175,7 +175,7 @@ export default function LearnerHomeScreen({ navigation }) {
 
                 <Animated.View style={{ opacity: fadeAnim }}>
 
-                    {/* 1. HERO FEATURE - Premium AI Chat with Mirah */}
+                    {/* 1. HERO FEATURE - AI Studio: Mirah AI */}
                     <TouchableOpacity
                         style={[styles.heroCard, themeShadows.lg]}
                         onPress={() => navigation.navigate('ConversationSimulator')}
@@ -187,45 +187,45 @@ export default function LearnerHomeScreen({ navigation }) {
                         />
                         {/* Multi-layer gradient for depth */}
                         <LinearGradient
-                            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.85)']}
-                            locations={[0, 0.4, 1]}
+                            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,1)']}
+                            locations={[0, 0.4, 0.9]}
                             style={styles.heroGradient}
                         >
                             {/* Top floating badges */}
                             <View style={styles.heroTopRow}>
                                 <View style={styles.heroLiveBadge}>
                                     <View style={styles.heroLiveDot} />
-                                    <Text style={styles.heroLiveText}>ONLINE NOW</Text>
+                                    <Text style={styles.heroLiveText}>MIRAH ONLINE</Text>
                                 </View>
                                 <View style={styles.heroAiBadge}>
-                                    <Ionicons name="hardware-chip-outline" size={14} color="#FFD700" />
-                                    <Text style={styles.heroAiText}>AI POWERED</Text>
+                                    <Ionicons name="sparkles" size={14} color="#FFD700" />
+                                    <Text style={styles.heroAiText}>AI STUDIO</Text>
                                 </View>
                             </View>
 
                             {/* Bottom content area */}
                             <View style={styles.heroBottomContent}>
                                 <View style={styles.heroTagRow}>
-                                    <View style={styles.heroNewTag}>
-                                        <Text style={styles.heroNewTagText}>NEW</Text>
+                                    <View style={[styles.heroNewTag, { backgroundColor: goldColor }]}>
+                                        <Text style={[styles.heroNewTagText, { color: navyColor }]}>PREMIUM</Text>
                                     </View>
-                                    <Text style={styles.heroSubtitle}>FREE AI TUTOR</Text>
+                                    <Text style={styles.heroSubtitle}>PRIVATE AI TUTOR</Text>
                                 </View>
 
-                                <Text style={styles.heroTitle}>Chat with Mirah</Text>
+                                <Text style={styles.heroTitle}>Mirah AI Studio</Text>
                                 <Text style={styles.heroDescription}>
-                                    Your personal AI French companion. Practice conversations, get instant feedback, and learn naturally.
+                                    Your private French tutor. Practice any topic, get instant feedback, and enjoy individual learning instances hidden from others.
                                 </Text>
 
                                 {/* Action row */}
                                 <View style={styles.heroActionRow}>
-                                    <View style={styles.heroStartBtn}>
-                                        <Text style={styles.heroStartBtnText}>Start Chatting</Text>
-                                        <Ionicons name="arrow-forward" size={18} color="#FFF" />
+                                    <View style={[styles.heroStartBtn, { backgroundColor: goldColor }]}>
+                                        <Text style={[styles.heroStartBtnText, { color: navyColor }]}>Enter Studio</Text>
+                                        <Ionicons name="mic-outline" size={18} color={navyColor} />
                                     </View>
                                     <View style={styles.heroStats}>
-                                        <Ionicons name="chatbubbles" size={16} color="rgba(255,255,255,0.7)" />
-                                        <Text style={styles.heroStatsText}>Unlimited</Text>
+                                        <Ionicons name="shield-checkmark" size={16} color="rgba(255,255,255,0.7)" />
+                                        <Text style={styles.heroStatsText}>Private Instance</Text>
                                     </View>
                                 </View>
                             </View>

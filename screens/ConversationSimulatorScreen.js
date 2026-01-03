@@ -19,11 +19,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../src/context/ThemeContext';
 import { useGamification } from '../src/context/GamificationContext';
+import { useAuth } from '../src/context/AuthContext';
 import { speakText, stopSpeech } from '../src/utils/textToSpeech';
 import { themeShadows } from '../src/utils/organicTheme';
 import { aiAPI, scenariosAPI } from '../src/services/api';
 
-const CHAT_HISTORY_KEY = 'mirah_chat_history';
+const CHAT_HISTORY_BASE_KEY = 'mirah_chat_history';
 const MAX_SAVED_MESSAGES = 100; // Limit saved messages to prevent storage bloat
 
 // Mock Data for Scenarios (Fallback if API fails)
@@ -85,6 +86,10 @@ const DEFAULT_SCENARIOS = [
 export default function ConversationSimulatorScreen({ navigation }) {
     const { theme, isDarkMode } = useTheme();
     const { awardXP } = useGamification();
+    const { user } = useAuth();
+
+    // User-specific chat history key for privacy and "individual instances"
+    const chatHistoryKey = user?._id ? `${CHAT_HISTORY_BASE_KEY}_${user._id}` : CHAT_HISTORY_BASE_KEY;
 
     const [scenarios, setScenarios] = useState(DEFAULT_SCENARIOS);
     const [loading, setLoading] = useState(false);
@@ -103,8 +108,10 @@ export default function ConversationSimulatorScreen({ navigation }) {
 
     useEffect(() => {
         loadScenarios();
-        loadSavedChatHistory();
-    }, []);
+        if (user) {
+            loadSavedChatHistory();
+        }
+    }, [user]);
 
     // Save chat history whenever it changes (only for AI mode)
     useEffect(() => {
@@ -115,11 +122,14 @@ export default function ConversationSimulatorScreen({ navigation }) {
 
     const loadSavedChatHistory = async () => {
         try {
-            const saved = await AsyncStorage.getItem(CHAT_HISTORY_KEY);
+            const saved = await AsyncStorage.getItem(chatHistoryKey);
             if (saved) {
                 const parsed = JSON.parse(saved);
                 setSavedChatHistory(parsed);
                 setHasSavedHistory(parsed.length > 0);
+            } else {
+                setSavedChatHistory([]);
+                setHasSavedHistory(false);
             }
         } catch (error) {
             console.error('Failed to load chat history:', error);
@@ -130,7 +140,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
         try {
             // Keep only the last MAX_SAVED_MESSAGES messages
             const trimmedHistory = history.slice(-MAX_SAVED_MESSAGES);
-            await AsyncStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(trimmedHistory));
+            await AsyncStorage.setItem(chatHistoryKey, JSON.stringify(trimmedHistory));
             setSavedChatHistory(trimmedHistory);
             setHasSavedHistory(trimmedHistory.length > 0);
         } catch (error) {
@@ -140,7 +150,7 @@ export default function ConversationSimulatorScreen({ navigation }) {
 
     const clearChatHistory = async () => {
         try {
-            await AsyncStorage.removeItem(CHAT_HISTORY_KEY);
+            await AsyncStorage.removeItem(chatHistoryKey);
             setSavedChatHistory([]);
             setHasSavedHistory(false);
             setChatHistory([]);
@@ -372,10 +382,14 @@ export default function ConversationSimulatorScreen({ navigation }) {
                         </TouchableOpacity>
 
                         <View style={{ flex: 1, alignItems: 'center' }}>
-                            <Text style={{ fontSize: 17, fontWeight: '800', color: theme.text, letterSpacing: -0.2 }}>{selectedScenario.title}</Text>
+                            <Text style={{ fontSize: 17, fontWeight: '800', color: theme.text, letterSpacing: -0.2 }}>
+                                {selectedScenario.isAi ? 'Mirah AI Studio' : selectedScenario.title}
+                            </Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: theme.success, marginRight: 6 }} />
-                                <Text style={{ fontSize: 13, color: theme.secondaryText, fontWeight: '600' }}>Active Now</Text>
+                                <Text style={{ fontSize: 13, color: theme.secondaryText, fontWeight: '600' }}>
+                                    {selectedScenario.isAi ? 'Private Instance' : 'Active Now'}
+                                </Text>
                             </View>
                         </View>
 
@@ -694,12 +708,12 @@ export default function ConversationSimulatorScreen({ navigation }) {
 
                                                 <View>
                                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.success }} />
-                                                        <Text style={{ color: theme.success, fontWeight: '700', fontSize: 12 }}>ADAPTIVE LEARNING ACTIVE</Text>
+                                                        <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: theme.success, shadowColor: theme.success, shadowRadius: 4, shadowOpacity: 0.5 }} />
+                                                        <Text style={{ color: theme.success, fontWeight: '800', fontSize: 12, letterSpacing: 0.5 }}>PRIVATE INSTANCE ACTIVE</Text>
                                                     </View>
-                                                    <Text style={{ fontSize: 36, fontWeight: '900', color: '#FFF', marginBottom: 8, letterSpacing: -1 }}>Mirah AI</Text>
-                                                    <Text style={{ fontSize: 17, color: 'rgba(255,255,255,0.85)', lineHeight: 24, fontWeight: '500', maxWidth: '90%' }}>
-                                                        Master French with your personal AI mentor. Dynamic, real-time conversations.
+                                                    <Text style={{ fontSize: 42, fontWeight: '900', color: '#FFF', marginBottom: 8, letterSpacing: -1.5 }}>Mirah AI</Text>
+                                                    <Text style={{ fontSize: 18, color: 'rgba(255,255,255,0.9)', lineHeight: 26, fontWeight: '500', maxWidth: '95%' }}>
+                                                        Your individual AI Studio instance. Conversations are strictly private and tailored to your learning pace.
                                                     </Text>
 
                                                     {/* Chat History Actions */}
