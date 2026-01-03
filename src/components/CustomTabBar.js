@@ -29,7 +29,7 @@ const getTabConfig = (theme) => ({
     label: 'Learn',
   },
   Practice: {
-    icon: 'brain',
+    icon: 'lightning-bolt',
     iconType: 'MaterialCommunityIcons',
     label: 'Practice',
   },
@@ -84,20 +84,10 @@ function TabBarItem({ route, focused, onPress, onLongPress, theme }) {
       style={styles.tabItem}
       activeOpacity={1}
     >
-      {/* Active Indicator Bar at the TOP - Matching LinkedIn style */}
-      {focused && (
-        <View
-          style={[
-            styles.activeIndicator,
-            { backgroundColor: activeColor }
-          ]}
-        />
-      )}
-
       <Animated.View style={[styles.tabContent, { transform: [{ scale: scaleAnim }] }]}>
         <IconComponent
           name={iconName}
-          size={24} // Adjusted size to match LinkedIn weight
+          size={24}
           color={focused ? activeColor : inactiveColor}
           style={{ marginBottom: 2 }}
         />

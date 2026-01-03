@@ -160,9 +160,9 @@ export default function LearnerHomeScreen({ navigation }) {
                 <View style={styles.headerContainer}>
                     <View style={styles.headerTopRow}>
                         <View style={styles.headerTitleArea}>
-                            <BlurView intensity={20} tint={isDarkMode ? 'dark' : 'light'} style={styles.headerLogoBlur}>
+                            <View style={[styles.headerLogoContainer, { backgroundColor: isDarkMode ? 'transparent' : '#FFF' }]}>
                                 <Image source={require('../assets/logo.png')} style={styles.headerLogo} resizeMode="contain" />
-                            </BlurView>
+                            </View>
                             <View>
                                 <Text style={[styles.headerGreeting, { color: mutedColor }]}>
                                     {new Date().getHours() < 12 ? 'Bon Matin' : new Date().getHours() < 18 ? 'Bon Après-midi' : 'Bonsoir'},
@@ -171,7 +171,7 @@ export default function LearnerHomeScreen({ navigation }) {
                             </View>
                         </View>
                         <TouchableOpacity
-                            style={[styles.profileButton, { backgroundColor: '#FFF', borderColor: goldColor + '30', borderWidth: 1.5 }, themeShadows.md]}
+                            style={[styles.profileButton, { backgroundColor: surfaceColor, borderColor: goldColor + '30', borderWidth: 1.5 }, themeShadows.md]}
                             onPress={() => navigation.navigate('Profile')}
                         >
                             {user?.avatar || user?.profilePicture ? (
@@ -182,9 +182,9 @@ export default function LearnerHomeScreen({ navigation }) {
                         </TouchableOpacity>
                     </View>
                     <View style={styles.headerSystemRow}>
-                        <View style={[styles.systemStatus, { backgroundColor: navyColor + '08' }]}>
+                        <View style={[styles.systemStatus, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : navyColor + '08' }]}>
                             <View style={[styles.systemPulse, { backgroundColor: theme.success }]} />
-                            <Text style={[styles.systemText, { color: navyColor }]}>SESSION ACTIVE</Text>
+                            <Text style={[styles.systemText, { color: theme.text }]}>SESSION ACTIVE</Text>
                         </View>
                         <View style={styles.headerDot} />
                         <Text style={[styles.headerDateLabel, { color: mutedColor }]}>{dateInfo.day.toUpperCase()}</Text>
@@ -210,18 +210,8 @@ export default function LearnerHomeScreen({ navigation }) {
                             locations={[0, 0.3, 0.8]}
                             style={styles.heroGradient}
                         >
-                            {/* Top row with sophisticated badges */}
-                            <View style={styles.heroTopRow}>
-                                <BlurView intensity={20} tint="dark" style={styles.heroGlassBadge}>
-                                    <View style={styles.heroLiveDot} />
-                                    <Text style={styles.heroLiveText}>MIRAH ONLINE</Text>
-                                </BlurView>
-
-                                <BlurView intensity={20} tint="dark" style={styles.heroGlassBadge}>
-                                    <Ionicons name="sparkles" size={14} color={goldColor} />
-                                    <Text style={[styles.heroAiText, { color: goldColor }]}>AI STUDIO</Text>
-                                </BlurView>
-                            </View>
+                            {/* Top row - clean design */}
+                            <View style={styles.heroTopRow} />
 
                             {/* Bottom content area with clean typography */}
                             <View style={styles.heroBottomContent}>
@@ -258,16 +248,10 @@ export default function LearnerHomeScreen({ navigation }) {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* 2. DAILY FOCUS - Senior Level Sync */}
+                    {/* 2. DAILY FOCUS */}
                     <View style={styles.sectionContainer}>
                         <View style={styles.sectionHeaderRow}>
-                            <View style={styles.headingWithBadge}>
-                                <Text style={[styles.sectionHeading, { color: navyColor, marginHorizontal: 0 }]}>Focus Hub</Text>
-                                <View style={[styles.statusBadge, { backgroundColor: theme.success + '12' }]}>
-                                    <View style={[styles.statusDot, { backgroundColor: theme.success }]} />
-                                    <Text style={[styles.statusText, { color: theme.success }]}>ON TRACK</Text>
-                                </View>
-                            </View>
+                            <Text style={[styles.sectionHeading, { color: theme.text }]}>Focus Hub</Text>
                         </View>
 
                         <TouchableOpacity
@@ -280,30 +264,22 @@ export default function LearnerHomeScreen({ navigation }) {
                                     <Ionicons name="flash" size={24} color={goldColor} />
                                 </BlurView>
                                 <View>
-                                    <Text style={[styles.focusLabel, { color: mutedColor }]}>MÉTRIQUE DE RÉUSSITE</Text>
-                                    <Text style={[styles.focusValue, { color: navyColor }]}>
-                                        {user?.streak?.current || 0} Day Mastery Streak
+                                    <Text style={[styles.focusLabel, { color: mutedColor }]}>STREAK</Text>
+                                    <Text style={[styles.focusValue, { color: theme.text }]}>
+                                        {user?.streak?.current || 0} Day Streak
                                     </Text>
                                 </View>
                             </View>
-                            <View style={[styles.actionButton, { backgroundColor: navyColor }]}>
-                                <Text style={[styles.actionButtonText, { color: '#FFF' }]}>DÉTAILS</Text>
-                            </View>
+                            <Ionicons name="chevron-forward" size={22} color={mutedColor} />
                         </TouchableOpacity>
                     </View>
 
-                    {/* 3. PREMIUM STUDIO STRIP - Senior Level Actions */}
+                    {/* 3. PREMIUM STUDIO STRIP */}
                     <View style={styles.sectionContainer}>
                         <View style={styles.sectionHeaderRow}>
-                            <View style={styles.headingWithBadge}>
-                                <Text style={[styles.sectionHeading, { color: navyColor, marginHorizontal: 0 }]}>Daily Studio</Text>
-                                <View style={[styles.statusBadge, { backgroundColor: goldColor + '15' }]}>
-                                    <View style={[styles.statusDot, { backgroundColor: goldColor }]} />
-                                    <Text style={[styles.statusText, { color: goldColor }]}>SYNCED</Text>
-                                </View>
-                            </View>
+                            <Text style={[styles.sectionHeading, { color: theme.text }]}>Daily Studio</Text>
                             <TouchableOpacity onPress={() => navigation.navigate('Courses')}>
-                                <Text style={{ color: goldColor, fontWeight: '700', fontSize: 13 }}>ADJUST HUB</Text>
+                                <Text style={{ color: goldColor, fontWeight: '700', fontSize: 13 }}>See All</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -314,9 +290,9 @@ export default function LearnerHomeScreen({ navigation }) {
                             snapToInterval={width * 0.72 + 16}
                             decelerationRate="fast"
                         >
-                            {/* Card 1: Word of the Day (The Master's Voice) */}
+                            {/* Card 1: Word of the Day */}
                             <TouchableOpacity
-                                style={[styles.studioCard, { backgroundColor: navyColor }, themeShadows.lg]}
+                                style={[styles.studioCard, { backgroundColor: '#1E3A5F' }, themeShadows.lg]}
                                 onPress={() => navigation.navigate('WordOfTheDay')}
                                 activeOpacity={0.95}
                             >
@@ -328,19 +304,19 @@ export default function LearnerHomeScreen({ navigation }) {
                                     <Text style={styles.studioCategory}>VOCABULARY</Text>
                                 </View>
                                 <View style={styles.studioCardBody}>
-                                    <Text style={styles.studioCardLabel}>MOT DU JOUR</Text>
+                                    <Text style={styles.studioCardLabel}>WORD OF THE DAY</Text>
                                     <Text style={styles.studioCardMainValue}>{dailyWord.french}</Text>
                                     <Text style={styles.studioCardSubscript}>{dailyWord.phonetic}</Text>
                                 </View>
                                 <View style={styles.studioCardFooter}>
-                                    <Text style={styles.studioCardActionText}>REVEAL LESSON</Text>
+                                    <Text style={styles.studioCardActionText}>LEARN MORE</Text>
                                     <Ionicons name="chevron-forward" size={16} color={goldColor} />
                                 </View>
                             </TouchableOpacity>
 
                             {/* Card 2: Progress Tracking (The Path) */}
                             <TouchableOpacity
-                                style={[styles.studioCard, { backgroundColor: '#FFF', borderColor: lightBlue, borderWidth: 1 }, themeShadows.md]}
+                                style={[styles.studioCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.md]}
                                 onPress={() => navigation.navigate('Achievements')}
                                 activeOpacity={0.95}
                             >
@@ -373,36 +349,30 @@ export default function LearnerHomeScreen({ navigation }) {
                             >
                                 <LinearGradient colors={['rgba(255,255,255,0.2)', 'transparent']} style={StyleSheet.absoluteFill} />
                                 <View style={styles.studioCardTop}>
-                                    <View style={[styles.studioIconCircle, { backgroundColor: '#FFF' }]}>
+                                    <View style={[styles.studioIconCircle, { backgroundColor: surfaceColor }]}>
                                         <Ionicons name="layers" size={20} color={goldColor} />
                                     </View>
-                                    <Text style={[styles.studioCategory, { color: navyColor }]}>ATELIER</Text>
+                                    <Text style={[styles.studioCategory, { color: isDarkMode ? '#FFF' : navyColor }]}>ATELIER</Text>
                                 </View>
                                 <View style={styles.studioCardBody}>
-                                    <Text style={[styles.studioCardLabel, { color: navyColor, opacity: 0.7 }]}>ACTIVE REVIEW</Text>
-                                    <Text style={[styles.studioCardMainValue, { color: navyColor }]}>Flashcards</Text>
-                                    <Text style={[styles.studioCardSubscript, { color: navyColor }]}>12 CARDS READY</Text>
+                                    <Text style={[styles.studioCardLabel, { color: isDarkMode ? '#FFF' : navyColor, opacity: 0.7 }]}>ACTIVE REVIEW</Text>
+                                    <Text style={[styles.studioCardMainValue, { color: isDarkMode ? '#FFF' : navyColor }]}>Flashcards</Text>
+                                    <Text style={[styles.studioCardSubscript, { color: isDarkMode ? '#FFF' : navyColor }]}>12 CARDS READY</Text>
                                 </View>
                                 <View style={styles.studioCardFooter}>
-                                    <Text style={[styles.studioCardActionText, { color: navyColor }]}>START REVIEW</Text>
-                                    <Ionicons name="chevron-forward" size={16} color={navyColor} />
+                                    <Text style={[styles.studioCardActionText, { color: isDarkMode ? '#FFF' : navyColor }]}>START REVIEW</Text>
+                                    <Ionicons name="chevron-forward" size={16} color={isDarkMode ? '#FFF' : navyColor} />
                                 </View>
                             </TouchableOpacity>
                         </ScrollView>
                     </View>
 
-                    {/* 4. CURATED MASTERCLASSES - Same Premium Style */}
+                    {/* 4. CURATED MASTERCLASSES */}
                     <View style={styles.sectionContainer}>
                         <View style={styles.sectionHeaderRow}>
-                            <View style={styles.headingWithBadge}>
-                                <Text style={[styles.sectionHeading, { color: navyColor, marginHorizontal: 0 }]}>Curated Paths</Text>
-                                <View style={[styles.statusBadge, { backgroundColor: theme.info + '15' }]}>
-                                    <View style={[styles.statusDot, { backgroundColor: theme.info }]} />
-                                    <Text style={[styles.statusText, { color: theme.info }]}>EXPERT PICK</Text>
-                                </View>
-                            </View>
+                            <Text style={[styles.sectionHeading, { color: theme.text }]}>Curated Paths</Text>
                             <TouchableOpacity onPress={() => navigation.navigate('Courses')}>
-                                <Text style={{ color: goldColor, fontWeight: '700', fontSize: 13 }}>BROWSE ALL</Text>
+                                <Text style={{ color: goldColor, fontWeight: '700', fontSize: 13 }}>Browse All</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -438,15 +408,15 @@ export default function LearnerHomeScreen({ navigation }) {
                                             <Text style={[styles.courseStudioCat, { color: goldColor }]}>{course.category?.toUpperCase() || 'MASTERCLASS'}</Text>
                                             <View style={styles.courseStudioStar}>
                                                 <Ionicons name="star" size={12} color={goldColor} />
-                                                <Text style={[styles.courseStarText, { color: navyColor }]}>{course.rating?.average?.toFixed(1) || 4.8}</Text>
+                                                <Text style={[styles.courseStarText, { color: theme.text }]}>{course.rating?.average?.toFixed(1) || 4.8}</Text>
                                             </View>
                                         </View>
-                                        <Text style={[styles.courseStudioTitle, { color: navyColor }]} numberOfLines={2}>{course.title}</Text>
+                                        <Text style={[styles.courseStudioTitle, { color: theme.text }]} numberOfLines={2}>{course.title}</Text>
 
                                         <View style={styles.courseStudioFooter}>
-                                            <Text style={[styles.courseStudioAction, { color: navyColor }]}>ENROLL NOW</Text>
+                                            <Text style={[styles.courseStudioAction, { color: theme.text }]}>ENROLL NOW</Text>
                                             <View style={[styles.courseActionCircle, { backgroundColor: goldColor }]}>
-                                                <Ionicons name="arrow-forward" size={14} color={navyColor} />
+                                                <Ionicons name="arrow-forward" size={14} color={isDarkMode ? '#000' : navyColor} />
                                             </View>
                                         </View>
                                     </View>
@@ -455,35 +425,67 @@ export default function LearnerHomeScreen({ navigation }) {
                         </ScrollView>
                     </View>
 
-                    {/* 5. WATCH & LEARN - Video Masterclasses */}
+                    {/* 5. WATCH & LEARN - Premium Video Studio */}
                     {videoMasterclasses.length > 0 && (
                         <View style={styles.sectionContainer}>
                             <View style={styles.sectionHeaderRow}>
-                                <View style={styles.headingWithBadge}>
-                                    <Text style={[styles.sectionHeading, { color: navyColor, marginHorizontal: 0 }]}>Watch & Learn</Text>
-                                    <View style={[styles.statusBadge, { backgroundColor: theme.error + '10' }]}>
-                                        <View style={[styles.statusDot, { backgroundColor: theme.error }]} />
-                                        <Text style={[styles.statusText, { color: theme.error }]}>LIVE SESSIONS</Text>
-                                    </View>
-                                </View>
-                            </View>
-                            {videoMasterclasses.slice(0, 3).map((video, index) => (
-                                <TouchableOpacity
-                                    key={index}
-                                    style={[styles.videoRow, { borderBottomColor: lightBlue }]}
-                                    onPress={() => navigation.navigate('CourseDetail', { courseId: video._id })}
-                                >
-                                    <Image
-                                        source={getCourseImage(video._id, index, video.category, video.title)}
-                                        style={styles.videoThumb}
-                                    />
-                                    <View style={styles.videoInfo}>
-                                        <Text style={[styles.videoTitle, { color: navyColor }]} numberOfLines={2}>{video.title}</Text>
-                                        <Text style={[styles.videoDuration, { color: mutedColor }]}>Video Masterclass • {video.duration || '15'}m</Text>
-                                    </View>
-                                    <Ionicons name="play-circle-sharp" size={32} color={goldColor} />
+                                <Text style={[styles.sectionHeading, { color: theme.text }]}>Watch & Learn</Text>
+                                <TouchableOpacity onPress={() => navigation.navigate('Courses')}>
+                                    <Text style={{ color: goldColor, fontWeight: '700', fontSize: 13 }}>See All</Text>
                                 </TouchableOpacity>
-                            ))}
+                            </View>
+
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.studioStripScroll}
+                                snapToInterval={width * 0.80 + 16}
+                                decelerationRate="fast"
+                            >
+                                {videoMasterclasses.slice(0, 5).map((video, index) => (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={[styles.videoStudioCard, themeShadows.lg]}
+                                        onPress={() => navigation.navigate('CourseDetail', { courseId: video._id })}
+                                        activeOpacity={0.95}
+                                    >
+                                        <Image
+                                            source={getCourseImage(video._id, index, video.category, video.title)}
+                                            style={styles.videoHeroImg}
+                                        />
+                                        <LinearGradient
+                                            colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.95)']}
+                                            locations={[0, 0.4, 1]}
+                                            style={StyleSheet.absoluteFill}
+                                        />
+
+                                        {/* Top Meta Row */}
+                                        <View style={styles.videoTopMeta}>
+                                            <BlurView intensity={25} tint="dark" style={styles.videoDurationBadge}>
+                                                <Ionicons name="time-outline" size={12} color="#FFF" />
+                                                <Text style={styles.videoDurationText}>{video.duration || '15'} MIN</Text>
+                                            </BlurView>
+                                        </View>
+
+                                        {/* Center Play Button */}
+                                        <View style={styles.videoPlayCenter}>
+                                            <BlurView intensity={30} tint="dark" style={styles.videoPlayCircle}>
+                                                <Ionicons name="play" size={28} color="#FFF" />
+                                            </BlurView>
+                                        </View>
+
+                                        {/* Bottom Content */}
+                                        <View style={styles.videoBottomContent}>
+                                            <Text style={styles.videoStudioCat}>MASTERCLASS VIDÉO</Text>
+                                            <Text style={styles.videoStudioTitle} numberOfLines={2}>{video.title}</Text>
+                                            <View style={styles.videoFooterRow}>
+                                                <Text style={styles.videoActionText}>REGARDER MAINTENANT</Text>
+                                                <Ionicons name="chevron-forward" size={16} color={goldColor} />
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
                         </View>
                     )}
 
@@ -522,14 +524,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 16,
     },
-    headerLogoBlur: {
+    headerLogoContainer: {
         width: 52,
         height: 52,
-        borderRadius: 18,
-        padding: 6,
-        overflow: 'hidden',
-        borderWidth: 1.5,
-        borderColor: 'rgba(30, 58, 95, 0.08)',
+        borderRadius: 14,
+        padding: 4,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -1147,5 +1146,92 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    // Video Studio Cards
+    videoStudioCard: {
+        width: width * 0.80,
+        height: 240,
+        borderRadius: 28,
+        overflow: 'hidden',
+        backgroundColor: '#0A1628',
+    },
+    videoHeroImg: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+        position: 'absolute',
+    },
+    videoTopMeta: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+    },
+    videoDurationBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 10,
+        gap: 5,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.15)',
+    },
+    videoDurationText: {
+        color: '#FFF',
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+    videoPlayCenter: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        marginLeft: -32,
+        marginTop: -32,
+    },
+    videoPlayCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    videoBottomContent: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: 24,
+    },
+    videoStudioCat: {
+        color: '#C9A227',
+        fontSize: 10,
+        fontWeight: '900',
+        letterSpacing: 1.5,
+        marginBottom: 6,
+    },
+    videoStudioTitle: {
+        color: '#FFF',
+        fontSize: 22,
+        fontWeight: '900',
+        letterSpacing: -0.5,
+        lineHeight: 28,
+        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+        marginBottom: 12,
+    },
+    videoFooterRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    videoActionText: {
+        color: '#C9A227',
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
 });
