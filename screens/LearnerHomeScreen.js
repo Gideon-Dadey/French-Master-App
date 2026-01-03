@@ -156,21 +156,33 @@ export default function LearnerHomeScreen({ navigation }) {
                 }
                 showsVerticalScrollIndicator={false}
             >
-                {/* Header Section */}
+                {/* Ultra-Modern Header Section */}
                 <View style={styles.headerContainer}>
-                    <Text style={[styles.headerDate, { color: mutedColor }]}>{dateInfo.weekday}, {dateInfo.day}</Text>
-                    <View style={styles.headerRow}>
-                        <Text style={[styles.headerTitle, { color: navyColor }]}>L'Alliance</Text>
+                    <View style={styles.headerTopRow}>
+                        <View>
+                            <Text style={[styles.headerGreeting, { color: navyColor }]}>
+                                {new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'},
+                            </Text>
+                            <Text style={[styles.headerName, { color: navyColor }]}>{user?.firstName || 'Learner'}</Text>
+                        </View>
                         <TouchableOpacity
-                            style={[styles.profileButton, { backgroundColor: lightBlue, overflow: 'hidden' }]}
+                            style={[styles.profileButton, { backgroundColor: lightBlue, borderColor: goldColor + '40', borderWidth: 1 }]}
                             onPress={() => navigation.navigate('Profile')}
                         >
                             {user?.avatar || user?.profilePicture ? (
-                                <Image source={{ uri: user.avatar || user.profilePicture }} style={{ width: '100%', height: '100%' }} />
+                                <Image source={{ uri: user.avatar || user.profilePicture }} style={styles.headerAvatar} />
                             ) : (
                                 <Ionicons name="person-sharp" size={20} color={navyColor} />
                             )}
                         </TouchableOpacity>
+                    </View>
+                    <View style={styles.headerDateRow}>
+                        <View style={[styles.dateBadge, { backgroundColor: goldColor + '15' }]}>
+                            <Ionicons name="calendar-outline" size={14} color={goldColor} />
+                            <Text style={[styles.headerDateText, { color: goldColor }]}>{dateInfo.day}</Text>
+                        </View>
+                        <View style={styles.headerSeperator} />
+                        <Text style={[styles.headerWeekday, { color: mutedColor }]}>{dateInfo.weekday}</Text>
                     </View>
                 </View>
 
@@ -264,47 +276,59 @@ export default function LearnerHomeScreen({ navigation }) {
                         </TouchableOpacity>
                     </View>
 
-                    {/* 3. QUICK BITES - Word of Day & Missions */}
+                    {/* 3. BENTO GRID QUICK PRACTICE */}
                     <View style={styles.sectionContainer}>
-                        <Text style={[styles.sectionHeading, { color: navyColor }]}>Quick Practice</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                        <View style={styles.sectionHeaderRow}>
+                            <Text style={[styles.sectionHeading, { color: navyColor }]}>Quick Actions</Text>
+                            <Ionicons name="grid-outline" size={18} color={goldColor} />
+                        </View>
 
-                            {/* Word Card */}
+                        <View style={styles.bentoContainer}>
+                            {/* Left Large Column */}
                             <TouchableOpacity
-                                style={[styles.miniCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
+                                style={[styles.bentoLarge, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.md]}
                                 onPress={() => navigation.navigate('WordOfTheDay')}
+                                activeOpacity={0.9}
                             >
-                                <View style={[styles.iconCircle, { backgroundColor: theme.warning + '15' }]}>
-                                    <Ionicons name="book-sharp" size={20} color={theme.warning} />
+                                <LinearGradient colors={[theme.warning + '15', 'transparent']} style={StyleSheet.absoluteFill} />
+                                <View style={[styles.iconCircle, { backgroundColor: theme.warning + '20' }]}>
+                                    <Ionicons name="book-sharp" size={24} color={theme.warning} />
                                 </View>
-                                <Text style={[styles.miniCardTitle, { color: navyColor }]}>Word of Day</Text>
-                                <Text style={[styles.miniCardSubtitle, { color: mutedColor }]}>{dailyWord.french}</Text>
+                                <View style={styles.bentoContent}>
+                                    <Text style={[styles.miniCardTitle, { color: navyColor }]}>Word of Day</Text>
+                                    <Text style={[styles.miniCardValue, { color: theme.warning }]}>{dailyWord.french}</Text>
+                                    <Text style={[styles.miniCardSub, { color: mutedColor }]} numberOfLines={1}>"{dailyWord.example}"</Text>
+                                </View>
+                                <View style={styles.bentoArrow}>
+                                    <Ionicons name="arrow-forward-circle" size={24} color={theme.warning + '80'} />
+                                </View>
                             </TouchableOpacity>
 
-                            {/* Stats Card */}
-                            <TouchableOpacity
-                                style={[styles.miniCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
-                                onPress={() => navigation.navigate('Achievements')}
-                            >
-                                <View style={[styles.iconCircle, { backgroundColor: theme.success + '15' }]}>
+                            {/* Right Two-Row Column */}
+                            <View style={styles.bentoSmallCol}>
+                                <TouchableOpacity
+                                    style={[styles.bentoSmall, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
+                                    onPress={() => navigation.navigate('Achievements')}
+                                    activeOpacity={0.9}
+                                >
+                                    <LinearGradient colors={[theme.success + '10', 'transparent']} style={StyleSheet.absoluteFill} />
                                     <Ionicons name="stats-chart-sharp" size={20} color={theme.success} />
-                                </View>
-                                <Text style={[styles.miniCardTitle, { color: navyColor }]}>My Progress</Text>
-                                <Text style={[styles.miniCardSubtitle, { color: mutedColor }]}>{gamificationStats.xp || 0} XP</Text>
-                            </TouchableOpacity>
+                                    <Text style={[styles.miniCardTitle, { color: navyColor }]}>Progress</Text>
+                                    <Text style={[styles.miniCardValue, { color: theme.success, fontSize: 16 }]}>{gamificationStats.xp || 0} XP</Text>
+                                </TouchableOpacity>
 
-                            {/* Review Card */}
-                            <TouchableOpacity
-                                style={[styles.miniCard, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
-                                onPress={() => navigation.navigate('Flashcards')}
-                            >
-                                <View style={[styles.iconCircle, { backgroundColor: theme.info + '15' }]}>
+                                <TouchableOpacity
+                                    style={[styles.bentoSmall, { backgroundColor: surfaceColor, borderColor: lightBlue, borderWidth: 1 }, themeShadows.sm]}
+                                    onPress={() => navigation.navigate('Flashcards')}
+                                    activeOpacity={0.9}
+                                >
+                                    <LinearGradient colors={[theme.info + '10', 'transparent']} style={StyleSheet.absoluteFill} />
                                     <Ionicons name="documents-sharp" size={20} color={theme.info} />
-                                </View>
-                                <Text style={[styles.miniCardTitle, { color: navyColor }]}>Review</Text>
-                                <Text style={[styles.miniCardSubtitle, { color: mutedColor }]}>Flashcards</Text>
-                            </TouchableOpacity>
-                        </ScrollView>
+                                    <Text style={[styles.miniCardTitle, { color: navyColor }]}>Review</Text>
+                                    <Text style={[styles.miniCardValue, { color: theme.info, fontSize: 16 }]}>Flashcards</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
                     </View>
 
                     {/* 4. DISCOVERY - Featured Courses */}
@@ -384,34 +408,135 @@ const styles = StyleSheet.create({
         paddingTop: Platform.OS === 'ios' ? 60 : 40,
         paddingBottom: 80,
     },
-    // Header
+    // Header Refinements
     headerContainer: {
         paddingHorizontal: 22,
-        marginBottom: 24,
+        marginBottom: 28,
+        marginTop: 10,
     },
-    headerDate: {
-        fontSize: 13,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 4,
-    },
-    headerRow: {
+    headerTopRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 16,
     },
-    headerTitle: {
-        fontSize: 34,
-        fontWeight: '800',
+    headerGreeting: {
+        fontSize: 15,
+        fontWeight: '600',
+        opacity: 0.7,
+        letterSpacing: 0.5,
+    },
+    headerName: {
+        fontSize: 28,
+        fontWeight: '900',
         letterSpacing: -0.5,
+        marginTop: -4,
     },
     profileButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 52,
+        height: 52,
+        borderRadius: 26,
         alignItems: 'center',
         justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 4,
+        overflow: 'hidden',
+    },
+    headerAvatar: {
+        width: '100%',
+        height: '100%',
+    },
+    headerDateRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    dateBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        gap: 6,
+    },
+    headerDateText: {
+        fontSize: 13,
+        fontWeight: '800',
+    },
+    headerSeperator: {
+        width: 1,
+        height: 14,
+        backgroundColor: 'rgba(0,0,0,0.1)',
+        marginHorizontal: 12,
+    },
+    headerWeekday: {
+        fontSize: 13,
+        fontWeight: '700',
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+        opacity: 0.6,
+    },
+    // Bento Grid Styling
+    bentoContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: 22,
+        gap: 12,
+        marginTop: 4,
+    },
+    bentoLarge: {
+        flex: 1.2,
+        height: 160,
+        borderRadius: 24,
+        padding: 20,
+        overflow: 'hidden',
+        justifyContent: 'space-between',
+    },
+    bentoContent: {
+        marginTop: 10,
+    },
+    bentoSmallCol: {
+        flex: 1,
+        gap: 12,
+    },
+    bentoSmall: {
+        height: 74,
+        borderRadius: 20,
+        padding: 14,
+        overflow: 'hidden',
+        justifyContent: 'center',
+        gap: 2,
+    },
+    miniCardTitle: {
+        fontSize: 12,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.8,
+        opacity: 0.6,
+    },
+    miniCardValue: {
+        fontSize: 20,
+        fontWeight: '900',
+        letterSpacing: -0.5,
+    },
+    miniCardSub: {
+        fontSize: 12,
+        fontWeight: '500',
+        marginTop: 2,
+        fontStyle: 'italic',
+    },
+    bentoArrow: {
+        position: 'absolute',
+        bottom: 16,
+        right: 16,
+    },
+    iconCircle: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     // Hero Card - Premium Design
     heroCard: {
