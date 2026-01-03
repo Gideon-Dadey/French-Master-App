@@ -44,12 +44,32 @@ export default function PracticeScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [practiceStats, setPracticeStats] = useState(null);
-  const [currentFlashcard, setCurrentFlashcard] = useState({
-    word: 'Bonjour',
-    translation: 'Hello / Good morning',
-    example: 'Bonjour, comment allez-vous?',
-    mastery: 85,
-  });
+  const DAILY_FOCUS_LIST = [
+    { word: 'Bonjour', translation: 'Hello / Good morning', example: 'Bonjour, comment allez-vous?', mastery: 85 },
+    { word: 'Merci beaucoup', translation: 'Thank you very much', example: 'Merci beaucoup pour votre aide.', mastery: 72 },
+    { word: 'De rien', translation: 'You are welcome', example: 'C\'est un plaisir, de rien.', mastery: 64 },
+    { word: 'S\'il vous plaît', translation: 'Please (formal)', example: 'Un café, s\'il vous plaît.', mastery: 91 },
+    { word: 'Enchanté(e)', translation: 'Nice to meet you', example: 'Enchanté de faire votre connaissance.', mastery: 58 },
+    { word: 'Bonne journée', translation: 'Have a good day', example: 'Merci, bonne journée à vous aussi!', mastery: 77 },
+    { word: 'Comment ça va?', translation: 'How is it going?', example: 'Salut ! Comment ça va aujourd\'hui ?', mastery: 88 },
+    { word: 'D\'accord', translation: 'Okay / Agreed', example: 'Je suis d\'accord avec toi.', mastery: 95 },
+    { word: 'Excusez-moi', translation: 'Excuse me', example: 'Excusez-moi, où est la gare?', mastery: 82 },
+    { word: 'À bientôt', translation: 'See you soon', example: 'Au revoir et à bientôt !', mastery: 70 },
+  ];
+
+  const getDailyFocus = () => {
+    const today = new Date();
+    const dateString = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+    // Simple hash to get a consistent index for the day
+    let hash = 0;
+    for (let i = 0; i < dateString.length; i++) {
+      hash += dateString.charCodeAt(i);
+    }
+    const index = hash % DAILY_FOCUS_LIST.length;
+    return DAILY_FOCUS_LIST[index];
+  };
+
+  const [currentFlashcard, setCurrentFlashcard] = useState(getDailyFocus());
   const [flashcardFlipped, setFlashcardFlipped] = useState(false);
 
   const scrollY = useRef(new Animated.Value(0)).current;
