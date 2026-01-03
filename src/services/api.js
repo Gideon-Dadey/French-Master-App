@@ -1,30 +1,43 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
 
 const getApiUrl = () => {
   // Use production URL for final Play Store release
   const PRODUCTION_URL = 'https://api.frenchmastergh.com/api';
-
-  // 1. CLAIM YOUR FREE STATIC DOMAIN at dashboard.ngrok.com
+  
   // Cloud Backend URL (Render)
   const RENDER_URL = 'https://french-master-app.onrender.com/api';
 
-  // Legacy/Local URLs (for reference)
-  // const STABLE_DOMAIN = 'compulsively-unevincible-irwin.ngrok-free.dev';
-  // const NGROK_URL = `https://${STABLE_DOMAIN}/api`;
-  // const LOCAL_IP_URL = 'http://192.168.232.80:5001/api';
+  // For Local Development - Get the IP of the machine running the Expo packager
+  const debuggerHost = Constants.expoConfig?.hostUri;
+  const localIp = debuggerHost?.split(':')[0];
+  
+  // Create variations for different environments
+  const LOCAL_URL = localIp ? `http://${localIp}:5001/api` : 'http://localhost:5001/api';
 
-  // Use the Cloud Backend for EVERYTHING now to ensure availability
+  console.log('Detected Host:', debuggerHost);
+  console.log('Local IP URL:', LOCAL_URL);
+
+  // In development mode, prioritize local backend if it's running
+  if (__DEV__) {
+    // If you want to force Render even in dev, uncomment the line below
+    // return RENDER_URL;
+    
+    return LOCAL_URL;
+  }
+
+  // Use the Cloud Backend for production/staging
   return RENDER_URL;
 };
 
 const API_URL = getApiUrl();
-console.log('API URL:', API_URL);
+console.log('final API URL:', API_URL);
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased timeout to 30s for slower connections/Render cold starts
   headers: {
     'Content-Type': 'application/json',
   },

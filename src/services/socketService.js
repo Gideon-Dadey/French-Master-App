@@ -1,20 +1,24 @@
 import io from 'socket.io-client';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 const getSocketUrl = () => {
     const PRODUCTION_SOCKET_URL = 'https://api.frenchmastergh.com';
+    const RENDER_SOCKET_URL = 'https://french-master-app.onrender.com';
 
-    // Use the same stable domain as api.js
-    const STABLE_DOMAIN = 'compulsively-unevincible-irwin.ngrok-free.dev';
-
-    const NGROK_SOCKET_URL = `https://${STABLE_DOMAIN}`;
-    const LOCAL_IP_URL = 'http://192.168.232.80:5001';
+    // For Local Development - Get the IP of the machine running the Expo packager
+    const debuggerHost = Constants.expoConfig?.hostUri;
+    const localIp = debuggerHost?.split(':')[0];
+    const LOCAL_SOCKET_URL = localIp ? `http://${localIp}:5001` : 'http://localhost:5001';
 
     if (__DEV__) {
-        return NGROK_SOCKET_URL;
+        console.log('Detected Socket Host:', debuggerHost);
+        console.log('Local Socket URL:', LOCAL_SOCKET_URL);
+        return LOCAL_SOCKET_URL;
     }
-    // For production builds, also use ngrok if not on production server
-    return NGROK_SOCKET_URL;
+
+    // Fallback to Render for testing if production is not available
+    return RENDER_SOCKET_URL;
 };
 
 const SOCKET_URL = getSocketUrl();
