@@ -14,6 +14,7 @@ import {
     Vibration,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
@@ -177,7 +178,7 @@ export default function LearnerHomeScreen({ navigation }) {
 
                     {/* 1. HERO FEATURE - AI Studio: Mirah AI */}
                     <TouchableOpacity
-                        style={[styles.heroCard, themeShadows.lg]}
+                        style={[styles.heroCard, themeShadows.xl]}
                         onPress={() => navigation.navigate('ConversationSimulator')}
                         activeOpacity={0.97}
                     >
@@ -185,47 +186,54 @@ export default function LearnerHomeScreen({ navigation }) {
                             source={{ uri: IMMERSION_IMAGES[currentImageIndex] }}
                             style={styles.heroImage}
                         />
-                        {/* Multi-layer gradient for depth */}
+
                         <LinearGradient
-                            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,1)']}
-                            locations={[0, 0.4, 0.9]}
+                            colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.95)']}
+                            locations={[0, 0.3, 0.8]}
                             style={styles.heroGradient}
                         >
-                            {/* Top floating badges */}
+                            {/* Top row with sophisticated badges */}
                             <View style={styles.heroTopRow}>
-                                <View style={styles.heroLiveBadge}>
+                                <BlurView intensity={20} tint="dark" style={styles.heroGlassBadge}>
                                     <View style={styles.heroLiveDot} />
                                     <Text style={styles.heroLiveText}>MIRAH ONLINE</Text>
-                                </View>
-                                <View style={styles.heroAiBadge}>
-                                    <Ionicons name="sparkles" size={14} color="#FFD700" />
-                                    <Text style={styles.heroAiText}>AI STUDIO</Text>
-                                </View>
+                                </BlurView>
+
+                                <BlurView intensity={20} tint="dark" style={styles.heroGlassBadge}>
+                                    <Ionicons name="sparkles" size={14} color={goldColor} />
+                                    <Text style={[styles.heroAiText, { color: goldColor }]}>AI STUDIO</Text>
+                                </BlurView>
                             </View>
 
-                            {/* Bottom content area */}
+                            {/* Bottom content area with clean typography */}
                             <View style={styles.heroBottomContent}>
                                 <View style={styles.heroTagRow}>
-                                    <View style={[styles.heroNewTag, { backgroundColor: goldColor }]}>
-                                        <Text style={[styles.heroNewTagText, { color: navyColor }]}>PREMIUM</Text>
+                                    <View style={[styles.heroPremiumTag, { backgroundColor: goldColor }]}>
+                                        <Text style={[styles.heroPremiumTagText, { color: navyColor }]}>PREMIUM</Text>
                                     </View>
-                                    <Text style={styles.heroSubtitle}>PRIVATE AI TUTOR</Text>
+                                    <Text style={styles.heroSubtitle}>PRIVATE LEARNING</Text>
                                 </View>
 
                                 <Text style={styles.heroTitle}>Mirah AI Studio</Text>
                                 <Text style={styles.heroDescription}>
-                                    Your private French tutor. Practice any topic, get instant feedback, and enjoy individual learning instances hidden from others.
+                                    Your private French tutor, reimagined. Experience individual learning instances tailored to your progress.
                                 </Text>
 
-                                {/* Action row */}
+                                {/* Action row with Clean Action Button */}
                                 <View style={styles.heroActionRow}>
-                                    <View style={[styles.heroStartBtn, { backgroundColor: goldColor }]}>
-                                        <Text style={[styles.heroStartBtnText, { color: navyColor }]}>Enter Studio</Text>
-                                        <Ionicons name="mic-outline" size={18} color={navyColor} />
-                                    </View>
-                                    <View style={styles.heroStats}>
+                                    <TouchableOpacity
+                                        style={[styles.heroActionBtn, { backgroundColor: goldColor }]}
+                                        onPress={() => navigation.navigate('ConversationSimulator')}
+                                    >
+                                        <Text style={[styles.heroActionBtnText, { color: navyColor }]}>Enter Studio</Text>
+                                        <View style={[styles.heroActionBtnIcon, { backgroundColor: 'rgba(27,54,93,0.15)' }]}>
+                                            <Ionicons name="arrow-forward" size={16} color={navyColor} />
+                                        </View>
+                                    </TouchableOpacity>
+
+                                    <View style={styles.heroInstanceBadge}>
                                         <Ionicons name="shield-checkmark" size={16} color="rgba(255,255,255,0.7)" />
-                                        <Text style={styles.heroStatsText}>Private Instance</Text>
+                                        <Text style={styles.heroInstanceText}>Private Instance</Text>
                                     </View>
                                 </View>
                             </View>
@@ -456,95 +464,102 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         letterSpacing: 0.5,
     },
-    heroAiBadge: {
+    heroGlassBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.4)',
         paddingHorizontal: 12,
         paddingVertical: 8,
         borderRadius: 20,
         gap: 6,
         borderWidth: 1,
-        borderColor: 'rgba(255,215,0,0.3)',
+        borderColor: 'rgba(255,255,255,0.15)',
+        overflow: 'hidden',
     },
     heroAiText: {
-        color: '#FFD700',
         fontSize: 11,
         fontWeight: '800',
         letterSpacing: 0.5,
     },
     heroBottomContent: {
-        gap: 12,
+        gap: 10,
     },
     heroTagRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
     },
-    heroNewTag: {
-        backgroundColor: '#EF4444',
+    heroPremiumTag: {
         paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 6,
+        borderRadius: 8,
     },
-    heroNewTagText: {
-        color: '#FFF',
+    heroPremiumTagText: {
         fontSize: 10,
         fontWeight: '900',
-        letterSpacing: 1,
+        letterSpacing: 1.2,
     },
     heroSubtitle: {
-        color: 'rgba(255,255,255,0.8)',
-        fontSize: 13,
-        fontWeight: '700',
+        color: 'rgba(255,255,255,0.9)',
+        fontSize: 12,
+        fontWeight: '800',
         textTransform: 'uppercase',
-        letterSpacing: 1.5,
+        letterSpacing: 2,
     },
     heroTitle: {
         color: '#FFF',
-        fontSize: 36,
+        fontSize: 42,
         fontWeight: '900',
-        letterSpacing: -1,
-        lineHeight: 40,
+        letterSpacing: -1.5,
+        lineHeight: 46,
     },
     heroDescription: {
-        color: 'rgba(255,255,255,0.85)',
-        fontSize: 16,
+        color: 'rgba(255,255,255,0.9)',
+        fontSize: 14,
         fontWeight: '500',
-        lineHeight: 24,
-        maxWidth: '95%',
+        lineHeight: 22,
+        maxWidth: '90%',
     },
     heroActionRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginTop: 8,
+        marginTop: 12,
     },
-    heroStartBtn: {
+    heroActionBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: 20,
-        paddingVertical: 14,
+        paddingLeft: 20,
+        paddingRight: 8,
+        paddingVertical: 8,
+        borderRadius: 30,
+        gap: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    heroActionBtnText: {
+        fontSize: 15,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+    heroActionBtnIcon: {
+        width: 32,
+        height: 32,
         borderRadius: 16,
-        gap: 10,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.25)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    heroStartBtnText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    heroStats: {
+    heroInstanceBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 8,
     },
-    heroStatsText: {
-        color: 'rgba(255,255,255,0.7)',
-        fontSize: 14,
-        fontWeight: '600',
+    heroInstanceText: {
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 13,
+        fontWeight: '700',
     },
     // Focus Card (Goal)
     sectionContainer: {
