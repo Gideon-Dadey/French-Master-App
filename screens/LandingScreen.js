@@ -35,7 +35,7 @@ export default function LandingScreen({ navigation }) {
   }, []);
 
   return (
-    <View style={[styles.container, { backgroundColor: '#FCFCFC' }]}>
+    <View style={[styles.container, { backgroundColor: '#F8F6F3' }]}>
       <StatusBar barStyle="dark-content" />
 
       <ScrollView
@@ -62,15 +62,14 @@ export default function LandingScreen({ navigation }) {
             <View style={styles.topArea}>
               <Text style={styles.welcomeText}>Welcome to</Text>
               <Text style={styles.appName}>FRENCH MASTER</Text>
-              <Text style={styles.tagline}>Master French with Elegance</Text>
             </View>
           </View>
 
           {/* Hero Text */}
           <View style={styles.textWrapper}>
-            <Text style={styles.title}>Immersion Mastery</Text>
+            <Text style={styles.title}>Master French with Elegance</Text>
             <Text style={styles.subtitle}>
-              Learn French naturally through real-world simulations and organic conversations.
+              Professional and Modern.{"\n"}Clear and Clean.
             </Text>
           </View>
         </Animated.View>
@@ -131,11 +130,22 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 30, // Softer curves matching the icon shape
   },
+  topArea: {
+    alignItems: 'center',
+  },
+  welcomeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5A6578',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
   appName: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '800',
-    color: '#1A355E',
-    letterSpacing: 6, // Wider tracking for luxury feel
+    color: '#1E3A5F',
+    letterSpacing: 8,
     textTransform: 'uppercase',
   },
   heroWrapper: {
@@ -157,19 +167,22 @@ const styles = StyleSheet.create({
     marginBottom: 60,
   },
   title: {
-    fontSize: 34,
+    fontSize: 36,
     fontWeight: '900',
-    color: '#1A355E',
+    color: '#1E3A5F',
     textAlign: 'center',
     marginBottom: 16,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   subtitle: {
-    fontSize: 17,
-    color: '#6A7E91',
+    fontSize: 18,
+    color: '#1E3A5F',
     textAlign: 'center',
-    lineHeight: 26,
-    fontWeight: '400',
+    lineHeight: 28,
+    fontWeight: '500',
+    opacity: 0.8,
+    maxWidth: 280,
   },
   footer: {
     width: '100%',
@@ -180,12 +193,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1A355E',
+    backgroundColor: '#1E3A5F',
     width: '100%',
     paddingVertical: 18,
-    borderRadius: 18,
+    borderRadius: 14,
     gap: 12,
-    shadowColor: '#1A355E',
+    shadowColor: '#1E3A5F',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.25,
     shadowRadius: 15,
