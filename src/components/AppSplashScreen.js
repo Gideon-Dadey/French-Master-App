@@ -13,7 +13,7 @@ export default function AppSplashScreen() {
                     resizeMode="contain"
                 />
             </View>
-            <ActivityIndicator size="large" color="#1E88E5" style={styles.loader} />
+            <ActivityIndicator size="large" color="#1A355E" style={styles.loader} />
         </View>
     );
 }

@@ -107,9 +107,8 @@ export default function RegisterScreen({ navigation }) {
               }
             ]}
           >
-            <View style={styles.iconWrapper}>
-              <View style={styles.circleBg} />
-              <Ionicons name="person-add-sharp" size={60} color="#1A355E" />
+            <View style={styles.logoContainer}>
+              <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
             </View>
             <Text style={styles.title}>Join the Journey</Text>
             <Text style={styles.subtitle}>Start your path to French fluency today</Text>
@@ -245,18 +244,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 30,
   },
-  iconWrapper: {
-    width: 120,
-    height: 120,
+  logoContainer: {
+    width: 140,
+    height: 140,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
+    shadowColor: '#1A355E',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
   },
-  circleBg: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#E8EDF1',
-    borderRadius: 60,
-    opacity: 0.8,
+  logo: {
+    width: '100%',
+    height: '100%',
   },
   title: {
     fontSize: 28,

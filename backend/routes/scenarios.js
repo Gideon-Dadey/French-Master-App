@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, optionalAuth } = require('../middleware/auth');
 
 // This could eventually be a DB model, but for now we'll serve it from here
 const SCENARIOS = [
@@ -99,7 +99,7 @@ const SCENARIOS = [
     },
 ];
 
-router.get('/', protect, async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
     res.json({
         success: true,
         data: SCENARIOS

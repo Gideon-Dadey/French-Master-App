@@ -159,11 +159,16 @@ export default function LearnerHomeScreen({ navigation }) {
                 {/* Ultra-Modern Header Section */}
                 <View style={styles.headerContainer}>
                     <View style={styles.headerTopRow}>
-                        <View>
-                            <Text style={[styles.headerGreeting, { color: navyColor }]}>
-                                {new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'},
-                            </Text>
-                            <Text style={[styles.headerName, { color: navyColor }]}>{user?.firstName || 'Learner'}</Text>
+                        <View style={styles.headerTitleArea}>
+                            <View style={styles.headerLogoContainer}>
+                                <Image source={require('../assets/logo.png')} style={styles.headerLogo} resizeMode="contain" />
+                            </View>
+                            <View>
+                                <Text style={[styles.headerGreeting, { color: navyColor }]}>
+                                    {new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'},
+                                </Text>
+                                <Text style={[styles.headerName, { color: navyColor }]}>{user?.firstName || 'Learner'}</Text>
+                            </View>
                         </View>
                         <TouchableOpacity
                             style={[styles.profileButton, { backgroundColor: lightBlue, borderColor: goldColor + '40', borderWidth: 1 }]}
@@ -195,8 +200,9 @@ export default function LearnerHomeScreen({ navigation }) {
                         activeOpacity={0.97}
                     >
                         <Image
-                            source={{ uri: IMMERSION_IMAGES[currentImageIndex] }}
+                            source={require('../assets/mirah_tutor.png')}
                             style={styles.heroImage}
+                            resizeMode="cover"
                         />
 
                         <LinearGradient
@@ -419,6 +425,27 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 16,
+    },
+    headerTitleArea: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    headerLogoContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: '#FFF',
+        padding: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    headerLogo: {
+        width: '100%',
+        height: '100%',
     },
     headerGreeting: {
         fontSize: 15,

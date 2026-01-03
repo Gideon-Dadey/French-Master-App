@@ -277,8 +277,8 @@ export default function OnboardingScreen({ navigation }) {
     const renderFinalStep = () => (
         <View style={styles.stepContainer}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-                <View style={[styles.successIcon, { backgroundColor: '#2E7D5A15' }]}>
-                    <Ionicons name="sparkles" size={60} color="#2E7D5A" />
+                <View style={styles.successLogoContainer}>
+                    <Image source={require('../assets/logo.png')} style={styles.successLogo} resizeMode="contain" />
                 </View>
                 <Text style={[styles.stepTitle, { color: '#1A355E', textAlign: 'center' }]}>You're all set!</Text>
                 <Text style={[styles.stepSub, { color: '#6A7E91', textAlign: 'center' }]}>
@@ -475,14 +475,22 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginTop: 2,
     },
-    successIcon: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
+    successLogoContainer: {
+        width: 160,
+        height: 160,
         alignItems: 'center',
         justifyContent: 'center',
         alignSelf: 'center',
         marginVertical: 40,
+        shadowColor: '#1A355E',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 5,
+    },
+    successLogo: {
+        width: '100%',
+        height: '100%',
     },
     summaryCard: {
         padding: 24,

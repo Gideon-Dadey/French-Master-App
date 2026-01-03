@@ -118,9 +118,8 @@ export default function LoginScreen({ navigation }) {
               }
             ]}
           >
-            <View style={styles.iconWrapper}>
-              <View style={styles.circleBg} />
-              <Ionicons name="log-in-sharp" size={60} color="#1A355E" />
+            <View style={styles.logoContainer}>
+              <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
             </View>
             <Text style={styles.title}>Welcome back</Text>
             <Text style={styles.subtitle}>Sign in to continue your French mastery</Text>
@@ -241,18 +240,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  iconWrapper: {
-    width: 140,
-    height: 140,
+  logoContainer: {
+    width: 160,
+    height: 160,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
+    shadowColor: '#1A355E',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
   },
-  circleBg: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#E8EDF1',
-    borderRadius: 70,
-    opacity: 0.8,
+  logo: {
+    width: '100%',
+    height: '100%',
   },
   title: {
     fontSize: 28,

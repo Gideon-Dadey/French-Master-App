@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, optionalAuth } = require('../middleware/auth');
 const aiService = require('../utils/aiService');
 
 router.post('/generate-content', protect, authorize('instructor', 'admin'), async (req, res) => {
@@ -127,7 +127,7 @@ router.post('/evaluate-pronunciation', protect, async (req, res) => {
   }
 });
 
-router.post('/chat', protect, async (req, res) => {
+router.post('/chat', optionalAuth, async (req, res) => {
   try {
     console.log('AI Chat Request Body:', JSON.stringify(req.body, null, 2));
     const { message, history } = req.body;

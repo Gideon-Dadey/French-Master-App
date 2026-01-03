@@ -254,7 +254,9 @@ export default function ProfileScreen({ navigation }) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', padding: 30 }]}>
         <StatusBar style={isDarkMode ? 'light' : 'dark'} />
-        <Ionicons name="person-circle-outline" size={80} color={theme.textSecondary} style={{ marginBottom: 20 }} />
+        <View style={styles.guestLogoContainer}>
+          <Image source={require('../assets/logo.png')} style={styles.guestLogo} resizeMode="contain" />
+        </View>
         <Text style={[styles.profileName, { color: theme.text, textAlign: 'center', marginBottom: 10 }]}>Guest User</Text>
         <Text style={[styles.profileEmail, { color: theme.textSecondary, textAlign: 'center', marginBottom: 30 }]}>
           Log in to track your progress and manage your profile.
@@ -916,5 +918,21 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
+  },
+  guestLogoContainer: {
+    width: 140,
+    height: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: '#1A355E',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  guestLogo: {
+    width: '100%',
+    height: '100%',
   },
 });
