@@ -166,7 +166,8 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
   useEffect(() => {
     const loadSavedBackground = async () => {
       try {
-        const savedBackground = await AsyncStorage.getItem(`chat_background_${groupId}`);
+        const userId = user?.id || user?._id || 'default';
+        const savedBackground = await AsyncStorage.getItem(`chat_background_${groupId}_${userId}`);
         if (savedBackground) {
           setChatBackground(JSON.parse(savedBackground));
         }
@@ -175,23 +176,24 @@ export default function StudyGroupDetailScreen({ route, navigation }) {
       }
     };
     loadSavedBackground();
-  }, [groupId]);
+  }, [groupId, user?.id, user?._id]);
 
   // Save background when it changes
   useEffect(() => {
     const saveBackground = async () => {
       try {
+        const userId = user?.id || user?._id || 'default';
         if (chatBackground) {
-          await AsyncStorage.setItem(`chat_background_${groupId}`, JSON.stringify(chatBackground));
+          await AsyncStorage.setItem(`chat_background_${groupId}_${userId}`, JSON.stringify(chatBackground));
         } else {
-          await AsyncStorage.removeItem(`chat_background_${groupId}`);
+          await AsyncStorage.removeItem(`chat_background_${groupId}_${userId}`);
         }
       } catch (error) {
         console.log('Failed to save background:', error);
       }
     };
     saveBackground();
-  }, [chatBackground, groupId]);
+  }, [chatBackground, groupId, user?.id, user?._id]);
 
   const [showGroupOptions, setShowGroupOptions] = useState(false);
   const [showEditGroup, setShowEditGroup] = useState(false);
