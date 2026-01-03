@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     Text,
@@ -20,6 +20,7 @@ import { useTheme } from '../src/context/ThemeContext';
 import { getThemeColors, themeShadows } from '../src/utils/organicTheme';
 import { usersAPI } from '../src/services/api';
 import LoadingSpinner from '../src/components/LoadingSpinner';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -76,6 +77,23 @@ export default function OnboardingScreen({ navigation }) {
     const scrollX = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(0)).current;
 
+    useEffect(() => {
+        const checkStatus = async () => {
+            // Skip if already onboarded (authenticated)
+            if (isAuthenticated && user?.preferences?.hasOnboarded) {
+                navigation.replace('Main');
+                return;
+            }
+            // Skip if already onboarded (local guest)
+            const localStatus = await AsyncStorage.getItem('hasOnboardedLocal');
+            if (!isAuthenticated && localStatus === 'true') {
+                navigation.replace('Main');
+                return;
+            }
+        };
+        checkStatus();
+    }, [isAuthenticated, user]);
+
     const handleNext = async () => {
         if (currentStep < 3) {
             Animated.timing(slideAnim, {
@@ -97,6 +115,7 @@ export default function OnboardingScreen({ navigation }) {
                     };
                     await usersAPI.updateProfile({ preferences });
                     await updateUser({ preferences });
+                    await AsyncStorage.setItem('hasOnboardedLocal', 'true');
                     navigation.replace('Main');
                 } catch (error) {
                     console.error('Failed to save onboarding data:', error);
@@ -105,6 +124,7 @@ export default function OnboardingScreen({ navigation }) {
                     setSaving(false);
                 }
             } else {
+                await AsyncStorage.setItem('hasOnboardedLocal', 'true');
                 navigation.replace('Main');
             }
         }

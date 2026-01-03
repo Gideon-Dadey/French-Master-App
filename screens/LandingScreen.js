@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { getThemeColors, themeShadows } from '../src/utils/organicTheme';
 
@@ -20,6 +21,7 @@ const { width, height } = Dimensions.get('window');
 export default function LandingScreen({ navigation }) {
   const { isDarkMode } = useTheme();
   const theme = getThemeColors(isDarkMode);
+  const { isAuthenticated } = useAuth();
 
   // Animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -27,12 +29,16 @@ export default function LandingScreen({ navigation }) {
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
+    if (isAuthenticated) {
+      navigation.replace('Main');
+      return;
+    }
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, tension: 40, friction: 10, useNativeDriver: true }),
       Animated.spring(scaleAnim, { toValue: 1, tension: 40, friction: 10, useNativeDriver: true }),
     ]).start();
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <View style={[styles.container, { backgroundColor: '#F8F6F3' }]}>
