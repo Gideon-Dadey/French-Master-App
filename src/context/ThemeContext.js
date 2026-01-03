@@ -59,17 +59,26 @@ export const ThemeProvider = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Helper to get user-specific theme key
+  const getThemeKey = () => (user?._id ? `theme_${user._id}` : 'theme_guest');
+
   useEffect(() => {
     loadThemePreference();
-  }, [isAuthenticated]);
+  }, [user?._id, isAuthenticated]);
 
   const loadThemePreference = async () => {
     try {
-      const savedTheme = await SecureStore.getItemAsync('theme');
+      const themeKey = getThemeKey();
+      const savedTheme = await SecureStore.getItemAsync(themeKey);
+
       if (savedTheme) {
         setIsDarkMode(savedTheme === 'dark');
       } else if (isAuthenticated && user?.preferences?.theme) {
+        // Fallback to server preferences if no local preference exists for this user
         setIsDarkMode(user.preferences.theme === 'dark');
+      } else if (!user?._id) {
+        // Default for guests or when logging out
+        setIsDarkMode(false);
       }
     } catch (error) {
       console.error('Failed to load theme preference:', error);
@@ -83,7 +92,8 @@ export const ThemeProvider = ({ children }) => {
     setIsDarkMode(newTheme);
 
     try {
-      await SecureStore.setItemAsync('theme', newTheme ? 'dark' : 'light');
+      const themeKey = getThemeKey();
+      await SecureStore.setItemAsync(themeKey, newTheme ? 'dark' : 'light');
 
       if (isAuthenticated) {
         try {

@@ -49,9 +49,12 @@ export const CurrencyProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
+  // Helper to get user-specific currency key
+  const getCurrencyKey = () => (user?._id ? `userCurrency_${user._id}` : 'userCurrency_guest');
+
   useEffect(() => {
     initializeCurrency();
-  }, [user]);
+  }, [user?._id]);
 
   const initializeCurrency = async () => {
     try {
@@ -63,7 +66,8 @@ export const CurrencyProvider = ({ children }) => {
         return;
       }
 
-      const savedCurrency = await SecureStore.getItemAsync('userCurrency');
+      const currencyKey = getCurrencyKey();
+      const savedCurrency = await SecureStore.getItemAsync(currencyKey);
       if (savedCurrency && CURRENCIES[savedCurrency]) {
         setCurrency(savedCurrency);
         setLoading(false);
@@ -75,9 +79,11 @@ export const CurrencyProvider = ({ children }) => {
         setCountry(detectedCountry);
         const countryCurrency = COUNTRY_TO_CURRENCY[detectedCountry] || 'GHS';
         setCurrency(countryCurrency);
-        await SecureStore.setItemAsync('userCurrency', countryCurrency);
+        // Do not auto-save guest detection to avoid clobbering other users
+        if (user?._id) {
+          await SecureStore.setItemAsync(getCurrencyKey(), countryCurrency);
+        }
       } else {
-
         setCurrency('GHS');
       }
     } catch (error) {
@@ -163,7 +169,8 @@ export const CurrencyProvider = ({ children }) => {
     }
 
     setCurrency(newCurrency);
-    await SecureStore.setItemAsync('userCurrency', newCurrency);
+    const currencyKey = getCurrencyKey();
+    await SecureStore.setItemAsync(currencyKey, newCurrency);
 
   };
 
