@@ -39,48 +39,7 @@ const DEFAULT_SCENARIOS = [
         icon: 'sparkles',
         isAi: true,
         steps: []
-    },
-    {
-        id: 'directions_tourist',
-        title: 'Lost in the City',
-        category: 'Travel',
-        difficulty: 'Advanced',
-        location: 'Rue de Rivoli',
-        description: 'Ask a local for directions to the museum.',
-        icon: 'map',
-        steps: [
-            {
-                id: 1,
-                speaker: 'Local',
-                text: 'Pardon, vous cherchez quelque chose?',
-                translation: 'Sorry, are you looking for something?',
-                options: [
-                    { id: 'a', text: 'Oui, je cherche le Louvre.', nextStep: 2, xp: 15, feedback: 'Clear explanation.' },
-                    { id: 'b', text: 'Je suis perdu.', nextStep: 2, xp: 10, feedback: 'Honest and helpful.' }
-                ]
-            },
-            {
-                id: 2,
-                speaker: 'Local',
-                text: 'Ah, le Louvre n\'est pas loin. Vous voyez le feu rouge?',
-                translation: 'Ah, the Louvre isn\'t far. Do you see the red light?',
-                options: [
-                    { id: 'a', text: 'Oui, je le vois.', nextStep: 3, xp: 10, feedback: 'Simple confirmation.' },
-                    { id: 'b', text: 'Lequel?', nextStep: 3, xp: 5, feedback: 'Clarification question.' }
-                ]
-            },
-            {
-                id: 3,
-                speaker: 'Local',
-                text: 'Tournez à gauche après le feu, c\'est tout droit.',
-                translation: 'Turn left after the light, it\'s straight ahead.',
-                options: [
-                    { id: 'a', text: 'Merci beaucoup pour votre aide!', nextStep: 'end', xp: 20, feedback: 'Very grateful and polite.' }
-                ]
-            }
-        ]
-    },
-
+    }
 ];
 
 export default function ConversationSimulatorScreen({ navigation }) {
@@ -164,10 +123,8 @@ export default function ConversationSimulatorScreen({ navigation }) {
             setLoading(true);
             const response = await scenariosAPI.getAll();
             if (response.data.success) {
-                // Filter out the scenarios we want to hide
-                const filtered = response.data.data.filter(s =>
-                    s.id !== 'cafe_morning' && s.id !== 'market_fresh'
-                );
+                // Only keep AI scenarios (Mirah)
+                const filtered = response.data.data.filter(s => s.isAi);
                 setScenarios(filtered);
             }
         } catch (error) {
