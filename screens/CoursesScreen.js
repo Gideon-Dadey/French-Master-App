@@ -11,45 +11,38 @@ import {
   Dimensions,
   Image,
   Animated,
-  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { coursesAPI } from '../src/services/api';
 import LoadingSpinner from '../src/components/LoadingSpinner';
 import ErrorMessage from '../src/components/ErrorMessage';
-import { spacing, fontSize, normalize } from '../src/utils/responsive';
 import { useTheme } from '../src/context/ThemeContext';
-import { premiumShadows, premiumColors, premiumBorderRadius } from '../src/utils/premiumDesign';
+import { themeShadows } from '../src/utils/organicTheme';
 import { getCourseImage } from '../src/utils/courseImages';
-import { formatCurrency } from '../src/utils/helpers';
 import Rating from '../src/components/Rating';
 import { useCurrency } from '../src/context/CurrencyContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = (SCREEN_WIDTH - spacing.lg * 3) / 2;
+const { width } = Dimensions.get('window');
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest', icon: 'time-outline' },
-  { value: 'rating', label: 'Highest Rated', icon: 'star' },
-  { value: 'popular', label: 'Most Popular', icon: 'trending-up' },
-  { value: 'price-low', label: 'Price: Low to High', icon: 'arrow-up' },
-  { value: 'price-high', label: 'Price: High to Low', icon: 'arrow-down' },
+  { value: 'rating', label: 'Top Rated', icon: 'star' },
+  { value: 'popular', label: 'Popular', icon: 'trending-up' },
 ];
 
 const CATEGORIES = [
-  { value: null, label: 'All Courses', icon: 'apps' },
-  { value: 'video-masterclass', label: 'Video Masterclass', icon: 'play-circle' },
+  { value: null, label: 'All', icon: 'apps' },
+  { value: 'video-masterclass', label: 'Video', icon: 'play-circle' },
   { value: 'french', label: 'French', icon: 'language' },
-  { value: 'english', label: 'English', icon: 'school' },
-  { value: 'exam-prep', label: 'Exam Prep', icon: 'document-text' },
-  { value: 'business', label: 'Business', icon: 'briefcase' },
-  { value: 'conversation', label: 'Conversation', icon: 'chatbubbles' },
   { value: 'grammar', label: 'Grammar', icon: 'book' },
+  { value: 'conversation', label: 'Speaking', icon: 'chatbubbles' },
 ];
 
 export default function CoursesScreen({ navigation, route }) {
-  const { colors, isDarkMode } = useTheme();
+  const { isDarkMode, organicColors: theme } = useTheme();
   const { formatPrice } = useCurrency();
   const [searchQuery, setSearchQuery] = useState('');
   const [courses, setCourses] = useState([]);
@@ -57,30 +50,20 @@ export default function CoursesScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState('list');
-  const [showFilters, setShowFilters] = useState(false);
-  const [showSort, setShowSort] = useState(false);
   const [selectedSort, setSelectedSort] = useState('newest');
   const [selectedCategory, setSelectedCategory] = useState(route.params?.category || null);
+  const [showSortPanel, setShowSortPanel] = useState(false);
   const searchTimeoutRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const [filters, setFilters] = useState({
-    category: route.params?.category || null,
-    level: null,
-    language: null,
-    price: null,
-    minRating: null,
-  });
+  // Premium colors
+  const navyColor = isDarkMode ? '#FFFFFF' : '#1E3A5F';
+  const goldColor = '#C9A227';
+  const surfaceColor = isDarkMode ? '#1C1C1E' : '#FFFFFF';
+  const mutedColor = isDarkMode ? '#8E8E93' : '#6B7280';
 
   useEffect(() => {
     if (route.params?.category !== undefined) {
-      setFilters(prev => {
-        if (prev.category !== route.params.category) {
-          return { ...prev, category: route.params.category };
-        }
-        return prev;
-      });
       setSelectedCategory(route.params.category);
     }
   }, [route.params?.category]);
@@ -89,27 +72,17 @@ export default function CoursesScreen({ navigation, route }) {
     loadCourses();
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 500,
+      duration: 400,
       useNativeDriver: true,
     }).start();
-  }, [filters, selectedSort]);
+  }, [selectedCategory, selectedSort]);
 
   useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     if (searchQuery.length === 0 || searchQuery.length >= 2) {
-      searchTimeoutRef.current = setTimeout(() => {
-        loadCourses();
-      }, 500);
+      searchTimeoutRef.current = setTimeout(() => loadCourses(), 400);
     }
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
+    return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); };
   }, [searchQuery]);
 
   const loadCourses = useCallback(async () => {
@@ -118,199 +91,146 @@ export default function CoursesScreen({ navigation, route }) {
       setError(null);
       const params = {
         search: searchQuery || undefined,
-        category: filters.category || undefined,
-        level: filters.level || undefined,
-        language: filters.language || undefined,
-        isFree: filters.price === 'free' ? 'true' : filters.price === 'paid' ? 'false' : undefined,
+        category: selectedCategory || undefined,
         sort: selectedSort,
         limit: 100,
       };
-      Object.keys(params).forEach(key =>
-        params[key] === null || params[key] === undefined ? delete params[key] : {}
-      );
+      Object.keys(params).forEach(key => params[key] == null && delete params[key]);
 
       const response = await coursesAPI.getAll(params);
       const allCourses = response.data.data || [];
-
-      // Separate featured courses
-      const featured = allCourses.filter(c => c.featured).slice(0, 3);
+      const featured = allCourses.filter(c => c.featured).slice(0, 4);
       const regular = allCourses.filter(c => !c.featured);
-
       setFeaturedCourses(featured);
       setCourses(regular);
-    } catch (error) {
-      console.error('Failed to load courses:', error);
-      setError('Failed to load courses. Please check your connection.');
+    } catch (err) {
+      console.error('Failed to load courses:', err);
+      setError('Unable to load courses');
       setCourses([]);
       setFeaturedCourses([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [searchQuery, filters, selectedSort, refreshing]);
+  }, [searchQuery, selectedCategory, selectedSort, refreshing]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadCourses();
   }, [loadCourses]);
 
-  const clearFilters = () => {
-    setFilters({ category: null, level: null, language: null, price: null, minRating: null });
-    setSearchQuery('');
-    setSelectedCategory(null);
-  };
-
-  const activeFiltersCount = Object.values(filters).filter(f => f !== null).length;
-
   const getLevelColor = (level) => {
-    const levelLower = (level || '').toLowerCase();
-    switch (levelLower) {
+    switch ((level || '').toLowerCase()) {
       case 'beginner': return '#10B981';
       case 'intermediate': return '#F59E0B';
       case 'advanced': return '#EF4444';
-      default: return '#3B82F6';
+      default: return '#6366F1';
     }
   };
 
-  const renderFeaturedCourse = ({ item: course, index }) => {
-    const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
+  // Premium Featured Card
+  const renderFeaturedCard = ({ item: course, index }) => {
+    const imageSource = course.thumbnail?.startsWith('http')
       ? { uri: course.thumbnail }
-      : getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
+      : getCourseImage(course._id || course.id, index, course.category, course.title);
 
     return (
       <TouchableOpacity
-        style={styles.featuredCard}
+        style={[styles.featuredCard, themeShadows.lg]}
         onPress={() => navigation.navigate('CourseDetail', { courseId: course._id || course.id })}
-        activeOpacity={0.9}
+        activeOpacity={0.95}
       >
-        <Image source={imageSource} style={styles.featuredImage} resizeMode="cover" />
+        <Image source={imageSource} style={styles.featuredImage} />
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.8)']}
-          style={styles.featuredGradient}
-        >
-          <View style={styles.featuredBadge}>
-            <Ionicons name="star" size={14} color="#FFD700" />
-            <Text style={styles.featuredBadgeText}>Featured</Text>
-          </View>
+          colors={['transparent', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.95)']}
+          locations={[0, 0.4, 1]}
+          style={StyleSheet.absoluteFill}
+        />
+
+        {/* Top Badge */}
+        <View style={styles.featuredTopBadge}>
+          <BlurView intensity={25} tint="dark" style={styles.featuredLevelBadge}>
+            <Ionicons name="star" size={12} color={goldColor} />
+            <Text style={styles.featuredLevelText}>FEATURED</Text>
+          </BlurView>
+        </View>
+
+        {/* Bottom Content */}
+        <View style={styles.featuredBottom}>
+          <Text style={styles.featuredCategory}>
+            {(course.category || 'MASTERCLASS').toUpperCase()}
+          </Text>
           <Text style={styles.featuredTitle} numberOfLines={2}>{course.title}</Text>
           <View style={styles.featuredMeta}>
-            <Rating rating={course.rating?.average || 0} size={14} showRating={true} />
-            <Text style={styles.featuredStudents}>{course.studentsEnrolled || 0} students</Text>
+            <View style={styles.featuredMetaItem}>
+              <Ionicons name="people" size={14} color="rgba(255,255,255,0.7)" />
+              <Text style={styles.featuredMetaText}>{course.studentsEnrolled || 0}</Text>
+            </View>
+            <View style={styles.featuredMetaItem}>
+              <Ionicons name="star" size={14} color={goldColor} />
+              <Text style={styles.featuredMetaText}>{course.rating?.average?.toFixed(1) || '4.8'}</Text>
+            </View>
           </View>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };
 
-  const renderListCourseCard = ({ item: course, index }) => {
-    const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
+  // Premium Course Card
+  const renderCourseCard = ({ item: course, index }) => {
+    const imageSource = course.thumbnail?.startsWith('http')
       ? { uri: course.thumbnail }
-      : getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
-
+      : getCourseImage(course._id || course.id, index, course.category, course.title);
     const levelColor = getLevelColor(course.level);
 
     return (
       <TouchableOpacity
-        style={[styles.listCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.lg]}
+        style={[styles.courseCard, { backgroundColor: surfaceColor, borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }, themeShadows.md]}
         onPress={() => navigation.navigate('CourseDetail', { courseId: course._id || course.id })}
-        activeOpacity={0.9}
+        activeOpacity={0.95}
       >
-        <View style={styles.listCardContent}>
-          <Image source={imageSource} style={styles.listCardImage} resizeMode="cover" />
-          <View style={styles.listCardInfo}>
-            <View style={styles.listCardHeader}>
-              <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
-                <Text style={styles.levelBadgeText}>{course.level || 'All'}</Text>
-              </View>
-              {course.featured && (
-                <View style={styles.featuredTag}>
-                  <Ionicons name="star" size={12} color="#FFD700" />
-                </View>
-              )}
+        <View style={styles.courseImageContainer}>
+          <Image source={imageSource} style={styles.courseImage} />
+          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.6)']} style={StyleSheet.absoluteFill} />
+          <View style={[styles.courseLevelBadge, { backgroundColor: levelColor }]}>
+            <Text style={styles.courseLevelText}>{(course.level || 'All').toUpperCase()}</Text>
+          </View>
+        </View>
+
+        <View style={styles.courseContent}>
+          <View style={styles.courseHeader}>
+            <Text style={[styles.courseCategory, { color: goldColor }]}>
+              {(course.category || 'Course').toUpperCase()}
+            </Text>
+            <View style={styles.courseRating}>
+              <Ionicons name="star" size={12} color={goldColor} />
+              <Text style={[styles.courseRatingText, { color: theme.text }]}>
+                {course.rating?.average?.toFixed(1) || '4.8'}
+              </Text>
             </View>
-            <Text style={[styles.listCardTitle, { color: colors.text }]} numberOfLines={2}>
-              {course.title}
-            </Text>
-            <Text style={[styles.listCardDescription, { color: colors.secondaryText }]} numberOfLines={2}>
-              {course.shortDescription || course.description || 'Learn professionally'}
-            </Text>
-            <View style={styles.listCardMeta}>
-              <Rating rating={course.rating?.average || 0} size={14} showRating={true} />
-              <View style={styles.listCardMetaItem}>
-                <Ionicons name="people-outline" size={14} color={colors.secondaryText} />
-                <Text style={[styles.listCardMetaText, { color: colors.secondaryText }]}>
+          </View>
+
+          <Text style={[styles.courseTitle, { color: theme.text }]} numberOfLines={2}>
+            {course.title}
+          </Text>
+
+          <View style={styles.courseFooter}>
+            <View style={styles.courseStats}>
+              <View style={styles.courseStat}>
+                <Ionicons name="people-outline" size={14} color={mutedColor} />
+                <Text style={[styles.courseStatText, { color: mutedColor }]}>
                   {course.studentsEnrolled || 0}
                 </Text>
               </View>
-              <View style={styles.listCardMetaItem}>
-                <Ionicons name="time-outline" size={14} color={colors.secondaryText} />
-                <Text style={[styles.listCardMetaText, { color: colors.secondaryText }]}>
+              <View style={styles.courseStat}>
+                <Ionicons name="time-outline" size={14} color={mutedColor} />
+                <Text style={[styles.courseStatText, { color: mutedColor }]}>
                   {course.duration || 0}h
                 </Text>
               </View>
             </View>
-            <View style={[styles.listCardFooter, { borderTopColor: colors.border }]}>
-              <View style={styles.listCardLessons}>
-                <Ionicons name="book-outline" size={14} color={colors.secondaryText} />
-                <Text style={[styles.listCardMetaText, { color: colors.secondaryText }]}>
-                  {course.totalLessons || 0} lessons
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderGridCourseCard = ({ item: course, index }) => {
-    const imageSource = course.thumbnail && (course.thumbnail.startsWith('http') || course.thumbnail.startsWith('https'))
-      ? { uri: course.thumbnail }
-      : getCourseImage(course._id || course.id, index, course.category || course.language, course.title);
-
-    const levelColor = getLevelColor(course.level);
-
-    return (
-      <TouchableOpacity
-        style={[styles.gridCard, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}
-        onPress={() => navigation.navigate('CourseDetail', { courseId: course._id || course.id })}
-        activeOpacity={0.9}
-      >
-        <View style={styles.gridCardImageContainer}>
-          <Image source={imageSource} style={styles.gridCardImage} resizeMode="cover" />
-          <View style={styles.gridCardOverlay}>
-            <View style={[styles.levelBadge, { backgroundColor: levelColor }]}>
-              <Text style={styles.levelBadgeText}>{course.level || 'All'}</Text>
-            </View>
-            {course.featured && (
-              <View style={styles.featuredTag}>
-                <Ionicons name="star" size={12} color="#FFD700" />
-              </View>
-            )}
-          </View>
-        </View>
-        <View style={styles.gridCardContent}>
-          <Text style={[styles.gridCardTitle, { color: colors.text }]} numberOfLines={2}>
-            {course.title}
-          </Text>
-          <Text style={[styles.gridCardDescription, { color: colors.secondaryText }]} numberOfLines={2}>
-            {course.shortDescription || course.description || 'Learn professionally'}
-          </Text>
-          <View style={styles.gridCardMeta}>
-            <Rating rating={course.rating?.average || 0} size={12} showRating={true} />
-            <View style={styles.gridCardMetaItem}>
-              <Ionicons name="people-outline" size={12} color={colors.secondaryText} />
-              <Text style={[styles.gridCardMetaText, { color: colors.secondaryText }]}>
-                {course.studentsEnrolled || 0}
-              </Text>
-            </View>
-          </View>
-          <View style={[styles.gridCardFooter, { borderTopColor: colors.border }]}>
-            <View style={styles.gridCardInfo}>
-              <Ionicons name="time-outline" size={12} color={colors.secondaryText} />
-              <Text style={[styles.gridCardMetaText, { color: colors.secondaryText }]}>
-                {course.duration || 0}h
-              </Text>
+            <View style={[styles.courseAction, { backgroundColor: goldColor }]}>
+              <Ionicons name="arrow-forward" size={14} color="#1E3A5F" />
             </View>
           </View>
         </View>
@@ -320,7 +240,7 @@ export default function CoursesScreen({ navigation, route }) {
 
   if (loading && courses.length === 0) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <LoadingSpinner />
       </View>
     );
@@ -328,360 +248,166 @@ export default function CoursesScreen({ navigation, route }) {
 
   if (error && courses.length === 0) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         <ErrorMessage message={error} onRetry={loadCourses} />
       </View>
     );
   }
 
   const allCourses = [...featuredCourses, ...courses];
-  const displayCourses = searchQuery || activeFiltersCount > 0 ? allCourses : courses;
+  const displayCourses = searchQuery || selectedCategory ? allCourses : courses;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <LinearGradient
-        colors={isDarkMode
-          ? ['#1a0a2e', '#16213e', '#0f3460']
-          : ['#667eea', '#764ba2', '#f093fb']
-        }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Premium Header */}
+      <View style={[styles.header, { backgroundColor: '#1E3A5F' }]}>
+        <LinearGradient
+          colors={['rgba(201, 162, 39, 0.15)', 'transparent']}
+          style={StyleSheet.absoluteFill}
+        />
         <View style={styles.headerTop}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
-            activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color="#FFF" />
           </TouchableOpacity>
-          <View style={styles.headerTitleContainer}>
-            <Text style={styles.headerTitle}>Explore Courses</Text>
-            <Text style={styles.headerSubtitle}>
-              {displayCourses.length} {displayCourses.length === 1 ? 'course' : 'courses'} available
-            </Text>
+          <View style={styles.headerTitleArea}>
+            <Text style={styles.headerLabel}>EXPLORE</Text>
+            <Text style={styles.headerTitle}>Courses</Text>
+          </View>
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeText}>{allCourses.length}</Text>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={goldColor} />}
         showsVerticalScrollIndicator={false}
       >
         {/* Search Bar */}
-        <Animated.View style={[styles.searchContainer, { opacity: fadeAnim }]}>
-          <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
-            <Ionicons name="search" size={20} color={colors.secondaryText} style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Search courses, topics, instructors..."
-              placeholderTextColor={colors.secondaryText}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color={colors.secondaryText} />
-              </TouchableOpacity>
-            )}
-          </View>
-        </Animated.View>
+        <View style={[styles.searchBar, { backgroundColor: surfaceColor, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }, themeShadows.sm]}>
+          <Ionicons name="search" size={20} color={mutedColor} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.text }]}
+            placeholder="Search courses..."
+            placeholderTextColor={mutedColor}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color={mutedColor} />
+            </TouchableOpacity>
+          )}
+        </View>
 
-        {/* Category Tabs */}
-        <Animated.View style={[styles.categoryContainer, { opacity: fadeAnim }]}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryScroll}
-          >
-            {CATEGORIES.map((cat) => (
-              <TouchableOpacity
-                key={cat.value || 'all'}
+        {/* Category Pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryScroll}
+        >
+          {CATEGORIES.map((cat) => (
+            <TouchableOpacity
+              key={cat.value || 'all'}
+              style={[
+                styles.categoryPill,
+                {
+                  backgroundColor: selectedCategory === cat.value ? '#1E3A5F' : surfaceColor,
+                  borderColor: selectedCategory === cat.value ? '#1E3A5F' : (isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
+                },
+              ]}
+              onPress={() => setSelectedCategory(cat.value)}
+            >
+              <Text
                 style={[
-                  styles.categoryChip,
-                  {
-                    backgroundColor: selectedCategory === cat.value
-                      ? premiumColors.primary.main
-                      : colors.card,
-                    borderColor: selectedCategory === cat.value
-                      ? premiumColors.primary.main
-                      : colors.border,
-                  },
-                  premiumShadows.sm
+                  styles.categoryPillText,
+                  { color: selectedCategory === cat.value ? '#FFF' : theme.text },
                 ]}
-                onPress={() => {
-                  setSelectedCategory(cat.value);
-                  setFilters({ ...filters, category: cat.value });
-                }}
-                activeOpacity={0.7}
               >
-                <Ionicons
-                  name={cat.icon}
-                  size={16}
-                  color={selectedCategory === cat.value ? '#FFFFFF' : colors.secondaryText}
-                />
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    { color: selectedCategory === cat.value ? '#FFFFFF' : colors.text }
-                  ]}
-                >
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </Animated.View>
+                {cat.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-        {/* Featured Courses */}
-        {featuredCourses.length > 0 && !searchQuery && activeFiltersCount === 0 && (
-          <Animated.View style={[styles.featuredSection, { opacity: fadeAnim }]}>
+        {/* Featured Section */}
+        {featuredCourses.length > 0 && !searchQuery && (
+          <Animated.View style={[styles.section, { opacity: fadeAnim }]}>
             <View style={styles.sectionHeader}>
-              <View>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Featured Courses</Text>
-                <Text style={[styles.sectionSubtitle, { color: colors.secondaryText }]}>
-                  Handpicked courses for you
-                </Text>
-              </View>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Featured</Text>
+              <Text style={[styles.sectionSubtitle, { color: mutedColor }]}>Handpicked for you</Text>
             </View>
             <FlatList
               data={featuredCourses}
-              renderItem={renderFeaturedCourse}
+              renderItem={renderFeaturedCard}
               keyExtractor={(item) => item._id || item.id}
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.featuredList}
+              contentContainerStyle={styles.featuredScroll}
+              snapToInterval={width * 0.78 + 16}
+              decelerationRate="fast"
             />
           </Animated.View>
         )}
 
-        {/* Controls Row */}
-        <Animated.View style={[styles.controlsRow, { opacity: fadeAnim }]}>
+        {/* Sort & Results */}
+        <View style={styles.controlsRow}>
+          <Text style={[styles.resultsText, { color: mutedColor }]}>
+            {displayCourses.length} courses
+          </Text>
           <TouchableOpacity
-            style={[styles.controlButton, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}
-            onPress={() => setShowFilters(!showFilters)}
-            activeOpacity={0.7}
+            style={[styles.sortButton, { backgroundColor: surfaceColor, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }]}
+            onPress={() => setShowSortPanel(!showSortPanel)}
           >
-            <Ionicons
-              name="filter"
-              size={18}
-              color={activeFiltersCount > 0 ? premiumColors.primary.main : colors.secondaryText}
-            />
-            <Text style={[
-              styles.controlButtonText,
-              { color: activeFiltersCount > 0 ? premiumColors.primary.main : colors.secondaryText }
-            ]}>
-              Filters
-            </Text>
-            {activeFiltersCount > 0 && (
-              <View style={[styles.filterBadge, { backgroundColor: premiumColors.primary.main }]}>
-                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.controlButton, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}
-            onPress={() => setShowSort(!showSort)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="swap-vertical" size={18} color={colors.secondaryText} />
-            <Text style={[styles.controlButtonText, { color: colors.secondaryText }]}>
-              {SORT_OPTIONS.find(s => s.value === selectedSort)?.label || 'Sort'}
+            <Ionicons name="swap-vertical" size={16} color={mutedColor} />
+            <Text style={[styles.sortButtonText, { color: theme.text }]}>
+              {SORT_OPTIONS.find(s => s.value === selectedSort)?.label}
             </Text>
           </TouchableOpacity>
+        </View>
 
-          <View style={[styles.viewModeToggle, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.sm]}>
-            <TouchableOpacity
-              style={[
-                styles.viewModeButton,
-                viewMode === 'list' && [styles.viewModeButtonActive, { backgroundColor: premiumColors.primary.main }]
-              ]}
-              onPress={() => setViewMode('list')}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="list"
-                size={18}
-                color={viewMode === 'list' ? '#FFFFFF' : colors.secondaryText}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.viewModeButton,
-                viewMode === 'grid' && [styles.viewModeButtonActive, { backgroundColor: premiumColors.primary.main }]
-              ]}
-              onPress={() => setViewMode('grid')}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="grid"
-                size={18}
-                color={viewMode === 'grid' ? '#FFFFFF' : colors.secondaryText}
-              />
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        {/* Sort Options */}
-        {showSort && (
-          <Animated.View style={[styles.sortPanel, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
+        {/* Sort Panel */}
+        {showSortPanel && (
+          <View style={[styles.sortPanel, { backgroundColor: surfaceColor, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }, themeShadows.md]}>
             {SORT_OPTIONS.map((option) => (
               <TouchableOpacity
                 key={option.value}
-                style={[
-                  styles.sortOption,
-                  selectedSort === option.value && { backgroundColor: premiumColors.primary.main + '20' }
-                ]}
-                onPress={() => {
-                  setSelectedSort(option.value);
-                  setShowSort(false);
-                }}
+                style={[styles.sortOption, selectedSort === option.value && { backgroundColor: goldColor + '15' }]}
+                onPress={() => { setSelectedSort(option.value); setShowSortPanel(false); }}
               >
-                <Ionicons
-                  name={option.icon}
-                  size={18}
-                  color={selectedSort === option.value ? premiumColors.primary.main : colors.secondaryText}
-                />
-                <Text style={[
-                  styles.sortOptionText,
-                  {
-                    color: selectedSort === option.value ? premiumColors.primary.main : colors.text,
-                    fontWeight: selectedSort === option.value ? '700' : '500'
-                  }
-                ]}>
+                <Ionicons name={option.icon} size={18} color={selectedSort === option.value ? goldColor : mutedColor} />
+                <Text style={[styles.sortOptionText, { color: selectedSort === option.value ? goldColor : theme.text }]}>
                   {option.label}
                 </Text>
-                {selectedSort === option.value && (
-                  <Ionicons name="checkmark" size={18} color={premiumColors.primary.main} />
-                )}
+                {selectedSort === option.value && <Ionicons name="checkmark" size={18} color={goldColor} />}
               </TouchableOpacity>
             ))}
-          </Animated.View>
+          </View>
         )}
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <Animated.View style={[styles.filtersPanel, { backgroundColor: colors.card, borderColor: colors.border }, premiumShadows.md]}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersContent}>
-              <View style={styles.filterGroup}>
-                <Text style={[styles.filterGroupLabel, { color: colors.secondaryText }]}>Level</Text>
-                <View style={styles.filterChipsRow}>
-                  {['beginner', 'intermediate', 'advanced', 'all-levels'].map((level) => (
-                    <TouchableOpacity
-                      key={level}
-                      style={[
-                        styles.filterChip,
-                        {
-                          backgroundColor: filters.level === level ? premiumColors.primary.main : colors.border,
-                        }
-                      ]}
-                      onPress={() => setFilters({ ...filters, level: filters.level === level ? null : level })}
-                    >
-                      <Text style={[
-                        styles.filterChipText,
-                        { color: filters.level === level ? '#FFFFFF' : colors.text }
-                      ]}>
-                        {level === 'all-levels' ? 'All Levels' : level.charAt(0).toUpperCase() + level.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              <View style={styles.filterGroup}>
-                <Text style={[styles.filterGroupLabel, { color: colors.secondaryText }]}>Language</Text>
-                <View style={styles.filterChipsRow}>
-                  {['french', 'english'].map((lang) => (
-                    <TouchableOpacity
-                      key={lang}
-                      style={[
-                        styles.filterChip,
-                        {
-                          backgroundColor: filters.language === lang ? premiumColors.primary.main : colors.border,
-                        }
-                      ]}
-                      onPress={() => setFilters({ ...filters, language: filters.language === lang ? null : lang })}
-                    >
-                      <Text style={[
-                        styles.filterChipText,
-                        { color: filters.language === lang ? '#FFFFFF' : colors.text }
-                      ]}>
-                        {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-
-
-              {activeFiltersCount > 0 && (
-                <TouchableOpacity
-                  style={[styles.clearAllButton, { backgroundColor: premiumColors.error + '20' }]}
-                  onPress={clearFilters}
-                >
-                  <Ionicons name="close-circle" size={18} color={premiumColors.error} />
-                  <Text style={[styles.clearAllText, { color: premiumColors.error }]}>Clear All</Text>
-                </TouchableOpacity>
-              )}
-            </ScrollView>
-          </Animated.View>
-        )}
-
-        {/* Results Count */}
-        <Text style={[styles.resultsCount, { color: colors.secondaryText }]}>
-          {displayCourses.length} {displayCourses.length === 1 ? 'result' : 'results'} found
-        </Text>
-
-        {/* Courses List/Grid */}
+        {/* Course List */}
         {displayCourses.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="book-outline" size={80} color={colors.secondaryText} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Courses Found</Text>
-            <Text style={[styles.emptyText, { color: colors.secondaryText }]}>
-              {searchQuery || activeFiltersCount > 0
-                ? 'Try adjusting your search or filters'
-                : 'No courses available at the moment'}
+            <View style={[styles.emptyIconCircle, { backgroundColor: goldColor + '15' }]}>
+              <Ionicons name="book-outline" size={48} color={goldColor} />
+            </View>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No Courses Found</Text>
+            <Text style={[styles.emptyText, { color: mutedColor }]}>
+              Try adjusting your search or filters
             </Text>
-            {(searchQuery || activeFiltersCount > 0) && (
-              <TouchableOpacity
-                style={[styles.clearSearchButton, { backgroundColor: premiumColors.primary.main }, premiumShadows.md]}
-                onPress={clearFilters}
-              >
-                <Text style={styles.clearSearchButtonText}>Clear Search & Filters</Text>
-              </TouchableOpacity>
-            )}
           </View>
         ) : (
-          <Animated.View style={{ opacity: fadeAnim }}>
-            {viewMode === 'list' ? (
-              <FlatList
-                key="list-view"
-                data={displayCourses}
-                renderItem={renderListCourseCard}
-                keyExtractor={(item) => item._id || item.id}
-                scrollEnabled={false}
-                ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-              />
-            ) : (
-              <FlatList
-                key="grid-view"
-                data={displayCourses}
-                renderItem={renderGridCourseCard}
-                keyExtractor={(item) => item._id || item.id}
-                numColumns={2}
-                scrollEnabled={false}
-                columnWrapperStyle={styles.gridRow}
-                ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
-              />
-            )}
+          <Animated.View style={[styles.coursesList, { opacity: fadeAnim }]}>
+            {displayCourses.map((course, index) => (
+              <View key={course._id || course.id || index}>
+                {renderCourseCard({ item: course, index })}
+              </View>
+            ))}
           </Animated.View>
         )}
 
@@ -695,439 +421,324 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  // Header
   header: {
-    paddingTop: 50,
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   backButton: {
-    marginRight: spacing.md,
+    marginRight: 16,
   },
-  headerTitleContainer: {
+  headerTitleArea: {
     flex: 1,
   },
-  headerTitle: {
-    fontSize: fontSize.xxl,
+  headerLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 11,
     fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: spacing.xs / 2,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  headerTitle: {
+    color: '#FFF',
+    fontSize: 28,
+    fontWeight: '900',
     letterSpacing: -0.5,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
-  headerSubtitle: {
-    fontSize: fontSize.sm,
-    color: 'rgba(255,255,255,0.9)',
+  headerBadge: {
+    backgroundColor: '#C9A227',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
   },
+  headerBadgeText: {
+    color: '#1E3A5F',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  // Scroll
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xxxl,
+    paddingTop: 20,
+    paddingHorizontal: 20,
   },
-  searchContainer: {
-    marginBottom: spacing.md,
-  },
+  // Search
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: premiumBorderRadius.xl,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
     borderWidth: 1,
-  },
-  searchIcon: {
-    marginRight: spacing.sm,
+    marginBottom: 16,
+    gap: 12,
   },
   searchInput: {
     flex: 1,
-    fontSize: fontSize.md,
-    paddingVertical: spacing.xs,
+    fontSize: 16,
+    fontWeight: '500',
   },
-  categoryContainer: {
-    marginBottom: spacing.lg,
-  },
+  // Categories
   categoryScroll: {
-    paddingRight: spacing.lg,
+    marginBottom: 24,
+    gap: 10,
   },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: premiumBorderRadius.full,
+  categoryPill: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
     borderWidth: 1,
-    marginRight: spacing.sm,
-    gap: spacing.xs,
   },
-  categoryChipText: {
-    fontSize: fontSize.sm,
+  categoryPillText: {
+    fontSize: 14,
     fontWeight: '600',
   },
-  featuredSection: {
-    marginBottom: spacing.xl,
+  // Sections
+  section: {
+    marginBottom: 28,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-    marginBottom: spacing.xs / 2,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: fontSize.sm,
+    fontSize: 14,
   },
-  featuredList: {
-    paddingRight: spacing.lg,
+  // Featured Cards
+  featuredScroll: {
+    paddingRight: 20,
   },
   featuredCard: {
-    width: SCREEN_WIDTH * 0.75,
-    height: 200,
-    borderRadius: premiumBorderRadius.xl,
-    marginRight: spacing.md,
+    width: width * 0.78,
+    height: 220,
+    borderRadius: 24,
     overflow: 'hidden',
+    marginRight: 16,
   },
   featuredImage: {
     width: '100%',
     height: '100%',
+    position: 'absolute',
   },
-  featuredGradient: {
+  featuredTopBadge: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+  },
+  featuredLevelBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 6,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  featuredLevelText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  featuredBottom: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: '60%',
-    padding: spacing.md,
-    justifyContent: 'flex-end',
+    padding: 20,
   },
-  featuredBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: premiumBorderRadius.base,
-    marginBottom: spacing.sm,
-    gap: spacing.xs / 2,
-  },
-  featuredBadgeText: {
-    color: '#FFFFFF',
-    fontSize: fontSize.xs,
-    fontWeight: '700',
+  featuredCategory: {
+    color: '#C9A227',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    marginBottom: 6,
   },
   featuredTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: spacing.xs,
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 10,
+    lineHeight: 26,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   featuredMeta: {
     flexDirection: 'row',
+    gap: 16,
+  },
+  featuredMetaItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: 5,
   },
-  featuredStudents: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: fontSize.sm,
+  featuredMetaText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13,
+    fontWeight: '600',
   },
+  // Controls
   controlsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
-    gap: spacing.sm,
+    marginBottom: 16,
   },
-  controlButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: premiumBorderRadius.base,
-    borderWidth: 1,
-    gap: spacing.xs,
-    flex: 1,
-  },
-  controlButtonText: {
-    fontSize: fontSize.sm,
+  resultsText: {
+    fontSize: 14,
     fontWeight: '600',
-    flex: 1,
   },
-  filterBadge: {
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  filterBadgeText: {
-    color: '#FFFFFF',
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-  },
-  viewModeToggle: {
+  sortButton: {
     flexDirection: 'row',
-    borderRadius: premiumBorderRadius.base,
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    padding: 2,
+    gap: 8,
   },
-  viewModeButton: {
-    padding: spacing.sm,
-    borderRadius: premiumBorderRadius.sm,
+  sortButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
-  viewModeButtonActive: {},
   sortPanel: {
-    borderRadius: premiumBorderRadius.lg,
+    borderRadius: 16,
     borderWidth: 1,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
+    padding: 8,
+    marginBottom: 16,
   },
   sortOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: premiumBorderRadius.base,
-    gap: spacing.sm,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    gap: 12,
   },
   sortOptionText: {
     flex: 1,
-    fontSize: fontSize.sm,
-  },
-  filtersPanel: {
-    borderRadius: premiumBorderRadius.lg,
-    borderWidth: 1,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  filtersContent: {
-    gap: spacing.md,
-  },
-  filterGroup: {
-    marginRight: spacing.lg,
-  },
-  filterGroupLabel: {
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-    marginBottom: spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  filterChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  filterChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: premiumBorderRadius.full,
-  },
-  filterChipText: {
-    fontSize: fontSize.sm,
+    fontSize: 14,
     fontWeight: '600',
   },
-  clearAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: premiumBorderRadius.full,
-    gap: spacing.xs,
-    alignSelf: 'flex-start',
+  // Course Cards
+  coursesList: {
+    gap: 16,
   },
-  clearAllText: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-  },
-  resultsCount: {
-    fontSize: fontSize.sm,
-    fontWeight: '500',
-    marginBottom: spacing.md,
-  },
-  listCard: {
-    borderRadius: premiumBorderRadius.xl,
+  courseCard: {
+    borderRadius: 20,
     borderWidth: 1,
     overflow: 'hidden',
   },
-  listCardContent: {
-    flexDirection: 'row',
-  },
-  listCardImage: {
-    width: 140,
+  courseImageContainer: {
     height: 140,
-  },
-  listCardInfo: {
-    flex: 1,
-    padding: spacing.md,
-    justifyContent: 'space-between',
-  },
-  listCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.xs,
-  },
-  levelBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: premiumBorderRadius.base,
-  },
-  levelBadgeText: {
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    textTransform: 'capitalize',
-  },
-  featuredTag: {
-    backgroundColor: 'rgba(255,215,0,0.2)',
-    padding: 4,
-    borderRadius: premiumBorderRadius.sm,
-  },
-  listCardTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
-  },
-  listCardDescription: {
-    fontSize: fontSize.sm,
-    marginBottom: spacing.sm,
-    lineHeight: 18,
-  },
-  listCardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  listCardMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs / 2,
-  },
-  listCardMetaText: {
-    fontSize: fontSize.sm,
-  },
-  listCardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-  },
-  listCardLessons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs / 2,
-  },
-  listCardPrice: {
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-  },
-  gridRow: {
-    justifyContent: 'space-between',
-  },
-  gridCard: {
-    width: CARD_WIDTH,
-    borderRadius: premiumBorderRadius.xl,
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginBottom: spacing.md,
-  },
-  gridCardImageContainer: {
     position: 'relative',
-    width: '100%',
-    height: 120,
   },
-  gridCardImage: {
+  courseImage: {
     width: '100%',
     height: '100%',
   },
-  gridCardOverlay: {
+  courseLevelBadge: {
     position: 'absolute',
-    top: spacing.sm,
-    left: spacing.sm,
-    right: spacing.sm,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    top: 12,
+    left: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
   },
-  gridCardContent: {
-    padding: spacing.md,
+  courseLevelText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  gridCardTitle: {
-    fontSize: fontSize.md,
-    fontWeight: '700',
-    marginBottom: spacing.xs,
-    lineHeight: 20,
+  courseContent: {
+    padding: 18,
   },
-  gridCardDescription: {
-    fontSize: fontSize.xs,
-    marginBottom: spacing.sm,
-    lineHeight: 16,
-  },
-  gridCardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  gridCardMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs / 2,
-  },
-  gridCardMetaText: {
-    fontSize: fontSize.xs,
-  },
-  gridCardFooter: {
+  courseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
+    marginBottom: 8,
   },
-  gridCardInfo: {
+  courseCategory: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  courseRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs / 2,
+    gap: 4,
   },
-  gridCardPrice: {
-    fontSize: fontSize.md,
+  courseRatingText: {
+    fontSize: 13,
     fontWeight: '700',
   },
+  courseTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 14,
+    lineHeight: 24,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  courseFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  courseStats: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  courseStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  courseStatText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  courseAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Empty State
   emptyContainer: {
-    paddingVertical: spacing.xxxl,
     alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyIconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 8,
   },
   emptyText: {
-    fontSize: fontSize.md,
+    fontSize: 15,
     textAlign: 'center',
-    marginBottom: spacing.xl,
-  },
-  clearSearchButton: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.md,
-    borderRadius: premiumBorderRadius.lg,
-  },
-  clearSearchButtonText: {
-    color: '#FFFFFF',
-    fontSize: fontSize.md,
-    fontWeight: '700',
   },
 });
