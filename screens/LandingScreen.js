@@ -60,11 +60,7 @@ export default function LandingScreen({ navigation }) {
             ]
           }
         ]}>
-          {/* Logo & Brand */}
           <View style={styles.brandWrapper}>
-            <View style={styles.logoContainer}>
-              <Image source={require('../assets/logo.png')} style={styles.logo} />
-            </View>
             <View style={styles.topArea}>
               <Text style={styles.welcomeText}>Welcome to</Text>
               <Text style={styles.appName}>FRENCH MASTER</Text>

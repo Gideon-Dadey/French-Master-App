@@ -5,19 +5,12 @@
     "version": "2.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/logo.png",
-    "splash": {
-      "image": "./assets/logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FFFFFF"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.frenchmaster.app",
-      "icon": "./assets/logo.png",
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to your camera to take profile photos.",
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select profile photos.",
@@ -27,7 +20,6 @@
     "android": {
       "package": "com.frenchmaster.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [
